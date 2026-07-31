@@ -8,23 +8,27 @@ export class WaveSpawner {
     this.spawnTimer = 0;
     this.totalToSpawnInWave = 0;
     this.spawnedCount = 0;
+    this.isBossWave = false;
   }
 
   startWave(waveNum) {
     this.currentWave = waveNum;
     this.waveState = 'SPAWNING';
-    // Trigger immediate spawn on start!
-    this.spawnTimer = 5.0; 
+    this.spawnTimer = 5.0; // Instant initial spawn
     this.spawnedCount = 0;
 
-    if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 14; // Asteroids
+    this.isBossWave = (this.currentWave === 5 || this.currentWave === 10);
+
+    if (this.isBossWave) {
+      this.totalToSpawnInWave = 1;
+      this.gameManager.spawnBoss();
+    } else if (this.currentWave === 1) {
+      this.totalToSpawnInWave = 14;
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 16; // Drones + Asteroids
+      this.totalToSpawnInWave = 16;
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 24; // Heavy siege
+      this.totalToSpawnInWave = 24;
     } else {
-      // Endless Mode
       this.totalToSpawnInWave = 24 + (this.currentWave - 3) * 10;
     }
 
@@ -32,6 +36,7 @@ export class WaveSpawner {
   }
 
   getWaveSubtitle() {
+    if (this.currentWave === 5 || this.currentWave === 10) return 'SECTOR DREADNOUGHT APPROACHING';
     if (this.currentWave === 1) return 'ASTEROID SHOWER DETECTED';
     if (this.currentWave === 2) return 'DRONE INCURSION INBOUND';
     if (this.currentWave === 3) return 'ORBITAL SIEGE - ALL UNITS ENGAGE';
@@ -41,15 +46,18 @@ export class WaveSpawner {
   update(dt) {
     if (this.waveState !== 'SPAWNING') return;
 
-    this.spawnTimer += dt;
+    if (this.isBossWave) {
+      this.waveState = 'WAITING_CLEAR';
+      return;
+    }
 
+    this.spawnTimer += dt;
     const spawnInterval = Math.max(0.5, 1.2 - this.currentWave * 0.15);
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
-      // Spawning decisions based on wave number
       if (this.currentWave === 1) {
         this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
       } else if (this.currentWave === 2) {
@@ -59,7 +67,6 @@ export class WaveSpawner {
           this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
         }
       } else {
-        // Wave 3 & Endless Mode: Mix of drones and large asteroids
         if (Math.random() > 0.4) {
           this.gameManager.spawnDrone();
         } else {
@@ -73,12 +80,12 @@ export class WaveSpawner {
     }
   }
 
-  checkWaveComplete(activeAsteroidsCount, activeDronesCount) {
-    if (this.waveState === 'WAITING_CLEAR' && activeAsteroidsCount === 0 && activeDronesCount === 0) {
+  checkWaveComplete(activeAsteroidsCount, activeDronesCount, bossActive) {
+    if (this.waveState === 'WAITING_CLEAR' && activeAsteroidsCount === 0 && activeDronesCount === 0 && !bossActive) {
       this.waveState = 'COMPLETED';
       setTimeout(() => {
-        this.startWave(this.currentWave + 1);
-      }, 2500);
+        this.gameManager.onWaveCompleted(this.currentWave);
+      }, 1800);
       return true;
     }
     return false;

@@ -2,9 +2,14 @@ import * as THREE from 'three';
 import { PlayerShip } from '../objects/PlayerShip.js';
 import { Asteroid } from '../objects/Asteroid.js';
 import { EnemyDrone } from '../objects/EnemyDrone.js';
+import { PowerUp } from '../objects/PowerUp.js';
+import { BossDreadnought } from '../objects/BossDreadnought.js';
 import { LaserBolt, Torpedo } from '../objects/Projectiles.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
+import { UpgradeSystem } from './UpgradeSystem.js';
+import { VoiceAnnouncer } from '../audio/VoiceAnnouncer.js';
+import { AchievementSystem } from './AchievementSystem.js';
 
 export class GameManager {
   constructor(spaceScene, postProcessing, particleManager, spaceAudio, controlsManager) {
@@ -14,39 +19,57 @@ export class GameManager {
     this.spaceAudio = spaceAudio;
     this.controlsManager = controlsManager;
 
-    this.state = 'START'; // 'START', 'PLAYING', 'GAME_OVER'
+    this.state = 'START'; // 'START', 'PLAYING', 'HANGAR', 'GAME_OVER'
 
-    // Core Stats
+    // Systems
+    this.upgradeSystem = new UpgradeSystem();
+    this.voiceAnnouncer = new VoiceAnnouncer();
+    this.achievementSystem = new AchievementSystem();
+
+    // Stats
     this.planetHp = 100;
     this.maxPlanetHp = 100;
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('orbital_vanguard_highscore') || '0', 10);
     this.totalKills = 0;
 
-    // Entities
+    // Active Entities
     this.playerShip = new PlayerShip(this.spaceScene.scene, this.particleManager);
     this.asteroids = [];
     this.drones = [];
+    this.powerUps = [];
     this.lasers = [];
     this.torpedoes = [];
     this.activeEmpPulse = null;
+    this.activeBoss = null;
+
+    // Active Power-Up Timers
+    this.overchargeTimer = 0;
+    this.stasisTimer = 0;
 
     // Subsystems
     this.collisionSystem = new CollisionSystem(this.particleManager, this.spaceAudio, this.spaceScene);
     this.waveSpawner = new WaveSpawner(this);
 
-    this.spaceHUD = null; // Bound later
+    this.spaceHUD = null;
   }
 
   setHUD(hud) {
     this.spaceHUD = hud;
     if (this.spaceHUD) {
       this.spaceHUD.updateHighScore(this.highScore);
+      this.spaceHUD.updateScrap(this.upgradeSystem.scrap);
+
+      this.achievementSystem.setCallback((ach) => {
+        this.spaceHUD.showAchievementToast(ach);
+        this.spaceAudio.playVictoryArpeggio();
+      });
     }
   }
 
   startGame() {
     this.resetState();
+    this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.state = 'PLAYING';
     this.waveSpawner.startWave(1);
     this.spaceAudio.ensureContext();
@@ -57,8 +80,9 @@ export class GameManager {
     this.planetHp = 100;
     this.score = 0;
     this.totalKills = 0;
+    this.overchargeTimer = 0;
+    this.stasisTimer = 0;
     this.playerShip.reset();
-
     this.clearAllEntities();
   }
 
@@ -69,22 +93,36 @@ export class GameManager {
     this.drones.forEach(d => d.destroy());
     this.drones = [];
 
+    this.powerUps.forEach(p => p.destroy());
+    this.powerUps = [];
+
     this.lasers.forEach(l => l.destroy());
     this.lasers = [];
 
     this.torpedoes.forEach(t => t.destroy());
     this.torpedoes = [];
 
+    if (this.activeBoss) {
+      this.activeBoss.destroy();
+      this.activeBoss = null;
+    }
+
     this.activeEmpPulse = null;
   }
 
   addScore(pts) {
     this.score += pts;
+    this.totalKills++;
     if (this.score > this.highScore) {
       this.highScore = this.score;
       localStorage.setItem('orbital_vanguard_highscore', this.highScore.toString());
       if (this.spaceHUD) this.spaceHUD.updateHighScore(this.highScore);
     }
+  }
+
+  addScrap(amount) {
+    this.upgradeSystem.addScrap(amount);
+    if (this.spaceHUD) this.spaceHUD.updateScrap(this.upgradeSystem.scrap);
   }
 
   damagePlanet(amount) {
@@ -110,17 +148,59 @@ export class GameManager {
     this.drones.push(drone);
   }
 
+  spawnBoss() {
+    this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Warning! Sector Dreadnought Approaching!", true);
+  }
+
+  spawnPowerUp(pos) {
+    const types = ['OVERCHARGE', 'REPAIR', 'STASIS', 'NUKE'];
+    const selected = types[Math.floor(Math.random() * types.length)];
+    this.powerUps.push(new PowerUp(this.spaceScene.scene, pos, selected));
+  }
+
+  collectPowerUp(type) {
+    this.voiceAnnouncer.announcePowerUp(type);
+    this.spaceAudio.playPowerUpSound();
+
+    if (type === 'OVERCHARGE') {
+      this.overchargeTimer = 8.0;
+    } else if (type === 'REPAIR') {
+      this.playerShip.shield = Math.min(this.playerShip.maxShield, this.playerShip.shield + 50);
+      this.planetHp = Math.min(this.maxPlanetHp, this.planetHp + 30);
+    } else if (type === 'STASIS') {
+      this.stasisTimer = 6.0;
+    } else if (type === 'NUKE') {
+      this.particleManager.createEmpShockwave(this.playerShip.meshGroup.position, 60);
+      this.asteroids.forEach(a => {
+        a.takeDamage(500);
+        this.addScore(a.scoreValue);
+      });
+      this.drones.forEach(d => {
+        d.takeDamage(500);
+        this.addScore(d.scoreValue);
+      });
+      this.spaceScene.addScreenShake(2.0);
+    }
+  }
+
   fireRapidLaser() {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0) return;
 
-    this.playerShip.laserCooldown = 0.12;
-
+    this.playerShip.laserCooldown = this.playerShip.laserFireDelay || 0.12;
     const pPos = this.playerShip.meshGroup.position;
-    const pRight = new THREE.Vector3(2.0, 0, -0.4).add(pPos);
-    const pLeft = new THREE.Vector3(-2.0, 0, -0.4).add(pPos);
 
-    this.lasers.push(new LaserBolt(this.spaceScene.scene, pRight, 0x00f3ff));
-    this.lasers.push(new LaserBolt(this.spaceScene.scene, pLeft, 0x00f3ff));
+    if (this.overchargeTimer > 0) {
+      // Quad-beam overcharge fire!
+      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(3.0, 0, -0.4).add(pPos), 0xffea00));
+      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(1.0, 0, -0.4).add(pPos), 0xffea00));
+      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-1.0, 0, -0.4).add(pPos), 0xffea00));
+      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-3.0, 0, -0.4).add(pPos), 0xffea00));
+    } else {
+      // Standard dual wingtip lasers
+      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(2.0, 0, -0.4).add(pPos), 0x00f3ff));
+      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-2.0, 0, -0.4).add(pPos), 0x00f3ff));
+    }
 
     this.spaceAudio.playLaserPew();
     this.spaceAudio.vibrate(10);
@@ -130,7 +210,6 @@ export class GameManager {
     if (this.state !== 'PLAYING' || this.playerShip.torpedoCooldown > 0) return;
 
     this.playerShip.torpedoCooldown = this.playerShip.maxTorpedoCD;
-
     const pPos = this.playerShip.meshGroup.position;
     const startPos = new THREE.Vector3(0, -0.3, -1.0).add(pPos);
 
@@ -149,6 +228,10 @@ export class GameManager {
       }
     });
 
+    if (this.activeBoss && !this.activeBoss.isDead) {
+      nearestTarget = this.activeBoss;
+    }
+
     if (nearestTarget) torpedo.setTarget(nearestTarget);
 
     this.torpedoes.push(torpedo);
@@ -160,11 +243,11 @@ export class GameManager {
     if (this.state !== 'PLAYING' || this.playerShip.pulseCooldown > 0) return;
 
     this.playerShip.pulseCooldown = this.playerShip.maxPulseCD;
-
     const pPos = this.playerShip.meshGroup.position;
     this.particleManager.createEmpShockwave(pPos, 30);
     this.activeEmpPulse = { currentRadius: 0.5, maxRadius: 30 };
 
+    this.achievementSystem.recordEmpUsed();
     this.spaceAudio.playEmpPulse();
     this.spaceAudio.vibrate([50, 30, 50]);
     this.spaceScene.addScreenShake(1.5);
@@ -174,6 +257,21 @@ export class GameManager {
     if (this.spaceHUD) {
       this.spaceHUD.showWaveBanner(waveNum, subtitle);
     }
+    this.voiceAnnouncer.announceWave(waveNum, subtitle);
+    this.achievementSystem.recordWaveReached(waveNum);
+  }
+
+  onWaveCompleted(completedWaveNum) {
+    this.state = 'HANGAR';
+    if (this.spaceHUD) {
+      this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem);
+    }
+  }
+
+  resumeNextWave() {
+    this.upgradeSystem.applyUpgradesToShip(this.playerShip);
+    this.state = 'PLAYING';
+    this.waveSpawner.startWave(this.waveSpawner.currentWave + 1);
   }
 
   onGameOver(reason = 'Defenses Breached') {
@@ -193,19 +291,24 @@ export class GameManager {
   }
 
   renderScene() {
-    // Direct WebGL rendering guarantees 100% visible 3D scene rendering across all browsers
     this.spaceScene.renderer.render(this.spaceScene.scene, this.spaceScene.camera);
   }
 
   update(dt) {
     if (this.state !== 'PLAYING') {
-      // Render background space scene preview continuously even on Start / GameOver screens!
       this.playerShip.update(dt, { x: 0, y: 0 });
       this.spaceScene.update(dt, { x: 0, y: 0 });
       this.particleManager.update();
       this.renderScene();
       return;
     }
+
+    // Power-Up timers update
+    if (this.overchargeTimer > 0) this.overchargeTimer -= dt;
+    if (this.stasisTimer > 0) this.stasisTimer -= dt;
+
+    const timeScale = this.stasisTimer > 0 ? 0.25 : 1.0;
+    const effectiveDt = dt * timeScale;
 
     // 1. Update Controls & Player Ship
     const inputDir = this.controlsManager.getInputVector();
@@ -216,13 +319,17 @@ export class GameManager {
     }
 
     // 2. Wave Spawner
-    this.waveSpawner.update(dt);
-    this.waveSpawner.checkWaveComplete(this.asteroids.length, this.drones.length);
+    this.waveSpawner.update(effectiveDt);
+    this.waveSpawner.checkWaveComplete(
+      this.asteroids.length,
+      this.drones.length,
+      !!(this.activeBoss && !this.activeBoss.isDead)
+    );
 
     // 3. Update Entities
     for (let i = this.asteroids.length - 1; i >= 0; i--) {
       const rock = this.asteroids[i];
-      rock.update(dt);
+      rock.update(effectiveDt);
       if (rock.isDead) {
         rock.destroy();
         this.asteroids.splice(i, 1);
@@ -231,7 +338,7 @@ export class GameManager {
 
     for (let i = 0; i < this.drones.length; i++) {
       const drone = this.drones[i];
-      const firePlasma = drone.update(dt, this.playerShip.meshGroup.position);
+      const firePlasma = drone.update(effectiveDt, this.playerShip.meshGroup.position);
 
       if (firePlasma) {
         const dPos = drone.meshGroup.position;
@@ -245,6 +352,27 @@ export class GameManager {
         drone.destroy();
         this.drones.splice(i, 1);
       }
+    }
+
+    for (let i = this.powerUps.length - 1; i >= 0; i--) {
+      const pow = this.powerUps[i];
+      pow.update(dt, this.playerShip.meshGroup.position);
+      if (pow.isDead) {
+        pow.destroy();
+        this.powerUps.splice(i, 1);
+      }
+    }
+
+    if (this.activeBoss && !this.activeBoss.isDead) {
+      const salvo = this.activeBoss.update(effectiveDt, this.playerShip.meshGroup.position);
+      if (salvo) {
+        const bPos = this.activeBoss.meshGroup.position;
+        this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true));
+        this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true));
+      }
+    } else if (this.activeBoss && this.activeBoss.isDead) {
+      this.activeBoss.destroy();
+      this.activeBoss = null;
     }
 
     for (let i = this.lasers.length - 1; i >= 0; i--) {
@@ -276,23 +404,23 @@ export class GameManager {
     // 5. Check Collisions
     this.collisionSystem.checkCollisions(this);
 
-    // 6. Update Audio Ambient Synth Pitch based on threat count
-    const totalThreats = this.asteroids.length + this.drones.length;
-    this.spaceAudio.updateThreatLevel(totalThreats);
-
-    // 7. Update HUD
+    // 6. Update HUD Status
     if (this.spaceHUD) {
       this.spaceHUD.updateStatus({
         planetHp: this.planetHp,
         playerShield: this.playerShip.shield,
         score: this.score,
+        scrap: this.upgradeSystem.scrap,
         waveNum: this.waveSpawner.currentWave,
         torpedoCdRatio: this.playerShip.torpedoCooldown / this.playerShip.maxTorpedoCD,
-        pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD
+        pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD,
+        bossHpRatio: this.activeBoss ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) : null,
+        overchargeActive: this.overchargeTimer > 0,
+        stasisActive: this.stasisTimer > 0
       });
     }
 
-    // 8. Update Camera & Scene
+    // 7. Update Scene & Render
     this.spaceScene.update(dt, this.playerShip.velocity);
     this.particleManager.update();
     this.renderScene();

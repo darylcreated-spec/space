@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export class CollisionSystem {
   constructor(particleManager, spaceAudio, spaceScene) {
     this.particleManager = particleManager;
@@ -6,211 +8,239 @@ export class CollisionSystem {
   }
 
   checkCollisions(gameManager) {
-    const { playerShip, asteroids, drones, lasers, torpedoes, activeEmpPulse } = gameManager;
+    const player = gameManager.playerShip;
+    const pPos = player.meshGroup.position;
 
-    // 1. Player Lasers vs Asteroids & Drones
-    for (let i = lasers.length - 1; i >= 0; i--) {
-      const laser = lasers[i];
-      if (laser.isEnemy || laser.isDead) continue;
-
-      const laserPos = laser.mesh.position;
-
-      // Check vs Asteroids
-      for (const rock of asteroids) {
-        if (rock.isDead) continue;
-        const dist = laserPos.distanceTo(rock.meshGroup.position);
-        if (dist < laser.radius + rock.radius) {
-          laser.isDead = true;
-          const killed = rock.takeDamage(laser.damage);
-          this.particleManager.createExplosion(laserPos, 0x00f3ff, 15, 0.5);
-          this.spaceAudio.playLaserHit();
-
-          if (killed) {
-            gameManager.addScore(rock.scoreValue);
-            this.particleManager.createExplosion(rock.meshGroup.position, 0x5a6375, 40, 1.2);
-            // Spawn split fragment rocks
-            const newFragments = rock.getSplitFragments();
-            gameManager.spawnAsteroidFragments(newFragments);
-          }
-          break;
-        }
-      }
-
-      if (laser.isDead) continue;
-
-      // Check vs Enemy Drones
-      for (const drone of drones) {
-        if (drone.isDead) continue;
-        const dist = laserPos.distanceTo(drone.meshGroup.position);
-        if (dist < laser.radius + drone.radius) {
-          laser.isDead = true;
-          const killed = drone.takeDamage(laser.damage);
-          this.particleManager.createExplosion(laserPos, 0xff0055, 20, 0.6);
-          this.spaceAudio.playLaserHit();
-
-          if (killed) {
-            gameManager.addScore(drone.scoreValue);
-            this.particleManager.createExplosion(drone.meshGroup.position, 0xff0077, 50, 1.5);
-            gameManager.totalKills++;
-          }
-          break;
-        }
+    // 1. Power-Up Collection by Player Ship
+    for (let i = gameManager.powerUps.length - 1; i >= 0; i--) {
+      const pow = gameManager.powerUps[i];
+      const dist = pPos.distanceTo(pow.meshGroup.position);
+      if (dist < player.radius + pow.radius) {
+        gameManager.collectPowerUp(pow.type);
+        pow.destroy();
+        gameManager.powerUps.splice(i, 1);
       }
     }
 
-    // 2. Torpedoes vs Targets (AoE Explosion)
-    for (let i = torpedoes.length - 1; i >= 0; i--) {
-      const torpedo = torpedoes[i];
-      if (torpedo.isDead) continue;
+    // 2. Lasers vs Threats & Boss
+    for (let i = gameManager.lasers.length - 1; i >= 0; i--) {
+      const laser = gameManager.lasers[i];
+      const lPos = laser.meshGroup.position;
 
-      const torpPos = torpedo.meshGroup.position;
-      let impacted = false;
+      if (laser.isEnemy) {
+        // Enemy plasma vs Player
+        const distP = lPos.distanceTo(pPos);
+        if (distP < player.radius + laser.radius) {
+          laser.destroy();
+          gameManager.lasers.splice(i, 1);
 
-      // Check vs Asteroids
-      for (const rock of asteroids) {
-        if (rock.isDead) continue;
-        if (torpPos.distanceTo(rock.meshGroup.position) < torpedo.radius + rock.radius) {
-          impacted = true;
-          break;
+          const dead = player.takeDamage(12);
+          this.particleManager.createExplosion(pPos, 0xff0055, 15);
+          this.spaceAudio.playExplosion();
+          this.spaceScene.addScreenShake(0.6);
+
+          if (dead) gameManager.onGameOver('Craft Shield Destroyed');
+          continue;
         }
-      }
+      } else {
+        // Player Lasers vs Asteroids
+        let hit = false;
+        for (let j = gameManager.asteroids.length - 1; j >= 0; j--) {
+          const rock = gameManager.asteroids[j];
+          const dist = lPos.distanceTo(rock.meshGroup.position);
 
-      // Check vs Drones
-      if (!impacted) {
-        for (const drone of drones) {
-          if (drone.isDead) continue;
-          if (torpPos.distanceTo(drone.meshGroup.position) < torpedo.radius + drone.radius) {
-            impacted = true;
+          if (dist < rock.radius + laser.radius) {
+            hit = true;
+            laser.destroy();
+            gameManager.lasers.splice(i, 1);
+
+            this.particleManager.createExplosion(lPos, 0x00f3ff, 12);
+            const dead = rock.takeDamage(25);
+            this.spaceAudio.playExplosion();
+
+            if (dead) {
+              gameManager.addScore(rock.scoreValue);
+              gameManager.addScrap(15);
+              gameManager.achievementSystem.recordAsteroidDestroyed();
+
+              if (Math.random() < 0.25) gameManager.spawnPowerUp(rock.meshGroup.position);
+
+              const frags = rock.getSplitFragments();
+              gameManager.spawnAsteroidFragments(frags);
+            }
             break;
           }
         }
-      }
 
-      if (impacted) {
-        torpedo.isDead = true;
-        this.particleManager.createExplosion(torpPos, 0xffea00, 70, 2.2);
-        this.spaceAudio.playTorpedoExplode();
+        if (hit) continue;
+
+        // Player Lasers vs Enemy Drones
+        for (let j = gameManager.drones.length - 1; j >= 0; j--) {
+          const drone = gameManager.drones[j];
+          const dist = lPos.distanceTo(drone.meshGroup.position);
+
+          if (dist < drone.radius + laser.radius) {
+            hit = true;
+            laser.destroy();
+            gameManager.lasers.splice(i, 1);
+
+            this.particleManager.createExplosion(lPos, 0xff0055, 18);
+            const dead = drone.takeDamage(20);
+            this.spaceAudio.playExplosion();
+
+            if (dead) {
+              gameManager.addScore(drone.scoreValue);
+              gameManager.addScrap(30);
+              gameManager.achievementSystem.recordDroneKill();
+
+              if (Math.random() < 0.4) gameManager.spawnPowerUp(drone.meshGroup.position);
+            }
+            break;
+          }
+        }
+
+        if (hit) continue;
+
+        // Player Lasers vs Boss Dreadnought
+        if (gameManager.activeBoss && !gameManager.activeBoss.isDead) {
+          const boss = gameManager.activeBoss;
+          const bPos = boss.meshGroup.position;
+          const distB = lPos.distanceTo(bPos);
+
+          if (distB < 16) {
+            laser.destroy();
+            gameManager.lasers.splice(i, 1);
+            this.particleManager.createExplosion(lPos, 0xffea00, 15);
+
+            let target = 'core';
+            if (boss.turretLeftHp > 0) target = 'turretLeft';
+            else if (boss.turretRightHp > 0) target = 'turretRight';
+
+            const dead = boss.takeDamage(target, 25);
+            if (dead) {
+              gameManager.addScore(boss.scoreValue);
+              gameManager.addScrap(300);
+              gameManager.achievementSystem.recordBossKilled();
+            }
+            continue;
+          }
+        }
+      }
+    }
+
+    // 3. Torpedoes vs Threats & Boss
+    for (let i = gameManager.torpedoes.length - 1; i >= 0; i--) {
+      const torpedo = gameManager.torpedoes[i];
+      const tPos = torpedo.meshGroup.position;
+
+      let hitTarget = false;
+      [...gameManager.asteroids, ...gameManager.drones].forEach(target => {
+        if (!target.isDead && tPos.distanceTo(target.meshGroup.position) < target.radius + torpedo.radius + 1.0) {
+          hitTarget = true;
+        }
+      });
+
+      if (hitTarget) {
+        torpedo.destroy();
+        gameManager.torpedoes.splice(i, 1);
+
+        this.particleManager.createExplosion(tPos, 0xffea00, 45);
+        this.spaceAudio.playTorpedoExplosion();
         this.spaceScene.addScreenShake(1.2);
 
-        // Apply AoE Damage to all nearby entities
-        for (const rock of asteroids) {
-          if (rock.isDead) continue;
-          const d = torpPos.distanceTo(rock.meshGroup.position);
-          if (d < torpedo.aoeRadius) {
-            const killed = rock.takeDamage(torpedo.damage);
-            if (killed) {
+        // AoE Blast Damage
+        gameManager.asteroids.forEach(rock => {
+          if (tPos.distanceTo(rock.meshGroup.position) < torpedo.aoeRadius) {
+            if (rock.takeDamage(80)) {
               gameManager.addScore(rock.scoreValue);
-              this.particleManager.createExplosion(rock.meshGroup.position, 0x5a6375, 30, 1.0);
-              gameManager.spawnAsteroidFragments(rock.getSplitFragments());
+              gameManager.addScrap(15);
+              gameManager.achievementSystem.recordAsteroidDestroyed();
             }
           }
-        }
+        });
 
-        for (const drone of drones) {
-          if (drone.isDead) continue;
-          const d = torpPos.distanceTo(drone.meshGroup.position);
-          if (d < torpedo.aoeRadius) {
-            const killed = drone.takeDamage(torpedo.damage);
-            if (killed) {
+        gameManager.drones.forEach(drone => {
+          if (tPos.distanceTo(drone.meshGroup.position) < torpedo.aoeRadius) {
+            if (drone.takeDamage(80)) {
               gameManager.addScore(drone.scoreValue);
-              this.particleManager.createExplosion(drone.meshGroup.position, 0xff0077, 45, 1.4);
-              gameManager.totalKills++;
+              gameManager.addScrap(30);
+              gameManager.achievementSystem.recordDroneKill();
+            }
+          }
+        });
+
+        if (gameManager.activeBoss && !gameManager.activeBoss.isDead) {
+          const boss = gameManager.activeBoss;
+          if (tPos.distanceTo(boss.meshGroup.position) < 20) {
+            if (boss.takeDamage('core', 120)) {
+              gameManager.addScore(boss.scoreValue);
+              gameManager.addScrap(300);
+              gameManager.achievementSystem.recordBossKilled();
             }
           }
         }
       }
     }
 
-    // 3. Active EMP Pulse Wave Shockwave vs Entities
-    if (activeEmpPulse) {
-      const pPos = playerShip.meshGroup.position;
-      const radius = activeEmpPulse.currentRadius;
+    // 4. EMP Shockwave vs Threats
+    if (gameManager.activeEmpPulse) {
+      const empRad = gameManager.activeEmpPulse.currentRadius;
 
-      // Destroys nearby asteroids and repels/damages drones
-      for (const rock of asteroids) {
-        if (rock.isDead) continue;
+      gameManager.asteroids.forEach(rock => {
         const d = pPos.distanceTo(rock.meshGroup.position);
-        if (Math.abs(d - radius) < 2.5) {
+        if (d < empRad + rock.radius) {
           rock.takeDamage(100);
-          this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 25, 0.8);
-          gameManager.addScore(rock.scoreValue);
+          this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 25);
         }
-      }
+      });
 
-      for (const drone of drones) {
-        if (drone.isDead) continue;
+      gameManager.drones.forEach(drone => {
         const d = pPos.distanceTo(drone.meshGroup.position);
-        if (Math.abs(d - radius) < 2.5) {
-          drone.takeDamage(40);
-          // Push drone backward
-          drone.meshGroup.position.z -= 10;
-          this.particleManager.createExplosion(drone.meshGroup.position, 0x00f3ff, 30, 1.0);
+        if (d < empRad + drone.radius) {
+          drone.takeDamage(100);
+          this.particleManager.createExplosion(drone.meshGroup.position, 0x00f3ff, 25);
         }
-      }
+      });
     }
 
-    // 4. Enemy Plasma Bolts vs Player Ship
-    for (const laser of lasers) {
-      if (!laser.isEnemy || laser.isDead) continue;
-
-      const dPlayer = laser.mesh.position.distanceTo(playerShip.meshGroup.position);
-      if (dPlayer < laser.radius + playerShip.radius) {
-        laser.isDead = true;
-        const killed = playerShip.takeDamage(12);
-        this.particleManager.createExplosion(laser.mesh.position, 0xff0055, 20, 0.6);
-        this.spaceAudio.playShipDamage();
-        this.spaceAudio.vibrate([40, 20, 40]);
-        this.spaceScene.addScreenShake(0.6);
-
-        if (killed) {
-          gameManager.onGameOver('Player Shield Depleted');
-        }
-      }
-    }
-
-    // 5. Threat Impacts vs Player Ship or Home Planet
-    for (const rock of asteroids) {
-      if (rock.isDead) continue;
-
-      // Check vs Player Ship
-      const dShip = rock.meshGroup.position.distanceTo(playerShip.meshGroup.position);
-      if (dShip < rock.radius + playerShip.radius) {
+    // 5. Direct Player Collisions with Threats
+    gameManager.asteroids.forEach(rock => {
+      if (!rock.isDead && pPos.distanceTo(rock.meshGroup.position) < player.radius + rock.radius) {
         rock.isDead = true;
-        this.particleManager.createExplosion(rock.meshGroup.position, 0xffea00, 40, 1.5);
-        const killed = playerShip.takeDamage(25);
-        this.spaceAudio.playShipDamage();
-        this.spaceAudio.vibrate(150);
-        this.spaceScene.addScreenShake(1.0);
-
-        if (killed) gameManager.onGameOver('Collision with Asteroid');
-      } else if (rock.impactedPlanet) {
-        // Impacted Planet!
-        gameManager.damagePlanet(15);
-        this.particleManager.createExplosion(rock.meshGroup.position, 0xff0055, 60, 2.0);
-        this.spaceAudio.playPlanetImpact();
-        this.spaceAudio.vibrate([100, 50, 150]);
-        this.spaceScene.addScreenShake(1.5);
+        const dead = player.takeDamage(25);
+        this.particleManager.createExplosion(pPos, 0xff0055, 30);
+        this.spaceAudio.playExplosion();
+        this.spaceScene.addScreenShake(1.2);
+        if (dead) gameManager.onGameOver('Collision with Asteroid');
       }
-    }
+    });
 
-    for (const drone of drones) {
-      if (drone.isDead) continue;
-
-      const dShip = drone.meshGroup.position.distanceTo(playerShip.meshGroup.position);
-      if (dShip < drone.radius + playerShip.radius) {
+    gameManager.drones.forEach(drone => {
+      if (!drone.isDead && pPos.distanceTo(drone.meshGroup.position) < player.radius + drone.radius) {
         drone.isDead = true;
-        this.particleManager.createExplosion(drone.meshGroup.position, 0xff0077, 45, 1.6);
-        const killed = playerShip.takeDamage(30);
-        this.spaceAudio.playShipDamage();
-        this.spaceAudio.vibrate(200);
-
-        if (killed) gameManager.onGameOver('Collision with Enemy Drone');
-      } else if (drone.impactedPlanet) {
-        gameManager.damagePlanet(20);
-        this.particleManager.createExplosion(drone.meshGroup.position, 0xff0055, 60, 2.0);
-        this.spaceAudio.playPlanetImpact();
-        this.spaceAudio.vibrate([100, 50, 150]);
+        const dead = player.takeDamage(35);
+        this.particleManager.createExplosion(pPos, 0xff0055, 35);
+        this.spaceAudio.playExplosion();
+        this.spaceScene.addScreenShake(1.5);
+        if (dead) gameManager.onGameOver('Collision with Enemy Drone');
       }
-    }
+    });
+
+    // 6. Planet Impacts
+    gameManager.asteroids.forEach(rock => {
+      if (rock.impactedPlanet) {
+        gameManager.damagePlanet(10);
+        this.particleManager.createExplosion(rock.meshGroup.position, 0xffea00, 20);
+        this.spaceAudio.playExplosion();
+      }
+    });
+
+    gameManager.drones.forEach(drone => {
+      if (drone.impactedPlanet) {
+        gameManager.damagePlanet(15);
+        this.particleManager.createExplosion(drone.meshGroup.position, 0xff0055, 25);
+        this.spaceAudio.playExplosion();
+      }
+    });
   }
 }

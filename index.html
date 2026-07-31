@@ -17,8 +17,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <!-- 3D Canvas Container -->
@@ -26,6 +24,14 @@
 
   <!-- ==================== ORBITAL VANGUARD SPACE SHOOTER HUD ==================== -->
   <div id="hud-space" class="hud-container space-hud">
+    <!-- Boss Dreadnought HP Bar Overlay -->
+    <div id="space-boss-bar-container" class="glass-panel boss-hp-panel hidden">
+      <div class="boss-title">⚠️ SECTOR DREADNOUGHT CORE ⚠️</div>
+      <div class="meter-bar-track boss-track">
+        <div id="space-boss-hp-fill" class="meter-bar-fill boss-fill" style="width: 100%;"></div>
+      </div>
+    </div>
+
     <!-- Top Defense Status Bar -->
     <header class="glass-panel space-top-bar">
       <!-- Planet Health Meter -->
@@ -39,12 +45,16 @@
         </div>
       </div>
 
-      <!-- Wave & Score Info -->
+      <!-- Wave, Score & Scrap Info -->
       <div class="space-score-box">
         <div class="wave-pill" id="space-wave-badge">WAVE 1</div>
         <div class="score-pill">
           <span class="lbl">SCORE</span>
           <span class="val" id="space-score">000000</span>
+        </div>
+        <div class="scrap-pill">
+          <span class="icon">⚙️</span>
+          <span class="val" id="space-scrap">0</span>
         </div>
       </div>
 
@@ -66,6 +76,15 @@
         </svg>
       </button>
     </header>
+
+    <!-- Achievement Toast Notification Popup -->
+    <div id="achievement-toast" class="achievement-toast hidden">
+      <div class="ach-icon" id="ach-icon">🏆</div>
+      <div class="ach-text">
+        <div class="ach-title" id="ach-title">ACHIEVEMENT UNLOCKED</div>
+        <div class="ach-desc" id="ach-desc">First Blood</div>
+      </div>
+    </div>
 
     <!-- Center Wave Announcer Overlay -->
     <div id="space-wave-banner" class="wave-announcer hidden">
@@ -148,6 +167,55 @@
       </div>
 
       <button id="btn-start-space" class="btn-primary btn-start-game">ENGAGE DEFENSE →</button>
+    </div>
+  </div>
+
+  <!-- Inter-Wave Hangar Ship Upgrades Modal -->
+  <div id="space-modal-hangar" class="modal-overlay hidden">
+    <div class="glass-panel modal-card hangar-card">
+      <h2>🛠️ SHIP HANGAR UPGRADES</h2>
+      <p class="hangar-subtitle">SPEND SCRAP TO UPGRADE DEFENSE SYSTEMS BEFORE NEXT WAVE</p>
+
+      <div class="hangar-scrap-bar">
+        <span>TECH SCRAP AVAILABLE:</span>
+        <strong id="hangar-scrap-val">0</strong> ⚙️
+      </div>
+
+      <div class="upgrade-grid">
+        <div class="upg-item">
+          <div class="uinfo">
+            <span class="utitle">🚀 Engine Thrust</span>
+            <span class="ulevel" id="upg-lvl-thrust">Lvl 0 / 5</span>
+          </div>
+          <button id="btn-buy-thrust" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+        </div>
+
+        <div class="upg-item">
+          <div class="uinfo">
+            <span class="utitle">🛡️ Deflector Shield Matrix</span>
+            <span class="ulevel" id="upg-lvl-shield">Lvl 0 / 5</span>
+          </div>
+          <button id="btn-buy-shield" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+        </div>
+
+        <div class="upg-item">
+          <div class="uinfo">
+            <span class="utitle">💥 Plasma Capacitors</span>
+            <span class="ulevel" id="upg-lvl-lasers">Lvl 0 / 5</span>
+          </div>
+          <button id="btn-buy-lasers" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+        </div>
+
+        <div class="upg-item">
+          <div class="uinfo">
+            <span class="utitle">⚡ EMP Recharge Subsystem</span>
+            <span class="ulevel" id="upg-lvl-emp">Lvl 0 / 5</span>
+          </div>
+          <button id="btn-buy-emp" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+        </div>
+      </div>
+
+      <button id="btn-next-wave" class="btn-primary">LAUNCH NEXT WAVE →</button>
     </div>
   </div>
 

@@ -14,7 +14,11 @@ export class SpaceHUD {
     this.playerHpText = document.getElementById('space-player-hp-text');
 
     this.scoreVal = document.getElementById('space-score');
+    this.scrapVal = document.getElementById('space-scrap');
     this.waveBadge = document.getElementById('space-wave-badge');
+
+    this.bossBarContainer = document.getElementById('space-boss-bar-container');
+    this.bossHpFill = document.getElementById('space-boss-hp-fill');
 
     this.waveBanner = document.getElementById('space-wave-banner');
     this.waveTitle = document.getElementById('space-wave-title');
@@ -31,6 +35,27 @@ export class SpaceHUD {
     this.modalStart = document.getElementById('space-modal-start');
     this.btnStartGame = document.getElementById('btn-start-space');
     this.highScoreVal = document.getElementById('space-high-score');
+
+    // Hangar Modal
+    this.modalHangar = document.getElementById('space-modal-hangar');
+    this.hangarScrapVal = document.getElementById('hangar-scrap-val');
+    this.btnNextWave = document.getElementById('btn-next-wave');
+
+    this.btnBuyThrust = document.getElementById('btn-buy-thrust');
+    this.btnBuyShield = document.getElementById('btn-buy-shield');
+    this.btnBuyLasers = document.getElementById('btn-buy-lasers');
+    this.btnBuyEmp = document.getElementById('btn-buy-emp');
+
+    this.upgLvlThrust = document.getElementById('upg-lvl-thrust');
+    this.upgLvlShield = document.getElementById('upg-lvl-shield');
+    this.upgLvlLasers = document.getElementById('upg-lvl-lasers');
+    this.upgLvlEmp = document.getElementById('upg-lvl-emp');
+
+    // Achievement Toast
+    this.toastElem = document.getElementById('achievement-toast');
+    this.achIcon = document.getElementById('ach-icon');
+    this.achTitle = document.getElementById('ach-title');
+    this.achDesc = document.getElementById('ach-desc');
 
     this.modalGameOver = document.getElementById('space-modal-gameover');
     this.gameoverTitle = document.getElementById('space-gameover-title');
@@ -84,7 +109,7 @@ export class SpaceHUD {
       });
     }
 
-    // Global Key Triggers to auto-engage defense if player presses any key!
+    // Global Key Triggers
     window.addEventListener('keydown', (e) => {
       if (this.gameManager.state === 'START') {
         if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(e.code) ||
@@ -101,14 +126,12 @@ export class SpaceHUD {
       }
     });
 
-    // Start Screen Modal Card Click Trigger
     if (this.modalStart) {
       this.modalStart.addEventListener('click', (e) => {
         triggerStartIfInStartScreen();
       });
     }
 
-    // Start & Restart Buttons
     if (this.btnStartGame) {
       this.btnStartGame.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -123,11 +146,87 @@ export class SpaceHUD {
         this.gameManager.startGame();
       });
     }
+
+    // Hangar Upgrade Buttons
+    if (this.btnNextWave) {
+      this.btnNextWave.addEventListener('click', () => {
+        if (this.modalHangar) this.modalHangar.classList.add('hidden');
+        this.gameManager.resumeNextWave();
+      });
+    }
+
+    const bindUpgBtn = (btn, type) => {
+      if (btn) {
+        btn.addEventListener('click', () => {
+          if (this.gameManager.upgradeSystem.buyUpgrade(type)) {
+            this.gameManager.spaceAudio.playPowerUpSound();
+            this.updateHangarUI(this.gameManager.upgradeSystem);
+            this.updateScrap(this.gameManager.upgradeSystem.scrap);
+          }
+        });
+      }
+    };
+
+    bindUpgBtn(this.btnBuyThrust, 'thrust');
+    bindUpgBtn(this.btnBuyShield, 'shield');
+    bindUpgBtn(this.btnBuyLasers, 'lasers');
+    bindUpgBtn(this.btnBuyEmp, 'emp');
+  }
+
+  showHangarModal(completedWaveNum, upgradeSystem) {
+    if (this.modalHangar) {
+      this.updateHangarUI(upgradeSystem);
+      this.modalHangar.classList.remove('hidden');
+    }
+  }
+
+  updateHangarUI(upgradeSystem) {
+    if (this.hangarScrapVal) this.hangarScrapVal.textContent = upgradeSystem.scrap;
+
+    const updateBtn = (btn, lvlSpan, type) => {
+      const lvl = upgradeSystem.upgrades[type] || 0;
+      const cost = upgradeSystem.getCost(type);
+
+      if (lvlSpan) lvlSpan.textContent = `Lvl ${lvl} / 5`;
+      if (btn) {
+        if (lvl >= upgradeSystem.maxLevel) {
+          btn.textContent = 'MAX LEVEL';
+          btn.disabled = true;
+        } else {
+          btn.textContent = `UPGRADE (${cost} Scrap)`;
+          btn.disabled = upgradeSystem.scrap < cost;
+        }
+      }
+    };
+
+    updateBtn(this.btnBuyThrust, this.upgLvlThrust, 'thrust');
+    updateBtn(this.btnBuyShield, this.upgLvlShield, 'shield');
+    updateBtn(this.btnBuyLasers, this.upgLvlLasers, 'lasers');
+    updateBtn(this.btnBuyEmp, this.upgLvlEmp, 'emp');
+  }
+
+  showAchievementToast(ach) {
+    if (this.toastElem) {
+      this.achIcon.textContent = ach.icon;
+      this.achTitle.textContent = ach.title;
+      this.achDesc.textContent = ach.desc;
+
+      this.toastElem.classList.remove('hidden');
+      setTimeout(() => {
+        this.toastElem.classList.add('hidden');
+      }, 4000);
+    }
   }
 
   updateHighScore(score) {
     if (this.highScoreVal) {
       this.highScoreVal.textContent = String(score).padStart(6, '0');
+    }
+  }
+
+  updateScrap(amount) {
+    if (this.scrapVal) {
+      this.scrapVal.textContent = amount;
     }
   }
 
@@ -160,11 +259,6 @@ export class SpaceHUD {
       const pPct = Math.max(0, data.planetHp);
       this.planetHpFill.style.width = `${pPct}%`;
       this.planetHpText.textContent = `${Math.round(pPct)}%`;
-      if (pPct < 30) {
-        this.planetHpFill.style.background = 'linear-gradient(90deg, #ff0055, #ffea00)';
-      } else {
-        this.planetHpFill.style.background = 'linear-gradient(90deg, #00ff66, #00f3ff)';
-      }
     }
 
     // Player Shield Meter
@@ -174,22 +268,23 @@ export class SpaceHUD {
       this.playerHpText.textContent = `${Math.round(sPct)}%`;
     }
 
-    // Score & Wave
-    if (this.scoreVal) {
-      this.scoreVal.textContent = String(data.score).padStart(6, '0');
-    }
-    if (this.waveBadge) {
-      this.waveBadge.textContent = `WAVE ${data.waveNum}`;
+    // Boss HP Meter Bar
+    if (this.bossBarContainer && this.bossHpFill) {
+      if (data.bossHpRatio !== null) {
+        this.bossBarContainer.classList.remove('hidden');
+        this.bossHpFill.style.width = `${data.bossHpRatio * 100}%`;
+      } else {
+        this.bossBarContainer.classList.add('hidden');
+      }
     }
 
+    // Score & Wave & Scrap
+    if (this.scoreVal) this.scoreVal.textContent = String(data.score).padStart(6, '0');
+    if (this.scrapVal) this.scrapVal.textContent = data.scrap;
+    if (this.waveBadge) this.waveBadge.textContent = `WAVE ${data.waveNum}`;
+
     // Cooldown Rings
-    if (this.cdRingTorpedo) {
-      const tRatio = Math.max(0, data.torpedoCdRatio);
-      this.cdRingTorpedo.style.opacity = tRatio > 0 ? '1' : '0';
-    }
-    if (this.cdRingPulse) {
-      const pRatio = Math.max(0, data.pulseCdRatio);
-      this.cdRingPulse.style.opacity = pRatio > 0 ? '1' : '0';
-    }
+    if (this.cdRingTorpedo) this.cdRingTorpedo.style.opacity = data.torpedoCdRatio > 0 ? '1' : '0';
+    if (this.cdRingPulse) this.cdRingPulse.style.opacity = data.pulseCdRatio > 0 ? '1' : '0';
   }
 }

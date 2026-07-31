@@ -245,6 +245,34 @@ html, body {
   box-shadow: 0 0 10px rgba(255, 0, 119, 0.5);
 }
 
+/* Boss Dreadnought HP Overlay */
+.boss-hp-panel {
+  max-width: 600px;
+  margin: 0 auto 0.5rem auto;
+  padding: 0.6rem 1.2rem;
+  width: 100%;
+  text-align: center;
+  border-color: var(--accent-magenta);
+  box-shadow: 0 0 20px rgba(255, 0, 119, 0.4);
+}
+
+.boss-title {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--accent-magenta);
+  margin-bottom: 4px;
+}
+
+.boss-track {
+  height: 10px;
+}
+
+.boss-fill {
+  background: linear-gradient(90deg, #ff0055, var(--accent-yellow));
+  box-shadow: 0 0 15px rgba(255, 0, 85, 0.8);
+}
+
 .space-score-box {
   display: flex;
   flex-direction: column;
@@ -282,6 +310,56 @@ html, body {
   font-size: 1.3rem;
   font-weight: 800;
   color: var(--accent-yellow);
+}
+
+.scrap-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+/* Achievement Toast Notification */
+.achievement-toast {
+  position: absolute;
+  top: 90px;
+  right: 20px;
+  background: rgba(15, 20, 32, 0.9);
+  border: 1px solid var(--accent-yellow);
+  box-shadow: 0 0 20px rgba(255, 234, 0, 0.4);
+  padding: 0.8rem 1.2rem;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+  z-index: 50;
+  animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes toastIn {
+  0% { transform: translateX(100px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.ach-icon {
+  font-size: 1.8rem;
+}
+
+.ach-title {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: var(--accent-yellow);
+}
+
+.ach-desc {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
 }
 
 /* Wave Announcer Banner */
@@ -437,6 +515,70 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.15);
   font-family: var(--font-code);
   color: var(--accent-cyan);
+}
+
+/* Hangar Modal & Upgrade Grid */
+.hangar-card {
+  max-width: 650px;
+  text-align: center;
+}
+
+.hangar-subtitle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+}
+
+.hangar-scrap-bar {
+  background: rgba(0, 243, 255, 0.1);
+  border: 1px solid var(--accent-cyan);
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  font-family: var(--font-code);
+  font-size: 1.1rem;
+  color: var(--accent-yellow);
+}
+
+.upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.upg-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.uinfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.utitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+
+}
+
+.ulevel {
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  color: var(--accent-yellow);
+}
+
+.upg-btn {
+  font-size: 0.75rem;
+  padding: 0.5rem;
 }
 
 /* Space Start & GameOver Cards */
@@ -609,5 +751,8 @@ html, body {
   .action-btn.main-fire {
     width: 68px;
     height: 68px;
+  }
+  .upgrade-grid {
+    grid-template-columns: 1fr;
   }
 }
