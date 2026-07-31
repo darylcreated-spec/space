@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#060810" />
+  <meta name="description" content="ORBITAL VANGUARD - AAA 3D Space Shooter PWA" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  
+  <title>ORBITAL VANGUARD - 3D Space Shooter PWA</title>
+  
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300f3ff'/><path d='M30 50 L70 50 M50 30 L50 70' stroke='%23ff0077' stroke-width='8'/></svg>" />
+
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- ==================== ORBITAL VANGUARD SPACE SHOOTER HUD ==================== -->
+  <div id="hud-space" class="hud-container space-hud">
+    <!-- Top Defense Status Bar -->
+    <header class="glass-panel space-top-bar">
+      <!-- Planet Health Meter -->
+      <div class="meter-group">
+        <div class="meter-label">
+          <span class="title">PLANET SHIELD</span>
+          <span class="val" id="space-planet-hp-text">100%</span>
+        </div>
+        <div class="meter-bar-track">
+          <div id="space-planet-hp-fill" class="meter-bar-fill planet-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- Wave & Score Info -->
+      <div class="space-score-box">
+        <div class="wave-pill" id="space-wave-badge">WAVE 1</div>
+        <div class="score-pill">
+          <span class="lbl">SCORE</span>
+          <span class="val" id="space-score">000000</span>
+        </div>
+      </div>
+
+      <!-- Player Shield Meter & Camera View Toggle Button -->
+      <div class="meter-group align-right">
+        <div class="meter-label">
+          <span class="title">CRAFT SHIELD</span>
+          <span class="val" id="space-player-hp-text">100%</span>
+        </div>
+        <div class="meter-bar-track">
+          <div id="space-player-hp-fill" class="meter-bar-fill player-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <button id="btn-space-camera" class="icon-btn" title="Toggle Camera Angle (Isometric 45° / Chase / Top-Down)">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Center Wave Announcer Overlay -->
+    <div id="space-wave-banner" class="wave-announcer hidden">
+      <h1 id="space-wave-title">WAVE 1</h1>
+      <p id="space-wave-subtitle">ASTEROID SHOWER DETECTED</p>
+    </div>
+
+    <!-- Mobile Virtual Touch Joystick & Action Buttons -->
+    <div id="space-mobile-controls" class="mobile-controls-layer">
+      <!-- Virtual Joystick Zone (Left) -->
+      <div id="joystick-container" class="joystick-zone">
+        <div id="joystick-base" class="joystick-base">
+          <div id="joystick-stick" class="joystick-stick"></div>
+        </div>
+      </div>
+
+      <!-- Action Weapon Buttons (Right) -->
+      <div class="action-buttons-zone">
+        <button id="btn-fire-pulse" class="action-btn pulse-btn" title="EMP Shockwave (Q / Shift)">
+          <span class="cooldown-ring" id="cd-ring-pulse"></span>
+          <span class="icon">⚡</span>
+          <span class="btn-label">EMP</span>
+        </button>
+
+        <button id="btn-fire-torpedo" class="action-btn torpedo-btn" title="Homing Torpedo (E / Right Click)">
+          <span class="cooldown-ring" id="cd-ring-torpedo"></span>
+          <span class="icon">🚀</span>
+          <span class="btn-label">TORPEDO</span>
+        </button>
+
+        <button id="btn-fire-laser" class="action-btn laser-btn main-fire" title="Rapid Lasers (Spacebar / Click)">
+          <span class="icon">💥</span>
+          <span class="btn-label">LASER</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Desktop Keyboard Shortcuts Legend -->
+    <div class="desktop-controls-hint">
+      <span class="hint-key"><kbd>WASD</kbd> Flight Pitch/Yaw</span>
+      <span class="hint-key"><kbd>C</kbd> Camera Angle Toggle</span>
+      <span class="hint-key"><kbd>Space / Click</kbd> Rapid Laser</span>
+      <span class="hint-key"><kbd>E / R-Click</kbd> Homing Torpedo</span>
+      <span class="hint-key"><kbd>Q / Shift</kbd> EMP Pulse</span>
+    </div>
+  </div>
+
+  <!-- Space Start Screen Modal -->
+  <div id="space-modal-start" class="modal-overlay">
+    <div class="glass-panel modal-card space-start-card">
+      <div class="space-title-glow"></div>
+      <div class="space-logo">
+        <svg viewBox="0 0 100 100" width="80" height="80">
+          <circle cx="50" cy="50" r="35" fill="none" stroke="#00f3ff" stroke-width="4"/>
+          <polygon points="50,15 85,75 15,75" fill="none" stroke="#ff0077" stroke-width="5"/>
+          <circle cx="50" cy="50" r="10" fill="#00ff66"/>
+        </svg>
+      </div>
+      <h1 class="space-game-title">ORBITAL VANGUARD</h1>
+      <p class="space-game-tagline">DEFEND THE HOMEWORLD AGAINST THE ASTEROID SIEGE & ENEMY SQUADRONS</p>
+
+      <div class="high-score-banner">
+        <span class="lbl">HIGH SCORE</span>
+        <span class="val" id="space-high-score">000000</span>
+      </div>
+
+      <div class="weapon-guide">
+        <div class="witem">
+          <span class="wicon">💥</span>
+          <div class="wdesc"><strong>Rapid Lasers:</strong> Continuous energy beam fire.</div>
+        </div>
+        <div class="witem">
+          <span class="wicon">🚀</span>
+          <div class="wdesc"><strong>Homing Torpedoes:</strong> Locks onto targets & explodes in AoE blast.</div>
+        </div>
+        <div class="witem">
+          <span class="wicon">⚡</span>
+          <div class="wdesc"><strong>EMP Pulse Shockwave:</strong> Clears asteroids & repels enemy drones.</div>
+        </div>
+      </div>
+
+      <button id="btn-start-space" class="btn-primary btn-start-game">ENGAGE DEFENSE →</button>
+    </div>
+  </div>
+
+  <!-- Space Game Over Modal -->
+  <div id="space-modal-gameover" class="modal-overlay hidden">
+    <div class="glass-panel modal-card space-gameover-card">
+      <div class="gameover-header">
+        <h2 id="space-gameover-title">PLANET DESTROYED</h2>
+        <p id="space-gameover-reason">Defenses Breached</p>
+      </div>
+
+      <div class="final-stats-grid">
+        <div class="fstat">
+          <span class="lbl">FINAL SCORE</span>
+          <span class="val" id="space-final-score">000000</span>
+        </div>
+        <div class="fstat">
+          <span class="lbl">WAVES SURVIVED</span>
+          <span class="val" id="space-final-wave">Wave 3</span>
+        </div>
+        <div class="fstat">
+          <span class="lbl">THREATS DESTROYED</span>
+          <span class="val" id="space-final-kills">0</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-restart-space" class="btn-primary btn-restart-game">DEFEND AGAIN ↺</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

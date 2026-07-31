@@ -1,0 +1,22 @@
+{
+  "name": "LUMINA: Prism & Echo",
+  "short_name": "LUMINA",
+  "description": "AAA WebGL Light Beam Puzzle Game",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0c14",
+  "theme_color": "#0a0c14",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' width='192' height='192'><rect width='192' height='192' fill='%230a0c14'/><polygon points='96,30 160,150 32,150' fill='none' stroke='%2300f3ff' stroke-width='10'/><circle cx='96' cy='100' r='24' fill='%23ff0077'/></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' width='512' height='512'><rect width='512' height='512' fill='%230a0c14'/><polygon points='256,80 430,400 82,400' fill='none' stroke='%2300f3ff' stroke-width='24'/><circle cx='256' cy='260' r='60' fill='%23ff0077'/></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
