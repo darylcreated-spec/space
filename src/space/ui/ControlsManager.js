@@ -1,21 +1,33 @@
 export class ControlsManager {
   constructor() {
     this.keys = {};
-
     this.joystickVector = { x: 0, y: 0 };
     this.isLaserHeld = false;
     this.fireTorpedoRequested = false;
     this.firePulseRequested = false;
 
-    // Listeners for Keyboard
+    // Track whether a joystick pointer is active (to prevent canvas tap = laser)
+    this._joystickActive = false;
+
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
 
-    // Listeners for Pointer directly on screen
-    window.addEventListener('pointerdown', this.onPointerDown.bind(this));
-    window.addEventListener('pointerup', this.onPointerUp.bind(this));
+    // Pointer on canvas (fire only — not movement)
+    const canvas = document.getElementById('canvas-container');
+    if (canvas) {
+      canvas.addEventListener('pointerdown', (e) => {
+        if (this._joystickActive) return;
+        if (e.target.closest('button, .modal-card, #joystick-container')) return;
+        if (e.button === 0) this.isLaserHeld = true;
+      });
+      canvas.addEventListener('pointerup', () => {
+        this.isLaserHeld = false;
+      });
+      canvas.addEventListener('pointercancel', () => {
+        this.isLaserHeld = false;
+      });
+    }
 
-    // Setup Virtual Pointer Joystick for Mobile & Touch
     this.setupJoystick();
   }
 
@@ -40,22 +52,6 @@ export class ControlsManager {
     }
   }
 
-  onPointerDown(e) {
-    if (e.target.closest('#game-selector, .actions, .mode-switcher, button, .modal-card, #joystick-container')) return;
-
-    if (e.button === 0) {
-      this.isLaserHeld = true;
-    } else if (e.button === 2) {
-      this.fireTorpedoRequested = true;
-    }
-  }
-
-  onPointerUp(e) {
-    if (e.button === 0) {
-      this.isLaserHeld = false;
-    }
-  }
-
   setupJoystick() {
     const zone = document.getElementById('joystick-container');
     const base = document.getElementById('joystick-base');
@@ -69,9 +65,11 @@ export class ControlsManager {
 
     zone.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       if (activePointerId !== null) return;
 
       activePointerId = e.pointerId;
+      this._joystickActive = true;
       try { zone.setPointerCapture(e.pointerId); } catch (err) {}
 
       const rect = base.getBoundingClientRect();
@@ -79,20 +77,21 @@ export class ControlsManager {
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2
       };
-
       this.updateJoystickPos(e.clientX, e.clientY, baseCenter, maxRadius, stick);
     });
 
     zone.addEventListener('pointermove', (e) => {
       if (activePointerId === null || e.pointerId !== activePointerId) return;
+      e.preventDefault();
       this.updateJoystickPos(e.clientX, e.clientY, baseCenter, maxRadius, stick);
     });
 
     const endPointer = (e) => {
       if (activePointerId !== null && e.pointerId === activePointerId) {
         activePointerId = null;
+        this._joystickActive = false;
         this.joystickVector = { x: 0, y: 0 };
-        stick.style.transform = `translate(0px, 0px)`;
+        stick.style.transform = 'translate(0px, 0px)';
         try { zone.releasePointerCapture(e.pointerId); } catch (err) {}
       }
     };
@@ -112,10 +111,9 @@ export class ControlsManager {
     }
 
     stickEl.style.transform = `translate(${dx}px, ${dy}px)`;
-
     this.joystickVector = {
       x: dx / maxRadius,
-      y: -dy / maxRadius
+      y: -dy / maxRadius // invert Y so up = positive
     };
   }
 
@@ -128,16 +126,14 @@ export class ControlsManager {
     if (this.keys['KeyW'] || this.keys['w'] || this.keys['ArrowUp']) y += 1;
     if (this.keys['KeyS'] || this.keys['s'] || this.keys['ArrowDown']) y -= 1;
 
+    // Joystick overrides keyboard
     if (this.joystickVector.x !== 0 || this.joystickVector.y !== 0) {
       x = this.joystickVector.x;
       y = this.joystickVector.y;
     }
 
     const len = Math.hypot(x, y);
-    if (len > 1) {
-      x /= len;
-      y /= len;
-    }
+    if (len > 1) { x /= len; y /= len; }
 
     return { x, y };
   }

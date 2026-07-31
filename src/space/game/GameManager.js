@@ -291,7 +291,8 @@ export class GameManager {
   }
 
   renderScene() {
-    this.spaceScene.renderer.render(this.spaceScene.scene, this.spaceScene.camera);
+    // PostProcessing.render() handles mobile (direct) vs desktop (bloom) automatically
+    this.postProcessing.render();
   }
 
   update(dt) {

@@ -1,40 +1,58 @@
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import * as THREE from 'three';
+
+// PostProcessing is disabled on mobile (WebGL 1 / limited VRAM)
+// Falls back to direct renderer on mobile, bloom on desktop
+let EffectComposer, RenderPass, UnrealBloomPass;
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
 export class PostProcessing {
   constructor(renderer, scene, camera) {
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
+    this.composer = null;
+    this.useComposer = false;
 
-    this.composer = new EffectComposer(this.renderer);
-    const renderPass = new RenderPass(this.scene, this.camera);
-    this.composer.addPass(renderPass);
-
-    // Balanced Neon Bloom pass with low threshold so standard meshes & glowing beams render brilliantly
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,  // bloom strength
-      0.4,  // radius
-      0.05  // threshold (renders all standard & emissive meshes clearly)
-    );
-    this.composer.addPass(this.bloomPass);
-
-    window.addEventListener('resize', this.onResize.bind(this));
-  }
-
-  onResize() {
-    this.composer.setSize(window.innerWidth, window.innerHeight);
+    if (!isMobile) {
+      try {
+        // Dynamically import bloom only on desktop
+        import('three/examples/jsm/postprocessing/EffectComposer.js').then(({ EffectComposer: EC }) => {
+          import('three/examples/jsm/postprocessing/RenderPass.js').then(({ RenderPass: RP }) => {
+            import('three/examples/jsm/postprocessing/UnrealBloomPass.js').then(({ UnrealBloomPass: UBP }) => {
+              try {
+                this.composer = new EC(this.renderer);
+                this.composer.addPass(new RP(this.scene, this.camera));
+                this.composer.addPass(new UBP(
+                  new THREE.Vector2(window.innerWidth, window.innerHeight),
+                  0.7,  // strength
+                  0.4,  // radius
+                  0.05  // threshold
+                ));
+                this.useComposer = true;
+                window.addEventListener('resize', () => {
+                  if (this.composer) this.composer.setSize(window.innerWidth, window.innerHeight);
+                });
+              } catch (e) {
+                console.warn('Bloom composer init failed, using direct render', e);
+              }
+            });
+          });
+        });
+      } catch (e) {
+        console.warn('PostProcessing skipped:', e);
+      }
+    }
   }
 
   render() {
-    // Render scene via composer or fallback to direct WebGL render
     try {
-      this.composer.render();
+      if (this.useComposer && this.composer) {
+        this.composer.render();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
     } catch (e) {
-      this.renderer.render(this.scene, this.camera);
+      try { this.renderer.render(this.scene, this.camera); } catch (e2) {}
     }
   }
 }

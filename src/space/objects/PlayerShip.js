@@ -10,8 +10,9 @@ export class PlayerShip {
     // Stats
     this.maxShield = 100;
     this.shield = 100;
-    this.speed = 28; // Increased flight responsiveness
+    this.speed = 28;
     this.radius = 1.4;
+    this.laserFireDelay = 0.12;
 
     // Velocity & Banking
     this.velocity = new THREE.Vector3();
@@ -21,28 +22,25 @@ export class PlayerShip {
     this.currentPitch = 0;
 
     // Movement Bounds
-    this.bounds = {
-      minX: -20, maxX: 20,
-      minY: -12, maxY: 14
-    };
+    this.bounds = { minX: -20, maxX: 20, minY: -12, maxY: 14 };
 
-    // Cooldown Timers (in seconds)
+    // Cooldown Timers
     this.laserCooldown = 0;
     this.torpedoCooldown = 0;
     this.pulseCooldown = 0;
-
     this.maxTorpedoCD = 3.0;
     this.maxPulseCD = 8.0;
 
-    // Build 3D Fighter Mesh
-    this.buildShipMesh();
+    // Thruster particle throttle
+    this._thrusterTick = 0;
 
+    this.buildShipMesh();
     this.meshGroup.position.set(0, 0, 0);
     this.scene.add(this.meshGroup);
   }
 
   buildShipMesh() {
-    // Fuselage / Central Body
+    // Fuselage
     const bodyGeo = new THREE.ConeGeometry(0.75, 3.4, 8);
     bodyGeo.rotateX(Math.PI / 2);
     const bodyMat = new THREE.MeshStandardMaterial({
@@ -53,14 +51,15 @@ export class PlayerShip {
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     this.meshGroup.add(body);
 
-    // Glowing Cockpit Canopy
-    const canopyGeo = new THREE.SphereGeometry(0.48, 16, 16);
+    // Cockpit Canopy — MeshStandardMaterial instead of MeshPhysicalMaterial (mobile safe)
+    const canopyGeo = new THREE.SphereGeometry(0.48, 10, 10);
     canopyGeo.scale(0.8, 0.6, 1.4);
-    const canopyMat = new THREE.MeshPhysicalMaterial({
+    const canopyMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
-      transmission: 0.9,
       transparent: true,
-      roughness: 0.1,
+      opacity: 0.7,
+      roughness: 0.05,
+      metalness: 0.1,
       emissive: 0x00f3ff,
       emissiveIntensity: 0.6
     });
@@ -76,19 +75,17 @@ export class PlayerShip {
     wingShape.lineTo(0, -1.1);
     wingShape.closePath();
 
-    const extrudeSettings = { depth: 0.09, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02 };
+    const extrudeSettings = { depth: 0.09, bevelEnabled: false };
     const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
     wingGeo.center();
     wingGeo.rotateX(Math.PI / 2);
 
     const wingMat = new THREE.MeshStandardMaterial({ color: 0x1e2a42, metalness: 0.8, roughness: 0.3 });
-    
-    // Right Wing
+
     const rightWing = new THREE.Mesh(wingGeo, wingMat);
     rightWing.position.set(1.2, 0, 0);
     this.meshGroup.add(rightWing);
 
-    // Left Wing
     const leftWingGeo = wingGeo.clone();
     leftWingGeo.scale(-1, 1, 1);
     const leftWing = new THREE.Mesh(leftWingGeo, wingMat);
@@ -96,7 +93,7 @@ export class PlayerShip {
     this.meshGroup.add(leftWing);
 
     // Dual Wingtip Laser Cannons
-    const cannonGeo = new THREE.CylinderGeometry(0.07, 0.07, 1.4, 8);
+    const cannonGeo = new THREE.CylinderGeometry(0.07, 0.07, 1.4, 6);
     cannonGeo.rotateX(Math.PI / 2);
     const cannonMat = new THREE.MeshStandardMaterial({ color: 0x334466, metalness: 0.9, roughness: 0.1 });
 
@@ -108,8 +105,8 @@ export class PlayerShip {
     leftCannon.position.set(-2.2, 0, -0.5);
     this.meshGroup.add(leftCannon);
 
-    // Dual Engine Thruster Nozzles
-    const engineGeo = new THREE.CylinderGeometry(0.24, 0.3, 0.7, 12);
+    // Engine Nozzles
+    const engineGeo = new THREE.CylinderGeometry(0.24, 0.3, 0.7, 8);
     engineGeo.rotateX(Math.PI / 2);
     const engineMat = new THREE.MeshStandardMaterial({ color: 0x0a0e18, metalness: 0.9, roughness: 0.1 });
 
@@ -121,8 +118,8 @@ export class PlayerShip {
     this.engineLeft.position.set(-0.45, 0, 1.5);
     this.meshGroup.add(this.engineLeft);
 
-    // Glowing Thruster Flame Cores
-    const flameGeo = new THREE.ConeGeometry(0.2, 0.9, 12);
+    // Thruster Flame Cores
+    const flameGeo = new THREE.ConeGeometry(0.2, 0.9, 8);
     flameGeo.rotateX(-Math.PI / 2);
     const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
 
@@ -150,34 +147,29 @@ export class PlayerShip {
   }
 
   update(dt, inputDir = { x: 0, y: 0 }) {
-    // Decrement cooldowns
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
     if (this.torpedoCooldown > 0) this.torpedoCooldown -= dt;
     if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
 
-    // Movement physics: Dampened acceleration
     this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.2;
     this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.2;
 
     this.meshGroup.position.x += this.velocity.x * dt;
     this.meshGroup.position.y += this.velocity.y * dt;
 
-    // Clamp inside movement bounds
     this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
     this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, this.bounds.minY, this.bounds.maxY);
 
-    // Roll banking animation
     this.targetRoll = -inputDir.x * 0.6;
     this.targetPitch = inputDir.y * 0.3;
-
     this.currentRoll += (this.targetRoll - this.currentRoll) * 0.2;
     this.currentPitch += (this.targetPitch - this.currentPitch) * 0.2;
-
     this.meshGroup.rotation.z = this.currentRoll;
     this.meshGroup.rotation.x = this.currentPitch;
 
-    // Emit thruster exhaust particles
-    if (Math.random() > 0.2) {
+    // Throttled engine particles — every 3rd frame only (mobile safe)
+    this._thrusterTick++;
+    if (this._thrusterTick % 3 === 0) {
       const pR = new THREE.Vector3(0.45, 0, 1.8).add(this.meshGroup.position);
       const pL = new THREE.Vector3(-0.45, 0, 1.8).add(this.meshGroup.position);
       this.particleManager.spawnEngineParticle(pR, 0x00f3ff);
