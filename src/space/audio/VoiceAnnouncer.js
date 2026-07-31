@@ -1,6 +1,10 @@
 export class VoiceAnnouncer {
   constructor() {
-    this.synth = window.speechSynthesis || null;
+    try {
+      this.synth = window.speechSynthesis || null;
+    } catch (e) {
+      this.synth = null;
+    }
     this.enabled = true;
     this.lastSpokenTime = 0;
   }
@@ -8,24 +12,28 @@ export class VoiceAnnouncer {
   speak(text, priority = false) {
     if (!this.synth || !this.enabled) return;
 
-    // Prevent speech overlap unless high priority
-    if (this.synth.speaking && !priority) return;
+    try {
+      if (this.synth.speaking && !priority) return;
 
-    if (priority) {
-      this.synth.cancel();
+      if (priority) {
+        this.synth.cancel();
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.pitch = 0.9;
+      utterance.volume = 0.8;
+
+      const voices = this.synth.getVoices();
+      if (voices && voices.length > 0) {
+        const engVoice = voices.find(v => v.lang && v.lang.includes('en'));
+        if (engVoice) utterance.voice = engVoice;
+      }
+
+      this.synth.speak(utterance);
+    } catch (e) {
+      console.warn("Speech Synthesis skipped on mobile device", e);
     }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.1;
-    utterance.pitch = 0.9;
-    utterance.volume = 0.85;
-
-    // Select English Voice if available
-    const voices = this.synth.getVoices();
-    const engVoice = voices.find(v => v.lang.includes('en'));
-    if (engVoice) utterance.voice = engVoice;
-
-    this.synth.speak(utterance);
   }
 
   announceWave(waveNum, subtitle) {

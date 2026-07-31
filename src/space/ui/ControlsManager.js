@@ -7,15 +7,15 @@ export class ControlsManager {
     this.fireTorpedoRequested = false;
     this.firePulseRequested = false;
 
-    // Listeners for Keyboard (Checking both code and key)
+    // Listeners for Keyboard
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
 
-    // Listeners for Mouse / Pointer directly on screen
+    // Listeners for Pointer directly on screen
     window.addEventListener('pointerdown', this.onPointerDown.bind(this));
     window.addEventListener('pointerup', this.onPointerUp.bind(this));
 
-    // Setup Virtual Touch Joystick for Mobile
+    // Setup Virtual Pointer Joystick for Mobile & Touch
     this.setupJoystick();
   }
 
@@ -26,7 +26,7 @@ export class ControlsManager {
 
     if (e.code === 'Space' || e.key === ' ') {
       this.isLaserHeld = true;
-      e.preventDefault();
+      try { e.preventDefault(); } catch (err) {}
     }
   }
 
@@ -41,12 +41,11 @@ export class ControlsManager {
   }
 
   onPointerDown(e) {
-    // Ignore if clicking on interactive buttons or HUD top bar
-    if (e.target.closest('#game-selector, .actions, .mode-switcher, button, .modal-card')) return;
+    if (e.target.closest('#game-selector, .actions, .mode-switcher, button, .modal-card, #joystick-container')) return;
 
-    if (e.button === 0) { // Left click / Touch
+    if (e.button === 0) {
       this.isLaserHeld = true;
-    } else if (e.button === 2) { // Right click
+    } else if (e.button === 2) {
       this.fireTorpedoRequested = true;
     }
   }
@@ -64,16 +63,16 @@ export class ControlsManager {
 
     if (!zone || !base || !stick) return;
 
-    let activeTouchId = null;
+    let activePointerId = null;
     let baseCenter = { x: 0, y: 0 };
     const maxRadius = 45;
 
-    zone.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      if (activeTouchId !== null) return;
+    zone.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      if (activePointerId !== null) return;
 
-      const touch = e.changedTouches[0];
-      activeTouchId = touch.identifier;
+      activePointerId = e.pointerId;
+      try { zone.setPointerCapture(e.pointerId); } catch (err) {}
 
       const rect = base.getBoundingClientRect();
       baseCenter = {
@@ -81,35 +80,25 @@ export class ControlsManager {
         y: rect.top + rect.height / 2
       };
 
-      this.updateJoystickPos(touch.clientX, touch.clientY, baseCenter, maxRadius, stick);
-    }, { passive: false });
+      this.updateJoystickPos(e.clientX, e.clientY, baseCenter, maxRadius, stick);
+    });
 
-    window.addEventListener('touchmove', (e) => {
-      if (activeTouchId === null) return;
+    zone.addEventListener('pointermove', (e) => {
+      if (activePointerId === null || e.pointerId !== activePointerId) return;
+      this.updateJoystickPos(e.clientX, e.clientY, baseCenter, maxRadius, stick);
+    });
 
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        if (touch.identifier === activeTouchId) {
-          this.updateJoystickPos(touch.clientX, touch.clientY, baseCenter, maxRadius, stick);
-          break;
-        }
-      }
-    }, { passive: false });
-
-    const endTouch = (e) => {
-      if (activeTouchId === null) return;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === activeTouchId) {
-          activeTouchId = null;
-          this.joystickVector = { x: 0, y: 0 };
-          stick.style.transform = `translate(0px, 0px)`;
-          break;
-        }
+    const endPointer = (e) => {
+      if (activePointerId !== null && e.pointerId === activePointerId) {
+        activePointerId = null;
+        this.joystickVector = { x: 0, y: 0 };
+        stick.style.transform = `translate(0px, 0px)`;
+        try { zone.releasePointerCapture(e.pointerId); } catch (err) {}
       }
     };
 
-    window.addEventListener('touchend', endTouch);
-    window.addEventListener('touchcancel', endTouch);
+    zone.addEventListener('pointerup', endPointer);
+    zone.addEventListener('pointercancel', endPointer);
   }
 
   updateJoystickPos(clientX, clientY, center, maxRadius, stickEl) {
@@ -126,7 +115,7 @@ export class ControlsManager {
 
     this.joystickVector = {
       x: dx / maxRadius,
-      y: -dy / maxRadius // Invert Y so up is positive Y
+      y: -dy / maxRadius
     };
   }
 
@@ -134,13 +123,11 @@ export class ControlsManager {
     let x = 0;
     let y = 0;
 
-    // Check code, key, and lower-case keys for WASD / Arrow keys
     if (this.keys['KeyA'] || this.keys['a'] || this.keys['ArrowLeft']) x -= 1;
     if (this.keys['KeyD'] || this.keys['d'] || this.keys['ArrowRight']) x += 1;
     if (this.keys['KeyW'] || this.keys['w'] || this.keys['ArrowUp']) y += 1;
     if (this.keys['KeyS'] || this.keys['s'] || this.keys['ArrowDown']) y -= 1;
 
-    // Merge with Virtual Joystick
     if (this.joystickVector.x !== 0 || this.joystickVector.y !== 0) {
       x = this.joystickVector.x;
       y = this.joystickVector.y;

@@ -30,16 +30,16 @@ export class SpaceScene {
     this.camera.position.copy(this.targetCameraPos);
     this.camera.lookAt(this.targetLookAt);
 
-    // WebGL Renderer setup
+    // WebGL Renderer setup - Capped at 1.5 for Mobile Stability
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: window.devicePixelRatio < 2,
       powerPreference: 'high-performance',
       alpha: false
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.6;
+    this.renderer.toneMappingExposure = 1.4;
 
     // Force append WebGL canvas to container
     this.renderer.domElement.style.position = 'absolute';
@@ -51,10 +51,21 @@ export class SpaceScene {
 
     this.container.appendChild(this.renderer.domElement);
 
+    // WebGL Context Lost & Restored Protection for Mobile GPUs
+    this.renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn("WebGL Context Lost on Mobile GPU. Restoring...");
+    }, false);
+
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      console.log("WebGL Context Restored.");
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }, false);
+
     // High Brightness Lighting setup
     this.setupLighting();
 
-    // Environment: Lumina Obsidian Grid Platform, Home Planet, Atmosphere, Starfield, Space Dust
+    // Environment
     this.buildEnvironment();
 
     // Dynamic Entity Groups
@@ -75,18 +86,15 @@ export class SpaceScene {
     const ambient = new THREE.AmbientLight(0x4a6fa5, 2.5);
     this.scene.add(ambient);
 
-    // Main Sun light
     const sunLight = new THREE.DirectionalLight(0xffffff, 3.5);
     sunLight.position.set(30, 50, 40);
     this.scene.add(sunLight);
 
-    // Lumina Cyan Point Light
-    const cyanLight = new THREE.PointLight(0x00f3ff, 4.0, 100);
+    const cyanLight = new THREE.PointLight(0x00f3ff, 3.5, 100);
     cyanLight.position.set(-15, 20, 0);
     this.scene.add(cyanLight);
 
-    // Lumina Magenta Point Light
-    const magentaLight = new THREE.PointLight(0xff0077, 3.5, 100);
+    const magentaLight = new THREE.PointLight(0xff0077, 3.0, 100);
     magentaLight.position.set(15, 15, -30);
     this.scene.add(magentaLight);
   }
@@ -97,23 +105,20 @@ export class SpaceScene {
     const gridWidth = 50;
     const gridDepth = 80;
     
-    // Base Obsidian Platform
     const platGeo = new THREE.BoxGeometry(gridWidth, 0.5, gridDepth);
     const platMat = new THREE.MeshStandardMaterial({
       color: 0x121a2c,
-      roughness: 0.2,
-      metalness: 0.8
+      roughness: 0.3,
+      metalness: 0.7
     });
     const platform = new THREE.Mesh(platGeo, platMat);
     platform.position.set(0, -6, -20);
     this.gridGroup.add(platform);
 
-    // Glowing Grid Wireframe Lines
     const gridHelper = new THREE.GridHelper(gridWidth, 25, 0x00f3ff, 0x334466);
     gridHelper.position.set(0, -5.74, -20);
     this.gridGroup.add(gridHelper);
 
-    // Glowing Neon Border Frame around Defense Platform
     const borderGeo = new THREE.BoxGeometry(gridWidth + 0.8, 0.2, gridDepth + 0.8);
     const borderMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
@@ -127,8 +132,8 @@ export class SpaceScene {
 
     this.scene.add(this.gridGroup);
 
-    // 2. Home Planet (Positioned below/behind the tactical grid)
-    const planetGeo = new THREE.SphereGeometry(40, 64, 64);
+    // 2. Home Planet
+    const planetGeo = new THREE.SphereGeometry(35, 32, 32);
     const planetMat = new THREE.MeshStandardMaterial({
       color: 0x0e4b75,
       roughness: 0.3,
@@ -141,8 +146,7 @@ export class SpaceScene {
     this.planetMesh.position.set(0, -55, -120);
     this.scene.add(this.planetMesh);
 
-    // Planet Atmosphere Ring
-    const atmoGeo = new THREE.SphereGeometry(43, 64, 64);
+    const atmoGeo = new THREE.SphereGeometry(37, 32, 32);
     const atmoMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       wireframe: true,
@@ -153,8 +157,8 @@ export class SpaceScene {
     this.atmoMesh.position.copy(this.planetMesh.position);
     this.scene.add(this.atmoMesh);
 
-    // 3. Lumina Ambient Void Starfield Backdrop
-    const starCount = 1500;
+    // 3. Ambient Void Starfield Backdrop
+    const starCount = 800; // Optimized particle count for mobile GPUs
     const starGeo = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
@@ -170,9 +174,9 @@ export class SpaceScene {
 
       const colorType = Math.random();
       if (colorType > 0.7) {
-        starColors[i * 3] = 0.0; starColors[i * 3 + 1] = 0.95; starColors[i * 3 + 2] = 1.0; // Cyan
+        starColors[i * 3] = 0.0; starColors[i * 3 + 1] = 0.95; starColors[i * 3 + 2] = 1.0;
       } else if (colorType > 0.4) {
-        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.0; starColors[i * 3 + 2] = 0.5; // Magenta
+        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.0; starColors[i * 3 + 2] = 0.5;
       } else {
         starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 1.0; starColors[i * 3 + 2] = 1.0;
       }
@@ -182,7 +186,7 @@ export class SpaceScene {
     starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
     const starMat = new THREE.PointsMaterial({
-      size: 3.5,
+      size: 3.0,
       vertexColors: true,
       transparent: true,
       opacity: 0.9
@@ -192,7 +196,7 @@ export class SpaceScene {
     this.scene.add(this.starField);
 
     // 4. Floating Space Dust Particles
-    const dustCount = 500;
+    const dustCount = 250;
     const dustGeo = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(dustCount * 3);
 
@@ -219,15 +223,12 @@ export class SpaceScene {
   setCameraMode(mode) {
     this.cameraMode = mode;
     if (mode === 'isometric') {
-      // Direct overview framing ship at (0, 0, 0) and grid platform at (0, -6, -20)
       this.targetCameraPos.set(0, 14, 24);
       this.targetLookAt.set(0, -1, -15);
     } else if (mode === 'chase') {
-      // Dynamic rear fighter chase camera
       this.targetCameraPos.set(0, 5, 18);
       this.targetLookAt.set(0, 0, -30);
     } else if (mode === 'topdown') {
-      // Overhead tactical command view
       this.targetCameraPos.set(0, 55, -15);
       this.targetLookAt.set(0, -5, -15.1);
     }
@@ -245,22 +246,21 @@ export class SpaceScene {
   }
 
   addScreenShake(amount = 0.8) {
-    this.shakeIntensity = Math.min(2.5, this.shakeIntensity + amount);
+    this.shakeIntensity = Math.min(2.0, this.shakeIntensity + amount);
   }
 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
   }
 
   update(dt, playerVelocity = { x: 0, y: 0 }) {
-    // Planet & Starfield slow rotation
     if (this.planetMesh) this.planetMesh.rotation.y += 0.001;
     if (this.atmoMesh) this.atmoMesh.rotation.y -= 0.0015;
     if (this.starField) this.starField.rotation.y += 0.0002;
 
-    // Space dust floating movement
     if (this.dustPoints) {
       const positions = this.dustPoints.geometry.attributes.position.array;
       for (let i = 0; i < positions.length / 3; i++) {
@@ -272,17 +272,14 @@ export class SpaceScene {
       this.dustPoints.geometry.attributes.position.needsUpdate = true;
     }
 
-    // Smooth camera transition toward targetCameraPos and targetLookAt
     this.camera.position.lerp(this.targetCameraPos, 0.1);
     this.camera.lookAt(this.targetLookAt);
 
-    // Roll banking in chase mode
     if (this.cameraMode === 'chase') {
       const targetRoll = -playerVelocity.x * 0.15;
       this.camera.rotation.z += (targetRoll - this.camera.rotation.z) * 0.1;
     }
 
-    // Screen Shake decay
     if (this.shakeIntensity > 0.01) {
       const rx = (Math.random() - 0.5) * this.shakeIntensity;
       const ry = (Math.random() - 0.5) * this.shakeIntensity;
