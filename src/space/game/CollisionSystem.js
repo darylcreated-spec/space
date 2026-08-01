@@ -9,11 +9,14 @@ export class CollisionSystem {
 
   checkCollisions(gameManager) {
     const player = gameManager.playerShip;
+    if (!player || !player.meshGroup) return;
     const pPos = player.meshGroup.position;
 
     // 1. Power-Up Collection by Player Ship
     for (let i = gameManager.powerUps.length - 1; i >= 0; i--) {
       const pow = gameManager.powerUps[i];
+      if (!pow || !pow.meshGroup) continue;
+
       const dist = pPos.distanceTo(pow.meshGroup.position);
       if (dist < player.radius + pow.radius) {
         gameManager.collectPowerUp(pow.type);
@@ -25,6 +28,8 @@ export class CollisionSystem {
     // 2. Lasers vs Threats & Boss
     for (let i = gameManager.lasers.length - 1; i >= 0; i--) {
       const laser = gameManager.lasers[i];
+      if (!laser || !laser.meshGroup) continue;
+
       const lPos = laser.meshGroup.position;
 
       if (laser.isEnemy) {
@@ -47,6 +52,8 @@ export class CollisionSystem {
         let hit = false;
         for (let j = gameManager.asteroids.length - 1; j >= 0; j--) {
           const rock = gameManager.asteroids[j];
+          if (!rock || !rock.meshGroup || rock.isDead) continue;
+
           const dist = lPos.distanceTo(rock.meshGroup.position);
 
           if (dist < rock.radius + laser.radius) {
@@ -77,6 +84,8 @@ export class CollisionSystem {
         // Player Lasers vs Enemy Drones
         for (let j = gameManager.drones.length - 1; j >= 0; j--) {
           const drone = gameManager.drones[j];
+          if (!drone || !drone.meshGroup || drone.isDead) continue;
+
           const dist = lPos.distanceTo(drone.meshGroup.position);
 
           if (dist < drone.radius + laser.radius) {
@@ -102,7 +111,7 @@ export class CollisionSystem {
         if (hit) continue;
 
         // Player Lasers vs Boss Dreadnought
-        if (gameManager.activeBoss && !gameManager.activeBoss.isDead) {
+        if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
           const bPos = boss.meshGroup.position;
           const distB = lPos.distanceTo(bPos);
@@ -131,11 +140,13 @@ export class CollisionSystem {
     // 3. Torpedoes vs Threats & Boss
     for (let i = gameManager.torpedoes.length - 1; i >= 0; i--) {
       const torpedo = gameManager.torpedoes[i];
+      if (!torpedo || !torpedo.meshGroup) continue;
+
       const tPos = torpedo.meshGroup.position;
 
       let hitTarget = false;
       [...gameManager.asteroids, ...gameManager.drones].forEach(target => {
-        if (!target.isDead && tPos.distanceTo(target.meshGroup.position) < target.radius + torpedo.radius + 1.0) {
+        if (target && !target.isDead && target.meshGroup && tPos.distanceTo(target.meshGroup.position) < target.radius + torpedo.radius + 1.0) {
           hitTarget = true;
         }
       });
@@ -150,7 +161,7 @@ export class CollisionSystem {
 
         // AoE Blast Damage
         gameManager.asteroids.forEach(rock => {
-          if (tPos.distanceTo(rock.meshGroup.position) < torpedo.aoeRadius) {
+          if (rock && rock.meshGroup && tPos.distanceTo(rock.meshGroup.position) < torpedo.aoeRadius) {
             if (rock.takeDamage(80)) {
               gameManager.addScore(rock.scoreValue);
               gameManager.addScrap(15);
@@ -160,7 +171,7 @@ export class CollisionSystem {
         });
 
         gameManager.drones.forEach(drone => {
-          if (tPos.distanceTo(drone.meshGroup.position) < torpedo.aoeRadius) {
+          if (drone && drone.meshGroup && tPos.distanceTo(drone.meshGroup.position) < torpedo.aoeRadius) {
             if (drone.takeDamage(80)) {
               gameManager.addScore(drone.scoreValue);
               gameManager.addScrap(30);
@@ -169,7 +180,7 @@ export class CollisionSystem {
           }
         });
 
-        if (gameManager.activeBoss && !gameManager.activeBoss.isDead) {
+        if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
           if (tPos.distanceTo(boss.meshGroup.position) < 20) {
             if (boss.takeDamage('core', 120)) {
@@ -187,25 +198,29 @@ export class CollisionSystem {
       const empRad = gameManager.activeEmpPulse.currentRadius;
 
       gameManager.asteroids.forEach(rock => {
-        const d = pPos.distanceTo(rock.meshGroup.position);
-        if (d < empRad + rock.radius) {
-          rock.takeDamage(100);
-          this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 25);
+        if (rock && rock.meshGroup) {
+          const d = pPos.distanceTo(rock.meshGroup.position);
+          if (d < empRad + rock.radius) {
+            rock.takeDamage(100);
+            this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 25);
+          }
         }
       });
 
       gameManager.drones.forEach(drone => {
-        const d = pPos.distanceTo(drone.meshGroup.position);
-        if (d < empRad + drone.radius) {
-          drone.takeDamage(100);
-          this.particleManager.createExplosion(drone.meshGroup.position, 0x00f3ff, 25);
+        if (drone && drone.meshGroup) {
+          const d = pPos.distanceTo(drone.meshGroup.position);
+          if (d < empRad + drone.radius) {
+            drone.takeDamage(100);
+            this.particleManager.createExplosion(drone.meshGroup.position, 0x00f3ff, 25);
+          }
         }
       });
     }
 
     // 5. Direct Player Collisions with Threats
     gameManager.asteroids.forEach(rock => {
-      if (!rock.isDead && pPos.distanceTo(rock.meshGroup.position) < player.radius + rock.radius) {
+      if (rock && !rock.isDead && rock.meshGroup && pPos.distanceTo(rock.meshGroup.position) < player.radius + rock.radius) {
         rock.isDead = true;
         const dead = player.takeDamage(25);
         this.particleManager.createExplosion(pPos, 0xff0055, 30);
@@ -216,7 +231,7 @@ export class CollisionSystem {
     });
 
     gameManager.drones.forEach(drone => {
-      if (!drone.isDead && pPos.distanceTo(drone.meshGroup.position) < player.radius + drone.radius) {
+      if (drone && !drone.isDead && drone.meshGroup && pPos.distanceTo(drone.meshGroup.position) < player.radius + drone.radius) {
         drone.isDead = true;
         const dead = player.takeDamage(35);
         this.particleManager.createExplosion(pPos, 0xff0055, 35);
@@ -228,7 +243,7 @@ export class CollisionSystem {
 
     // 6. Planet Impacts
     gameManager.asteroids.forEach(rock => {
-      if (rock.impactedPlanet) {
+      if (rock && rock.impactedPlanet && rock.meshGroup) {
         gameManager.damagePlanet(10);
         this.particleManager.createExplosion(rock.meshGroup.position, 0xffea00, 20);
         this.spaceAudio.playExplosion();
@@ -236,7 +251,7 @@ export class CollisionSystem {
     });
 
     gameManager.drones.forEach(drone => {
-      if (drone.impactedPlanet) {
+      if (drone && drone.impactedPlanet && drone.meshGroup) {
         gameManager.damagePlanet(15);
         this.particleManager.createExplosion(drone.meshGroup.position, 0xff0055, 25);
         this.spaceAudio.playExplosion();
