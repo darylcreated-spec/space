@@ -24,7 +24,6 @@ export class SpaceHUD {
     this.waveTitle = document.getElementById('space-wave-title');
     this.waveSubtitle = document.getElementById('space-wave-subtitle');
 
-    this.btnFireLaser = document.getElementById('btn-fire-laser');
     this.btnFireTorpedo = document.getElementById('btn-fire-torpedo');
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnSpaceCamera = document.getElementById('btn-space-camera');
@@ -74,21 +73,11 @@ export class SpaceHUD {
       }
     };
 
-    // Action Buttons
-    if (this.btnFireLaser) {
-      this.btnFireLaser.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        triggerStartIfInStartScreen();
-        this.gameManager.controlsManager.isLaserHeld = true;
-      });
-      window.addEventListener('pointerup', () => {
-        this.gameManager.controlsManager.isLaserHeld = false;
-      });
-    }
-
+    // Action Weapon Special Buttons (Tap Torpedo or EMP -> pauses rapid laser, fires special weapon, resumes lasers)
     if (this.btnFireTorpedo) {
       this.btnFireTorpedo.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         triggerStartIfInStartScreen();
         this.gameManager.fireTorpedo();
       });
@@ -97,13 +86,15 @@ export class SpaceHUD {
     if (this.btnFirePulse) {
       this.btnFirePulse.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         triggerStartIfInStartScreen();
         this.gameManager.fireEmpPulse();
       });
     }
 
     if (this.btnSpaceCamera) {
-      this.btnSpaceCamera.addEventListener('click', () => {
+      this.btnSpaceCamera.addEventListener('click', (e) => {
+        e.stopPropagation();
         this.gameManager.spaceAudio.vibrate(10);
         this.gameManager.spaceScene.toggleCameraMode();
       });
@@ -127,7 +118,7 @@ export class SpaceHUD {
     });
 
     if (this.modalStart) {
-      this.modalStart.addEventListener('click', (e) => {
+      this.modalStart.addEventListener('pointerdown', (e) => {
         triggerStartIfInStartScreen();
       });
     }
@@ -149,7 +140,8 @@ export class SpaceHUD {
 
     // Hangar Upgrade Buttons
     if (this.btnNextWave) {
-      this.btnNextWave.addEventListener('click', () => {
+      this.btnNextWave.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (this.modalHangar) this.modalHangar.classList.add('hidden');
         this.gameManager.resumeNextWave();
       });
@@ -157,7 +149,8 @@ export class SpaceHUD {
 
     const bindUpgBtn = (btn, type) => {
       if (btn) {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
           if (this.gameManager.upgradeSystem.buyUpgrade(type)) {
             this.gameManager.spaceAudio.playPowerUpSound();
             this.updateHangarUI(this.gameManager.upgradeSystem);
@@ -254,21 +247,18 @@ export class SpaceHUD {
   }
 
   updateStatus(data) {
-    // Planet HP Meter
     if (this.planetHpFill) {
       const pPct = Math.max(0, data.planetHp);
       this.planetHpFill.style.width = `${pPct}%`;
       this.planetHpText.textContent = `${Math.round(pPct)}%`;
     }
 
-    // Player Shield Meter
     if (this.playerHpFill) {
       const sPct = Math.max(0, data.playerShield);
       this.playerHpFill.style.width = `${sPct}%`;
       this.playerHpText.textContent = `${Math.round(sPct)}%`;
     }
 
-    // Boss HP Meter Bar
     if (this.bossBarContainer && this.bossHpFill) {
       if (data.bossHpRatio !== null) {
         this.bossBarContainer.classList.remove('hidden');
@@ -278,12 +268,10 @@ export class SpaceHUD {
       }
     }
 
-    // Score & Wave & Scrap
     if (this.scoreVal) this.scoreVal.textContent = String(data.score).padStart(6, '0');
     if (this.scrapVal) this.scrapVal.textContent = data.scrap;
     if (this.waveBadge) this.waveBadge.textContent = `WAVE ${data.waveNum}`;
 
-    // Cooldown Rings
     if (this.cdRingTorpedo) this.cdRingTorpedo.style.opacity = data.torpedoCdRatio > 0 ? '1' : '0';
     if (this.cdRingPulse) this.cdRingPulse.style.opacity = data.pulseCdRatio > 0 ? '1' : '0';
   }

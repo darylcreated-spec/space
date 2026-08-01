@@ -47,6 +47,9 @@ export class GameManager {
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
 
+    // Flag for pausing laser auto-fire during Torpedo or EMP launch
+    this.specialWeaponActive = false;
+
     // Subsystems
     this.collisionSystem = new CollisionSystem(this.particleManager, this.spaceAudio, this.spaceScene);
     this.waveSpawner = new WaveSpawner(this);
@@ -82,6 +85,7 @@ export class GameManager {
     this.totalKills = 0;
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
+    this.specialWeaponActive = false;
     this.playerShip.reset();
     this.clearAllEntities();
   }
@@ -185,13 +189,13 @@ export class GameManager {
   }
 
   fireRapidLaser() {
-    if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0) return;
+    if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0 || this.specialWeaponActive) return;
 
     this.playerShip.laserCooldown = this.playerShip.laserFireDelay || 0.12;
     const pPos = this.playerShip.meshGroup.position;
 
     if (this.overchargeTimer > 0) {
-      // Quad-beam overcharge fire!
+      // Quad-beam overcharge fire
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(3.0, 0, -0.4).add(pPos), 0xffea00));
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(1.0, 0, -0.4).add(pPos), 0xffea00));
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-1.0, 0, -0.4).add(pPos), 0xffea00));
@@ -203,11 +207,14 @@ export class GameManager {
     }
 
     this.spaceAudio.playLaserPew();
-    this.spaceAudio.vibrate(10);
   }
 
   fireTorpedo() {
     if (this.state !== 'PLAYING' || this.playerShip.torpedoCooldown > 0) return;
+
+    // Temporarily pause rapid laser auto-fire so Torpedo launches cleanly
+    this.specialWeaponActive = true;
+    setTimeout(() => { this.specialWeaponActive = false; }, 300);
 
     this.playerShip.torpedoCooldown = this.playerShip.maxTorpedoCD;
     const pPos = this.playerShip.meshGroup.position;
@@ -241,6 +248,10 @@ export class GameManager {
 
   fireEmpPulse() {
     if (this.state !== 'PLAYING' || this.playerShip.pulseCooldown > 0) return;
+
+    // Temporarily pause rapid laser auto-fire so EMP triggers cleanly
+    this.specialWeaponActive = true;
+    setTimeout(() => { this.specialWeaponActive = false; }, 400);
 
     this.playerShip.pulseCooldown = this.playerShip.maxPulseCD;
     const pPos = this.playerShip.meshGroup.position;
@@ -291,7 +302,6 @@ export class GameManager {
   }
 
   renderScene() {
-    // PostProcessing.render() handles mobile (direct) vs desktop (bloom) automatically
     this.postProcessing.render();
   }
 
@@ -311,13 +321,12 @@ export class GameManager {
     const timeScale = this.stasisTimer > 0 ? 0.25 : 1.0;
     const effectiveDt = dt * timeScale;
 
-    // 1. Update Controls & Player Ship
+    // 1. Update Controls & Player Ship Movement
     const inputDir = this.controlsManager.getInputVector();
     this.playerShip.update(dt, inputDir);
 
-    if (this.controlsManager.isLaserHeld) {
-      this.fireRapidLaser();
-    }
+    // DEFAULT WEAPON AUTO-FIRE: Rapid Lasers fire continuously while playing!
+    this.fireRapidLaser();
 
     // 2. Wave Spawner
     this.waveSpawner.update(effectiveDt);

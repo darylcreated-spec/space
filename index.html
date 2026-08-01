@@ -92,16 +92,14 @@
       <p id="space-wave-subtitle">ASTEROID SHOWER DETECTED</p>
     </div>
 
-    <!-- Mobile Virtual Touch Joystick & Action Buttons -->
+    <!-- Mobile Action Weapon Buttons Layer -->
     <div id="space-mobile-controls" class="mobile-controls-layer">
-      <!-- Virtual Joystick Zone (Left) -->
-      <div id="joystick-container" class="joystick-zone">
-        <div id="joystick-base" class="joystick-base">
-          <div id="joystick-stick" class="joystick-stick"></div>
-        </div>
+      <!-- Touch Steering Hint Overlay -->
+      <div class="touch-steering-hint">
+        TOUCH SCREEN LEFT / RIGHT / TOP / BOTTOM TO STEER
       </div>
 
-      <!-- Action Weapon Buttons (Right) -->
+      <!-- Action Weapon Special Buttons (Right) -->
       <div class="action-buttons-zone">
         <button id="btn-fire-pulse" class="action-btn pulse-btn" title="EMP Shockwave (Q / Shift)">
           <span class="cooldown-ring" id="cd-ring-pulse"></span>
@@ -114,21 +112,15 @@
           <span class="icon">🚀</span>
           <span class="btn-label">TORPEDO</span>
         </button>
-
-        <button id="btn-fire-laser" class="action-btn laser-btn main-fire" title="Rapid Lasers (Spacebar / Click)">
-          <span class="icon">💥</span>
-          <span class="btn-label">LASER</span>
-        </button>
       </div>
     </div>
 
     <!-- Desktop Keyboard Shortcuts Legend -->
     <div class="desktop-controls-hint">
-      <span class="hint-key"><kbd>WASD</kbd> Flight Pitch/Yaw</span>
+      <span class="hint-key"><kbd>WASD / Touch Screen</kbd> Flight Pitch/Yaw</span>
       <span class="hint-key"><kbd>C</kbd> Camera Angle Toggle</span>
-      <span class="hint-key"><kbd>Space / Click</kbd> Rapid Laser</span>
-      <span class="hint-key"><kbd>E / R-Click</kbd> Homing Torpedo</span>
-      <span class="hint-key"><kbd>Q / Shift</kbd> EMP Pulse</span>
+      <span class="hint-key"><kbd>E / Torpedo Button</kbd> Launch Torpedo</span>
+      <span class="hint-key"><kbd>Q / EMP Button</kbd> Trigger EMP</span>
     </div>
   </div>
 
@@ -154,15 +146,15 @@
       <div class="weapon-guide">
         <div class="witem">
           <span class="wicon">💥</span>
-          <div class="wdesc"><strong>Rapid Lasers:</strong> Continuous energy beam fire.</div>
+          <div class="wdesc"><strong>Rapid Lasers:</strong> Continuous automatic energy beam fire.</div>
         </div>
         <div class="witem">
           <span class="wicon">🚀</span>
-          <div class="wdesc"><strong>Homing Torpedoes:</strong> Locks onto targets & explodes in AoE blast.</div>
+          <div class="wdesc"><strong>Homing Torpedoes:</strong> Tap to pause lasers & launch explosive missile.</div>
         </div>
         <div class="witem">
           <span class="wicon">⚡</span>
-          <div class="wdesc"><strong>EMP Pulse Shockwave:</strong> Clears asteroids & repels enemy drones.</div>
+          <div class="wdesc"><strong>EMP Pulse Shockwave:</strong> Tap to pause lasers & trigger EMP wave.</div>
         </div>
       </div>
 
