@@ -3,12 +3,14 @@ export class ControlsManager {
     this.keys = {};
     this.touchVector = { x: 0, y: 0 };
     this.activePointerId = null;
+    this.touchStartPos = { x: 0, y: 0 };
+    this.dragRadius = 50; // Comfortable 50px finger drag radius for max steering speed
 
     // Listeners for Keyboard
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
 
-    // Listeners for Screen Pointer/Touch Directional Steering
+    // Listeners for Smooth Screen Touch-Drag Steering
     window.addEventListener('pointerdown', this.onPointerDown.bind(this), { passive: false });
     window.addEventListener('pointermove', this.onPointerMove.bind(this), { passive: false });
     window.addEventListener('pointerup', this.onPointerUp.bind(this));
@@ -28,17 +30,17 @@ export class ControlsManager {
   }
 
   onPointerDown(e) {
-    // Ignore taps on interactive UI buttons or modal cards
-    if (e.target.closest('button, .modal-card, .glass-panel, .action-btn')) return;
+    // Ignore taps on buttons, modal cards, or top HUD header
+    if (e.target.closest('button, .modal-card, .space-top-bar, .action-btn')) return;
 
     this.activePointerId = e.pointerId;
-    this.updateTouchVector(e.clientX, e.clientY);
+    this.touchStartPos = { x: e.clientX, y: e.clientY };
+    this.touchVector = { x: 0, y: 0 };
   }
 
   onPointerMove(e) {
     if (this.activePointerId !== null && e.pointerId === this.activePointerId) {
-      // Ignore if dragging over buttons
-      if (e.target.closest('button, .modal-card, .action-btn')) return;
+      if (e.target.closest('button, .modal-card, .space-top-bar, .action-btn')) return;
       this.updateTouchVector(e.clientX, e.clientY);
     }
   }
@@ -51,31 +53,13 @@ export class ControlsManager {
   }
 
   updateTouchVector(clientX, clientY) {
-    const halfWidth = window.innerWidth / 2;
-    const halfHeight = window.innerHeight / 2;
+    // Relative displacement drag delta from touch start position
+    const dx = clientX - this.touchStartPos.x;
+    const dy = clientY - this.touchStartPos.y;
 
-    // Center Deadzone margin (10% of screen size)
-    const deadzoneX = window.innerWidth * 0.08;
-    const deadzoneY = window.innerHeight * 0.08;
-
-    let x = 0;
-    let y = 0;
-
-    // Horizontal Steering (Left vs Right)
-    const dx = clientX - halfWidth;
-    if (dx < -deadzoneX) {
-      x = -1; // Touch Left -> Move Left
-    } else if (dx > deadzoneX) {
-      x = 1;  // Touch Right -> Move Right
-    }
-
-    // Vertical Steering (Top vs Bottom)
-    const dy = clientY - halfHeight;
-    if (dy < -deadzoneY) {
-      y = 1;  // Touch Top -> Move Up
-    } else if (dy > deadzoneY) {
-      y = -1; // Touch Bottom -> Move Down
-    }
+    // Smooth proportional analog steering (-1.0 to +1.0)
+    let x = Math.max(-1.0, Math.min(1.0, dx / this.dragRadius));
+    let y = Math.max(-1.0, Math.min(1.0, -dy / this.dragRadius)); // Invert Y so drag up = move up
 
     this.touchVector = { x, y };
   }
@@ -90,7 +74,7 @@ export class ControlsManager {
     if (this.keys['KeyW'] || this.keys['w'] || this.keys['ArrowUp']) y += 1;
     if (this.keys['KeyS'] || this.keys['s'] || this.keys['ArrowDown']) y -= 1;
 
-    // Merge with Screen Touch Directional Vector
+    // Merge with Smooth Touch Drag Vector
     if (this.touchVector.x !== 0 || this.touchVector.y !== 0) {
       x = this.touchVector.x;
       y = this.touchVector.y;
