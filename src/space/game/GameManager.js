@@ -4,6 +4,7 @@ import { Asteroid } from '../objects/Asteroid.js';
 import { EnemyDrone } from '../objects/EnemyDrone.js';
 import { PowerUp } from '../objects/PowerUp.js';
 import { BossDreadnought } from '../objects/BossDreadnought.js';
+import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
 import { LaserBolt, Torpedo } from '../objects/Projectiles.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
@@ -156,6 +157,11 @@ export class GameManager {
   spawnBoss() {
     this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Sector Dreadnought Approaching!", true);
+  }
+
+  spawnTitanBoss() {
+    this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Warning! Titan Asteroid Core Approaching!", true);
   }
 
   spawnPowerUp(pos) {
