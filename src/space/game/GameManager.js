@@ -87,6 +87,7 @@ export class GameManager {
     this.stasisTimer = 0;
     this.specialWeaponActive = false;
     this.playerShip.reset();
+    this.waveSpawner.reset();
     this.clearAllEntities();
   }
 
@@ -195,13 +196,11 @@ export class GameManager {
     const pPos = this.playerShip.meshGroup.position;
 
     if (this.overchargeTimer > 0) {
-      // Quad-beam overcharge fire
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(3.0, 0, -0.4).add(pPos), 0xffea00));
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(1.0, 0, -0.4).add(pPos), 0xffea00));
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-1.0, 0, -0.4).add(pPos), 0xffea00));
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-3.0, 0, -0.4).add(pPos), 0xffea00));
     } else {
-      // Standard dual wingtip lasers
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(2.0, 0, -0.4).add(pPos), 0x00f3ff));
       this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-2.0, 0, -0.4).add(pPos), 0x00f3ff));
     }
@@ -212,7 +211,6 @@ export class GameManager {
   fireTorpedo() {
     if (this.state !== 'PLAYING' || this.playerShip.torpedoCooldown > 0) return;
 
-    // Temporarily pause rapid laser auto-fire so Torpedo launches cleanly
     this.specialWeaponActive = true;
     setTimeout(() => { this.specialWeaponActive = false; }, 300);
 
@@ -249,7 +247,6 @@ export class GameManager {
   fireEmpPulse() {
     if (this.state !== 'PLAYING' || this.playerShip.pulseCooldown > 0) return;
 
-    // Temporarily pause rapid laser auto-fire so EMP triggers cleanly
     this.specialWeaponActive = true;
     setTimeout(() => { this.specialWeaponActive = false; }, 400);
 
@@ -314,7 +311,6 @@ export class GameManager {
       return;
     }
 
-    // Power-Up timers update
     if (this.overchargeTimer > 0) this.overchargeTimer -= dt;
     if (this.stasisTimer > 0) this.stasisTimer -= dt;
 
@@ -325,7 +321,7 @@ export class GameManager {
     const inputDir = this.controlsManager.getInputVector();
     this.playerShip.update(dt, inputDir);
 
-    // DEFAULT WEAPON AUTO-FIRE: Rapid Lasers fire continuously while playing!
+    // DEFAULT WEAPON AUTO-FIRE: Rapid Lasers fire continuously while playing
     this.fireRapidLaser();
 
     // 2. Wave Spawner

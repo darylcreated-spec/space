@@ -21,8 +21,8 @@ export class PlayerShip {
     this.targetPitch = 0;
     this.currentPitch = 0;
 
-    // Movement Bounds
-    this.bounds = { minX: -20, maxX: 20, minY: -12, maxY: 14 };
+    // Tight Movement Bounds — keeps ship 100% inside visible camera screen viewport on mobile & desktop
+    this.bounds = { minX: -13.0, maxX: 13.0, minY: -6.5, maxY: 7.5 };
 
     // Cooldown Timers
     this.laserCooldown = 0;
@@ -51,7 +51,7 @@ export class PlayerShip {
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     this.meshGroup.add(body);
 
-    // Cockpit Canopy — MeshStandardMaterial instead of MeshPhysicalMaterial (mobile safe)
+    // Cockpit Canopy
     const canopyGeo = new THREE.SphereGeometry(0.48, 10, 10);
     canopyGeo.scale(0.8, 0.6, 1.4);
     const canopyMat = new THREE.MeshStandardMaterial({
@@ -157,6 +157,7 @@ export class PlayerShip {
     this.meshGroup.position.x += this.velocity.x * dt;
     this.meshGroup.position.y += this.velocity.y * dt;
 
+    // Tight clamp inside visible screen camera bounds
     this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
     this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, this.bounds.minY, this.bounds.maxY);
 
@@ -167,7 +168,6 @@ export class PlayerShip {
     this.meshGroup.rotation.z = this.currentRoll;
     this.meshGroup.rotation.x = this.currentPitch;
 
-    // Throttled engine particles — every 3rd frame only (mobile safe)
     this._thrusterTick++;
     if (this._thrusterTick % 3 === 0) {
       const pR = new THREE.Vector3(0.45, 0, 1.8).add(this.meshGroup.position);

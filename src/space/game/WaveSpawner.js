@@ -1,10 +1,12 @@
 export class WaveSpawner {
   constructor(gameManager) {
     this.gameManager = gameManager;
+    this.reset();
+  }
 
+  reset() {
     this.currentWave = 1;
     this.waveState = 'INACTIVE'; // 'INACTIVE', 'SPAWNING', 'WAITING_CLEAR', 'COMPLETED'
-    
     this.spawnTimer = 0;
     this.totalToSpawnInWave = 0;
     this.spawnedCount = 0;
@@ -81,8 +83,8 @@ export class WaveSpawner {
   }
 
   checkWaveComplete(activeAsteroidsCount, activeDronesCount, bossActive) {
-    // Wave is ONLY complete when ALL threats in the wave have finished spawning AND all active entities are cleared
     if (
+      this.totalToSpawnInWave > 0 &&
       this.spawnedCount >= this.totalToSpawnInWave &&
       this.waveState === 'WAITING_CLEAR' &&
       activeAsteroidsCount === 0 &&
