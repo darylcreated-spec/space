@@ -25,13 +25,13 @@ export class WaveSpawner {
       this.totalToSpawnInWave = 1;
       this.gameManager.spawnBoss();
     } else if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 14;
+      this.totalToSpawnInWave = 24; // Extended action-packed wave 1
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 16;
+      this.totalToSpawnInWave = 32;
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 24;
+      this.totalToSpawnInWave = 42;
     } else {
-      this.totalToSpawnInWave = 24 + (this.currentWave - 3) * 10;
+      this.totalToSpawnInWave = 42 + (this.currentWave - 3) * 12;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
@@ -54,22 +54,26 @@ export class WaveSpawner {
     }
 
     this.spawnTimer += dt;
-    const spawnInterval = Math.max(0.5, 1.2 - this.currentWave * 0.15);
+    const spawnInterval = Math.max(0.4, 0.9 - this.currentWave * 0.08);
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
       if (this.currentWave === 1) {
-        this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
+        if (Math.random() > 0.75) {
+          this.gameManager.spawnDrone();
+        } else {
+          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
+        }
       } else if (this.currentWave === 2) {
-        if (Math.random() > 0.35) {
+        if (Math.random() > 0.4) {
           this.gameManager.spawnDrone();
         } else {
           this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
         }
       } else {
-        if (Math.random() > 0.4) {
+        if (Math.random() > 0.35) {
           this.gameManager.spawnDrone();
         } else {
           this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.5 ? 'large' : 'medium' });
@@ -94,7 +98,7 @@ export class WaveSpawner {
       this.waveState = 'COMPLETED';
       setTimeout(() => {
         this.gameManager.onWaveCompleted(this.currentWave);
-      }, 1800);
+      }, 1500);
       return true;
     }
     return false;

@@ -271,7 +271,10 @@ export class GameManager {
 
   onWaveCompleted(completedWaveNum) {
     this.state = 'HANGAR';
+    this.spaceAudio.playVictoryArpeggio();
+    this.voiceAnnouncer.speak(`Wave ${completedWaveNum} Cleared! Accessing Ship Hangar.`, true);
     if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner(`WAVE ${completedWaveNum} CLEARED`, 'ACCESSING SHIP HANGAR UPGRADES');
       this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem);
     }
   }
