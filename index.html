@@ -58,7 +58,7 @@
         </div>
       </div>
 
-      <!-- Player Shield Meter & Camera View Toggle Button -->
+      <!-- Player Shield Meter & Action Buttons -->
       <div class="meter-group align-right">
         <div class="meter-label">
           <span class="title">CRAFT SHIELD</span>
@@ -69,12 +69,18 @@
         </div>
       </div>
 
-      <button id="btn-space-camera" class="icon-btn" title="Toggle Camera Angle (Isometric 45° / Chase / Top-Down)">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-      </button>
+      <div class="top-bar-actions">
+        <button id="btn-open-hangar" class="icon-btn hangar-top-btn" title="Open Hangar Ship Upgrades">
+          <span>🛠️</span>
+        </button>
+
+        <button id="btn-space-camera" class="icon-btn" title="Toggle Camera Angle (Isometric 45° / Chase / Top-Down)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <!-- Achievement Toast Notification Popup -->
@@ -118,6 +124,7 @@
     <!-- Desktop Keyboard Shortcuts Legend -->
     <div class="desktop-controls-hint">
       <span class="hint-key"><kbd>WASD / Touch Screen</kbd> Flight Pitch/Yaw</span>
+      <span class="hint-key"><kbd>H</kbd> Open Hangar Upgrades</span>
       <span class="hint-key"><kbd>C</kbd> Camera Angle Toggle</span>
       <span class="hint-key"><kbd>E / Torpedo Button</kbd> Launch Torpedo</span>
       <span class="hint-key"><kbd>Q / EMP Button</kbd> Trigger EMP</span>
@@ -162,11 +169,11 @@
     </div>
   </div>
 
-  <!-- Inter-Wave Hangar Ship Upgrades Modal -->
+  <!-- User-Triggered Hangar Ship Upgrades Modal -->
   <div id="space-modal-hangar" class="modal-overlay hidden">
     <div class="glass-panel modal-card hangar-card">
       <h2>🛠️ SHIP HANGAR UPGRADES</h2>
-      <p class="hangar-subtitle">SPEND SCRAP TO UPGRADE DEFENSE SYSTEMS BEFORE NEXT WAVE</p>
+      <p class="hangar-subtitle">SPEND SCRAP TO UPGRADE DEFENSE SYSTEMS</p>
 
       <div class="hangar-scrap-bar">
         <span>TECH SCRAP AVAILABLE:</span>
@@ -207,7 +214,7 @@
         </div>
       </div>
 
-      <button id="btn-next-wave" class="btn-primary">LAUNCH NEXT WAVE →</button>
+      <button id="btn-next-wave" class="btn-primary">RESUME DEFENSE →</button>
     </div>
   </div>
 

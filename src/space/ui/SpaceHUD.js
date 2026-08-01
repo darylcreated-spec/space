@@ -27,6 +27,7 @@ export class SpaceHUD {
     this.btnFireTorpedo = document.getElementById('btn-fire-torpedo');
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnSpaceCamera = document.getElementById('btn-space-camera');
+    this.btnOpenHangar = document.getElementById('btn-open-hangar');
 
     this.cdRingTorpedo = document.getElementById('cd-ring-torpedo');
     this.cdRingPulse = document.getElementById('cd-ring-pulse');
@@ -73,7 +74,15 @@ export class SpaceHUD {
       }
     };
 
-    // Action Weapon Special Buttons (Tap Torpedo or EMP -> pauses rapid laser, fires special weapon, resumes lasers)
+    // User-triggered Hangar Modal open
+    if (this.btnOpenHangar) {
+      this.btnOpenHangar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.spaceAudio.vibrate(15);
+        this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
+      });
+    }
+
     if (this.btnFireTorpedo) {
       this.btnFireTorpedo.addEventListener('pointerdown', (e) => {
         e.preventDefault();
@@ -111,6 +120,9 @@ export class SpaceHUD {
 
       if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') this.gameManager.fireTorpedo();
       if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.code === 'ShiftLeft') this.gameManager.fireEmpPulse();
+      if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
+        this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
+      }
       if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
         this.gameManager.spaceAudio.vibrate(10);
         this.gameManager.spaceScene.toggleCameraMode();
@@ -143,7 +155,7 @@ export class SpaceHUD {
       this.btnNextWave.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.modalHangar) this.modalHangar.classList.add('hidden');
-        this.gameManager.resumeNextWave();
+        this.gameManager.resumeFromHangar();
       });
     }
 
@@ -168,6 +180,7 @@ export class SpaceHUD {
 
   showHangarModal(completedWaveNum, upgradeSystem) {
     if (this.modalHangar) {
+      this.gameManager.state = 'HANGAR';
       this.updateHangarUI(upgradeSystem);
       this.modalHangar.classList.remove('hidden');
     }
@@ -225,7 +238,7 @@ export class SpaceHUD {
 
   showWaveBanner(waveNum, subtitle) {
     if (this.waveBanner) {
-      this.waveTitle.textContent = `WAVE ${waveNum}`;
+      this.waveTitle.textContent = typeof waveNum === 'number' ? `WAVE ${waveNum}` : waveNum;
       this.waveSubtitle.textContent = subtitle;
       this.waveBanner.classList.remove('hidden');
 
