@@ -6,6 +6,8 @@ import { PowerUp } from '../objects/PowerUp.js';
 import { BossDreadnought } from '../objects/BossDreadnought.js';
 import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
 import { SpaceStation } from '../objects/SpaceStation.js';
+import { HaloRingBoss } from '../objects/HaloRingBoss.js';
+import { Babylon5Boss } from '../objects/Babylon5Boss.js';
 import { LaserBolt, Torpedo, PlasmaPulse } from '../objects/Projectiles.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
@@ -176,7 +178,17 @@ export class GameManager {
 
   spawnSpaceStation() {
     this.activeBoss = new SpaceStation(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Warning! Sector Alpha Space Station in Sight!", true);
+    this.voiceAnnouncer.speak("Warning! Sector Alpha Death Star Superweapon in Sight!", true);
+  }
+
+  spawnHaloBoss() {
+    this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Warning! Halo Megastructure Ring Approaching!", true);
+  }
+
+  spawnBabylon5Boss() {
+    this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Warning! Babylon 5 Industrial Rotating Citadel Approaching!", true);
   }
 
   spawnPowerUp(pos) {

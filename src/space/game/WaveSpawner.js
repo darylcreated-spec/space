@@ -35,8 +35,8 @@ export class WaveSpawner {
 
   getWaveSubtitle() {
     if (this.currentWave === 1) return 'MISSION 1: NAVIGATE ASTEROID CORRIDOR';
-    if (this.currentWave === 2) return 'DRONE INCURSION INBOUND';
-    if (this.currentWave === 3) return 'TITAN ASTEROID SIEGE';
+    if (this.currentWave === 2) return 'MISSION 2: HALO MEGASTRUCTURE SIEGE';
+    if (this.currentWave === 3) return 'FINAL MISSION: BABYLON 5 CYLINDER CITADEL';
     return `ENDLESS ASSAULT - PHASE ${this.currentWave}`;
   }
 
@@ -68,20 +68,24 @@ export class WaveSpawner {
       }
     }
 
-    // Mission 1 Phase 2 & 3: Sector Alpha Space Station Assault
+    // Boss Spawning Per Wave
     if (this.spawnedCount >= this.totalToSpawnInWave && !this.bossSpawned) {
       this.bossSpawned = true;
       this.waveState = 'WAITING_CLEAR';
 
       if (this.currentWave === 1) {
-        // Spawns 3D Sector Alpha Space Station & Defense Drones
+        // Wave 1: Star Wars Death Star Superweapon Space Station
         this.gameManager.spawnSpaceStation();
         this.gameManager.spawnDrone();
+      } else if (this.currentWave === 2) {
+        // Wave 2: Halo Megastructure Ring Boss
+        this.gameManager.spawnHaloBoss();
         this.gameManager.spawnDrone();
-      } else if (this.currentWave === 3) {
-        this.gameManager.spawnTitanBoss();
       } else {
-        this.gameManager.spawnBoss();
+        // Wave 3 / Final Boss: Babylon 5 Industrial Rotating Cylinder Citadel
+        this.gameManager.spawnBabylon5Boss();
+        this.gameManager.spawnDrone();
+        this.gameManager.spawnDrone();
       }
     }
   }
