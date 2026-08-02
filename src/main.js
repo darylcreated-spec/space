@@ -65,6 +65,4 @@ class OrbitalVanguardApp {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  window.orbitalVanguardApp = new OrbitalVanguardApp();
-});
+window.orbitalVanguardApp = new OrbitalVanguardApp();
