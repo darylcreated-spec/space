@@ -26,9 +26,7 @@ export class PlayerShip {
 
     // Cooldown Timers
     this.laserCooldown = 0;
-    this.torpedoCooldown = 0;
     this.pulseCooldown = 0;
-    this.maxTorpedoCD = 3.0;
     this.maxPulseCD = 8.0;
 
     // Shield Ripple Timer
@@ -163,7 +161,6 @@ export class PlayerShip {
     this.meshGroup.position.set(0, 0, 0);
     this.velocity.set(0, 0, 0);
     this.laserCooldown = 0;
-    this.torpedoCooldown = 0;
     this.pulseCooldown = 0;
     this.shieldRippleTimer = 0;
     if (this.shieldMat) this.shieldMat.opacity = 0.0;
@@ -171,7 +168,6 @@ export class PlayerShip {
 
   update(dt, inputDir = { x: 0, y: 0 }) {
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
-    if (this.torpedoCooldown > 0) this.torpedoCooldown -= dt;
     if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
 
     // Shield Ripple Decay

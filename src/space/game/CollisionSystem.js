@@ -137,61 +137,7 @@ export class CollisionSystem {
       }
     }
 
-    // 3. Torpedoes vs Threats & Boss
-    for (let i = gameManager.torpedoes.length - 1; i >= 0; i--) {
-      const torpedo = gameManager.torpedoes[i];
-      if (!torpedo || !torpedo.meshGroup) continue;
 
-      const tPos = torpedo.meshGroup.position;
-
-      let hitTarget = false;
-      [...gameManager.asteroids, ...gameManager.drones].forEach(target => {
-        if (target && !target.isDead && target.meshGroup && tPos.distanceTo(target.meshGroup.position) < target.radius + torpedo.radius + 1.0) {
-          hitTarget = true;
-        }
-      });
-
-      if (hitTarget) {
-        torpedo.destroy();
-        gameManager.torpedoes.splice(i, 1);
-
-        this.particleManager.createExplosion(tPos, 0xffea00, 45);
-        this.spaceAudio.playTorpedoExplosion();
-        this.spaceScene.addScreenShake(1.2);
-
-        // AoE Blast Damage
-        gameManager.asteroids.forEach(rock => {
-          if (rock && rock.meshGroup && tPos.distanceTo(rock.meshGroup.position) < torpedo.aoeRadius) {
-            if (rock.takeDamage(80)) {
-              gameManager.addScore(rock.scoreValue);
-              gameManager.addScrap(15);
-              gameManager.achievementSystem.recordAsteroidDestroyed();
-            }
-          }
-        });
-
-        gameManager.drones.forEach(drone => {
-          if (drone && drone.meshGroup && tPos.distanceTo(drone.meshGroup.position) < torpedo.aoeRadius) {
-            if (drone.takeDamage(80)) {
-              gameManager.addScore(drone.scoreValue);
-              gameManager.addScrap(30);
-              gameManager.achievementSystem.recordDroneKill();
-            }
-          }
-        });
-
-        if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
-          const boss = gameManager.activeBoss;
-          if (tPos.distanceTo(boss.meshGroup.position) < 20) {
-            if (boss.takeDamage('core', 120)) {
-              gameManager.addScore(boss.scoreValue);
-              gameManager.addScrap(300);
-              gameManager.achievementSystem.recordBossKilled();
-            }
-          }
-        }
-      }
-    }
 
     // 4. Plasma Pulse Ball Projectiles vs Threats & Bosses
     for (let i = gameManager.plasmaPulses.length - 1; i >= 0; i--) {

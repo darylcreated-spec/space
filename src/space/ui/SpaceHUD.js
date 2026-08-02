@@ -24,12 +24,10 @@ export class SpaceHUD {
     this.waveTitle = document.getElementById('space-wave-title');
     this.waveSubtitle = document.getElementById('space-wave-subtitle');
 
-    this.btnFireTorpedo = document.getElementById('btn-fire-torpedo');
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnSpaceCamera = document.getElementById('btn-space-camera');
     this.btnOpenHangar = document.getElementById('btn-open-hangar');
 
-    this.cdRingTorpedo = document.getElementById('cd-ring-torpedo');
     this.cdRingPulse = document.getElementById('cd-ring-pulse');
 
     this.modalStart = document.getElementById('space-modal-start');
@@ -83,15 +81,6 @@ export class SpaceHUD {
       });
     }
 
-    if (this.btnFireTorpedo) {
-      this.btnFireTorpedo.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        triggerStartIfInStartScreen();
-        this.gameManager.fireTorpedo();
-      });
-    }
-
     if (this.btnFirePulse) {
       this.btnFirePulse.addEventListener('pointerdown', (e) => {
         e.preventDefault();
@@ -118,8 +107,7 @@ export class SpaceHUD {
         }
       }
 
-      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E') this.gameManager.fireTorpedo();
-      if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.code === 'ShiftLeft') this.gameManager.fireEmpPulse();
+      if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.code === 'ShiftLeft' || e.code === 'Space') this.gameManager.fireEmpPulse();
       if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
         this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
       }
@@ -285,7 +273,6 @@ export class SpaceHUD {
     if (this.scrapVal) this.scrapVal.textContent = data.scrap;
     if (this.waveBadge) this.waveBadge.textContent = `WAVE ${data.waveNum}`;
 
-    if (this.cdRingTorpedo) this.cdRingTorpedo.style.opacity = data.torpedoCdRatio > 0 ? '1' : '0';
     if (this.cdRingPulse) this.cdRingPulse.style.opacity = data.pulseCdRatio > 0 ? '1' : '0';
   }
 }

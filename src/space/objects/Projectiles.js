@@ -60,71 +60,7 @@ export class LaserBolt {
   }
 }
 
-export class Torpedo {
-  constructor(scene, startPos, particleManager) {
-    this.scene = scene;
-    this.particleManager = particleManager;
-    this.damage = 80;
-    this.aoeRadius = 10.0;
-    this.speed = 40;
-    this.radius = 0.8;
-    this.isDead = false;
-    this.target = null;
 
-    // 3D Homing Missile model
-    this.meshGroup = new THREE.Group();
-    this.meshGroup.position.copy(startPos);
-
-    const bodyGeo = new THREE.CylinderGeometry(0.18, 0.18, 1.0, 12);
-    bodyGeo.rotateX(Math.PI / 2);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffea00, metalness: 0.9, roughness: 0.1 });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    this.meshGroup.add(body);
-
-    const noseGeo = new THREE.ConeGeometry(0.18, 0.45, 12);
-    noseGeo.rotateX(-Math.PI / 2);
-    const noseMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-    const nose = new THREE.Mesh(noseGeo, noseMat);
-    nose.position.z = -0.7;
-    this.meshGroup.add(nose);
-
-    this.scene.add(this.meshGroup);
-  }
-
-  setTarget(targetEntity) {
-    this.target = targetEntity;
-  }
-
-  destroy() {
-    this.scene.remove(this.meshGroup);
-    this.meshGroup.traverse(child => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
-    });
-  }
-
-  update(dt) {
-    // Homing trajectory steering toward target
-    const currentDir = new THREE.Vector3(0, 0, -1);
-    if (this.target && !this.target.isDead && this.target.meshGroup) {
-      const targetDir = new THREE.Vector3().subVectors(this.target.meshGroup.position, this.meshGroup.position).normalize();
-      currentDir.lerp(targetDir, 0.1);
-      this.meshGroup.lookAt(this.target.meshGroup.position);
-    }
-
-    this.meshGroup.position.addScaledVector(currentDir, this.speed * dt);
-
-    // Particle smoke trail
-    if (Math.random() > 0.2) {
-      this.particleManager.spawnEngineParticle(this.meshGroup.position, 0xffea00);
-    }
-
-    // Boundary check
-    if (this.meshGroup.position.z < -140 || this.meshGroup.position.z > 30) {
-      this.isDead = true;
-    }
-  }
-}
 
 export class PlasmaPulse {
   constructor(scene, startPos, particleManager) {

@@ -8,7 +8,7 @@ import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
 import { SpaceStation } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { Babylon5Boss } from '../objects/Babylon5Boss.js';
-import { LaserBolt, Torpedo, PlasmaPulse } from '../objects/Projectiles.js';
+import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -43,7 +43,6 @@ export class GameManager {
     this.drones = [];
     this.powerUps = [];
     this.lasers = [];
-    this.torpedoes = [];
     this.plasmaPulses = [];
     this.activeEmpPulse = null;
     this.activeBoss = null;
@@ -53,7 +52,7 @@ export class GameManager {
     this.stasisTimer = 0;
     this.hitFreezeTimer = 0;
 
-    // Flag for pausing laser auto-fire during Torpedo or EMP launch
+    // Flag for pausing laser auto-fire during EMP launch
     this.specialWeaponActive = false;
 
     // Subsystems
@@ -109,9 +108,6 @@ export class GameManager {
 
     this.lasers.forEach(l => l.destroy());
     this.lasers = [];
-
-    this.torpedoes.forEach(t => t.destroy());
-    this.torpedoes = [];
 
     this.plasmaPulses.forEach(p => p.destroy());
     this.plasmaPulses = [];
@@ -241,41 +237,7 @@ export class GameManager {
     this.spaceAudio.playLaserPew();
   }
 
-  fireTorpedo() {
-    if (this.state !== 'PLAYING' || this.playerShip.torpedoCooldown > 0) return;
 
-    this.specialWeaponActive = true;
-    setTimeout(() => { this.specialWeaponActive = false; }, 300);
-
-    this.playerShip.torpedoCooldown = this.playerShip.maxTorpedoCD;
-    const pPos = this.playerShip.meshGroup.position;
-    const startPos = new THREE.Vector3(0, -0.3, -1.0).add(pPos);
-
-    const torpedo = new Torpedo(this.spaceScene.scene, startPos, this.particleManager);
-
-    let nearestTarget = null;
-    let minDist = Infinity;
-
-    [...this.drones, ...this.asteroids].forEach(entity => {
-      if (!entity.isDead) {
-        const d = startPos.distanceTo(entity.meshGroup.position);
-        if (d < minDist) {
-          minDist = d;
-          nearestTarget = entity;
-        }
-      }
-    });
-
-    if (this.activeBoss && !this.activeBoss.isDead) {
-      nearestTarget = this.activeBoss;
-    }
-
-    if (nearestTarget) torpedo.setTarget(nearestTarget);
-
-    this.torpedoes.push(torpedo);
-    this.spaceAudio.playTorpedoLaunch();
-    this.spaceAudio.vibrate(30);
-  }
 
   fireEmpPulse() {
     this.firePlasmaPulse();
@@ -463,15 +425,6 @@ export class GameManager {
       }
     }
 
-    for (let i = this.torpedoes.length - 1; i >= 0; i--) {
-      const torpedo = this.torpedoes[i];
-      torpedo.update(dt);
-      if (torpedo.isDead) {
-        torpedo.destroy();
-        this.torpedoes.splice(i, 1);
-      }
-    }
-
     for (let i = this.plasmaPulses.length - 1; i >= 0; i--) {
       const pulse = this.plasmaPulses[i];
       pulse.update(dt);
@@ -500,7 +453,6 @@ export class GameManager {
         score: this.score,
         scrap: this.upgradeSystem.scrap,
         waveNum: this.waveSpawner.currentWave,
-        torpedoCdRatio: this.playerShip.torpedoCooldown / this.playerShip.maxTorpedoCD,
         pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD,
         bossHpRatio: this.activeBoss ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) : null,
         overchargeActive: this.overchargeTimer > 0,
