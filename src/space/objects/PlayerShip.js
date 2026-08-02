@@ -21,7 +21,7 @@ export class PlayerShip {
     this.targetPitch = 0;
     this.currentPitch = 0;
 
-    // Tight Movement Bounds — keeps ship 100% inside visible camera screen viewport on mobile & desktop
+    // Tight Movement Bounds — keeps ship 100% inside visible camera screen viewport
     this.bounds = { minX: -13.0, maxX: 13.0, minY: -6.5, maxY: 7.5 };
 
     // Cooldown Timers
@@ -30,6 +30,9 @@ export class PlayerShip {
     this.pulseCooldown = 0;
     this.maxTorpedoCD = 3.0;
     this.maxPulseCD = 8.0;
+
+    // Shield Ripple Timer
+    this.shieldRippleTimer = 0;
 
     // Thruster particle throttle
     this._thrusterTick = 0;
@@ -130,10 +133,28 @@ export class PlayerShip {
     const flameL = new THREE.Mesh(flameGeo, flameMat);
     flameL.position.set(0, 0, 0.45);
     this.engineLeft.add(flameL);
+
+    // AAA Deflector Shield Hex-Grid Envelope Overlay
+    const shieldGeo = new THREE.IcosahedronGeometry(2.6, 2);
+    this.shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.0
+    });
+    this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
+    this.meshGroup.add(this.shieldMesh);
   }
 
   takeDamage(amount) {
     this.shield = Math.max(0, this.shield - amount);
+
+    // Trigger AAA Hex-Grid Energy Shield Ripple
+    this.shieldRippleTimer = 0.35;
+    if (this.shieldMat) {
+      this.shieldMat.opacity = 0.9;
+    }
+
     return this.shield <= 0;
   }
 
@@ -144,12 +165,26 @@ export class PlayerShip {
     this.laserCooldown = 0;
     this.torpedoCooldown = 0;
     this.pulseCooldown = 0;
+    this.shieldRippleTimer = 0;
+    if (this.shieldMat) this.shieldMat.opacity = 0.0;
   }
 
   update(dt, inputDir = { x: 0, y: 0 }) {
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
     if (this.torpedoCooldown > 0) this.torpedoCooldown -= dt;
     if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
+
+    // Shield Ripple Decay
+    if (this.shieldRippleTimer > 0) {
+      this.shieldRippleTimer -= dt;
+      if (this.shieldMat) {
+        this.shieldMat.opacity = Math.max(0, this.shieldRippleTimer / 0.35 * 0.9);
+      }
+      if (this.shieldMesh) {
+        this.shieldMesh.rotation.z += 3.0 * dt;
+        this.shieldMesh.rotation.y += 2.0 * dt;
+      }
+    }
 
     this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.2;
     this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.2;

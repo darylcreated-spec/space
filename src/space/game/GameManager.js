@@ -49,6 +49,7 @@ export class GameManager {
     // Active Power-Up Timers
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
+    this.hitFreezeTimer = 0;
 
     // Flag for pausing laser auto-fire during Torpedo or EMP launch
     this.specialWeaponActive = false;
@@ -119,6 +120,10 @@ export class GameManager {
     }
 
     this.activeEmpPulse = null;
+  }
+
+  triggerHitFreeze(duration = 0.04) {
+    this.hitFreezeTimer = duration;
   }
 
   addScore(pts) {
@@ -343,6 +348,13 @@ export class GameManager {
       this.playerShip.update(dt, { x: 0, y: 0 });
       this.spaceScene.update(dt, { x: 0, y: 0 });
       this.particleManager.update();
+      this.renderScene();
+      return;
+    }
+
+    // AAA Hit Freeze-Frame Micro-Stutter for heavy impacts
+    if (this.hitFreezeTimer > 0) {
+      this.hitFreezeTimer -= dt;
       this.renderScene();
       return;
     }

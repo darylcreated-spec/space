@@ -221,6 +221,7 @@ export class CollisionSystem {
         this.particleManager.createEmpShockwave(pulsePos, pulse.aoeRadius);
         this.spaceAudio.playTorpedoExplosion();
         this.spaceScene.addScreenShake(2.0);
+        gameManager.triggerHitFreeze(0.05); // Tactile AAA Hit Pause!
 
         // Heavy Radial AoE Plasma Blast (250 Damage)
         gameManager.asteroids.forEach(rock => {
