@@ -193,29 +193,65 @@ export class CollisionSystem {
       }
     }
 
-    // 4. EMP Shockwave vs Threats
-    if (gameManager.activeEmpPulse) {
-      const empRad = gameManager.activeEmpPulse.currentRadius;
+    // 4. Plasma Pulse Ball Projectiles vs Threats & Bosses
+    for (let i = gameManager.plasmaPulses.length - 1; i >= 0; i--) {
+      const pulse = gameManager.plasmaPulses[i];
+      if (!pulse || !pulse.meshGroup) continue;
 
-      gameManager.asteroids.forEach(rock => {
-        if (rock && rock.meshGroup) {
-          const d = pPos.distanceTo(rock.meshGroup.position);
-          if (d < empRad + rock.radius) {
-            rock.takeDamage(100);
-            this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 25);
-          }
+      const pulsePos = pulse.meshGroup.position;
+      let hitTarget = false;
+
+      [...gameManager.asteroids, ...gameManager.drones].forEach(target => {
+        if (target && !target.isDead && target.meshGroup && pulsePos.distanceTo(target.meshGroup.position) < target.radius + pulse.radius + 1.0) {
+          hitTarget = true;
         }
       });
 
-      gameManager.drones.forEach(drone => {
-        if (drone && drone.meshGroup) {
-          const d = pPos.distanceTo(drone.meshGroup.position);
-          if (d < empRad + drone.radius) {
-            drone.takeDamage(100);
-            this.particleManager.createExplosion(drone.meshGroup.position, 0x00f3ff, 25);
+      if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
+        if (pulsePos.distanceTo(gameManager.activeBoss.meshGroup.position) < 22) {
+          hitTarget = true;
+        }
+      }
+
+      if (hitTarget) {
+        pulse.destroy();
+        gameManager.plasmaPulses.splice(i, 1);
+
+        this.particleManager.createExplosion(pulsePos, 0x00f3ff, 60, 2.5);
+        this.particleManager.createEmpShockwave(pulsePos, pulse.aoeRadius);
+        this.spaceAudio.playTorpedoExplosion();
+        this.spaceScene.addScreenShake(2.0);
+
+        // Heavy Radial AoE Plasma Blast (250 Damage)
+        gameManager.asteroids.forEach(rock => {
+          if (rock && rock.meshGroup && pulsePos.distanceTo(rock.meshGroup.position) < pulse.aoeRadius) {
+            if (rock.takeDamage(250)) {
+              gameManager.addScore(rock.scoreValue);
+              gameManager.addScrap(20);
+            }
+          }
+        });
+
+        gameManager.drones.forEach(drone => {
+          if (drone && drone.meshGroup && pulsePos.distanceTo(drone.meshGroup.position) < pulse.aoeRadius) {
+            if (drone.takeDamage(250)) {
+              gameManager.addScore(drone.scoreValue);
+              gameManager.addScrap(40);
+            }
+          }
+        });
+
+        if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
+          const boss = gameManager.activeBoss;
+          if (pulsePos.distanceTo(boss.meshGroup.position) < pulse.aoeRadius + 10) {
+            const dead = boss.takeCoreDamage ? boss.takeCoreDamage(200) : boss.takeDamage('core', 200);
+            if (dead) {
+              gameManager.addScore(boss.scoreValue);
+              gameManager.addScrap(500);
+            }
           }
         }
-      });
+      }
     }
 
     // 5. Direct Player Collisions with Threats

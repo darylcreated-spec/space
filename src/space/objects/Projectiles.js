@@ -113,3 +113,76 @@ export class Torpedo {
     }
   }
 }
+
+export class PlasmaPulse {
+  constructor(scene, startPos, particleManager) {
+    this.scene = scene;
+    this.particleManager = particleManager;
+    this.damage = 250;
+    this.aoeRadius = 16.0;
+    this.speed = 55;
+    this.radius = 1.8;
+    this.isDead = false;
+
+    this.meshGroup = new THREE.Group();
+    this.meshGroup.position.copy(startPos);
+
+    // 1. Core Glowing Superheated Plasma Orb
+    const orbGeo = new THREE.SphereGeometry(1.4, 24, 24);
+    this.orbMat = new THREE.MeshStandardMaterial({
+      color: 0x00f3ff,
+      emissive: 0x00f3ff,
+      emissiveIntensity: 2.0,
+      roughness: 0.1,
+      metalness: 0.2
+    });
+    this.orbMesh = new THREE.Mesh(orbGeo, this.orbMat);
+    this.meshGroup.add(this.orbMesh);
+
+    // 2. Orbiting Energy Plasma Shield Ring
+    const ringGeo = new THREE.TorusGeometry(2.0, 0.2, 16, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xff00aa,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.8
+    });
+    this.plasmaRing = new THREE.Mesh(ringGeo, ringMat);
+    this.meshGroup.add(this.plasmaRing);
+
+    // 3. Bright White Core Center
+    const centerGeo = new THREE.SphereGeometry(0.7, 16, 16);
+    const centerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const centerMesh = new THREE.Mesh(centerGeo, centerMat);
+    this.meshGroup.add(centerMesh);
+
+    this.scene.add(this.meshGroup);
+  }
+
+  destroy() {
+    this.scene.remove(this.meshGroup);
+    this.meshGroup.traverse(child => {
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) child.material.dispose();
+    });
+  }
+
+  update(dt) {
+    // Travel forward into deep space
+    this.meshGroup.position.z -= this.speed * dt;
+
+    // Pulsing energy ring rotation
+    if (this.plasmaRing) {
+      this.plasmaRing.rotation.z += 5.0 * dt;
+      this.plasmaRing.rotation.x += 3.0 * dt;
+    }
+
+    // Particle trail
+    this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+
+    // Boundary check
+    if (this.meshGroup.position.z < -140) {
+      this.isDead = true;
+    }
+  }
+}

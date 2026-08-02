@@ -6,7 +6,7 @@ import { PowerUp } from '../objects/PowerUp.js';
 import { BossDreadnought } from '../objects/BossDreadnought.js';
 import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
 import { SpaceStation } from '../objects/SpaceStation.js';
-import { LaserBolt, Torpedo } from '../objects/Projectiles.js';
+import { LaserBolt, Torpedo, PlasmaPulse } from '../objects/Projectiles.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -42,6 +42,7 @@ export class GameManager {
     this.powerUps = [];
     this.lasers = [];
     this.torpedoes = [];
+    this.plasmaPulses = [];
     this.activeEmpPulse = null;
     this.activeBoss = null;
 
@@ -108,6 +109,9 @@ export class GameManager {
 
     this.torpedoes.forEach(t => t.destroy());
     this.torpedoes = [];
+
+    this.plasmaPulses.forEach(p => p.destroy());
+    this.plasmaPulses = [];
 
     if (this.activeBoss) {
       this.activeBoss.destroy();
@@ -257,6 +261,10 @@ export class GameManager {
   }
 
   fireEmpPulse() {
+    this.firePlasmaPulse();
+  }
+
+  firePlasmaPulse() {
     if (this.state !== 'PLAYING' || this.playerShip.pulseCooldown > 0) return;
 
     this.specialWeaponActive = true;
@@ -264,13 +272,15 @@ export class GameManager {
 
     this.playerShip.pulseCooldown = this.playerShip.maxPulseCD;
     const pPos = this.playerShip.meshGroup.position;
-    this.particleManager.createEmpShockwave(pPos, 30);
-    this.activeEmpPulse = { currentRadius: 0.5, maxRadius: 30 };
+    const startPos = new THREE.Vector3(0, 0, -1.5).add(pPos);
+
+    const pulse = new PlasmaPulse(this.spaceScene.scene, startPos, this.particleManager);
+    this.plasmaPulses.push(pulse);
 
     this.achievementSystem.recordEmpUsed();
     this.spaceAudio.playEmpPulse();
     this.spaceAudio.vibrate([50, 30, 50]);
-    this.spaceScene.addScreenShake(1.5);
+    this.spaceScene.addScreenShake(1.8);
   }
 
   announceWave(waveNum, subtitle) {
@@ -422,6 +432,15 @@ export class GameManager {
       if (torpedo.isDead) {
         torpedo.destroy();
         this.torpedoes.splice(i, 1);
+      }
+    }
+
+    for (let i = this.plasmaPulses.length - 1; i >= 0; i--) {
+      const pulse = this.plasmaPulses[i];
+      pulse.update(dt);
+      if (pulse.isDead) {
+        pulse.destroy();
+        this.plasmaPulses.splice(i, 1);
       }
     }
 
