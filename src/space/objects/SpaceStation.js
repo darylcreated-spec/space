@@ -221,14 +221,18 @@ export class SpaceStation {
       }
     });
 
-    // Fire plasma bursts from active turrets
+    // Fire plasma bursts from active turrets directly at player
     this.fireTimer -= dt;
-    let fireSalvo = false;
+    const activeTurretPositions = [];
     if (this.fireTimer <= 0) {
-      this.fireTimer = 1.1;
-      fireSalvo = this.turrets.some(t => !t.isDead);
+      this.fireTimer = 0.8; // High-intensity turret plasma fire
+      this.turrets.forEach(t => {
+        if (!t.isDead && t.mesh) {
+          activeTurretPositions.push(t.mesh.getWorldPosition(new THREE.Vector3()));
+        }
+      });
     }
 
-    return fireSalvo;
+    return activeTurretPositions.length > 0 ? activeTurretPositions : false;
   }
 }

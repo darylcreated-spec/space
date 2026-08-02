@@ -99,11 +99,11 @@ export class EnemyDrone {
     // Roll banking towards steering direction
     this.meshGroup.rotation.z = -this.velocity.x * 0.1;
 
-    // Fire timer update
+    // Fire timer update: enemy craft fire rapid plasma bursts during dogfights
     this.fireTimer -= dt;
     let shouldFirePlasma = false;
-    if (this.fireTimer <= 0 && this.meshGroup.position.z < 15) {
-      this.fireTimer = 1.4 + Math.random() * 1.2;
+    if (this.fireTimer <= 0 && this.meshGroup.position.z < 20) {
+      this.fireTimer = 0.6 + Math.random() * 0.6;
       shouldFirePlasma = true;
     }
 

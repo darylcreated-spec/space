@@ -1,26 +1,34 @@
 import * as THREE from 'three';
 
 export class LaserBolt {
-  constructor(scene, startPos, colorHex = 0x00f3ff, isEnemy = false) {
+  constructor(scene, startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null) {
     this.scene = scene;
     this.isEnemy = isEnemy;
     this.damage = 15;
-    this.speed = isEnemy ? -45 : 90;
-    this.radius = 0.6; // Increased hit radius for easy, satisfying enemy destruction!
+    this.speed = isEnemy ? 45 : 90;
+    this.radius = 0.8;
     this.isDead = false;
 
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.copy(startPos);
 
+    if (targetDir) {
+      this.direction = targetDir.clone().normalize();
+      this.meshGroup.lookAt(new THREE.Vector3().addVectors(startPos, this.direction));
+    } else {
+      this.direction = new THREE.Vector3(0, 0, isEnemy ? 1 : -1);
+      if (isEnemy) this.meshGroup.rotation.y = Math.PI;
+    }
+
     // Outer glowing laser beam cylinder
-    const geo = new THREE.CylinderGeometry(0.08, 0.08, 2.0, 8);
+    const geo = new THREE.CylinderGeometry(0.09, 0.09, 2.2, 8);
     geo.rotateX(Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({ color: colorHex });
     const beam = new THREE.Mesh(geo, mat);
     this.meshGroup.add(beam);
 
     // Inner bright white core
-    const coreGeo = new THREE.CylinderGeometry(0.03, 0.03, 2.0, 8);
+    const coreGeo = new THREE.CylinderGeometry(0.04, 0.04, 2.2, 8);
     coreGeo.rotateX(Math.PI / 2);
     const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const core = new THREE.Mesh(coreGeo, coreMat);
@@ -38,11 +46,15 @@ export class LaserBolt {
   }
 
   update(dt) {
-    const dir = this.isEnemy ? 1 : -1;
-    this.meshGroup.position.z += this.speed * dir * dt;
+    this.meshGroup.position.addScaledVector(this.direction, this.speed * dt);
 
     // Boundary check
-    if (this.meshGroup.position.z < -140 || this.meshGroup.position.z > 30) {
+    if (
+      this.meshGroup.position.z < -140 ||
+      this.meshGroup.position.z > 40 ||
+      Math.abs(this.meshGroup.position.x) > 50 ||
+      Math.abs(this.meshGroup.position.y) > 40
+    ) {
       this.isDead = true;
     }
   }

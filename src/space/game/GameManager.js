@@ -378,13 +378,17 @@ export class GameManager {
       }
     }
 
+    const pPos = this.playerShip.meshGroup.position;
+
     for (let i = 0; i < this.drones.length; i++) {
       const drone = this.drones[i];
-      const firePlasma = drone.update(effectiveDt, this.playerShip.meshGroup.position);
+      const firePlasma = drone.update(effectiveDt, pPos);
 
       if (firePlasma) {
         const dPos = drone.meshGroup.position;
-        this.lasers.push(new LaserBolt(this.spaceScene.scene, dPos, 0xff0055, true));
+        const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
+        this.lasers.push(new LaserBolt(this.spaceScene.scene, dPos, 0xff0055, true, targetDir));
+        this.spaceAudio.playLaserPew();
       }
     }
 
@@ -398,7 +402,7 @@ export class GameManager {
 
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pow = this.powerUps[i];
-      pow.update(dt, this.playerShip.meshGroup.position);
+      pow.update(dt, pPos);
       if (pow.isDead) {
         pow.destroy();
         this.powerUps.splice(i, 1);
@@ -406,11 +410,20 @@ export class GameManager {
     }
 
     if (this.activeBoss && !this.activeBoss.isDead) {
-      const salvo = this.activeBoss.update(effectiveDt, this.playerShip.meshGroup.position);
+      const salvo = this.activeBoss.update(effectiveDt, pPos);
       if (salvo) {
-        const bPos = this.activeBoss.meshGroup.position;
-        this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true));
-        this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true));
+        if (Array.isArray(salvo)) {
+          salvo.forEach(tPos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+            this.lasers.push(new LaserBolt(this.spaceScene.scene, tPos, 0xff0055, true, targetDir));
+          });
+        } else {
+          const bPos = this.activeBoss.meshGroup.position;
+          const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
+          this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir));
+          this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir));
+        }
+        this.spaceAudio.playLaserPew();
       }
     } else if (this.activeBoss && this.activeBoss.isDead) {
       this.activeBoss.destroy();
