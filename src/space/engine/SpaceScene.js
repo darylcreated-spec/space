@@ -9,10 +9,10 @@ export class SpaceScene {
 
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    // 3D Scene
+    // 3D Deep Space Scene
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x060a14);
-    this.scene.fog = new THREE.FogExp2(0x060a14, 0.005);
+    this.scene.background = new THREE.Color(0x03050a); // Deep obsidian space void
+    this.scene.fog = new THREE.FogExp2(0x03050a, 0.003);
 
     // Perspective Camera
     this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
@@ -56,11 +56,14 @@ export class SpaceScene {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
     }, false);
 
+    // Procedural Radial Glow Star Texture
+    this.starTexture = this.createGlowingStarTexture();
+
     // Lighting setup
     this.setupLighting();
 
-    // Build 3D Environment
-    this.buildEnvironment();
+    // Build Deep Space Environment (No grid, no planet)
+    this.buildDeepSpaceEnvironment();
 
     // Entity groups
     this.entitiesGroup = new THREE.Group();
@@ -71,6 +74,24 @@ export class SpaceScene {
 
     this.shakeIntensity = 0;
     window.addEventListener('resize', this.onWindowResize.bind(this));
+  }
+
+  createGlowingStarTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+    grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.85)');
+    grad.addColorStop(0.55, 'rgba(0, 243, 255, 0.35)');
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+
+    return new THREE.CanvasTexture(canvas);
   }
 
   setupLighting() {
@@ -90,71 +111,38 @@ export class SpaceScene {
     this.scene.add(magentaLight);
   }
 
-  buildEnvironment() {
-    // 1. Tactical Obsidian Defense Grid Platform
-    this.gridGroup = new THREE.Group();
-    const gridWidth = 50;
-    const gridDepth = 80;
-
-    const platGeo = new THREE.BoxGeometry(gridWidth, 0.5, gridDepth);
-    const platMat = new THREE.MeshStandardMaterial({
-      color: 0x121a2c,
-      roughness: 0.2,
-      metalness: 0.8
-    });
-    const platform = new THREE.Mesh(platGeo, platMat);
-    platform.position.set(0, -6, -20);
-    this.gridGroup.add(platform);
-
-    const gridHelper = new THREE.GridHelper(gridWidth, 25, 0x00f3ff, 0x334466);
-    gridHelper.position.set(0, -5.74, -20);
-    this.gridGroup.add(gridHelper);
-
-    const borderGeo = new THREE.BoxGeometry(gridWidth + 0.8, 0.2, gridDepth + 0.8);
-    const borderMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      wireframe: true,
+  buildDeepSpaceEnvironment() {
+    // 1. Distant Volumetric Nebula Background Orbs
+    const neb1Geo = new THREE.SphereGeometry(250, 16, 16);
+    const neb1Mat = new THREE.MeshBasicMaterial({
+      color: 0x00a2ff,
+      side: THREE.BackSide,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.15
     });
-    const borderFrame = new THREE.Mesh(borderGeo, borderMat);
-    borderFrame.position.set(0, -5.72, -20);
-    this.gridGroup.add(borderFrame);
+    this.nebula1 = new THREE.Mesh(neb1Geo, neb1Mat);
+    this.nebula1.position.set(-80, 50, -400);
+    this.scene.add(this.nebula1);
 
-    this.scene.add(this.gridGroup);
-
-    // 2. Homeworld Planet
-    const planetGeo = new THREE.SphereGeometry(38, 32, 32);
-    const planetMat = new THREE.MeshStandardMaterial({
-      color: 0x0e4b75,
-      roughness: 0.3,
-      metalness: 0.3,
-      emissive: 0x002b55,
-      emissiveIntensity: 0.6
-    });
-    this.planetMesh = new THREE.Mesh(planetGeo, planetMat);
-    this.planetMesh.position.set(0, -55, -120);
-    this.scene.add(this.planetMesh);
-
-    const atmoGeo = new THREE.SphereGeometry(40, 32, 32);
-    const atmoMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      wireframe: true,
+    const neb2Geo = new THREE.SphereGeometry(300, 16, 16);
+    const neb2Mat = new THREE.MeshBasicMaterial({
+      color: 0xaa00ff,
+      side: THREE.BackSide,
       transparent: true,
-      opacity: 0.25
+      opacity: 0.12
     });
-    this.atmoMesh = new THREE.Mesh(atmoGeo, atmoMat);
-    this.atmoMesh.position.copy(this.planetMesh.position);
-    this.scene.add(this.atmoMesh);
+    this.nebula2 = new THREE.Mesh(neb2Geo, neb2Mat);
+    this.nebula2.position.set(100, -30, -500);
+    this.scene.add(this.nebula2);
 
-    // 3. Starfield Backdrop
-    const starCount = this.isMobile ? 800 : 1500;
+    // 2. Realistic Spherical Starfield (Smooth Circular Radial Glow, No Cubes)
+    const starCount = this.isMobile ? 900 : 1800;
     const starGeo = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
-      const r = 600 + Math.random() * 400;
+      const r = 500 + Math.random() * 500;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2.0 * Math.random() - 1.0);
 
@@ -166,7 +154,7 @@ export class SpaceScene {
       if (colorType > 0.7) {
         starColors[i * 3] = 0.0; starColors[i * 3 + 1] = 0.95; starColors[i * 3 + 2] = 1.0;
       } else if (colorType > 0.4) {
-        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.0; starColors[i * 3 + 2] = 0.5;
+        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.0; starColors[i * 3 + 2] = 0.6;
       } else {
         starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 1.0; starColors[i * 3 + 2] = 1.0;
       }
@@ -176,34 +164,41 @@ export class SpaceScene {
     starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
     const starMat = new THREE.PointsMaterial({
-      size: 3.0,
+      size: this.isMobile ? 5.0 : 7.0,
+      map: this.starTexture,
       vertexColors: true,
       transparent: true,
-      opacity: 0.9
+      opacity: 0.95,
+      alphaTest: 0.01,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
 
     this.starField = new THREE.Points(starGeo, starMat);
     this.scene.add(this.starField);
 
-    // 4. Floating Space Dust Particles
-    const dustCount = this.isMobile ? 200 : 400;
+    // 3. Floating Interstellar Dust Particles (Realistic Round Glow)
+    const dustCount = this.isMobile ? 250 : 500;
     const dustGeo = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(dustCount * 3);
 
     for (let i = 0; i < dustCount; i++) {
-      dustPositions[i * 3] = (Math.random() - 0.5) * 100;
-      dustPositions[i * 3 + 1] = (Math.random() - 0.5) * 70;
-      dustPositions[i * 3 + 2] = -Math.random() * 160;
+      dustPositions[i * 3] = (Math.random() - 0.5) * 120;
+      dustPositions[i * 3 + 1] = (Math.random() - 0.5) * 80;
+      dustPositions[i * 3 + 2] = -Math.random() * 180;
     }
 
     dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 
     const dustMat = new THREE.PointsMaterial({
       color: 0x00f3ff,
-      size: 0.5,
+      size: 1.8,
+      map: this.starTexture,
       transparent: true,
-      opacity: 0.6,
-      blending: THREE.AdditiveBlending
+      opacity: 0.75,
+      alphaTest: 0.01,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
 
     this.dustPoints = new THREE.Points(dustGeo, dustMat);
@@ -247,16 +242,16 @@ export class SpaceScene {
   }
 
   update(dt, playerVelocity = { x: 0, y: 0 }) {
-    if (this.planetMesh) this.planetMesh.rotation.y += 0.001;
-    if (this.atmoMesh) this.atmoMesh.rotation.y -= 0.0015;
     if (this.starField) this.starField.rotation.y += 0.0002;
+    if (this.nebula1) this.nebula1.rotation.y += 0.0001;
+    if (this.nebula2) this.nebula2.rotation.y -= 0.0001;
 
     if (this.dustPoints) {
       const positions = this.dustPoints.geometry.attributes.position.array;
       for (let i = 0; i < positions.length / 3; i++) {
-        positions[i * 3 + 2] += 0.5;
+        positions[i * 3 + 2] += 0.6;
         if (positions[i * 3 + 2] > 30) {
-          positions[i * 3 + 2] = -140;
+          positions[i * 3 + 2] = -160;
         }
       }
       this.dustPoints.geometry.attributes.position.needsUpdate = true;
