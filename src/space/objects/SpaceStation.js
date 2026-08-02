@@ -6,182 +6,183 @@ export class SpaceStation {
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    this.meshGroup.position.set(0, 5, -95); // Entrance from deep space
+    this.meshGroup.position.set(0, 5, -100); // Entrance from deep space
 
-    this.targetZ = -45; // Orbital engagement distance
+    this.targetZ = -45; // Engagement distance
     this.speed = 7.0;
 
-    this.coreHp = 500;
-    this.maxCoreHp = 500;
-    this.scoreValue = 15000;
+    this.coreHp = 600;
+    this.maxCoreHp = 600;
+    this.scoreValue = 20000;
     this.isDead = false;
 
     this.fireTimer = 1.0;
 
-    // 4 Extended Pylon Point-Defense Turrets
+    // 4 Extended Heavy Gun Turrets
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-22, 8, 4), hp: 120, maxHp: 120, isDead: false, mesh: null, barrelGroup: null },
-      { id: 1, relPos: new THREE.Vector3(22, 8, 4), hp: 120, maxHp: 120, isDead: false, mesh: null, barrelGroup: null },
-      { id: 2, relPos: new THREE.Vector3(-22, -8, -2), hp: 120, maxHp: 120, isDead: false, mesh: null, barrelGroup: null },
-      { id: 3, relPos: new THREE.Vector3(22, -8, -2), hp: 120, maxHp: 120, isDead: false, mesh: null, barrelGroup: null }
+      { id: 0, relPos: new THREE.Vector3(-24, 9, 4), hp: 140, maxHp: 140, isDead: false, mesh: null, barrelGroup: null },
+      { id: 1, relPos: new THREE.Vector3(24, 9, 4), hp: 140, maxHp: 140, isDead: false, mesh: null, barrelGroup: null },
+      { id: 2, relPos: new THREE.Vector3(-24, -9, -2), hp: 140, maxHp: 140, isDead: false, mesh: null, barrelGroup: null },
+      { id: 3, relPos: new THREE.Vector3(24, -9, -2), hp: 140, maxHp: 140, isDead: false, mesh: null, barrelGroup: null }
     ];
 
-    this.buildFortressMesh();
+    this.buildCitadelMesh();
     this.scene.add(this.meshGroup);
   }
 
-  buildFortressMesh() {
-    // 1. Central Hexagonal Command Spire (Metallic Titanium Navy with Gold Accent Panels)
-    const spireGeo = new THREE.CylinderGeometry(6, 7.5, 32, 6);
+  buildCitadelMesh() {
+    // 1. Central Octagonal Command Spire (Gritty Heavy Tungsten & Carbon Steel)
+    const spireGeo = new THREE.CylinderGeometry(6.0, 7.5, 38.0, 8);
     spireGeo.rotateX(Math.PI / 2);
     const spireMat = new THREE.MeshStandardMaterial({
-      color: 0x0b182b,
-      roughness: 0.15,
+      color: 0x0d1117,
+      roughness: 0.25,
       metalness: 0.95,
       flatShading: true
     });
     this.spireMesh = new THREE.Mesh(spireGeo, spireMat);
     this.meshGroup.add(this.spireMesh);
 
-    // Gold Structural Accent Armor Rings
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xe6a100,
-      metalness: 0.95,
-      roughness: 0.1
+    // Dark Armor Plating Ribs along Spire
+    const ribGeo = new THREE.BoxGeometry(15.5, 1.2, 34.0);
+    const ribMat = new THREE.MeshStandardMaterial({
+      color: 0x161b22,
+      roughness: 0.3,
+      metalness: 0.9,
+      flatShading: true
     });
-    const armorRingGeo = new THREE.CylinderGeometry(6.6, 6.6, 2.5, 6);
-    armorRingGeo.rotateX(Math.PI / 2);
-    const armor1 = new THREE.Mesh(armorRingGeo, goldMat);
-    armor1.position.set(0, 0, 10);
-    this.meshGroup.add(armor1);
+    const ribs1 = new THREE.Mesh(ribGeo, ribMat);
+    this.meshGroup.add(ribs1);
 
-    const armor2 = new THREE.Mesh(armorRingGeo, goldMat);
-    armor2.position.set(0, 0, -10);
-    this.meshGroup.add(armor2);
+    const ribs2 = ribs1.clone();
+    ribs2.rotation.z = Math.PI / 4;
+    this.meshGroup.add(ribs2);
 
-    // Glowing Cyan Power Conduits down spire
-    const lineGeo = new THREE.CylinderGeometry(0.25, 0.25, 32.5, 6);
+    // Tactical Conduit Lines (Subtle Cyan Glow)
+    const lineGeo = new THREE.CylinderGeometry(0.18, 0.18, 38.5, 8);
     lineGeo.rotateX(Math.PI / 2);
     const lineMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
       emissive: 0x00f3ff,
-      emissiveIntensity: 2.0
+      emissiveIntensity: 0.8
     });
     const conduit = new THREE.Mesh(lineGeo, lineMat);
     this.meshGroup.add(conduit);
 
-    // 2. Upper Rotating Habitat Ring (Cobalt Blue with Glowing Cyan Pods)
-    const ring1Geo = new THREE.TorusGeometry(16, 1.8, 16, 32);
+    // 2. Inner Heavy Industrial Ring (Rotating - Gunmetal with Slit Windows)
+    const ring1Geo = new THREE.TorusGeometry(18.0, 1.6, 16, 48);
     const ring1Mat = new THREE.MeshStandardMaterial({
-      color: 0x122b52,
-      emissive: 0x0088ff,
-      emissiveIntensity: 0.6,
-      roughness: 0.2,
+      color: 0x161b22,
+      roughness: 0.3,
       metalness: 0.9
     });
     this.habitatRingUpper = new THREE.Mesh(ring1Geo, ring1Mat);
-    this.habitatRingUpper.position.set(0, 0, 4);
+    this.habitatRingUpper.position.set(0, 0, 5);
 
-    // 6 Glowing Cyan Habitat Pods around Upper Ring
-    const podGeo = new THREE.BoxGeometry(2.5, 2.5, 3.5);
-    const podMat = new THREE.MeshStandardMaterial({
-      color: 0x00f3ff,
-      emissive: 0x00f3ff,
-      emissiveIntensity: 1.5,
-      metalness: 0.8
-    });
-
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const pod = new THREE.Mesh(podGeo, podMat);
-      pod.position.set(Math.cos(angle) * 16, Math.sin(angle) * 16, 0);
-      pod.rotation.z = angle;
-      this.habitatRingUpper.add(pod);
-    }
-    this.meshGroup.add(this.habitatRingUpper);
-
-    // 3. Lower Contra-Rotating Habitat Ring (Imperial Purple with Glowing Neon Magenta Pods)
-    const ring2Geo = new THREE.TorusGeometry(25, 2.2, 16, 32);
-    const ring2Mat = new THREE.MeshStandardMaterial({
-      color: 0x2a0a3b,
-      emissive: 0xff00aa,
+    // 8 Low-Profile Industrial Observation Modules
+    const moduleGeo = new THREE.BoxGeometry(2.0, 1.2, 4.0);
+    const moduleMat = new THREE.MeshStandardMaterial({
+      color: 0x0d1117,
+      emissive: 0x00a2ff,
       emissiveIntensity: 0.5,
-      roughness: 0.2,
-      metalness: 0.9
-    });
-    this.habitatRingLower = new THREE.Mesh(ring2Geo, ring2Mat);
-    this.habitatRingLower.position.set(0, 0, -4);
-
-    // 8 Glowing Neon Magenta Observation Pods around Lower Ring
-    const pod2Mat = new THREE.MeshStandardMaterial({
-      color: 0xff00aa,
-      emissive: 0xff00aa,
-      emissiveIntensity: 1.5,
-      metalness: 0.8
+      metalness: 0.9,
+      roughness: 0.2
     });
 
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
-      const pod = new THREE.Mesh(podGeo, pod2Mat);
-      pod.position.set(Math.cos(angle) * 25, Math.sin(angle) * 25, 0);
+      const mod = new THREE.Mesh(moduleGeo, moduleMat);
+      mod.position.set(Math.cos(angle) * 18.0, Math.sin(angle) * 18.0, 0);
+      mod.rotation.z = angle;
+      this.habitatRingUpper.add(mod);
+    }
+    this.meshGroup.add(this.habitatRingUpper);
+
+    // 3. Outer Perimeter Defense Ring (Contra-Rotating - Carbon Steel Truss)
+    const ring2Geo = new THREE.TorusGeometry(28.0, 2.0, 16, 64);
+    const ring2Mat = new THREE.MeshStandardMaterial({
+      color: 0x0d1117,
+      roughness: 0.2,
+      metalness: 0.95
+    });
+    this.habitatRingLower = new THREE.Mesh(ring2Geo, ring2Mat);
+    this.habitatRingLower.position.set(0, 0, -5);
+
+    // 12 Tactical Defense Pods with Red Warning Lights
+    const podMat = new THREE.MeshStandardMaterial({
+      color: 0x21262d,
+      emissive: 0xff0033,
+      emissiveIntensity: 0.8,
+      metalness: 0.9
+    });
+
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const pod = new THREE.Mesh(moduleGeo, podMat);
+      pod.position.set(Math.cos(angle) * 28.0, Math.sin(angle) * 28.0, 0);
       pod.rotation.z = angle;
       this.habitatRingLower.add(pod);
     }
     this.meshGroup.add(this.habitatRingLower);
 
-    // 4. Central Glowing Core Reactor Orb
-    const coreGeo = new THREE.SphereGeometry(4.5, 32, 32);
+    // 4. Central Hardened Core Reactor & Wireframe Defense Field
+    const coreGeo = new THREE.SphereGeometry(4.8, 32, 32);
     this.coreMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
       emissive: 0x00f3ff,
-      emissiveIntensity: 2.2,
+      emissiveIntensity: 1.5,
       roughness: 0.1,
       metalness: 0.2
     });
     this.coreMesh = new THREE.Mesh(coreGeo, this.coreMat);
     this.meshGroup.add(this.coreMesh);
 
-    // Rotating Energy Shield Ring
-    const shieldGeo = new THREE.TorusGeometry(6.8, 0.4, 16, 32);
+    // Heavy Wireframe Deflector Shield Field
+    const shieldGeo = new THREE.IcosahedronGeometry(7.2, 2);
     const shieldMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       wireframe: true,
       transparent: true,
-      opacity: 0.8
+      opacity: 0.4
     });
     this.shieldRing = new THREE.Mesh(shieldGeo, shieldMat);
     this.meshGroup.add(this.shieldRing);
 
-    // 5. Heavy Structural Arm Pylons & Glowing Solar Arrays
-    const pylonGeo = new THREE.BoxGeometry(46, 1.4, 3);
-    const pylonMat = new THREE.MeshStandardMaterial({ color: 0x1b2433, metalness: 0.9, roughness: 0.2 });
+    // 5. Heavy Structural Arm Pylons & Industrial Solar Arrays
+    const pylonGeo = new THREE.BoxGeometry(52.0, 1.8, 3.5);
+    const pylonMat = new THREE.MeshStandardMaterial({ color: 0x161b22, metalness: 0.95, roughness: 0.2 });
     const pylons = new THREE.Mesh(pylonGeo, pylonMat);
     this.meshGroup.add(pylons);
 
-    // Attached Solar Array Wings
-    const solarGeo = new THREE.BoxGeometry(10, 0.1, 6);
+    // Dark Industrial Solar Array Panels
+    const solarGeo = new THREE.BoxGeometry(12.0, 0.15, 7.0);
     const solarMat = new THREE.MeshStandardMaterial({
-      color: 0x0044bb,
-      emissive: 0x002288,
-      emissiveIntensity: 0.8,
-      metalness: 0.9,
+      color: 0x0a192f,
+      emissive: 0x002244,
+      emissiveIntensity: 0.4,
+      metalness: 0.95,
       roughness: 0.1
     });
+
     const solarLeft = new THREE.Mesh(solarGeo, solarMat);
-    solarLeft.position.set(-15, 0, 0);
+    solarLeft.position.set(-17.0, 0, 0);
     this.meshGroup.add(solarLeft);
 
     const solarRight = new THREE.Mesh(solarGeo, solarMat);
-    solarRight.position.set(15, 0, 0);
+    solarRight.position.set(17.0, 0, 0);
     this.meshGroup.add(solarRight);
 
-    // 6. Dual-Barrel Point-Defense Gun Turrets (Charcoal Steel with Crimson Barrels)
-    const turretBaseGeo = new THREE.CylinderGeometry(1.6, 2.2, 2.0, 12);
-    const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x1b2433, metalness: 0.95 });
+    // 6. Faceted Heavy Point-Defense Gun Turrets (Dark Tungsten & Crimson Laser Barrel Optics)
+    const turretBaseGeo = new THREE.CylinderGeometry(1.8, 2.4, 2.2, 12);
+    const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x161b22, metalness: 0.95, roughness: 0.2 });
 
-    const barrelGeo = new THREE.CylinderGeometry(0.2, 0.2, 2.6, 8);
+    const barrelGeo = new THREE.CylinderGeometry(0.22, 0.22, 2.8, 8);
     barrelGeo.rotateX(Math.PI / 2);
-    const barrelMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x0d1117, metalness: 0.9, roughness: 0.1 });
+
+    const tipGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.5, 8);
+    tipGeo.rotateX(Math.PI / 2);
+    const tipMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
@@ -190,21 +191,19 @@ export class SpaceStation {
       const base = new THREE.Mesh(turretBaseGeo, turretBaseMat);
       tGroup.add(base);
 
-      // Gold targeting sensor ring on socket
-      const sensorGeo = new THREE.TorusGeometry(1.4, 0.15, 8, 16);
-      sensorGeo.rotateX(Math.PI / 2);
-      const sensorMat = new THREE.MeshStandardMaterial({ color: 0xe6a100, emissive: 0xe6a100, emissiveIntensity: 1.0 });
-      const sensor = new THREE.Mesh(sensorGeo, sensorMat);
-      sensor.position.y = 1.0;
-      tGroup.add(sensor);
-
       const bGroup = new THREE.Group();
       const b1 = new THREE.Mesh(barrelGeo, barrelMat);
-      b1.position.set(0.6, 0.5, 1.0);
+      b1.position.set(0.65, 0.5, 1.2);
+      const tip1 = new THREE.Mesh(tipGeo, tipMat);
+      tip1.position.z = 1.3;
+      b1.add(tip1);
       bGroup.add(b1);
 
       const b2 = new THREE.Mesh(barrelGeo, barrelMat);
-      b2.position.set(-0.6, 0.5, 1.0);
+      b2.position.set(-0.65, 0.5, 1.2);
+      const tip2 = new THREE.Mesh(tipGeo, tipMat);
+      tip2.position.z = 1.3;
+      b2.add(tip2);
       bGroup.add(b2);
 
       tGroup.add(bGroup);
@@ -224,7 +223,7 @@ export class SpaceStation {
       turret.isDead = true;
       turret.mesh.visible = false;
       const worldPos = turret.mesh.getWorldPosition(new THREE.Vector3());
-      this.particleManager.createExplosion(worldPos, 0xff0055, 35, 1.8);
+      this.particleManager.createExplosion(worldPos, 0xff0033, 40, 2.0);
     }
     return turret.isDead;
   }
@@ -233,9 +232,9 @@ export class SpaceStation {
     this.coreHp -= amount;
 
     if (this.coreMat) {
-      this.coreMat.emissiveIntensity = 4.0;
+      this.coreMat.emissiveIntensity = 3.5;
       setTimeout(() => {
-        if (this.coreMat) this.coreMat.emissiveIntensity = 2.2;
+        if (this.coreMat) this.coreMat.emissiveIntensity = 1.5;
       }, 100);
     }
 
@@ -248,17 +247,17 @@ export class SpaceStation {
   }
 
   triggerSupernovaExplosion() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 150, 3.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 110, 3.0);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 70);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 180, 4.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 140, 3.2);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 80);
 
-    const flash = new THREE.PointLight(0xffffff, 45.0, 500);
+    const flash = new THREE.PointLight(0xffffff, 50.0, 600);
     flash.position.copy(this.meshGroup.position);
     this.scene.add(flash);
 
-    let intensity = 45.0;
+    let intensity = 50.0;
     const fade = setInterval(() => {
-      intensity -= 3.0;
+      intensity -= 3.5;
       if (intensity <= 0) {
         clearInterval(fade);
         this.scene.remove(flash);
@@ -277,17 +276,17 @@ export class SpaceStation {
   }
 
   update(dt, playerPos) {
-    // Slow entrance to targetZ engagement distance
+    // Entrance to targetZ engagement distance
     if (this.meshGroup.position.z < this.targetZ) {
       this.meshGroup.position.z += this.speed * dt;
     }
 
-    // Active contra-rotating habitat rings with glowing pods
-    if (this.habitatRingUpper) this.habitatRingUpper.rotation.z += 0.6 * dt;  // Clockwise
-    if (this.habitatRingLower) this.habitatRingLower.rotation.z -= 0.4 * dt;  // Counter-clockwise
+    // Heavy industrial contra-rotating rings
+    if (this.habitatRingUpper) this.habitatRingUpper.rotation.z += 0.4 * dt;
+    if (this.habitatRingLower) this.habitatRingLower.rotation.z -= 0.25 * dt;
     if (this.shieldRing) {
-      this.shieldRing.rotation.z += 2.0 * dt;
-      this.shieldRing.rotation.y += 1.0 * dt;
+      this.shieldRing.rotation.z += 1.5 * dt;
+      this.shieldRing.rotation.y += 0.8 * dt;
     }
 
     // Aim active turrets toward player position
@@ -301,7 +300,7 @@ export class SpaceStation {
     this.fireTimer -= dt;
     const activeTurretPositions = [];
     if (this.fireTimer <= 0) {
-      this.fireTimer = 0.8; // High-intensity turret plasma fire
+      this.fireTimer = 0.8;
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
           activeTurretPositions.push(t.mesh.getWorldPosition(new THREE.Vector3()));
