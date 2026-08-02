@@ -164,7 +164,7 @@ export class SpaceScene {
     starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
     const starMat = new THREE.PointsMaterial({
-      size: this.isMobile ? 5.0 : 7.0,
+      size: this.isMobile ? 1.6 : 2.2,
       map: this.starTexture,
       vertexColors: true,
       transparent: true,
@@ -192,7 +192,7 @@ export class SpaceScene {
 
     const dustMat = new THREE.PointsMaterial({
       color: 0x00f3ff,
-      size: 1.8,
+      size: 0.6,
       map: this.starTexture,
       transparent: true,
       opacity: 0.75,
