@@ -112,30 +112,7 @@ export class SpaceScene {
   }
 
   buildDeepSpaceEnvironment() {
-    // 1. Distant Volumetric Nebula Background Orbs
-    const neb1Geo = new THREE.SphereGeometry(250, 16, 16);
-    const neb1Mat = new THREE.MeshBasicMaterial({
-      color: 0x00a2ff,
-      side: THREE.BackSide,
-      transparent: true,
-      opacity: 0.15
-    });
-    this.nebula1 = new THREE.Mesh(neb1Geo, neb1Mat);
-    this.nebula1.position.set(-80, 50, -400);
-    this.scene.add(this.nebula1);
-
-    const neb2Geo = new THREE.SphereGeometry(300, 16, 16);
-    const neb2Mat = new THREE.MeshBasicMaterial({
-      color: 0xaa00ff,
-      side: THREE.BackSide,
-      transparent: true,
-      opacity: 0.12
-    });
-    this.nebula2 = new THREE.Mesh(neb2Geo, neb2Mat);
-    this.nebula2.position.set(100, -30, -500);
-    this.scene.add(this.nebula2);
-
-    // 2. Realistic Spherical Starfield (Smooth Circular Radial Glow, No Cubes)
+    // 1. Realistic Spherical Starfield (Smooth Circular Radial Glow, No Cubes)
     const starCount = this.isMobile ? 900 : 1800;
     const starGeo = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);
