@@ -21,7 +21,7 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 16;
+      this.totalToSpawnInWave = 14;
     } else if (this.currentWave === 2) {
       this.totalToSpawnInWave = 22;
     } else if (this.currentWave === 3) {
@@ -34,9 +34,9 @@ export class WaveSpawner {
   }
 
   getWaveSubtitle() {
-    if (this.currentWave === 1) return 'ASTEROID SHOWER DETECTED';
+    if (this.currentWave === 1) return 'MISSION 1: NAVIGATE ASTEROID CORRIDOR';
     if (this.currentWave === 2) return 'DRONE INCURSION INBOUND';
-    if (this.currentWave === 3) return 'ORBITAL SIEGE - ALL UNITS ENGAGE';
+    if (this.currentWave === 3) return 'TITAN ASTEROID SIEGE';
     return `ENDLESS ASSAULT - PHASE ${this.currentWave}`;
   }
 
@@ -51,6 +51,7 @@ export class WaveSpawner {
       this.spawnedCount++;
 
       if (this.currentWave === 1) {
+        // Mission 1 Phase 1: Asteroid Corridor Gauntlet
         this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
       } else if (this.currentWave === 2) {
         if (Math.random() > 0.35) {
@@ -67,12 +68,17 @@ export class WaveSpawner {
       }
     }
 
-    // When wave threats finish spawning, spawn the Wave Boss to culminate the wave!
+    // Mission 1 Phase 2 & 3: Sector Alpha Space Station Assault
     if (this.spawnedCount >= this.totalToSpawnInWave && !this.bossSpawned) {
       this.bossSpawned = true;
       this.waveState = 'WAITING_CLEAR';
 
-      if (this.currentWave === 1 || this.currentWave === 3) {
+      if (this.currentWave === 1) {
+        // Spawns 3D Sector Alpha Space Station & Defense Drones
+        this.gameManager.spawnSpaceStation();
+        this.gameManager.spawnDrone();
+        this.gameManager.spawnDrone();
+      } else if (this.currentWave === 3) {
         this.gameManager.spawnTitanBoss();
       } else {
         this.gameManager.spawnBoss();
