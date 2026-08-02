@@ -6,7 +6,7 @@ export class LaserBolt {
     this.isEnemy = isEnemy;
     this.damage = 15;
     this.speed = isEnemy ? 45 : 90;
-    this.radius = 0.8;
+    this.radius = 1.2; // Generous hit radius so every asteroid takes damage cleanly!
     this.isDead = false;
 
     this.meshGroup = new THREE.Group();

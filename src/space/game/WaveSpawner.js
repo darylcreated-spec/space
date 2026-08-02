@@ -21,7 +21,7 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 14;
+      this.totalToSpawnInWave = 28; // Doubled Wave 1 corridor gauntlet length
     } else if (this.currentWave === 2) {
       this.totalToSpawnInWave = 22;
     } else if (this.currentWave === 3) {

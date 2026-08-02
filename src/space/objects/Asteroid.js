@@ -5,17 +5,17 @@ export class Asteroid {
     this.scene = scene;
     this.sizeCategory = options.sizeCategory || 'large'; // 'large', 'medium', 'small'
     
-    // Radii & HP mapping
+    // Radii & HP mapping (Generous radii for guaranteed laser collision hits!)
     if (this.sizeCategory === 'large') {
-      this.radius = 2.8;
+      this.radius = 3.2;
       this.hp = 50;
       this.scoreValue = 100;
     } else if (this.sizeCategory === 'medium') {
-      this.radius = 1.6;
+      this.radius = 2.0;
       this.hp = 25;
       this.scoreValue = 50;
     } else {
-      this.radius = 0.9;
+      this.radius = 1.2;
       this.hp = 10;
       this.scoreValue = 25;
     }
@@ -24,14 +24,14 @@ export class Asteroid {
     this.meshGroup = new THREE.Group();
     const spawnX = options.x !== undefined ? options.x : (Math.random() - 0.5) * 36;
     const spawnY = options.y !== undefined ? options.y : (Math.random() - 0.5) * 22;
-    const spawnZ = options.z !== undefined ? options.z : (-70 - Math.random() * 20); // Spawns closer in view!
+    const spawnZ = options.z !== undefined ? options.z : (-70 - Math.random() * 20);
 
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
 
     this.velocity = new THREE.Vector3(
       options.vx !== undefined ? options.vx : (Math.random() - 0.5) * 2,
       options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 2,
-      options.vz !== undefined ? options.vz : (16 + Math.random() * 10) // Fast forward motion
+      options.vz !== undefined ? options.vz : (16 + Math.random() * 10)
     );
 
     // Tumbling rotational speed
@@ -43,7 +43,7 @@ export class Asteroid {
 
     this.isDead = false;
 
-    // Generate Procedural Rock Geometry with noise displacement
+    // Generate Procedural Rock Geometry
     this.buildRockMesh();
 
     this.scene.add(this.meshGroup);
@@ -52,7 +52,6 @@ export class Asteroid {
   buildRockMesh() {
     const geo = new THREE.DodecahedronGeometry(this.radius, 1);
     
-    // Displace vertices with noise for irregular asteroid shape
     const posAttr = geo.attributes.position;
     for (let i = 0; i < posAttr.count; i++) {
       const vx = posAttr.getX(i);
@@ -64,15 +63,17 @@ export class Asteroid {
     }
     geo.computeVertexNormals();
 
-    const mat = new THREE.MeshStandardMaterial({
+    this.rockMat = new THREE.MeshStandardMaterial({
       color: 0x6e788c,
+      emissive: 0x000000,
+      emissiveIntensity: 0.0,
       roughness: 0.8,
       metalness: 0.3,
       flatShading: true
     });
 
-    const rockMesh = new THREE.Mesh(geo, mat);
-    this.meshGroup.add(rockMesh);
+    this.rockMesh = new THREE.Mesh(geo, this.rockMat);
+    this.meshGroup.add(this.rockMesh);
 
     // Glowing red ore vein edges
     const wireGeo = new THREE.EdgesGeometry(geo);
@@ -87,6 +88,19 @@ export class Asteroid {
 
   takeDamage(amount) {
     this.hp -= amount;
+
+    // Emissive hit flash feedback
+    if (this.rockMat) {
+      this.rockMat.emissive.setHex(0xff0055);
+      this.rockMat.emissiveIntensity = 2.0;
+      setTimeout(() => {
+        if (this.rockMat) {
+          this.rockMat.emissive.setHex(0x000000);
+          this.rockMat.emissiveIntensity = 0.0;
+        }
+      }, 90);
+    }
+
     if (this.hp <= 0) {
       this.isDead = true;
     }
