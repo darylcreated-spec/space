@@ -54,7 +54,7 @@ export class SpaceStation {
     const conduit = new THREE.Mesh(lineGeo, lineMat);
     this.meshGroup.add(conduit);
 
-    // 2. Upper Rotating Habitat Ring (Inner)
+    // 2. Upper Rotating Habitat Ring (Inner - Clockwise Rotation)
     const ring1Geo = new THREE.TorusGeometry(16, 1.8, 16, 32);
     const ring1Mat = new THREE.MeshStandardMaterial({
       color: 0x182c48,
@@ -65,9 +65,26 @@ export class SpaceStation {
     });
     this.habitatRingUpper = new THREE.Mesh(ring1Geo, ring1Mat);
     this.habitatRingUpper.position.set(0, 0, 4);
+
+    // Attach 6 Glowing Habitat Pods around Upper Ring for visible rotation
+    const podGeo = new THREE.BoxGeometry(2.5, 2.5, 3.5);
+    const podMat = new THREE.MeshStandardMaterial({
+      color: 0x00f3ff,
+      emissive: 0x00f3ff,
+      emissiveIntensity: 1.2,
+      metalness: 0.8
+    });
+
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * Math.PI * 2;
+      const pod = new THREE.Mesh(podGeo, podMat);
+      pod.position.set(Math.cos(angle) * 16, Math.sin(angle) * 16, 0);
+      pod.rotation.z = angle;
+      this.habitatRingUpper.add(pod);
+    }
     this.meshGroup.add(this.habitatRingUpper);
 
-    // 3. Lower Contra-Rotating Habitat Ring (Outer)
+    // 3. Lower Contra-Rotating Habitat Ring (Outer - Counter-Clockwise Rotation)
     const ring2Geo = new THREE.TorusGeometry(25, 2.2, 16, 32);
     const ring2Mat = new THREE.MeshStandardMaterial({
       color: 0x221238,
@@ -78,6 +95,22 @@ export class SpaceStation {
     });
     this.habitatRingLower = new THREE.Mesh(ring2Geo, ring2Mat);
     this.habitatRingLower.position.set(0, 0, -4);
+
+    // Attach 8 Glowing Magenta Observation Pods around Lower Ring for visible contra-rotation
+    const pod2Mat = new THREE.MeshStandardMaterial({
+      color: 0xff00aa,
+      emissive: 0xff00aa,
+      emissiveIntensity: 1.2,
+      metalness: 0.8
+    });
+
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const pod = new THREE.Mesh(podGeo, pod2Mat);
+      pod.position.set(Math.cos(angle) * 25, Math.sin(angle) * 25, 0);
+      pod.rotation.z = angle;
+      this.habitatRingLower.add(pod);
+    }
     this.meshGroup.add(this.habitatRingLower);
 
     // 4. Central Glowing Core Reactor Orb
@@ -208,15 +241,17 @@ export class SpaceStation {
       this.meshGroup.position.z += this.speed * dt;
     }
 
-    // Contra-rotating habitat rings
-    if (this.habitatRingUpper) this.habitatRingUpper.rotation.z += 0.3 * dt;
-    if (this.habitatRingLower) this.habitatRingLower.rotation.z -= 0.2 * dt;
-    if (this.shieldRing) this.shieldRing.rotation.z += 1.5 * dt;
+    // Active contra-rotating habitat rings with glowing pods
+    if (this.habitatRingUpper) this.habitatRingUpper.rotation.z += 0.6 * dt;  // Clockwise
+    if (this.habitatRingLower) this.habitatRingLower.rotation.z -= 0.4 * dt;  // Counter-clockwise
+    if (this.shieldRing) {
+      this.shieldRing.rotation.z += 2.0 * dt;
+      this.shieldRing.rotation.y += 1.0 * dt;
+    }
 
     // Aim active turrets toward player position
     this.turrets.forEach(t => {
       if (!t.isDead && t.mesh) {
-        const worldPos = t.mesh.getWorldPosition(new THREE.Vector3());
         t.mesh.lookAt(playerPos);
       }
     });
