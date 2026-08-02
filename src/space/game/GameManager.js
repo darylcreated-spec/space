@@ -271,30 +271,30 @@ export class GameManager {
   }
 
   onWaveCompleted(completedWaveNum) {
-    // Seamless automatic progression to next wave!
     this.spaceAudio.playVictoryArpeggio();
     this.voiceAnnouncer.speak(`Wave ${completedWaveNum} Cleared!`, true);
-    if (this.spaceHUD) {
-      this.spaceHUD.showWaveBanner(`WAVE ${completedWaveNum} CLEARED`, 'PREPARING NEXT WAVE INCURSION');
-    }
 
-    const nextWaveNum = completedWaveNum + 1;
+    this.pendingNextWaveNum = completedWaveNum + 1;
 
-    // Automatically launch next wave after a brief victory banner pause
+    // Automatically open the Hangar Upgrade Modal so player can upgrade craft before next wave!
     setTimeout(() => {
-      if (this.state === 'PLAYING' || this.state === 'HANGAR') {
-        this.state = 'PLAYING';
-        if (this.spaceHUD && this.spaceHUD.modalHangar) {
-          this.spaceHUD.modalHangar.classList.add('hidden');
+      if (this.state === 'PLAYING') {
+        if (this.spaceHUD) {
+          this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem);
         }
-        this.waveSpawner.startWave(nextWaveNum);
       }
-    }, 2200);
+    }, 1200);
   }
 
   resumeFromHangar() {
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.state = 'PLAYING';
+
+    if (this.pendingNextWaveNum) {
+      const nextWave = this.pendingNextWaveNum;
+      this.pendingNextWaveNum = null;
+      this.waveSpawner.startWave(nextWave);
+    }
   }
 
   onGameOver(reason = 'Defenses Breached') {
