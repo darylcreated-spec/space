@@ -3,120 +3,165 @@ import * as THREE from 'three';
 export class Asteroid {
   constructor(scene, options = {}) {
     this.scene = scene;
-    this.sizeCategory = options.sizeCategory || 'large'; // 'large', 'medium', 'small'
-    
-    // Radii & HP mapping (Generous radii for guaranteed laser collision hits!)
+    this.sizeCategory = options.sizeCategory || 'large';
+
     if (this.sizeCategory === 'large') {
-      this.radius = 3.2;
-      this.hp = 50;
+      this.radius = 3.8;
+      this.hp = 60;
       this.scoreValue = 100;
     } else if (this.sizeCategory === 'medium') {
-      this.radius = 2.0;
-      this.hp = 25;
+      this.radius = 2.4;
+      this.hp = 30;
       this.scoreValue = 50;
     } else {
-      this.radius = 1.2;
-      this.hp = 10;
+      this.radius = 1.4;
+      this.hp = 12;
       this.scoreValue = 25;
     }
 
-    // Position & Velocity
     this.meshGroup = new THREE.Group();
     const spawnX = options.x !== undefined ? options.x : (Math.random() - 0.5) * 36;
     const spawnY = options.y !== undefined ? options.y : (Math.random() - 0.5) * 22;
-    const spawnZ = options.z !== undefined ? options.z : (-70 - Math.random() * 20);
+    const spawnZ = options.z !== undefined ? options.z : (-72 - Math.random() * 22);
 
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
 
     this.velocity = new THREE.Vector3(
-      options.vx !== undefined ? options.vx : (Math.random() - 0.5) * 2,
-      options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 2,
-      options.vz !== undefined ? options.vz : (16 + Math.random() * 10)
+      options.vx !== undefined ? options.vx : (Math.random() - 0.5) * 2.4,
+      options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 2.4,
+      options.vz !== undefined ? options.vz : (17 + Math.random() * 11)
     );
 
-    // Tumbling rotational speed
     this.rotVelocity = new THREE.Vector3(
-      (Math.random() - 0.5) * 2.0,
-      (Math.random() - 0.5) * 2.0,
-      (Math.random() - 0.5) * 2.0
+      (Math.random() - 0.5) * 2.2,
+      (Math.random() - 0.5) * 2.2,
+      (Math.random() - 0.5) * 2.2
     );
 
     this.isDead = false;
 
-    // Generate Procedural Rock Geometry
-    this.buildRockMesh();
+    // Random type for visual variety
+    this._type = Math.floor(Math.random() * 3); // 0=rocky, 1=crystalline, 2=molten
 
+    this.buildRockMesh();
     this.scene.add(this.meshGroup);
   }
 
   buildRockMesh() {
-    const geo = new THREE.DodecahedronGeometry(this.radius, 1);
-    
+    const R = this.radius;
+
+    // ── Base geometry — more distorted for a jagged look ──
+    const geo = new THREE.IcosahedronGeometry(R, 2);
     const posAttr = geo.attributes.position;
     for (let i = 0; i < posAttr.count; i++) {
-      const vx = posAttr.getX(i);
-      const vy = posAttr.getY(i);
-      const vz = posAttr.getZ(i);
-
-      const noise = 1.0 + (Math.random() - 0.5) * 0.35;
-      posAttr.setXYZ(i, vx * noise, vy * noise, vz * noise);
+      const noise = 1.0 + (Math.random() - 0.5) * 0.55;
+      posAttr.setXYZ(i, posAttr.getX(i) * noise, posAttr.getY(i) * noise, posAttr.getZ(i) * noise);
     }
     geo.computeVertexNormals();
 
+    // Visual type variants
+    let baseColor, emissiveColor, emissiveIntensity, wireColor;
+    if (this._type === 0) {
+      // Rocky slate — dark metallic
+      baseColor = 0x4a5568;
+      emissiveColor = 0x000000;
+      emissiveIntensity = 0.0;
+      wireColor = 0xff2244;
+    } else if (this._type === 1) {
+      // Crystalline blue — alien mineral
+      baseColor = 0x1a2a4a;
+      emissiveColor = 0x0044aa;
+      emissiveIntensity = 0.35;
+      wireColor = 0x00aaff;
+    } else {
+      // Molten orange — volcanic/unstable
+      baseColor = 0x2a1008;
+      emissiveColor = 0xff3300;
+      emissiveIntensity = 0.5;
+      wireColor = 0xff6600;
+    }
+
     this.rockMat = new THREE.MeshStandardMaterial({
-      color: 0x6e788c,
-      emissive: 0x000000,
-      emissiveIntensity: 0.0,
-      roughness: 0.8,
-      metalness: 0.3,
-      flatShading: true
+      color: baseColor,
+      emissive: emissiveColor,
+      emissiveIntensity: emissiveIntensity,
+      roughness: 0.88,
+      metalness: this._type === 0 ? 0.35 : 0.15,
+      flatShading: true,
     });
 
     this.rockMesh = new THREE.Mesh(geo, this.rockMat);
     this.meshGroup.add(this.rockMesh);
 
-    // Glowing red ore vein edges
+    // ── Edge glow lines — ore veins ──
     const wireGeo = new THREE.EdgesGeometry(geo);
-    const wireMat = new THREE.LineBasicMaterial({
-      color: 0xff0055,
+    this.wireMat = new THREE.LineBasicMaterial({
+      color: wireColor,
       transparent: true,
-      opacity: 0.6
+      opacity: this._type === 0 ? 0.35 : 0.65,
     });
-    const wire = new THREE.LineSegments(wireGeo, wireMat);
-    this.meshGroup.add(wire);
+    this.wire = new THREE.LineSegments(wireGeo, this.wireMat);
+    this.meshGroup.add(this.wire);
+
+    // ── Glow point light for emissive asteroids ──
+    if (this._type === 2) {
+      this.glowLight = new THREE.PointLight(0xff4400, 1.5 * R, R * 6);
+      this.meshGroup.add(this.glowLight);
+    } else if (this._type === 1) {
+      this.glowLight = new THREE.PointLight(0x0066ff, 1.2 * R, R * 5);
+      this.meshGroup.add(this.glowLight);
+    }
+
+    // ── Small surface detail bumps for large asteroids ──
+    if (this.sizeCategory === 'large') {
+      const craterMat = new THREE.MeshStandardMaterial({ color: 0x1a1f28, roughness: 0.99, flatShading: true });
+      for (let i = 0; i < 5; i++) {
+        const cr = new THREE.SphereGeometry(R * 0.2, 5, 5);
+        const crMesh = new THREE.Mesh(cr, craterMat);
+        const a = Math.random() * Math.PI * 2;
+        const b = Math.random() * Math.PI;
+        crMesh.position.set(
+          Math.cos(a) * Math.sin(b) * R * 0.85,
+          Math.sin(a) * Math.sin(b) * R * 0.85,
+          Math.cos(b) * R * 0.85
+        );
+        this.meshGroup.add(crMesh);
+      }
+    }
   }
 
   takeDamage(amount) {
     this.hp -= amount;
 
-    // Emissive hit flash feedback
     if (this.rockMat) {
-      this.rockMat.emissive.setHex(0xff0055);
-      this.rockMat.emissiveIntensity = 2.0;
+      this.rockMat.emissive.setHex(0xff2200);
+      this.rockMat.emissiveIntensity = 3.5;
+      if (this.wireMat) { this.wireMat.opacity = 1.0; }
       setTimeout(() => {
         if (this.rockMat) {
-          this.rockMat.emissive.setHex(0x000000);
-          this.rockMat.emissiveIntensity = 0.0;
+          const baseEm = this._type === 2 ? 0xff3300 : this._type === 1 ? 0x0044aa : 0x000000;
+          const baseInt = this._type === 0 ? 0.0 : this._type === 1 ? 0.35 : 0.5;
+          this.rockMat.emissive.setHex(baseEm);
+          this.rockMat.emissiveIntensity = baseInt;
+          if (this.wireMat) this.wireMat.opacity = this._type === 0 ? 0.35 : 0.65;
         }
-      }, 90);
+      }, 100);
     }
 
-    if (this.hp <= 0) {
-      this.isDead = true;
-    }
+    if (this.hp <= 0) this.isDead = true;
     return this.isDead;
   }
 
   getSplitFragments() {
     if (this.sizeCategory === 'large') {
       return [
-        { sizeCategory: 'medium', x: this.meshGroup.position.x - 1.0, y: this.meshGroup.position.y, z: this.meshGroup.position.z, vx: -4, vy: 1, vz: this.velocity.z },
-        { sizeCategory: 'medium', x: this.meshGroup.position.x + 1.0, y: this.meshGroup.position.y, z: this.meshGroup.position.z, vx: 4, vy: -1, vz: this.velocity.z }
+        { sizeCategory: 'medium', x: this.meshGroup.position.x - 1.2, y: this.meshGroup.position.y + 0.5, z: this.meshGroup.position.z, vx: -5, vy: 1.5, vz: this.velocity.z },
+        { sizeCategory: 'medium', x: this.meshGroup.position.x + 1.2, y: this.meshGroup.position.y - 0.5, z: this.meshGroup.position.z, vx: 5, vy: -1.5, vz: this.velocity.z }
       ];
     } else if (this.sizeCategory === 'medium') {
       return [
-        { sizeCategory: 'small', x: this.meshGroup.position.x - 0.6, y: this.meshGroup.position.y, z: this.meshGroup.position.z, vx: -5, vy: 2, vz: this.velocity.z },
-        { sizeCategory: 'small', x: this.meshGroup.position.x + 0.6, y: this.meshGroup.position.y, z: this.meshGroup.position.z, vx: 5, vy: -2, vz: this.velocity.z }
+        { sizeCategory: 'small', x: this.meshGroup.position.x - 0.7, y: this.meshGroup.position.y + 0.3, z: this.meshGroup.position.z, vx: -6, vy: 2.5, vz: this.velocity.z },
+        { sizeCategory: 'small', x: this.meshGroup.position.x + 0.7, y: this.meshGroup.position.y - 0.3, z: this.meshGroup.position.z, vx: 6, vy: -2.5, vz: this.velocity.z }
       ];
     }
     return [];
@@ -131,17 +176,19 @@ export class Asteroid {
   }
 
   update(dt) {
-    // Position movement
     this.meshGroup.position.x += this.velocity.x * dt;
     this.meshGroup.position.y += this.velocity.y * dt;
     this.meshGroup.position.z += this.velocity.z * dt;
 
-    // Tumbling rotation
     this.meshGroup.rotation.x += this.rotVelocity.x * dt;
     this.meshGroup.rotation.y += this.rotVelocity.y * dt;
     this.meshGroup.rotation.z += this.rotVelocity.z * dt;
 
-    // Check if passed player and impacted home planet at Z > 18
+    // Molten asteroids pulse their glow
+    if (this._type === 2 && this.glowLight) {
+      this.glowLight.intensity = 1.5 * this.radius + Math.sin(Date.now() * 0.004 + this._wobbleOffset) * 0.5;
+    }
+
     if (this.meshGroup.position.z > 18) {
       this.isDead = true;
       this.impactedPlanet = true;

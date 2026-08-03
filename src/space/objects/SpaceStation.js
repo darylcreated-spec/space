@@ -1,179 +1,79 @@
 import * as THREE from 'three';
 
 // ============================================================
-// WAVE 1 BOSS — Star Wars Death Star Imperial Superweapon (Overhaul)
-// Visual Identity: Weathered PBR Dark Slate Sphere (#1a2030), Fresnel Shield,
-//                 Churning Plasma Dish Shader, Trench Light Conduit Shader,
-//                 Dynamic 3-Point & Turret Charge Lighting.
-// Stats: 1500 Core HP, 350 Turret HP, 25% Active Shield Damage Absorption.
+// WAVE 1 BOSS — Star Wars Death Star Imperial Superweapon
+// Full AAA overhaul: 30m sphere, superlaser beam, dramatic lighting,
+// animated trench glow, multi-phase attack patterns
 // ============================================================
 
-// ── Procedural Canvas Generators for PBR Hull Textures ──
+// ── Canvas Texture Generators ──
 function generateHullNormalMap() {
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = 512; canvas.height = 512;
   const ctx = canvas.getContext('2d');
-
-  // Neutral normal base (128, 128, 255)
   ctx.fillStyle = 'rgb(128, 128, 255)';
   ctx.fillRect(0, 0, 512, 512);
-
-  // Panel grid lines with bevel highlights/shadows
-  ctx.strokeStyle = 'rgb(90, 128, 255)';
-  ctx.lineWidth = 3;
-  for (let x = 0; x < 512; x += 32) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
-  }
-  for (let y = 0; y < 512; y += 32) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
-  }
-
-  // Random armor panel rivets and greeble bump details
+  ctx.strokeStyle = 'rgb(90, 120, 255)';
+  ctx.lineWidth = 2;
+  for (let x = 0; x < 512; x += 24) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke(); }
+  for (let y = 0; y < 512; y += 24) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke(); }
   ctx.fillStyle = 'rgb(180, 180, 255)';
-  for (let i = 0; i < 400; i++) {
-    const rx = Math.floor(Math.random() * 16) * 32 + 4;
-    const ry = Math.floor(Math.random() * 16) * 32 + 4;
-    ctx.fillRect(rx, ry, 4, 4);
+  for (let i = 0; i < 600; i++) {
+    const rx = Math.floor(Math.random() * 21) * 24 + 2;
+    const ry = Math.floor(Math.random() * 21) * 24 + 2;
+    ctx.fillRect(rx, ry, 5, 5);
   }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(4, 2);
-  return texture;
+  const t = new THREE.CanvasTexture(canvas);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(5, 3);
+  return t;
 }
 
-function generateHullRoughnessMap() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-
-  ctx.fillStyle = 'rgb(140, 140, 140)';
-  ctx.fillRect(0, 0, 512, 512);
-
-  // Weathering noise & scuff marks
-  for (let i = 0; i < 1200; i++) {
-    const x = Math.random() * 512;
-    const y = Math.random() * 512;
-    const size = Math.random() * 16 + 4;
-    const val = Math.floor(Math.random() * 100 + 100);
-    ctx.fillStyle = `rgb(${val}, ${val}, ${val})`;
-    ctx.fillRect(x, y, size, size);
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(4, 2);
-  return texture;
-}
-
-// ── Custom Shaders ──
-
-// 1. Churning Superlaser Plasma Orb Shader
+// ── Shader definitions ──
 const PlasmaOrbShader = {
-  uniforms: {
-    uTime: { value: 0.0 },
-    uColor: { value: new THREE.Color(0x00ff44) }
-  },
-  vertexShader: `
-    varying vec3 vNormal;
-    varying vec2 vUv;
-    varying vec3 vPosition;
+  uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x00ff44) } },
+  vertexShader: `varying vec3 vNormal; varying vec2 vUv; varying vec3 vPosition;
+    void main() { vNormal = normalize(normalMatrix * normal); vUv = uv; vPosition = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform float uTime; uniform vec3 uColor;
+    varying vec3 vNormal; varying vec2 vUv; varying vec3 vPosition;
+    float noise(vec3 p) { return sin(p.x*5.0+uTime*3.0)*cos(p.y*5.0+uTime*2.5)*sin(p.z*5.0+uTime*3.5); }
     void main() {
-      vNormal = normalize(normalMatrix * normal);
-      vUv = uv;
-      vPosition = position;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform float uTime;
-    uniform vec3 uColor;
-    varying vec3 vNormal;
-    varying vec2 vUv;
-    varying vec3 vPosition;
-
-    // Simple 3D noise emulation for churning plasma
-    float noise(vec3 p) {
-      return sin(p.x * 4.0 + uTime * 3.0) * cos(p.y * 4.0 + uTime * 2.5) * sin(p.z * 4.0 + uTime * 3.5);
-    }
-
-    void main() {
-      float n = noise(vPosition * 1.5);
-      float turbulent = sin(vUv.y * 20.0 + uTime * 6.0 + n * 4.0) * 0.5 + 0.5;
-      vec3 coreColor = mix(uColor, vec3(1.0, 1.0, 1.0), turbulent * 0.65);
+      float n = noise(vPosition * 1.8);
+      float turb = sin(vUv.y * 28.0 + uTime * 8.0 + n * 5.0) * 0.5 + 0.5;
+      vec3 col = mix(uColor, vec3(1.0), turb * 0.7);
       float rim = 1.0 - max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0)));
-      coreColor += vec3(0.2, 1.0, 0.4) * pow(rim, 2.0);
-      gl_FragColor = vec4(coreColor * 3.5, 1.0);
-    }
-  `
+      col += vec3(0.1, 1.0, 0.3) * pow(rim, 2.5);
+      gl_FragColor = vec4(col * 4.5, 1.0); }`
 };
 
-// 2. Scrolling Trench Conduit Light Shader
-const TrenchConduitShader = {
-  uniforms: {
-    uTime: { value: 0.0 },
-    uColor: { value: new THREE.Color(0x00ff44) }
-  },
-  vertexShader: `
-    varying vec2 vUv;
+const TrenchShader = {
+  uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x00ff44) } },
+  vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform float uTime; uniform vec3 uColor; varying vec2 vUv;
     void main() {
-      vUv = uv;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform float uTime;
-    uniform vec3 uColor;
-    varying vec2 vUv;
-    void main() {
-      float pulse = sin(vUv.x * 80.0 - uTime * 8.0) * 0.5 + 0.5;
-      pulse = pow(pulse, 3.0);
-      vec3 glow = uColor * (1.5 + pulse * 4.0);
-      gl_FragColor = vec4(glow, 1.0);
-    }
-  `
+      float pulse = sin(vUv.x * 100.0 - uTime * 12.0) * 0.5 + 0.5;
+      pulse = pow(pulse, 4.0);
+      float secondary = sin(vUv.x * 40.0 + uTime * 5.0) * 0.3 + 0.7;
+      gl_FragColor = vec4(uColor * (2.0 + pulse * 6.0) * secondary, 1.0); }`
 };
 
-// 3. Ethereal Fresnel Deflector Shield Shader
-const ShieldFresnelShader = {
-  uniforms: {
-    uTime: { value: 0.0 },
-    uHitTime: { value: 0.0 },
-    uColor: { value: new THREE.Color(0x00ff44) }
-  },
-  vertexShader: `
-    varying vec3 vNormal;
-    varying vec3 vViewPosition;
+const ShieldShader = {
+  uniforms: { uTime: { value: 0 }, uHitTime: { value: 0 }, uColor: { value: new THREE.Color(0x00ff44) }, uHp: { value: 1.0 } },
+  vertexShader: `varying vec3 vNormal; varying vec3 vViewPosition;
+    void main() { vNormal = normalize(normalMatrix * normal);
+      vec4 mvPos = modelViewMatrix * vec4(position, 1.0); vViewPosition = -mvPos.xyz;
+      gl_Position = projectionMatrix * mvPos; }`,
+  fragmentShader: `uniform float uTime; uniform float uHitTime; uniform vec3 uColor; uniform float uHp;
+    varying vec3 vNormal; varying vec3 vViewPosition;
     void main() {
-      vNormal = normalize(normalMatrix * normal);
-      vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-      vViewPosition = -mvPosition.xyz;
-      gl_Position = projectionMatrix * mvPosition;
-    }
-  `,
-  fragmentShader: `
-    uniform float uTime;
-    uniform float uHitTime;
-    uniform vec3 uColor;
-    varying vec3 vNormal;
-    varying vec3 vViewPosition;
-
-    void main() {
-      vec3 normal = normalize(vNormal);
-      vec3 viewDir = normalize(vViewPosition);
-      float fresnel = pow(1.0 - abs(dot(normal, viewDir)), 2.8);
-      float pulse = sin(uTime * 3.0) * 0.15 + 0.85;
-
-      vec3 edgeColor = mix(uColor, vec3(1.0, 1.0, 1.0), uHitTime);
-      float alpha = (fresnel * 0.75 + uHitTime * 0.5) * pulse;
-
-      gl_FragColor = vec4(edgeColor * (2.0 + uHitTime * 3.0), alpha);
-    }
-  `
+      vec3 n = normalize(vNormal); vec3 v = normalize(vViewPosition);
+      float fresnel = pow(1.0 - abs(dot(n, v)), 3.2);
+      float pulse = sin(uTime * 4.0) * 0.12 + 0.88;
+      float hexPattern = step(0.5, fract(dot(n, vec3(8.0, 12.0, 6.0)) + uTime * 0.5));
+      vec3 edgeCol = mix(uColor, vec3(1.0), uHitTime + hexPattern * 0.15);
+      float alpha = (fresnel * 0.65 + uHitTime * 0.6) * pulse;
+      gl_FragColor = vec4(edgeCol * (2.5 + uHitTime * 4.0 + hexPattern * 0.5), alpha); }`
 };
 
 export class SpaceStation {
@@ -182,123 +82,119 @@ export class SpaceStation {
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    this.meshGroup.position.set(0, 5, -110);
+    this.meshGroup.position.set(0, 0, -140);
 
-    this.targetZ = -40;
-    this.speed = 6.0;
+    this.targetZ = -55;
+    this.speed = 7.0;
 
-    // DIFFICULTY BUFF: 1500 Core HP, 350 Turret HP
-    this.coreHp = 1500;
-    this.maxCoreHp = 1500;
-    this.scoreValue = 35000;
+    this.coreHp = 1800;
+    this.maxCoreHp = 1800;
+    this.scoreValue = 40000;
     this.isDead = false;
-    this.hitRadius = 30; // Death Star sphere collision radius
+    this.hitRadius = 36;
 
-    // 40% Faster Fire Rate (0.55s cooldown)
-    this.fireTimer = 0.55;
+    // Phase system — changes attack pattern as HP drops
+    this.phase = 1;
+    this.fireTimer = 0.6;
+    this.superlasertimer = 0;
+    this.superlaserfiring = false;
 
-    // Imperial point-defense gun turrets
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-18, 10, 14), hp: 350, maxHp: 350, isDead: false, mesh: null, light: null, barrelGroup: null },
-      { id: 1, relPos: new THREE.Vector3(18, 10, 14), hp: 350, maxHp: 350, isDead: false, mesh: null, light: null, barrelGroup: null },
-      { id: 2, relPos: new THREE.Vector3(-18, -10, 14), hp: 350, maxHp: 350, isDead: false, mesh: null, light: null, barrelGroup: null },
-      { id: 3, relPos: new THREE.Vector3(18, -10, 14), hp: 350, maxHp: 350, isDead: false, mesh: null, light: null, barrelGroup: null },
+      { id: 0, relPos: new THREE.Vector3(-22, 12, 16), hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(22, 12, 16),  hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(-22, -12, 16), hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(22, -12, 16),  hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(0, 26, 0),    hp: 350, maxHp: 350, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(0, -26, 0),   hp: 350, maxHp: 350, isDead: false, mesh: null, light: null },
     ];
 
     this.shaderMaterials = [];
-
     this._build();
     this.scene.add(this.meshGroup);
   }
 
   _build() {
-    const R = 22.0;
+    const R = 30.0;
+    const normalMap = generateHullNormalMap();
 
-    // ── 1. Dynamic 3-Point Lighting Setup ──
-    // Harsh cool-white directional rim light simulating distant sun
-    this.rimLight = new THREE.DirectionalLight(0xe0f0ff, 3.2);
-    this.rimLight.position.set(60, 40, -50);
+    // ── 1. Dramatic 3-point lighting ──
+    this.rimLight = new THREE.DirectionalLight(0xd0e8ff, 2.2);
+    this.rimLight.position.set(80, 50, -60);
     this.scene.add(this.rimLight);
 
-    // Warm fill light
-    this.fillLight = new THREE.DirectionalLight(0x223344, 1.2);
-    this.fillLight.position.set(-50, -20, 30);
-    this.scene.add(this.fillLight);
+    this.backLight = new THREE.DirectionalLight(0x002244, 0.5);
+    this.backLight.position.set(-60, -30, 40);
+    this.scene.add(this.backLight);
 
-    // ── 2. PBR Imperial Spherical Armor Hull ──
-    const normalMap = generateHullNormalMap();
-    const roughnessMap = generateHullRoughnessMap();
+    // Ambient fill
+    this.ambLight = new THREE.AmbientLight(0x050d14, 0.5);
+    this.scene.add(this.ambLight);
 
-    const hullGeo = new THREE.SphereGeometry(R, 36, 32);
+    // ── 2. Main PBR Sphere Hull — flat-shaded for panelling effect ──
+    const hullGeo = new THREE.SphereGeometry(R, 48, 40);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1a2030,
-      roughness: 0.55,
-      metalness: 0.88,
-      normalMap: normalMap,
-      normalScale: new THREE.Vector2(0.85, 0.85),
-      roughnessMap: roughnessMap,
+      color: 0x16202e,
+      roughness: 0.52,
+      metalness: 0.92,
+      normalMap,
+      normalScale: new THREE.Vector2(1.1, 1.1),
       flatShading: true,
     });
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 3. Equatorial & 60° North Sub-Trenches with Custom Shaders ──
-    const trenchGeo = new THREE.TorusGeometry(R + 0.3, 2.2, 10, 80);
+    // ── 3. Equatorial Trench — the iconic Death Star ring ──
+    const trenchGeo = new THREE.TorusGeometry(R + 0.4, 3.0, 12, 100);
     const trenchMat = new THREE.MeshStandardMaterial({
-      color: 0x090d12,
-      roughness: 0.8,
-      metalness: 1.0,
-      normalMap: normalMap,
+      color: 0x060c14, roughness: 0.9, metalness: 1.0, normalMap,
     });
-    this.equatorialTrench = new THREE.Mesh(trenchGeo, trenchMat);
-    this.meshGroup.add(this.equatorialTrench);
+    this.meshGroup.add(new THREE.Mesh(trenchGeo, trenchMat));
 
-    // Scrolling Trench Conduit Light Shader Strip
-    const conduitGeo = new THREE.TorusGeometry(R + 0.32, 0.4, 8, 80);
+    // Scrolling conduit light in trench
+    const conduitGeo = new THREE.TorusGeometry(R + 0.5, 0.55, 10, 100);
     this.conduitMat = new THREE.ShaderMaterial({
-      uniforms: THREE.UniformsUtils.clone(TrenchConduitShader.uniforms),
-      vertexShader: TrenchConduitShader.vertexShader,
-      fragmentShader: TrenchConduitShader.fragmentShader,
-      transparent: true,
+      uniforms: THREE.UniformsUtils.clone(TrenchShader.uniforms),
+      vertexShader: TrenchShader.vertexShader,
+      fragmentShader: TrenchShader.fragmentShader,
     });
     this.shaderMaterials.push(this.conduitMat);
     this.meshGroup.add(new THREE.Mesh(conduitGeo, this.conduitMat));
 
-    // 60° North Sub-Trench
-    const subTrenchGeo = new THREE.TorusGeometry(R * 0.87 + 0.2, 0.95, 8, 64);
-    const subTrench = new THREE.Mesh(subTrenchGeo, trenchMat);
-    subTrench.rotation.x = Math.PI / 3.5;
-    this.meshGroup.add(subTrench);
+    // 60° N sub-trench
+    const subTGeo = new THREE.TorusGeometry(R * 0.86 + 0.2, 1.2, 10, 80);
+    const subT = new THREE.Mesh(subTGeo, trenchMat);
+    subT.rotation.x = Math.PI / 3.5;
+    this.meshGroup.add(subT);
 
-    // ── 4. Superlaser Dish with Churning Procedural Plasma Noise Shader ──
+    // ── 4. Northern Superlaser Dish ──
     const dishGroup = new THREE.Group();
-    dishGroup.position.set(-5.5, 8, R - 1.5);
-    dishGroup.rotation.y = -Math.PI / 12;
-    dishGroup.rotation.x = Math.PI / 14;
+    dishGroup.position.set(-7, 10, R - 2);
+    dishGroup.rotation.y = -Math.PI / 10;
+    dishGroup.rotation.x = Math.PI / 12;
+    this.dishGroup = dishGroup;
 
-    const rimGeo = new THREE.TorusGeometry(6.0, 1.1, 12, 28);
-    const rimMat = new THREE.MeshStandardMaterial({ color: 0x111820, roughness: 0.3, metalness: 1.0 });
-    dishGroup.add(new THREE.Mesh(rimGeo, rimMat));
+    // Dish rim — large and prominent
+    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(8.5, 1.5, 14, 36), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
+    dishGroup.position.set(-7, 10, R - 2);
 
-    const dishFaceGeo = new THREE.CylinderGeometry(5.5, 4.0, 1.5, 24);
+    // Dish face
+    const dishFaceGeo = new THREE.CylinderGeometry(8.0, 6.0, 2.0, 28);
     dishFaceGeo.rotateX(Math.PI / 2);
-    const dishFaceMat = new THREE.MeshStandardMaterial({ color: 0x0a1218, roughness: 0.3, metalness: 0.95 });
-    dishGroup.add(new THREE.Mesh(dishFaceGeo, dishFaceMat));
+    dishGroup.add(new THREE.Mesh(dishFaceGeo, new THREE.MeshStandardMaterial({ color: 0x08101a, roughness: 0.2, metalness: 0.98 })));
 
-    // 8 Converging Superlaser Emitter Beams
-    const beamGeo = new THREE.CylinderGeometry(0.12, 0.12, 5.2, 8);
-    const beamMat = new THREE.MeshBasicMaterial({ color: 0x00ff44 });
+    // 8 converging emitter beams
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      const beam = new THREE.Mesh(beamGeo, beamMat);
-      beam.position.set(Math.cos(a) * 4.0, Math.sin(a) * 4.0, 0.3);
+      const beamGeo = new THREE.CylinderGeometry(0.18, 0.18, 7.0, 7);
+      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 }));
+      beam.position.set(Math.cos(a) * 5.8, Math.sin(a) * 5.8, 0.5);
       beam.rotation.z = a + Math.PI / 2;
-      beam.rotation.x = Math.PI / 5.5;
+      beam.rotation.x = Math.PI / 5;
       dishGroup.add(beam);
     }
 
-    // Central Churning Plasma Shader Orb
-    const orbGeo = new THREE.SphereGeometry(1.85, 24, 24);
+    // Central churning plasma orb
+    const orbGeo = new THREE.SphereGeometry(2.5, 28, 28);
     this.plasmaShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(PlasmaOrbShader.uniforms),
       vertexShader: PlasmaOrbShader.vertexShader,
@@ -311,17 +207,32 @@ export class SpaceStation {
 
     this.meshGroup.add(dishGroup);
 
-    // Dynamic Dish Green Point Light
-    this.superlightBoss = new THREE.PointLight(0x00ff44, 4.5, 75);
-    this.superlightBoss.position.set(-5.5, 8, R - 1.5);
+    // Dish point light — very bright
+    this.superlightBoss = new THREE.PointLight(0x00ff44, 8.0, 100);
+    this.superlightBoss.position.set(-7, 10, R + 2);
     this.meshGroup.add(this.superlightBoss);
 
-    // ── 5. Fresnel Deflector Shield ──
-    const shieldGeo = new THREE.IcosahedronGeometry(R + 3.8, 3);
+    // ── 5. Superlaser Beam (visual, fires periodically) ──
+    const laserBeamGeo = new THREE.CylinderGeometry(0.6, 0.6, 80, 10);
+    laserBeamGeo.rotateX(Math.PI / 2);
+    this.laserBeamMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, transparent: true, opacity: 0.0 });
+    this.laserBeam = new THREE.Mesh(laserBeamGeo, this.laserBeamMat);
+    this.laserBeam.position.set(-7, 10, R + 38);
+    this.meshGroup.add(this.laserBeam);
+
+    const outerBeamGeo = new THREE.CylinderGeometry(1.4, 1.4, 80, 10);
+    outerBeamGeo.rotateX(Math.PI / 2);
+    this.outerBeamMat = new THREE.MeshBasicMaterial({ color: 0x88ffaa, transparent: true, opacity: 0.0 });
+    this.outerBeam = new THREE.Mesh(outerBeamGeo, this.outerBeamMat);
+    this.outerBeam.position.copy(this.laserBeam.position);
+    this.meshGroup.add(this.outerBeam);
+
+    // ── 6. Fresnel Shield ──
+    const shieldGeo = new THREE.IcosahedronGeometry(R + 5.5, 4);
     this.shieldShaderMat = new THREE.ShaderMaterial({
-      uniforms: THREE.UniformsUtils.clone(ShieldFresnelShader.uniforms),
-      vertexShader: ShieldFresnelShader.vertexShader,
-      fragmentShader: ShieldFresnelShader.fragmentShader,
+      uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
+      vertexShader: ShieldShader.vertexShader,
+      fragmentShader: ShieldShader.fragmentShader,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -330,109 +241,99 @@ export class SpaceStation {
     this.shieldRing = new THREE.Mesh(shieldGeo, this.shieldShaderMat);
     this.meshGroup.add(this.shieldRing);
 
-    // ── 6. Imperial Turrets with Dynamic Charge Lights ──
-    const baseGeo = new THREE.BoxGeometry(3.2, 1.4, 3.2);
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x0d1520, metalness: 0.98, roughness: 0.3 });
-
-    const barrelGeo = new THREE.CylinderGeometry(0.28, 0.38, 3.4, 8);
+    // ── 7. Heavy Turrets — 6 total ──
+    const baseGeo = new THREE.BoxGeometry(4.0, 1.8, 4.0);
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
+    const barrelGeo = new THREE.CylinderGeometry(0.35, 0.5, 4.5, 9);
     barrelGeo.rotateX(Math.PI / 2);
-    const barrelMat = new THREE.MeshBasicMaterial({ color: 0x00ff44 });
+    const barrelMat = new THREE.MeshBasicMaterial({ color: 0x00ff55 });
+    const turretRingGeo = new THREE.TorusGeometry(1.0, 0.25, 8, 16);
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
-
       tGroup.add(new THREE.Mesh(baseGeo, baseMat));
+      tGroup.add(new THREE.Mesh(turretRingGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 })));
 
       const bGroup = new THREE.Group();
-      const b1 = new THREE.Mesh(barrelGeo, barrelMat);
-      b1.position.set(0.7, 0.6, 1.2);
-      bGroup.add(b1);
-      const b2 = new THREE.Mesh(barrelGeo, barrelMat);
-      b2.position.set(-0.7, 0.6, 1.2);
-      bGroup.add(b2);
-
+      [-0.9, 0.9].forEach(xOff => {
+        const b = new THREE.Mesh(barrelGeo, barrelMat);
+        b.position.set(xOff, 0.7, 1.5);
+        bGroup.add(b);
+      });
       tGroup.add(bGroup);
 
-      // Dynamic Green Charge Light per turret
-      const tLight = new THREE.PointLight(0x00ff44, 1.5, 25);
-      tLight.position.set(0, 1.0, 1.8);
+      const tLight = new THREE.PointLight(0x00ff44, 2.5, 30);
+      tLight.position.set(0, 1.5, 2.5);
       tGroup.add(tLight);
       t.light = tLight;
 
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
-      t.barrelGroup = bGroup;
     });
   }
 
   takeTurretDamage(turretId, amount) {
-    const turret = this.turrets.find(t => t.id === turretId);
-    if (!turret || turret.isDead) return false;
-    turret.hp -= amount;
-    if (turret.hp <= 0) {
-      turret.isDead = true;
-      turret.mesh.visible = false;
-      const wp = turret.mesh.getWorldPosition(new THREE.Vector3());
-      this.particleManager.createExplosion(wp, 0x00ff44, 50, 2.2);
+    const t = this.turrets.find(t => t.id === turretId);
+    if (!t || t.isDead) return false;
+    t.hp -= amount;
+    if (t.hp <= 0) {
+      t.isDead = true;
+      t.mesh.visible = false;
+      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0x00ff44, 60, 2.5);
     }
-    return turret.isDead;
+    return t.isDead;
   }
 
   takeCoreDamage(amount) {
-    // SHIELD MECHANIC: 25% damage absorption if at least 1 turret is active!
-    const activeTurretExists = this.turrets.some(t => !t.isDead);
-    const actualDamage = activeTurretExists ? amount * 0.75 : amount;
-
+    const activeTurrets = this.turrets.some(t => !t.isDead);
+    const actualDamage = activeTurrets ? amount * 0.72 : amount;
     this.coreHp -= actualDamage;
 
-    // Trigger Shield Fresnel Hit Pulse
-    if (this.shieldShaderMat) {
-      this.shieldShaderMat.uniforms.uHitTime.value = 1.0;
+    if (this.shieldShaderMat) this.shieldShaderMat.uniforms.uHitTime.value = 1.0;
+
+    // Phase transitions
+    const hpRatio = this.coreHp / this.maxCoreHp;
+    if (hpRatio < 0.5 && this.phase === 1) {
+      this.phase = 2;
+      this.fireTimer *= 0.7; // faster fire
+    }
+    if (hpRatio < 0.25 && this.phase === 2) {
+      this.phase = 3;
+      this.fireTimer *= 0.7; // even faster
     }
 
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
       this._explode();
     }
-
     return this.isDead;
   }
 
   takeDamage(targetType, amount) {
-    if (targetType === 'core') {
-      return this.takeCoreDamage(amount);
-    }
-    return false;
+    return targetType === 'core' ? this.takeCoreDamage(amount) : false;
   }
 
   _explode() {
-    // Enhanced 500 Particle Count (Emerald, Gold, Dark Debris)
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00ff44, 250, 5.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 150, 4.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0x111822, 100, 3.5);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 110);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00ff44, 350, 6.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 200, 5.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x111822, 150, 4.0);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 130);
 
-    // Lingering half-second white flash & screen flash
-    const flash = new THREE.PointLight(0xffffff, 80.0, 900);
+    const flash = new THREE.PointLight(0xffffff, 120.0, 1200);
     flash.position.copy(this.meshGroup.position);
     this.scene.add(flash);
-
-    let intensity = 80.0;
+    let i = 120;
     const fade = setInterval(() => {
-      intensity -= 3.5;
-      if (intensity <= 0) {
-        clearInterval(fade);
-        this.scene.remove(flash);
-      } else {
-        flash.intensity = intensity;
-      }
-    }, 60);
+      i -= 5; if (i <= 0) { clearInterval(fade); this.scene.remove(flash); } else flash.intensity = i;
+    }, 50);
   }
 
   destroy() {
     if (this.rimLight) this.scene.remove(this.rimLight);
-    if (this.fillLight) this.scene.remove(this.fillLight);
+    if (this.backLight) this.scene.remove(this.backLight);
+    if (this.ambLight) this.scene.remove(this.ambLight);
     this.scene.remove(this.meshGroup);
     this.meshGroup.traverse(c => {
       if (c.geometry) c.geometry.dispose();
@@ -441,63 +342,102 @@ export class SpaceStation {
   }
 
   update(dt, playerPos) {
-    if (this.meshGroup.position.z < this.targetZ) {
-      this.meshGroup.position.z += this.speed * dt;
-    }
+    const arrived = this.meshGroup.position.z >= this.targetZ;
+    if (!arrived) this.meshGroup.position.z += this.speed * dt;
 
     const time = performance.now() * 0.001;
 
-    // Update custom shader uniforms
     this.shaderMaterials.forEach(mat => {
-      if (mat.uniforms && mat.uniforms.uTime) mat.uniforms.uTime.value = time;
+      if (mat.uniforms?.uTime) mat.uniforms.uTime.value = time;
     });
 
-    // Decay shield hit pulse
-    if (this.shieldShaderMat && this.shieldShaderMat.uniforms.uHitTime.value > 0) {
-      this.shieldShaderMat.uniforms.uHitTime.value = Math.max(0, this.shieldShaderMat.uniforms.uHitTime.value - dt * 3.0);
+    if (this.shieldShaderMat?.uniforms.uHitTime.value > 0) {
+      this.shieldShaderMat.uniforms.uHitTime.value = Math.max(0, this.shieldShaderMat.uniforms.uHitTime.value - dt * 3.5);
     }
 
-    // Majestic slow Y-axis rotation
-    this.meshGroup.rotation.y += 0.06 * dt;
+    if (this.shieldShaderMat) {
+      this.shieldShaderMat.uniforms.uHp.value = this.coreHp / this.maxCoreHp;
+    }
+
+    // Majestic slow rotation
+    this.meshGroup.rotation.y += 0.05 * dt;
 
     if (this.shieldRing) {
-      this.shieldRing.rotation.z += 0.6 * dt;
-      this.shieldRing.rotation.x += 0.35 * dt;
+      this.shieldRing.rotation.z += 0.55 * dt;
+      this.shieldRing.rotation.x += 0.32 * dt;
     }
 
-    // 30% Faster Turret Tracking Speed (Smooth Quaternion Slerp)
-    this.turrets.forEach(t => {
-      if (!t.isDead && t.mesh) {
-        const currentQuat = t.mesh.quaternion.clone();
-        // lookAt needs world position of player relative to parent group
-        const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
-        t.mesh.lookAt(localTarget);
-        const targetQuat = t.mesh.quaternion.clone();
-        t.mesh.quaternion.copy(currentQuat).slerp(targetQuat, 0.25);
-      }
-    });
+    // Superlaser dish aim toward player
+    if (this.dishGroup && arrived) {
+      const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+      this.dishGroup.lookAt(localTarget);
+    }
 
-    // Charge-up turret lights as fireTimer approaches 0
+    // Plasma orb intensity ramps up with phase
+    if (this.superlightBoss) {
+      this.superlightBoss.intensity = 6.0 + Math.sin(time * 4) * 2.0 + this.phase * 2.0;
+    }
+
+    // ── Superlaser beam attack (every 8s in phase 1, 5s in phase 2, 3s in phase 3) ──
+    const laserInterval = this.phase === 1 ? 8 : this.phase === 2 ? 5 : 3;
+    this.superlasertimer += dt;
+    if (this.superlasertimer >= laserInterval && arrived && !this.superlaserfiring) {
+      this.superlasertimer = 0;
+      this.superlaserfiring = true;
+      this._fireSuperLaser();
+    }
+
+    // Turret tracking
+    if (arrived) {
+      this.turrets.forEach(t => {
+        if (!t.isDead && t.mesh) {
+          const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+          t.mesh.lookAt(localTarget);
+        }
+      });
+    }
+
+    // Turret charge lights
     this.fireTimer -= dt;
-
-    const chargeRatio = Math.max(0, 1.0 - this.fireTimer / 0.55);
+    const chargeRatio = Math.max(0, 1.0 - this.fireTimer / (0.6 / this.phase));
     this.turrets.forEach(t => {
       if (!t.isDead && t.light) {
-        t.light.intensity = 1.5 + chargeRatio * 6.5; // Intensifies right before firing!
+        t.light.intensity = 2.0 + chargeRatio * 8.0;
       }
     });
 
     const out = [];
-    if (this.fireTimer <= 0) {
-      this.fireTimer = 0.55; // 40% faster fire rate!
+    if (this.fireTimer <= 0 && arrived) {
+      this.fireTimer = 0.55 / this.phase;
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
           out.push(t.mesh.getWorldPosition(new THREE.Vector3()));
-          if (t.light) t.light.intensity = 1.5;
+          if (t.light) t.light.intensity = 2.0;
         }
       });
     }
 
     return out.length > 0 ? out : false;
+  }
+
+  _fireSuperLaser() {
+    if (!this.laserBeamMat || !this.outerBeamMat) return;
+    let alpha = 0;
+    const chargeUp = setInterval(() => {
+      alpha += 0.08;
+      this.laserBeamMat.opacity = Math.min(alpha, 0.95);
+      this.outerBeamMat.opacity = Math.min(alpha * 0.5, 0.4);
+      if (alpha >= 1.0) {
+        clearInterval(chargeUp);
+        setTimeout(() => {
+          const fadeOut = setInterval(() => {
+            alpha -= 0.04;
+            this.laserBeamMat.opacity = Math.max(0, alpha);
+            this.outerBeamMat.opacity = Math.max(0, alpha * 0.4);
+            if (alpha <= 0) { clearInterval(fadeOut); this.superlaserfiring = false; }
+          }, 30);
+        }, 600);
+      }
+    }, 40);
   }
 }

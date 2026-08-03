@@ -2,11 +2,8 @@ import * as THREE from 'three';
 
 // ============================================================
 // WAVE 3 FINAL BOSS — Babylon 5 Industrial Rotating Cylinder Citadel
-// Silhouette: Long rotating cylinder, 3 LARGE rings spinning on X-axis (not Z!),
-//             forward-facing concave launch bay with red reactor glow,
-//             tail-fin weapon nacelles
-// Color Identity: Near-void black hull + MOLTEN ORANGE/RED (#ff6600)
-// Motion: Full hull slowly rotates on Z-axis, RINGS spin fast on X-axis
+// AAA Overhaul: 80m long cylinder, 3 massive contra-rotating rings,
+// forward plasma cannon, 8 turrets, 3-phase enrage system
 // ============================================================
 export class Babylon5Boss {
   constructor(scene, particleManager) {
@@ -14,28 +11,31 @@ export class Babylon5Boss {
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    // Enter end-on so player sees the face of the cylinder — MORE INTIMIDATING
-    this.meshGroup.position.set(0, 0, -120);
+    this.meshGroup.position.set(0, 0, -135);
 
-    this.targetZ = -48;
-    this.speed = 5.8;
+    this.targetZ = -50;
+    this.speed = 5.5;
 
-    this.coreHp = 1200;
-    this.maxCoreHp = 1200;
-    this.scoreValue = 50000;
+    this.coreHp = 1600;
+    this.maxCoreHp = 1600;
+    this.scoreValue = 60000;
     this.isDead = false;
-    this.hitRadius = 32; // Babylon 5 cylinder collision radius
+    this.hitRadius = 38;
 
-    this.fireTimer = 0.8;
+    this.fireTimer = 0.7;
+    this.phase = 1;
+    this.plasmaCannonTimer = 0;
+    this._time = 0;
 
-    // 6 TRIPLE-barrel turrets — Babylon 5's military doctrine
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(0, 14, 20), hp: 200, maxHp: 200, isDead: false, mesh: null },
-      { id: 1, relPos: new THREE.Vector3(0, -14, 20), hp: 200, maxHp: 200, isDead: false, mesh: null },
-      { id: 2, relPos: new THREE.Vector3(14, 0, 0), hp: 200, maxHp: 200, isDead: false, mesh: null },
-      { id: 3, relPos: new THREE.Vector3(-14, 0, 0), hp: 200, maxHp: 200, isDead: false, mesh: null },
-      { id: 4, relPos: new THREE.Vector3(0, 14, -18), hp: 200, maxHp: 200, isDead: false, mesh: null },
-      { id: 5, relPos: new THREE.Vector3(0, -14, -18), hp: 200, maxHp: 200, isDead: false, mesh: null },
+      { id: 0, relPos: new THREE.Vector3(0,  16, 28), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(0, -16, 28), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(16,  0, 10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(-16, 0, 10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(16,  0,-10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(-16, 0,-10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
+      { id: 6, relPos: new THREE.Vector3(0,  16,-26), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
+      { id: 7, relPos: new THREE.Vector3(0, -16,-26), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
     ];
 
     this._build();
@@ -43,176 +43,194 @@ export class Babylon5Boss {
   }
 
   _build() {
-    const len = 52.0;
-    const cR = 10.0; // core cylinder radius
+    const len = 72.0;
+    const cR  = 12.0;
 
-    // ── 1. Main hull cylinder — near-VOID black, horizontal, end-on ──
-    const hullGeo = new THREE.CylinderGeometry(cR, cR + 2, len, 12, 1);
+    // ── 1. Main Hull Cylinder — deep space black, faceted ──
+    const hullGeo = new THREE.CylinderGeometry(cR, cR + 2.5, len, 14, 1);
     hullGeo.rotateX(Math.PI / 2);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x06080d,       // near void — deep space black with a blue tint
-      roughness: 0.7,
-      metalness: 0.92,
-      flatShading: true,     // faceted industrial look
+      color: 0x060810,
+      roughness: 0.68,
+      metalness: 0.94,
+      flatShading: true,
     });
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // Hull orange accent stripe rings — visual banding to break up the cylinder
-    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
-    [-20, -6, 8, 22].forEach(zOff => {
-      const sGeo = new THREE.TorusGeometry(cR + 2.2, 0.55, 6, 40);
+    // ── 2. Orange hull accent bands ──
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
+    [-28, -12, 4, 20].forEach(zOff => {
+      const sGeo = new THREE.TorusGeometry(cR + 3.0, 0.7, 8, 50);
       sGeo.rotateX(Math.PI / 2);
       const s = new THREE.Mesh(sGeo, stripeMat);
       s.position.z = zOff;
       this.meshGroup.add(s);
     });
 
-    // ── 2. 3 LARGE contra-rotating habitat rings — on X-AXIS (perpendicular to hull) ──
-    //    They spin like rolling wheels around the cylinder — NOT like the ring boss
+    // ── 3. 3 MASSIVE Contra-rotating Habitat Rings ──
     this.habitatRings = [];
-    const ringPositions = [-16, 0, 16];
-    const ringColors = [0xff4400, 0xff6600, 0xff8800]; // orange gradient
+    const ringPositions = [-20, 0, 20];
+    const ringColors    = [0xff3300, 0xff6600, 0xff9900];
+    const ringSpeeds    = [1.1, -0.8, 0.95];
 
     ringPositions.forEach((zOff, idx) => {
-      const rGeo = new THREE.TorusGeometry(cR + 7.5, 1.8, 14, 48);
-      // Rings oriented perpendicular to cylinder (rotate around the cylinder axis)
+      const rGeo = new THREE.TorusGeometry(cR + 10, 2.4, 18, 60);
       const rMat = new THREE.MeshStandardMaterial({
         color: ringColors[idx],
         emissive: ringColors[idx],
-        emissiveIntensity: 0.6,
-        roughness: 0.35,
-        metalness: 0.8,
+        emissiveIntensity: 0.85,
+        roughness: 0.3,
+        metalness: 0.82,
       });
       const ring = new THREE.Mesh(rGeo, rMat);
       ring.position.z = zOff;
-      // Each ring in XY plane (perpendicular to cylinder Z-axis)
-      // No initial rotation needed — TorusGeometry lies in XY plane by default
       this.meshGroup.add(ring);
-      this.habitatRings.push({
-        mesh: ring,
-        speedX: (idx % 2 === 0 ? 0.9 : -0.7),
-        speedY: (idx % 2 === 0 ? 0.3 : -0.4),
-      });
+      this.habitatRings.push({ mesh: ring, speedX: ringSpeeds[idx], mat: rMat });
 
-      // Glowing orange point light per ring
-      const rLight = new THREE.PointLight(ringColors[idx], 2.5, 50);
+      // Ring glow point light
+      const rLight = new THREE.PointLight(ringColors[idx], 5.0, 65);
       rLight.position.z = zOff;
       this.meshGroup.add(rLight);
+
+      // Ring detail spars
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const sparGeo = new THREE.BoxGeometry(0.8, 0.8, 6.0);
+        const spar = new THREE.Mesh(sparGeo, new THREE.MeshStandardMaterial({ color: 0x1a0800, metalness: 0.95 }));
+        spar.position.set(Math.cos(a) * (cR + 10), Math.sin(a) * (cR + 10), zOff);
+        this.meshGroup.add(spar);
+      }
     });
 
-    // ── 3. Forward concave reactor bay — the FACE of the station ──
-    //    Big glowing red/orange dish that the player is flying toward
-    const bayGeo = new THREE.CylinderGeometry(9.0, 7.5, 5.5, 16);
+    // ── 4. Forward Reactor Bay — the face of the station ──
+    const bayGeo = new THREE.CylinderGeometry(11.0, 8.5, 7.0, 20);
     bayGeo.rotateX(Math.PI / 2);
     this.coreMat = new THREE.MeshStandardMaterial({
-      color: 0xff2200,        // DEEP RED — completely different from previous bosses
+      color: 0xff1a00,
       emissive: 0xff3300,
-      emissiveIntensity: 3.5,
-      roughness: 0.05,
+      emissiveIntensity: 5.0,
+      roughness: 0.04,
     });
     this.coreMesh = new THREE.Mesh(bayGeo, this.coreMat);
-    this.coreMesh.position.z = len / 2 + 2.0;
+    this.coreMesh.position.z = len / 2 + 3.0;
     this.meshGroup.add(this.coreMesh);
 
-    // Reactor bay glow light — intense red
-    this.coreLight = new THREE.PointLight(0xff3300, 8.0, 90);
-    this.coreLight.position.z = len / 2 + 4;
-    this.meshGroup.add(this.coreLight);
-
-    // Reactor bay outer rim
-    const bayRimGeo = new THREE.TorusGeometry(9.5, 1.2, 10, 28);
-    const bayRimMat = new THREE.MeshStandardMaterial({ color: 0x3a1200, metalness: 0.95, roughness: 0.4 });
+    // Reactor bay rim ring
+    const bayRimGeo = new THREE.TorusGeometry(12, 1.6, 12, 36);
+    const bayRimMat = new THREE.MeshStandardMaterial({ color: 0x3a1200, metalness: 0.98, roughness: 0.35 });
     const bayRim = new THREE.Mesh(bayRimGeo, bayRimMat);
     bayRim.position.z = len / 2 + 0.5;
     this.meshGroup.add(bayRim);
 
-    // ── 4. 4 Rear weapon nacelles — diagonal spines off the aft end ──
-    const nacellePositions = [
-      { x: 14, y: 14, z: -len / 2 - 6 },
-      { x: -14, y: 14, z: -len / 2 - 6 },
-      { x: 14, y: -14, z: -len / 2 - 6 },
-      { x: -14, y: -14, z: -len / 2 - 6 },
-    ];
-    const nacMat = new THREE.MeshStandardMaterial({
-      color: 0x0e1520,
-      emissive: 0xff5500,
-      emissiveIntensity: 1.2,
-      roughness: 0.5,
-      metalness: 0.9,
+    // Reactor glow light — intense red
+    this.coreLight = new THREE.PointLight(0xff3300, 14.0, 120);
+    this.coreLight.position.z = len / 2 + 6;
+    this.meshGroup.add(this.coreLight);
+
+    // Inner reactor core orb
+    const orbGeo = new THREE.SphereGeometry(5.5, 20, 20);
+    const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const orb = new THREE.Mesh(orbGeo, orbMat);
+    orb.position.z = len / 2 + 1;
+    this.meshGroup.add(orb);
+
+    // ── 5. Plasma Cannon Ring around reactor (fires a beam) ──
+    const cannonRingGeo = new THREE.TorusGeometry(9, 0.9, 10, 28);
+    this.cannonRingMat = new THREE.MeshStandardMaterial({ color: 0x1a0a00, emissive: 0xff6600, emissiveIntensity: 1.5 });
+    const cannonRing = new THREE.Mesh(cannonRingGeo, this.cannonRingMat);
+    cannonRing.position.z = len / 2 + 1.5;
+    this.meshGroup.add(cannonRing);
+
+    // ── 6. Rear Engine Cluster ──
+    const rearEngMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x050810, metalness: 0.98 });
+    [[-8,8],[-8,-8],[8,8],[8,-8],[0,0]].forEach(([x,y], i) => {
+      const eGeo = new THREE.CylinderGeometry(i===4?3.5:2.0, i===4?2.5:1.4, 4.0, 8);
+      eGeo.rotateX(Math.PI / 2);
+      const eMesh = new THREE.Mesh(eGeo, darkMat);
+      eMesh.position.set(x, y, -len / 2 - 1.5);
+      this.meshGroup.add(eMesh);
+
+      const flameGeo = new THREE.ConeGeometry(i===4?2.8:1.6, i===4?5:3.5, 9);
+      flameGeo.rotateX(Math.PI / 2);
+      const flame = new THREE.Mesh(flameGeo, rearEngMat);
+      flame.position.set(x, y, -len / 2 - 3.5);
+      this.meshGroup.add(flame);
     });
-    nacellePositions.forEach(np => {
-      const nacGeo = new THREE.BoxGeometry(2.0, 2.0, 10.0);
-      const nac = new THREE.Mesh(nacGeo, nacMat);
-      nac.position.set(np.x, np.y, np.z);
-      // Angle each nacelle outward diagonally
-      const dx = np.x > 0 ? 1 : -1;
-      const dy = np.y > 0 ? 1 : -1;
-      nac.rotation.x = -dy * 0.35;
-      nac.rotation.y = dx * 0.35;
-      this.meshGroup.add(nac);
 
-      // Nacelle thruster glow
-      const thrusterGeo = new THREE.CylinderGeometry(1.5, 0.5, 2.0, 8);
-      const thrusterMat = new THREE.MeshBasicMaterial({ color: 0xff7700 });
-      const thruster = new THREE.Mesh(thrusterGeo, thrusterMat);
-      thruster.position.set(np.x, np.y, np.z - 5.5);
-      this.meshGroup.add(thruster);
-    });
+    // Rear glow
+    const rearLight = new THREE.PointLight(0xff6600, 6.0, 80);
+    rearLight.position.z = -len / 2 - 8;
+    this.meshGroup.add(rearLight);
 
-    // ── 5. TRIPLE-barrel heavy turrets — completely different from other bosses ──
-    const baseGeo = new THREE.CylinderGeometry(2.2, 3.0, 1.8, 8);
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x0a0e14, metalness: 0.98, roughness: 0.25 });
-
-    // 3 barrels in a row — distinguishes from Death Star twin barrels and Halo single rail
-    const barrelGeo = new THREE.CylinderGeometry(0.22, 0.3, 4.5, 6);
-    barrelGeo.rotateX(Math.PI / 2);
-    const barrelMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    // ── 7. 8 Triple-barrel Heavy Turrets ──
+    const tBaseMat   = new THREE.MeshStandardMaterial({ color: 0x0a0e14, metalness: 0.99, roughness: 0.22 });
+    const tBarrelMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
 
-      // Flat octagonal base
-      tGroup.add(new THREE.Mesh(baseGeo, baseMat));
+      // Octagonal turret base
+      tGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.8, 2.2, 8), tBaseMat));
 
-      // THREE barrels in a row
+      // Triple barrels
       const bGroup = new THREE.Group();
-      [-1.1, 0, 1.1].forEach(xOff => {
-        const barrel = new THREE.Mesh(barrelGeo, barrelMat);
-        barrel.position.set(xOff, 0.6, 1.8);
-        bGroup.add(barrel);
-      });
+      [-1.2, 0, 1.2].forEach(xOff => {
+        const bGeo = new THREE.CylinderGeometry(0.28, 0.38, 5.5, 7);
+        bGeo.rotateX(Math.PI / 2);
+        const b = new THREE.Mesh(bGeo, tBarrelMat);
+        b.position.set(xOff, 0.8, 2.2);
+        bGroup.add(b);
 
+        // Muzzle glow tip
+        const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff8800 }));
+        muzzle.position.set(xOff, 0.8, 4.8);
+        bGroup.add(muzzle);
+      });
       tGroup.add(bGroup);
+
+      // Per-turret glow light
+      const tLight = new THREE.PointLight(0xff6600, 3.0, 32);
+      tLight.position.set(0, 2.0, 4.0);
+      tGroup.add(tLight);
+      t.light = tLight;
+
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
     });
   }
 
   takeTurretDamage(turretId, amount) {
-    const turret = this.turrets.find(t => t.id === turretId);
-    if (!turret || turret.isDead) return false;
-    turret.hp -= amount;
-    if (turret.hp <= 0) {
-      turret.isDead = true;
-      turret.mesh.visible = false;
-      const wp = turret.mesh.getWorldPosition(new THREE.Vector3());
-      this.particleManager.createExplosion(wp, 0xff6600, 55, 2.5);
+    const t = this.turrets.find(t => t.id === turretId);
+    if (!t || t.isDead) return false;
+    t.hp -= amount;
+    if (t.hp <= 0) {
+      t.isDead = true;
+      t.mesh.visible = false;
+      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff6600, 70, 3.0);
     }
-    return turret.isDead;
+    return t.isDead;
   }
 
   takeCoreDamage(amount) {
     this.coreHp -= amount;
+
     if (this.coreMat) {
-      this.coreMat.emissiveIntensity = 9.0;
-      if (this.coreLight) this.coreLight.intensity = 18.0;
+      this.coreMat.emissiveIntensity = 12.0;
+      if (this.coreLight) this.coreLight.intensity = 30.0;
       setTimeout(() => {
-        if (this.coreMat) this.coreMat.emissiveIntensity = 3.5;
-        if (this.coreLight) this.coreLight.intensity = 8.0;
-      }, 100);
+        if (this.coreMat) this.coreMat.emissiveIntensity = 5.0 + this.phase;
+        if (this.coreLight) this.coreLight.intensity = 12.0 + this.phase * 2;
+      }, 130);
     }
+
+    const hpRatio = this.coreHp / this.maxCoreHp;
+    if (hpRatio < 0.5 && this.phase === 1) { this.phase = 2; }
+    if (hpRatio < 0.25 && this.phase === 2) { this.phase = 3; }
+
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
       this._explode();
@@ -221,17 +239,15 @@ export class Babylon5Boss {
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0xff4400, 280, 5.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 200, 4.2);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xff0000, 120, 3.0);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 110);
-    const flash = new THREE.PointLight(0xff5500, 75, 900);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xff4400, 350, 7.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 250, 5.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xff0000, 180, 4.0);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 140);
+    const flash = new THREE.PointLight(0xff5500, 150, 1400);
     flash.position.copy(this.meshGroup.position);
     this.scene.add(flash);
-    let i = 75;
-    const fade = setInterval(() => {
-      i -= 5.5; if (i <= 0) { clearInterval(fade); this.scene.remove(flash); } else { flash.intensity = i; }
-    }, 50);
+    let i = 150;
+    const fade = setInterval(() => { i -= 6; if (i <= 0) { clearInterval(fade); this.scene.remove(flash); } else flash.intensity = i; }, 50);
   }
 
   destroy() {
@@ -240,34 +256,47 @@ export class Babylon5Boss {
   }
 
   update(dt, playerPos) {
-    if (this.meshGroup.position.z < this.targetZ) this.meshGroup.position.z += this.speed * dt;
+    this._time += dt;
+    const arrived = this.meshGroup.position.z >= this.targetZ;
+    if (!arrived) this.meshGroup.position.z += this.speed * dt;
 
-    // Slowly rotate the whole cylinder on Z — the station spins like a space habitat
-    this.spireMesh.rotation.z += 0.12 * dt;
+    // Hull slow roll
+    this.spireMesh.rotation.z += (0.1 + this.phase * 0.04) * dt;
 
-    // Each habitat ring spins independently on X and Y axes (ROLLING around the cylinder)
-    this.habitatRings.forEach(r => {
-      r.mesh.rotation.x += r.speedX * dt;
-      r.mesh.rotation.y += r.speedY * dt;
+    // Habitat rings spin on X-axis — rolling wheel effect
+    this.habitatRings.forEach((r, idx) => {
+      r.mesh.rotation.x += r.speedX * (1.0 + this.phase * 0.25) * dt;
+      // Ring emissive pulse
+      r.mat.emissiveIntensity = 0.7 + Math.sin(this._time * 4 + idx * 2) * 0.3;
     });
 
-    // Reactor bay slight pulse
+    // Reactor bay pulse — more frantic in higher phases
     if (this.coreMesh && this.coreMat) {
-      const pulse = 3.5 + Math.sin(Date.now() * 0.003) * 0.8;
+      const pulse = 5.0 + Math.sin(this._time * (3 + this.phase * 2)) * 1.5;
       this.coreMat.emissiveIntensity = pulse;
+      if (this.coreLight) this.coreLight.intensity = 12.0 + pulse;
     }
 
-    this.turrets.forEach(t => {
-      if (!t.isDead && t.mesh) {
-        const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
-        t.mesh.lookAt(localTarget);
-      }
-    });
+    // Cannon ring charge glow
+    if (this.cannonRingMat) {
+      this.cannonRingMat.emissiveIntensity = 1.2 + Math.sin(this._time * 8) * 0.8;
+    }
+
+    // Turret tracking
+    if (arrived) {
+      this.turrets.forEach(t => {
+        if (!t.isDead && t.mesh) {
+          const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+          t.mesh.lookAt(localTarget);
+          if (t.light) t.light.intensity = 2.5 + Math.sin(this._time * 10 + t.id * 1.5) * 0.8;
+        }
+      });
+    }
 
     this.fireTimer -= dt;
     const out = [];
-    if (this.fireTimer <= 0) {
-      this.fireTimer = 0.75;
+    if (this.fireTimer <= 0 && arrived) {
+      this.fireTimer = 0.65 / this.phase;
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) out.push(t.mesh.getWorldPosition(new THREE.Vector3()));
       });
