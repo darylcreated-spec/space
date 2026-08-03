@@ -464,13 +464,13 @@ export class SpaceStation {
       this.shieldRing.rotation.x += 0.35 * dt;
     }
 
-    // 30% Faster Turret Tracking Speed (Slerp / LookAt with smooth interpolation)
+    // 30% Faster Turret Tracking Speed (Smooth Quaternion Slerp)
     this.turrets.forEach(t => {
       if (!t.isDead && t.mesh) {
-        const targetRot = new THREE.Matrix4();
-        targetRot.lookAt(t.mesh.position, playerPos, new THREE.Vector3(0, 1, 0));
-        const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(targetRot);
-        t.mesh.quaternion.slerp(targetQuaternion, 0.18);
+        const currentQuat = t.mesh.quaternion.clone();
+        t.mesh.lookAt(playerPos);
+        const targetQuat = t.mesh.quaternion.clone();
+        t.mesh.quaternion.copy(currentQuat).slerp(targetQuat, 0.25);
       }
     });
 
