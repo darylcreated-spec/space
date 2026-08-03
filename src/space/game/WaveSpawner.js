@@ -21,13 +21,13 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 28; // Doubled Wave 1 corridor gauntlet length
+      this.totalToSpawnInWave = 42; // 1.5x longer Wave 1 — more asteroid + drone mix
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 22;
-    } else if (this.currentWave === 3) {
       this.totalToSpawnInWave = 28;
+    } else if (this.currentWave === 3) {
+      this.totalToSpawnInWave = 35;
     } else {
-      this.totalToSpawnInWave = 28 + (this.currentWave - 3) * 8;
+      this.totalToSpawnInWave = 35 + (this.currentWave - 3) * 8;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
@@ -44,15 +44,24 @@ export class WaveSpawner {
     if (this.waveState !== 'SPAWNING') return;
 
     this.spawnTimer += dt;
-    const spawnInterval = Math.max(0.4, 0.9 - this.currentWave * 0.08);
+    const spawnInterval = Math.max(0.35, 0.85 - this.currentWave * 0.06);
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
       if (this.currentWave === 1) {
-        // Mission 1 Phase 1: Asteroid Corridor Gauntlet
-        this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
+        // Wave 1: Dense asteroid corridor with increasing drone attacks
+        const roll = Math.random();
+        if (roll < 0.55) {
+          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
+        } else if (roll < 0.75) {
+          // Double asteroid cluster — two at once
+          this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
+          this.gameManager.spawnAsteroid({ sizeCategory: 'small' });
+        } else {
+          this.gameManager.spawnDrone();
+        }
       } else if (this.currentWave === 2) {
         if (Math.random() > 0.35) {
           this.gameManager.spawnDrone();
@@ -74,18 +83,14 @@ export class WaveSpawner {
       this.waveState = 'WAITING_CLEAR';
 
       if (this.currentWave === 1) {
-        // Wave 1: Star Wars Death Star Superweapon Space Station
+        // Wave 1: Star Wars Death Star Superweapon
         this.gameManager.spawnSpaceStation();
-        this.gameManager.spawnDrone();
       } else if (this.currentWave === 2) {
         // Wave 2: Halo Megastructure Ring Boss
         this.gameManager.spawnHaloBoss();
-        this.gameManager.spawnDrone();
       } else {
         // Wave 3 / Final Boss: Babylon 5 Industrial Rotating Cylinder Citadel
         this.gameManager.spawnBabylon5Boss();
-        this.gameManager.spawnDrone();
-        this.gameManager.spawnDrone();
       }
     }
   }

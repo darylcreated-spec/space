@@ -110,23 +110,49 @@ export class CollisionSystem {
 
         if (hit) continue;
 
-        // Player Lasers vs Boss Dreadnought
+        // Player Lasers vs Boss (SpaceStation / HaloRingBoss / Babylon5Boss / BossDreadnought)
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
           const bPos = boss.meshGroup.position;
           const distB = lPos.distanceTo(bPos);
 
-          if (distB < 16) {
+          // Dynamic hit radius — large bosses need bigger collision zones
+          const bossHitRadius = boss.hitRadius || 28;
+
+          if (distB < bossHitRadius) {
             laser.destroy();
             gameManager.lasers.splice(i, 1);
             this.particleManager.createExplosion(lPos, 0xffea00, 15);
 
-            let target = 'core';
-            if (boss.turretLeftHp > 0) target = 'turretLeft';
-            else if (boss.turretRightHp > 0) target = 'turretRight';
+            let dead = false;
 
-            const dead = boss.takeDamage(target, 25);
-            if (dead) {
+            // Modern boss API: turrets[] array + takeCoreDamage()
+            if (boss.turrets && Array.isArray(boss.turrets)) {
+              // Try to find and damage the first living turret near the hit
+              const livingTurrets = boss.turrets.filter(t => !t.isDead && t.mesh);
+              let hitTurret = null;
+              let closestDist = Infinity;
+              for (const t of livingTurrets) {
+                const tPos = t.mesh.getWorldPosition(new THREE.Vector3());
+                const td = lPos.distanceTo(tPos);
+                if (td < closestDist) { closestDist = td; hitTurret = t; }
+              }
+              if (hitTurret && closestDist < 12) {
+                boss.takeTurretDamage(hitTurret.id, 25);
+              } else {
+                dead = boss.takeCoreDamage(25);
+              }
+            } else if (boss.takeDamage) {
+              // Legacy BossDreadnought API
+              let target = 'core';
+              if (boss.turretLeftHp > 0) target = 'turretLeft';
+              else if (boss.turretRightHp > 0) target = 'turretRight';
+              dead = boss.takeDamage(target, 25);
+            } else if (boss.takeCoreDamage) {
+              dead = boss.takeCoreDamage(25);
+            }
+
+            if (dead || boss.isDead) {
               gameManager.addScore(boss.scoreValue);
               gameManager.addScrap(300);
               gameManager.achievementSystem.recordBossKilled();

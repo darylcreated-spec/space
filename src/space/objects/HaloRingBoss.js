@@ -26,6 +26,7 @@ export class HaloRingBoss {
     this.maxCoreHp = 800;
     this.scoreValue = 30000;
     this.isDead = false;
+    this.hitRadius = 38; // Halo ring outer radius collision
 
     this.fireTimer = 0.9;
 
@@ -222,7 +223,12 @@ export class HaloRingBoss {
       else sr.mesh.rotation.y += sr.dir * 1.8 * dt;
     });
 
-    this.turrets.forEach(t => { if (!t.isDead && t.mesh) t.mesh.lookAt(playerPos); });
+    this.turrets.forEach(t => {
+      if (!t.isDead && t.mesh) {
+        const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+        t.mesh.lookAt(localTarget);
+      }
+    });
 
     this.fireTimer -= dt;
     const out = [];

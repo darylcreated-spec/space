@@ -24,6 +24,7 @@ export class Babylon5Boss {
     this.maxCoreHp = 1200;
     this.scoreValue = 50000;
     this.isDead = false;
+    this.hitRadius = 32; // Babylon 5 cylinder collision radius
 
     this.fireTimer = 0.8;
 
@@ -256,7 +257,12 @@ export class Babylon5Boss {
       this.coreMat.emissiveIntensity = pulse;
     }
 
-    this.turrets.forEach(t => { if (!t.isDead && t.mesh) t.mesh.lookAt(playerPos); });
+    this.turrets.forEach(t => {
+      if (!t.isDead && t.mesh) {
+        const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+        t.mesh.lookAt(localTarget);
+      }
+    });
 
     this.fireTimer -= dt;
     const out = [];

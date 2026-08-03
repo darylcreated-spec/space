@@ -192,6 +192,7 @@ export class SpaceStation {
     this.maxCoreHp = 1500;
     this.scoreValue = 35000;
     this.isDead = false;
+    this.hitRadius = 30; // Death Star sphere collision radius
 
     // 40% Faster Fire Rate (0.55s cooldown)
     this.fireTimer = 0.55;
@@ -468,7 +469,9 @@ export class SpaceStation {
     this.turrets.forEach(t => {
       if (!t.isDead && t.mesh) {
         const currentQuat = t.mesh.quaternion.clone();
-        t.mesh.lookAt(playerPos);
+        // lookAt needs world position of player relative to parent group
+        const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+        t.mesh.lookAt(localTarget);
         const targetQuat = t.mesh.quaternion.clone();
         t.mesh.quaternion.copy(currentQuat).slerp(targetQuat, 0.25);
       }
