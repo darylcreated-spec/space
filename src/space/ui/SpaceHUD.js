@@ -44,6 +44,11 @@ export class SpaceHUD {
     this.btnBuyLasers = document.getElementById('btn-buy-lasers');
     this.btnBuyEmp = document.getElementById('btn-buy-emp');
 
+    this.btnBuyRepair = document.getElementById('btn-buy-repair');
+    this.btnBuyOvercharge = document.getElementById('btn-buy-overcharge');
+    this.btnBuyStasis = document.getElementById('btn-buy-stasis');
+    this.btnBuyNuke = document.getElementById('btn-buy-nuke');
+
     this.upgLvlThrust = document.getElementById('upg-lvl-thrust');
     this.upgLvlShield = document.getElementById('upg-lvl-shield');
     this.upgLvlLasers = document.getElementById('upg-lvl-lasers');
@@ -164,6 +169,33 @@ export class SpaceHUD {
     bindUpgBtn(this.btnBuyShield, 'shield');
     bindUpgBtn(this.btnBuyLasers, 'lasers');
     bindUpgBtn(this.btnBuyEmp, 'emp');
+
+    const bindBoostBtn = (btn, boostType, cost, action) => {
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (this.gameManager.upgradeSystem.buyBoost(boostType, cost)) {
+            this.gameManager.spaceAudio.playPowerUpSound();
+            action();
+            this.updateHangarUI(this.gameManager.upgradeSystem);
+            this.updateScrap(this.gameManager.upgradeSystem.scrap);
+          }
+        });
+      }
+    };
+
+    bindBoostBtn(this.btnBuyRepair, 'repair', 100, () => {
+      this.gameManager.collectPowerUp('REPAIR');
+    });
+    bindBoostBtn(this.btnBuyOvercharge, 'overcharge', 120, () => {
+      this.gameManager.overchargeTimer = 8.0;
+    });
+    bindBoostBtn(this.btnBuyStasis, 'stasis', 150, () => {
+      this.gameManager.stasisTimer = 6.0;
+    });
+    bindBoostBtn(this.btnBuyNuke, 'nuke', 200, () => {
+      this.gameManager.pendingNukeOnWaveStart = true;
+    });
   }
 
   showHangarModal(completedWaveNum, upgradeSystem) {
@@ -197,6 +229,11 @@ export class SpaceHUD {
     updateBtn(this.btnBuyShield, this.upgLvlShield, 'shield');
     updateBtn(this.btnBuyLasers, this.upgLvlLasers, 'lasers');
     updateBtn(this.btnBuyEmp, this.upgLvlEmp, 'emp');
+
+    if (this.btnBuyRepair) this.btnBuyRepair.disabled = upgradeSystem.scrap < 100;
+    if (this.btnBuyOvercharge) this.btnBuyOvercharge.disabled = upgradeSystem.scrap < 120;
+    if (this.btnBuyStasis) this.btnBuyStasis.disabled = upgradeSystem.scrap < 150;
+    if (this.btnBuyNuke) this.btnBuyNuke.disabled = upgradeSystem.scrap < 200;
   }
 
   showAchievementToast(ach) {

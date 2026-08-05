@@ -39,6 +39,15 @@ export class UpgradeSystem {
     return false;
   }
 
+  buyBoost(type, cost) {
+    if (this.scrap >= cost) {
+      this.scrap -= cost;
+      localStorage.setItem('ov_scrap', this.scrap.toString());
+      return true;
+    }
+    return false;
+  }
+
   applyUpgradesToShip(playerShip) {
     const tLvl = this.upgrades.thrust || 0;
     playerShip.speed = 28 + tLvl * 4;

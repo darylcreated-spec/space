@@ -70,7 +70,7 @@ export class CollisionSystem {
               gameManager.addScrap(15);
               gameManager.achievementSystem.recordAsteroidDestroyed();
 
-              if (Math.random() < 0.25) gameManager.spawnPowerUp(rock.meshGroup.position);
+
 
               const frags = rock.getSplitFragments();
               gameManager.spawnAsteroidFragments(frags);
@@ -102,7 +102,7 @@ export class CollisionSystem {
               gameManager.addScrap(30);
               gameManager.achievementSystem.recordDroneKill();
 
-              if (Math.random() < 0.4) gameManager.spawnPowerUp(drone.meshGroup.position);
+
             }
             break;
           }
@@ -128,7 +128,7 @@ export class CollisionSystem {
                 gameManager.addScore(ship.scoreValue);
                 gameManager.addScrap(80);
                 gameManager.achievementSystem.recordDroneKill();
-                if (Math.random() < 0.6) gameManager.spawnPowerUp(ship.meshGroup.position);
+
               }
               break;
             }

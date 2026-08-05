@@ -53,6 +53,7 @@ export class GameManager {
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
     this.hitFreezeTimer = 0;
+    this.pendingNukeOnWaveStart = false;
 
     // Flag for pausing laser auto-fire during EMP launch
     this.specialWeaponActive = false;
@@ -93,6 +94,7 @@ export class GameManager {
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
     this.specialWeaponActive = false;
+    this.pendingNukeOnWaveStart = false;
     this.playerShip.reset();
     this.waveSpawner.reset();
     this.clearAllEntities();
@@ -301,6 +303,15 @@ export class GameManager {
   resumeFromHangar() {
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.state = 'PLAYING';
+
+    if (this.pendingNukeOnWaveStart) {
+      this.pendingNukeOnWaveStart = false;
+      setTimeout(() => {
+        if (this.state === 'PLAYING') {
+          this.collectPowerUp('NUKE');
+        }
+      }, 1500);
+    }
 
     if (this.pendingNextWaveNum) {
       const nextWave = this.pendingNextWaveNum;
