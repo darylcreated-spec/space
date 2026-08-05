@@ -142,7 +142,7 @@ export class HaloRingBoss {
     // ── 7. Rail-cannon turrets — long single barrel + coil ──
     const baseMat   = new THREE.MeshStandardMaterial({ color: 0x3d1f00, metalness: 0.99, roughness: 0.18 });
     const railMat   = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-    const chargeMat = new THREE.MeshStandardMaterial({ color: 0x001833, emissive: 0x00e5ff, emissiveIntensity: 2.0 });
+    this.chargeMat = new THREE.MeshStandardMaterial({ color: 0x001833, emissive: 0x00e5ff, emissiveIntensity: 2.0 });
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
@@ -154,14 +154,9 @@ export class HaloRingBoss {
       rail.rotation.x = Math.PI / 2; rail.position.z = 3.5;
       tGroup.add(rail);
 
-      const coil = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.0, 1.5), chargeMat);
+      const coil = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.0, 1.5), this.chargeMat);
       coil.position.set(0, 1.2, 2.0);
       tGroup.add(coil);
-
-      const tLight = new THREE.PointLight(0x00e5ff, 3.0, 28);
-      tLight.position.set(0, 0, 5.0);
-      tGroup.add(tLight);
-      t.light = tLight;
 
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
@@ -247,13 +242,18 @@ export class HaloRingBoss {
       this.coreMat.emissiveIntensity = 4.0 + Math.sin(this._time * 8) * 0.8;
     }
 
+    // Turret charge lights (emissive animation)
+    const chargeRatio = Math.max(0, 1.0 - this.fireTimer / (0.7 / this.phase));
+    if (this.chargeMat) {
+      this.chargeMat.emissiveIntensity = 2.0 + chargeRatio * 10.0 + Math.sin(this._time * 10) * 0.8;
+    }
+
     // Turret tracking
     if (arrived) {
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
           const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
           t.mesh.lookAt(localTarget);
-          if (t.light) t.light.intensity = 2.5 + Math.sin(this._time * 10 + t.id) * 0.8;
         }
       });
     }

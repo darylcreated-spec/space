@@ -109,6 +109,8 @@ export class SpaceStation {
     ];
 
     this.shaderMaterials = [];
+    this.activeIntervals = [];
+    this.activeTimeouts = [];
     this._build();
     this.scene.add(this.meshGroup);
   }
@@ -246,7 +248,13 @@ export class SpaceStation {
     const baseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
     const barrelGeo = new THREE.CylinderGeometry(0.35, 0.5, 4.5, 9);
     barrelGeo.rotateX(Math.PI / 2);
-    const barrelMat = new THREE.MeshBasicMaterial({ color: 0x00ff55 });
+    this.barrelMat = new THREE.MeshStandardMaterial({
+      color: 0x001100,
+      emissive: 0x00ff44,
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.8
+    });
     const turretRingGeo = new THREE.TorusGeometry(1.0, 0.25, 8, 16);
 
     this.turrets.forEach(t => {
@@ -257,16 +265,11 @@ export class SpaceStation {
 
       const bGroup = new THREE.Group();
       [-0.9, 0.9].forEach(xOff => {
-        const b = new THREE.Mesh(barrelGeo, barrelMat);
+        const b = new THREE.Mesh(barrelGeo, this.barrelMat);
         b.position.set(xOff, 0.7, 1.5);
         bGroup.add(b);
       });
       tGroup.add(bGroup);
-
-      const tLight = new THREE.PointLight(0x00ff44, 2.5, 30);
-      tLight.position.set(0, 1.5, 2.5);
-      tGroup.add(tLight);
-      t.light = tLight;
 
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
@@ -326,11 +329,28 @@ export class SpaceStation {
     this.scene.add(flash);
     let i = 120;
     const fade = setInterval(() => {
-      i -= 5; if (i <= 0) { clearInterval(fade); this.scene.remove(flash); } else flash.intensity = i;
+      i -= 5;
+      if (i <= 0) {
+        clearInterval(fade);
+        const idx = this.activeIntervals.indexOf(fade);
+        if (idx > -1) this.activeIntervals.splice(idx, 1);
+        this.scene.remove(flash);
+      } else {
+        flash.intensity = i;
+      }
     }, 50);
+    this.activeIntervals.push(fade);
+  }
+
+  clearAllTimers() {
+    this.activeIntervals.forEach(id => clearInterval(id));
+    this.activeTimeouts.forEach(id => clearTimeout(id));
+    this.activeIntervals = [];
+    this.activeTimeouts = [];
   }
 
   destroy() {
+    this.clearAllTimers();
     if (this.rimLight) this.scene.remove(this.rimLight);
     if (this.backLight) this.scene.remove(this.backLight);
     if (this.ambLight) this.scene.remove(this.ambLight);
@@ -397,14 +417,12 @@ export class SpaceStation {
       });
     }
 
-    // Turret charge lights
+    // Turret charge lights (emissive animation)
     this.fireTimer -= dt;
     const chargeRatio = Math.max(0, 1.0 - this.fireTimer / (0.6 / this.phase));
-    this.turrets.forEach(t => {
-      if (!t.isDead && t.light) {
-        t.light.intensity = 2.0 + chargeRatio * 8.0;
-      }
-    });
+    if (this.barrelMat) {
+      this.barrelMat.emissiveIntensity = 2.0 + chargeRatio * 12.0;
+    }
 
     const out = [];
     if (this.fireTimer <= 0 && arrived) {
@@ -412,7 +430,6 @@ export class SpaceStation {
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
           out.push(t.mesh.getWorldPosition(new THREE.Vector3()));
-          if (t.light) t.light.intensity = 2.0;
         }
       });
     }
@@ -429,15 +446,29 @@ export class SpaceStation {
       this.outerBeamMat.opacity = Math.min(alpha * 0.5, 0.4);
       if (alpha >= 1.0) {
         clearInterval(chargeUp);
-        setTimeout(() => {
+        const idx = this.activeIntervals.indexOf(chargeUp);
+        if (idx > -1) this.activeIntervals.splice(idx, 1);
+
+        const timeoutId = setTimeout(() => {
+          const tIdx = this.activeTimeouts.indexOf(timeoutId);
+          if (tIdx > -1) this.activeTimeouts.splice(tIdx, 1);
+
           const fadeOut = setInterval(() => {
             alpha -= 0.04;
             this.laserBeamMat.opacity = Math.max(0, alpha);
             this.outerBeamMat.opacity = Math.max(0, alpha * 0.4);
-            if (alpha <= 0) { clearInterval(fadeOut); this.superlaserfiring = false; }
+            if (alpha <= 0) {
+              clearInterval(fadeOut);
+              const fIdx = this.activeIntervals.indexOf(fadeOut);
+              if (fIdx > -1) this.activeIntervals.splice(fIdx, 1);
+              this.superlaserfiring = false;
+            }
           }, 30);
+          this.activeIntervals.push(fadeOut);
         }, 600);
+        this.activeTimeouts.push(timeoutId);
       }
     }, 40);
+    this.activeIntervals.push(chargeUp);
   }
 }

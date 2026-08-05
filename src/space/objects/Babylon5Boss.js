@@ -166,7 +166,13 @@ export class Babylon5Boss {
 
     // ── 7. 8 Triple-barrel Heavy Turrets ──
     const tBaseMat   = new THREE.MeshStandardMaterial({ color: 0x0a0e14, metalness: 0.99, roughness: 0.22 });
-    const tBarrelMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    this.tBarrelMat = new THREE.MeshStandardMaterial({
+      color: 0x1f0c00,
+      emissive: 0xff5500,
+      emissiveIntensity: 2.0,
+      roughness: 0.2,
+      metalness: 0.8
+    });
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
@@ -180,7 +186,7 @@ export class Babylon5Boss {
       [-1.2, 0, 1.2].forEach(xOff => {
         const bGeo = new THREE.CylinderGeometry(0.28, 0.38, 5.5, 7);
         bGeo.rotateX(Math.PI / 2);
-        const b = new THREE.Mesh(bGeo, tBarrelMat);
+        const b = new THREE.Mesh(bGeo, this.tBarrelMat);
         b.position.set(xOff, 0.8, 2.2);
         bGroup.add(b);
 
@@ -190,12 +196,6 @@ export class Babylon5Boss {
         bGroup.add(muzzle);
       });
       tGroup.add(bGroup);
-
-      // Per-turret glow light
-      const tLight = new THREE.PointLight(0xff6600, 3.0, 32);
-      tLight.position.set(0, 2.0, 4.0);
-      tGroup.add(tLight);
-      t.light = tLight;
 
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
@@ -282,13 +282,18 @@ export class Babylon5Boss {
       this.cannonRingMat.emissiveIntensity = 1.2 + Math.sin(this._time * 8) * 0.8;
     }
 
+    // Turret charge lights (emissive animation)
+    const chargeRatio = Math.max(0, 1.0 - this.fireTimer / (0.65 / this.phase));
+    if (this.tBarrelMat) {
+      this.tBarrelMat.emissiveIntensity = 2.0 + chargeRatio * 10.0 + Math.sin(this._time * 10) * 0.8;
+    }
+
     // Turret tracking
     if (arrived) {
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
           const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
           t.mesh.lookAt(localTarget);
-          if (t.light) t.light.intensity = 2.5 + Math.sin(this._time * 10 + t.id * 1.5) * 0.8;
         }
       });
     }
