@@ -21,13 +21,13 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 42; // 1.5x longer Wave 1 — more asteroid + drone mix
+      this.totalToSpawnInWave = 55; // Longer Wave 1
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 28;
+      this.totalToSpawnInWave = 45; // Longer Wave 2
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 35;
+      this.totalToSpawnInWave = 60; // Longer Wave 3
     } else {
-      this.totalToSpawnInWave = 35 + (this.currentWave - 3) * 8;
+      this.totalToSpawnInWave = 60 + (this.currentWave - 3) * 10;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
@@ -50,13 +50,31 @@ export class WaveSpawner {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
+      // Milestone Capital Ship spawning
+      if (this.currentWave === 2) {
+        if (this.spawnedCount === 20 || this.spawnedCount === 35) {
+          this.gameManager.spawnCapitalShip();
+        }
+      } else if (this.currentWave === 3) {
+        if (this.spawnedCount === 15 || this.spawnedCount === 30 || this.spawnedCount === 45) {
+          this.gameManager.spawnCapitalShip();
+        }
+      }
+
+      // Comet roll when spawning an asteroid
+      const cometChance = this.currentWave === 1 ? 0.10 : this.currentWave === 2 ? 0.18 : 0.25;
+
       if (this.currentWave === 1) {
         // Wave 1: Dense asteroid corridor with increasing drone attacks
         const roll = Math.random();
         if (roll < 0.55) {
-          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
+          if (Math.random() < cometChance) {
+            this.gameManager.spawnAsteroid({ isComet: true });
+          } else {
+            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
+          }
         } else if (roll < 0.75) {
-          // Double asteroid cluster — two at once
+          // Double asteroid cluster
           this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
           this.gameManager.spawnAsteroid({ sizeCategory: 'small' });
         } else {
@@ -66,13 +84,21 @@ export class WaveSpawner {
         if (Math.random() > 0.35) {
           this.gameManager.spawnDrone();
         } else {
-          this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
+          if (Math.random() < cometChance) {
+            this.gameManager.spawnAsteroid({ isComet: true });
+          } else {
+            this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
+          }
         }
       } else {
         if (Math.random() > 0.35) {
           this.gameManager.spawnDrone();
         } else {
-          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.5 ? 'large' : 'medium' });
+          if (Math.random() < cometChance) {
+            this.gameManager.spawnAsteroid({ isComet: true });
+          } else {
+            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.5 ? 'large' : 'medium' });
+          }
         }
       }
     }

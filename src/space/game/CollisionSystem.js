@@ -108,6 +108,33 @@ export class CollisionSystem {
           }
         }
 
+        // Player Lasers vs Capital Ships
+        if (gameManager.capitalShips && gameManager.capitalShips.length > 0) {
+          for (let j = gameManager.capitalShips.length - 1; j >= 0; j--) {
+            const ship = gameManager.capitalShips[j];
+            if (!ship || !ship.meshGroup || ship.isDead) continue;
+
+            const dist = lPos.distanceTo(ship.meshGroup.position);
+            if (dist < ship.radius + laser.radius) {
+              hit = true;
+              laser.destroy();
+              gameManager.lasers.splice(i, 1);
+
+              this.particleManager.createExplosion(lPos, 0x00aaff, 22);
+              const dead = ship.takeDamage(20);
+              this.spaceAudio.playExplosion();
+
+              if (dead) {
+                gameManager.addScore(ship.scoreValue);
+                gameManager.addScrap(80);
+                gameManager.achievementSystem.recordDroneKill();
+                if (Math.random() < 0.6) gameManager.spawnPowerUp(ship.meshGroup.position);
+              }
+              break;
+            }
+          }
+        }
+
         if (hit) continue;
 
         // Player Lasers vs Boss (SpaceStation / HaloRingBoss / Babylon5Boss / BossDreadnought)
@@ -173,7 +200,7 @@ export class CollisionSystem {
       const pulsePos = pulse.meshGroup.position;
       let hitTarget = false;
 
-      [...gameManager.asteroids, ...gameManager.drones].forEach(target => {
+      [...gameManager.asteroids, ...gameManager.drones, ...gameManager.capitalShips].forEach(target => {
         if (target && !target.isDead && target.meshGroup && pulsePos.distanceTo(target.meshGroup.position) < target.radius + pulse.radius + 1.0) {
           hitTarget = true;
         }
@@ -214,6 +241,15 @@ export class CollisionSystem {
           }
         });
 
+        gameManager.capitalShips.forEach(ship => {
+          if (ship && ship.meshGroup && pulsePos.distanceTo(ship.meshGroup.position) < pulse.aoeRadius) {
+            if (ship.takeDamage(250)) {
+              gameManager.addScore(ship.scoreValue);
+              gameManager.addScrap(100);
+            }
+          }
+        });
+
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
           if (pulsePos.distanceTo(boss.meshGroup.position) < pulse.aoeRadius + 10) {
@@ -250,6 +286,17 @@ export class CollisionSystem {
       }
     });
 
+    gameManager.capitalShips.forEach(ship => {
+      if (ship && !ship.isDead && ship.meshGroup && pPos.distanceTo(ship.meshGroup.position) < player.radius + ship.radius) {
+        ship.isDead = true;
+        const dead = player.takeDamage(50);
+        this.particleManager.createExplosion(pPos, 0x00aaff, 45);
+        this.spaceAudio.playExplosion();
+        this.spaceScene.addScreenShake(2.0);
+        if (dead) gameManager.onGameOver('Collision with Capital Ship');
+      }
+    });
+
     // 6. Planet Impacts
     gameManager.asteroids.forEach(rock => {
       if (rock && rock.impactedPlanet && rock.meshGroup) {
@@ -263,6 +310,14 @@ export class CollisionSystem {
       if (drone && drone.impactedPlanet && drone.meshGroup) {
         gameManager.damagePlanet(15);
         this.particleManager.createExplosion(drone.meshGroup.position, 0xff0055, 25);
+        this.spaceAudio.playExplosion();
+      }
+    });
+
+    gameManager.capitalShips.forEach(ship => {
+      if (ship && ship.impactedPlanet && ship.meshGroup) {
+        gameManager.damagePlanet(25);
+        this.particleManager.createExplosion(ship.meshGroup.position, 0x00aaff, 35);
         this.spaceAudio.playExplosion();
       }
     });

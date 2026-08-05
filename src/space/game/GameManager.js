@@ -9,6 +9,7 @@ import { SpaceStation } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { Babylon5Boss } from '../objects/Babylon5Boss.js';
 import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
+import { CapitalShip } from '../objects/CapitalShip.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -41,6 +42,7 @@ export class GameManager {
     this.playerShip = new PlayerShip(this.spaceScene.scene, this.particleManager);
     this.asteroids = [];
     this.drones = [];
+    this.capitalShips = [];
     this.powerUps = [];
     this.lasers = [];
     this.plasmaPulses = [];
@@ -103,6 +105,9 @@ export class GameManager {
     this.drones.forEach(d => d.destroy());
     this.drones = [];
 
+    this.capitalShips.forEach(c => c.destroy());
+    this.capitalShips = [];
+
     this.powerUps.forEach(p => p.destroy());
     this.powerUps = [];
 
@@ -147,6 +152,7 @@ export class GameManager {
   }
 
   spawnAsteroid(options = {}) {
+    options.particleManager = this.particleManager;
     const rock = new Asteroid(this.spaceScene.scene, options);
     this.asteroids.push(rock);
   }
@@ -160,6 +166,12 @@ export class GameManager {
   spawnDrone() {
     const drone = new EnemyDrone(this.spaceScene.scene);
     this.drones.push(drone);
+  }
+
+  spawnCapitalShip() {
+    const ship = new CapitalShip(this.spaceScene.scene, this.particleManager);
+    this.capitalShips.push(ship);
+    this.voiceAnnouncer.speak("Alert! Capital Warship Entering Sector!", false);
   }
 
   spawnBoss() {
@@ -350,8 +362,8 @@ export class GameManager {
     this.waveSpawner.update(effectiveDt);
     this.waveSpawner.checkWaveComplete(
       this.asteroids.length,
-      this.drones.length,
-      !!(this.activeBoss && !this.activeBoss.isDead)
+      this.drones.length + this.capitalShips.length,
+      this.activeBoss && !this.activeBoss.isDead
     );
 
     // 3. Update Entities
@@ -383,6 +395,28 @@ export class GameManager {
       if (drone.isDead) {
         drone.destroy();
         this.drones.splice(i, 1);
+      }
+    }
+
+    // Update Capital Ships
+    for (let i = 0; i < this.capitalShips.length; i++) {
+      const ship = this.capitalShips[i];
+      const firePositions = ship.update(effectiveDt, pPos);
+
+      if (firePositions && Array.isArray(firePositions)) {
+        firePositions.forEach(tPos => {
+          const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+          this.lasers.push(new LaserBolt(this.spaceScene.scene, tPos, 0xff0055, true, targetDir));
+        });
+        this.spaceAudio.playLaserPew();
+      }
+    }
+
+    for (let i = this.capitalShips.length - 1; i >= 0; i--) {
+      const ship = this.capitalShips[i];
+      if (ship.isDead) {
+        ship.destroy();
+        this.capitalShips.splice(i, 1);
       }
     }
 

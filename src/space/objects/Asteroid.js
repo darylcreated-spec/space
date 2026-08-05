@@ -3,34 +3,62 @@ import * as THREE from 'three';
 export class Asteroid {
   constructor(scene, options = {}) {
     this.scene = scene;
-    this.sizeCategory = options.sizeCategory || 'large';
+    this.isComet = options.isComet || false;
+    this.particleManager = options.particleManager || null;
+    this._wobbleOffset = Math.random() * Math.PI * 2;
+    this._cometTick = 0;
 
-    if (this.sizeCategory === 'large') {
-      this.radius = 3.8;
-      this.hp = 60;
-      this.scoreValue = 100;
-    } else if (this.sizeCategory === 'medium') {
-      this.radius = 2.4;
-      this.hp = 30;
-      this.scoreValue = 50;
+    if (this.isComet) {
+      this.sizeCategory = 'medium';
+      this.radius = 2.0;
+      this.hp = 25;
+      this.scoreValue = 150;
     } else {
-      this.radius = 1.4;
-      this.hp = 12;
-      this.scoreValue = 25;
+      this.sizeCategory = options.sizeCategory || 'large';
+      if (this.sizeCategory === 'large') {
+        this.radius = 3.8;
+        this.hp = 60;
+        this.scoreValue = 100;
+      } else if (this.sizeCategory === 'medium') {
+        this.radius = 2.4;
+        this.hp = 30;
+        this.scoreValue = 50;
+      } else {
+        this.radius = 1.4;
+        this.hp = 12;
+        this.scoreValue = 25;
+      }
     }
 
     this.meshGroup = new THREE.Group();
-    const spawnX = options.x !== undefined ? options.x : (Math.random() - 0.5) * 36;
-    const spawnY = options.y !== undefined ? options.y : (Math.random() - 0.5) * 22;
-    const spawnZ = options.z !== undefined ? options.z : (-72 - Math.random() * 22);
+    
+    let spawnX, spawnY, spawnZ;
+    if (this.isComet) {
+      // Spawn comets from screen edges so they cross diagonally
+      spawnX = options.x !== undefined ? options.x : (Math.random() > 0.5 ? -18 : 18);
+      spawnY = options.y !== undefined ? options.y : (Math.random() - 0.5) * 12;
+      spawnZ = options.z !== undefined ? options.z : (-75 - Math.random() * 20);
+    } else {
+      spawnX = options.x !== undefined ? options.x : (Math.random() - 0.5) * 36;
+      spawnY = options.y !== undefined ? options.y : (Math.random() - 0.5) * 22;
+      spawnZ = options.z !== undefined ? options.z : (-72 - Math.random() * 22);
+    }
 
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
 
-    this.velocity = new THREE.Vector3(
-      options.vx !== undefined ? options.vx : (Math.random() - 0.5) * 2.4,
-      options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 2.4,
-      options.vz !== undefined ? options.vz : (17 + Math.random() * 11)
-    );
+    if (this.isComet) {
+      // Velocity is highly diagonal
+      const vx = options.vx !== undefined ? options.vx : (spawnX < 0 ? (6 + Math.random() * 4) : (-6 - Math.random() * 4));
+      const vy = options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 3.0;
+      const vz = options.vz !== undefined ? options.vz : (13 + Math.random() * 6);
+      this.velocity = new THREE.Vector3(vx, vy, vz);
+    } else {
+      this.velocity = new THREE.Vector3(
+        options.vx !== undefined ? options.vx : (Math.random() - 0.5) * 2.4,
+        options.vy !== undefined ? options.vy : (Math.random() - 0.5) * 2.4,
+        options.vz !== undefined ? options.vz : (17 + Math.random() * 11)
+      );
+    }
 
     this.rotVelocity = new THREE.Vector3(
       (Math.random() - 0.5) * 2.2,
@@ -40,8 +68,8 @@ export class Asteroid {
 
     this.isDead = false;
 
-    // Random type for visual variety
-    this._type = Math.floor(Math.random() * 3); // 0=rocky, 1=crystalline, 2=molten
+    // Type 3 represents comet
+    this._type = this.isComet ? 3 : Math.floor(Math.random() * 3); // 0=rocky, 1=crystalline, 2=molten, 3=comet
 
     this.buildRockMesh();
     this.scene.add(this.meshGroup);
@@ -73,12 +101,18 @@ export class Asteroid {
       emissiveColor = 0x0044aa;
       emissiveIntensity = 0.35;
       wireColor = 0x00aaff;
-    } else {
+    } else if (this._type === 2) {
       // Molten orange — volcanic/unstable
       baseColor = 0x2a1008;
       emissiveColor = 0xff3300;
       emissiveIntensity = 0.5;
       wireColor = 0xff6600;
+    } else {
+      // Comet — frost white / cyan trail
+      baseColor = 0xd0f5ff;
+      emissiveColor = 0x0088ff;
+      emissiveIntensity = 1.5;
+      wireColor = 0x00ddff;
     }
 
     this.rockMat = new THREE.MeshStandardMaterial({
@@ -109,6 +143,9 @@ export class Asteroid {
       this.meshGroup.add(this.glowLight);
     } else if (this._type === 1) {
       this.glowLight = new THREE.PointLight(0x0066ff, 1.2 * R, R * 5);
+      this.meshGroup.add(this.glowLight);
+    } else if (this._type === 3) {
+      this.glowLight = new THREE.PointLight(0x00bbff, 2.0 * R, R * 8);
       this.meshGroup.add(this.glowLight);
     }
 
@@ -184,9 +221,19 @@ export class Asteroid {
     this.meshGroup.rotation.y += this.rotVelocity.y * dt;
     this.meshGroup.rotation.z += this.rotVelocity.z * dt;
 
-    // Molten asteroids pulse their glow
+    // Molten or Comet asteroids pulse their glow
     if (this._type === 2 && this.glowLight) {
       this.glowLight.intensity = 1.5 * this.radius + Math.sin(Date.now() * 0.004 + this._wobbleOffset) * 0.5;
+    } else if (this._type === 3 && this.glowLight) {
+      this.glowLight.intensity = 2.0 * this.radius + Math.sin(Date.now() * 0.006 + this._wobbleOffset) * 0.8;
+      
+      // Spawn comet trail particles
+      if (this.particleManager) {
+        this._cometTick++;
+        if (this._cometTick % 2 === 0) {
+          this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00bbff);
+        }
+      }
     }
 
     if (this.meshGroup.position.z > 18) {
