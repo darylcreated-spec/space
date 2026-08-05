@@ -17,8 +17,8 @@ export class HaloRingBoss {
     this.targetZ = -46;
     this.speed = 6.5;
 
-    this.coreHp = 1000;
-    this.maxCoreHp = 1000;
+    this.coreHp = 3500;
+    this.maxCoreHp = 3500;
     this.scoreValue = 35000;
     this.isDead = false;
     this.hitRadius = 52;
@@ -27,14 +27,16 @@ export class HaloRingBoss {
     this.phase = 1;
     this.gravWaveTimer = 0;
     this._time = 0;
+    this.phaseShieldTimer = 0;
+    this.justPhaseTransitioned = false;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(0,  48, 0), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(0, -48, 0), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(48,  0, 0), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(-48, 0, 0), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(34, 34, 0),  hp: 180, maxHp: 180, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(-34,-34, 0), hp: 180, maxHp: 180, isDead: false, mesh: null, light: null },
+      { id: 0, relPos: new THREE.Vector3(0,  48, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(0, -48, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(48,  0, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(-48, 0, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(34, 34, 0),  hp: 600, maxHp: 600, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(-34,-34, 0), hp: 600, maxHp: 600, isDead: false, mesh: null, light: null },
     ];
 
     this._build();
@@ -177,6 +179,9 @@ export class HaloRingBoss {
   }
 
   takeCoreDamage(amount) {
+    if (this.phaseShieldTimer > 0) return false;
+
+    const prevPhase = this.phase;
     this.coreHp -= amount;
     if (this.coreMat) {
       this.coreMat.emissiveIntensity = 10.0;
@@ -190,6 +195,11 @@ export class HaloRingBoss {
     const hpRatio = this.coreHp / this.maxCoreHp;
     if (hpRatio < 0.5 && this.phase === 1) { this.phase = 2; }
     if (hpRatio < 0.25 && this.phase === 2) { this.phase = 3; }
+
+    if (this.phase > prevPhase) {
+      this.phaseShieldTimer = 3.0; // 3 seconds phase protection
+      this.justPhaseTransitioned = true;
+    }
 
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
@@ -235,11 +245,17 @@ export class HaloRingBoss {
     });
 
     // Hub pulse
-    if (this.hubLight) {
-      this.hubLight.intensity = 10.0 + Math.sin(this._time * 6) * 3.0 + this.phase * 2.0;
-    }
-    if (this.coreMat) {
-      this.coreMat.emissiveIntensity = 4.0 + Math.sin(this._time * 8) * 0.8;
+    if (this.phaseShieldTimer > 0) {
+      this.phaseShieldTimer -= dt;
+      if (this.hubLight) this.hubLight.intensity = 35.0 + Math.sin(this._time * 35) * 15.0;
+      if (this.coreMat) this.coreMat.emissiveIntensity = 20.0 + Math.sin(this._time * 30) * 8.0;
+    } else {
+      if (this.hubLight) {
+        this.hubLight.intensity = 10.0 + Math.sin(this._time * 6) * 3.0 + this.phase * 2.0;
+      }
+      if (this.coreMat) {
+        this.coreMat.emissiveIntensity = 4.0 + Math.sin(this._time * 8) * 0.8;
+      }
     }
 
     // Turret charge lights (emissive animation)

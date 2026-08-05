@@ -87,8 +87,8 @@ export class SpaceStation {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 1800;
-    this.maxCoreHp = 1800;
+    this.coreHp = 4500;
+    this.maxCoreHp = 4500;
     this.scoreValue = 40000;
     this.isDead = false;
     this.hitRadius = 36;
@@ -98,14 +98,16 @@ export class SpaceStation {
     this.fireTimer = 0.6;
     this.superlasertimer = 0;
     this.superlaserfiring = false;
+    this.phaseShieldTimer = 0;
+    this.justPhaseTransitioned = false;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-22, 12, 16), hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(22, 12, 16),  hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(-22, -12, 16), hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(22, -12, 16),  hp: 400, maxHp: 400, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(0, 26, 0),    hp: 350, maxHp: 350, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(0, -26, 0),   hp: 350, maxHp: 350, isDead: false, mesh: null, light: null },
+      { id: 0, relPos: new THREE.Vector3(-22, 12, 16), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(22, 12, 16),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(-22, -12, 16), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(22, -12, 16),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(0, 26, 0),    hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(0, -26, 0),   hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
     ];
 
     this.shaderMaterials = [];
@@ -290,8 +292,12 @@ export class SpaceStation {
   }
 
   takeCoreDamage(amount) {
+    if (this.phaseShieldTimer > 0) return false;
+
     const activeTurrets = this.turrets.some(t => !t.isDead);
     const actualDamage = activeTurrets ? amount * 0.72 : amount;
+    
+    const prevPhase = this.phase;
     this.coreHp -= actualDamage;
 
     if (this.shieldShaderMat) this.shieldShaderMat.uniforms.uHitTime.value = 1.0;
@@ -305,6 +311,11 @@ export class SpaceStation {
     if (hpRatio < 0.25 && this.phase === 2) {
       this.phase = 3;
       this.fireTimer *= 0.7; // even faster
+    }
+
+    if (this.phase > prevPhase) {
+      this.phaseShieldTimer = 3.0; // 3 seconds phase protection
+      this.justPhaseTransitioned = true;
     }
 
     if (this.coreHp <= 0 && !this.isDead) {
@@ -371,8 +382,15 @@ export class SpaceStation {
       if (mat.uniforms?.uTime) mat.uniforms.uTime.value = time;
     });
 
-    if (this.shieldShaderMat?.uniforms.uHitTime.value > 0) {
-      this.shieldShaderMat.uniforms.uHitTime.value = Math.max(0, this.shieldShaderMat.uniforms.uHitTime.value - dt * 3.5);
+    if (this.phaseShieldTimer > 0) {
+      this.phaseShieldTimer -= dt;
+      if (this.shieldShaderMat) {
+        this.shieldShaderMat.uniforms.uHitTime.value = 1.8;
+      }
+    } else {
+      if (this.shieldShaderMat?.uniforms.uHitTime.value > 0) {
+        this.shieldShaderMat.uniforms.uHitTime.value = Math.max(0, this.shieldShaderMat.uniforms.uHitTime.value - dt * 3.5);
+      }
     }
 
     if (this.shieldShaderMat) {

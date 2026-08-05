@@ -442,6 +442,15 @@ export class GameManager {
 
     if (this.activeBoss && !this.activeBoss.isDead) {
       const salvo = this.activeBoss.update(effectiveDt, pPos);
+      
+      if (this.activeBoss.justPhaseTransitioned) {
+        this.activeBoss.justPhaseTransitioned = false;
+        this.voiceAnnouncer.speak("Warning! Boss shield overcharging!", true);
+        if (this.spaceHUD) {
+          this.spaceHUD.showWaveBanner("WARNING", "BOSS SHIELD OVERCHARGED!");
+        }
+      }
+
       if (salvo) {
         if (Array.isArray(salvo)) {
           salvo.forEach(tPos => {

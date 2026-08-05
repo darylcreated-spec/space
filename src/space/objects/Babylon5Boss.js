@@ -16,8 +16,8 @@ export class Babylon5Boss {
     this.targetZ = -50;
     this.speed = 5.5;
 
-    this.coreHp = 1600;
-    this.maxCoreHp = 1600;
+    this.coreHp = 6000;
+    this.maxCoreHp = 6000;
     this.scoreValue = 60000;
     this.isDead = false;
     this.hitRadius = 38;
@@ -26,16 +26,18 @@ export class Babylon5Boss {
     this.phase = 1;
     this.plasmaCannonTimer = 0;
     this._time = 0;
+    this.phaseShieldTimer = 0;
+    this.justPhaseTransitioned = false;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(0,  16, 28), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(0, -16, 28), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(16,  0, 10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(-16, 0, 10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(16,  0,-10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(-16, 0,-10), hp: 250, maxHp: 250, isDead: false, mesh: null, light: null },
-      { id: 6, relPos: new THREE.Vector3(0,  16,-26), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
-      { id: 7, relPos: new THREE.Vector3(0, -16,-26), hp: 200, maxHp: 200, isDead: false, mesh: null, light: null },
+      { id: 0, relPos: new THREE.Vector3(0,  16, 28), hp: 900, maxHp: 900, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(0, -16, 28), hp: 900, maxHp: 900, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(16,  0, 10), hp: 900, maxHp: 900, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(-16, 0, 10), hp: 900, maxHp: 900, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(16,  0,-10), hp: 900, maxHp: 900, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(-16, 0,-10), hp: 900, maxHp: 900, isDead: false, mesh: null, light: null },
+      { id: 6, relPos: new THREE.Vector3(0,  16,-26), hp: 800, maxHp: 800, isDead: false, mesh: null, light: null },
+      { id: 7, relPos: new THREE.Vector3(0, -16,-26), hp: 800, maxHp: 800, isDead: false, mesh: null, light: null },
     ];
 
     this._build();
@@ -216,6 +218,9 @@ export class Babylon5Boss {
   }
 
   takeCoreDamage(amount) {
+    if (this.phaseShieldTimer > 0) return false;
+
+    const prevPhase = this.phase;
     this.coreHp -= amount;
 
     if (this.coreMat) {
@@ -230,6 +235,11 @@ export class Babylon5Boss {
     const hpRatio = this.coreHp / this.maxCoreHp;
     if (hpRatio < 0.5 && this.phase === 1) { this.phase = 2; }
     if (hpRatio < 0.25 && this.phase === 2) { this.phase = 3; }
+
+    if (this.phase > prevPhase) {
+      this.phaseShieldTimer = 3.0; // 3 seconds phase protection
+      this.justPhaseTransitioned = true;
+    }
 
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
@@ -271,10 +281,16 @@ export class Babylon5Boss {
     });
 
     // Reactor bay pulse — more frantic in higher phases
-    if (this.coreMesh && this.coreMat) {
-      const pulse = 5.0 + Math.sin(this._time * (3 + this.phase * 2)) * 1.5;
-      this.coreMat.emissiveIntensity = pulse;
-      if (this.coreLight) this.coreLight.intensity = 12.0 + pulse;
+    if (this.phaseShieldTimer > 0) {
+      this.phaseShieldTimer -= dt;
+      if (this.coreMat) this.coreMat.emissiveIntensity = 25.0 + Math.sin(this._time * 35) * 10.0;
+      if (this.coreLight) this.coreLight.intensity = 50.0 + Math.sin(this._time * 30) * 10.0;
+    } else {
+      if (this.coreMesh && this.coreMat) {
+        const pulse = 5.0 + Math.sin(this._time * (3 + this.phase * 2)) * 1.5;
+        this.coreMat.emissiveIntensity = pulse;
+        if (this.coreLight) this.coreLight.intensity = 12.0 + pulse;
+      }
     }
 
     // Cannon ring charge glow
