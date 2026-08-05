@@ -334,23 +334,6 @@ export class SpaceStation {
     this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 200, 5.0);
     this.particleManager.createExplosion(this.meshGroup.position, 0x111822, 150, 4.0);
     this.particleManager.createEmpShockwave(this.meshGroup.position, 130);
-
-    const flash = new THREE.PointLight(0xffffff, 120.0, 1200);
-    flash.position.copy(this.meshGroup.position);
-    this.scene.add(flash);
-    let i = 120;
-    const fade = setInterval(() => {
-      i -= 5;
-      if (i <= 0) {
-        clearInterval(fade);
-        const idx = this.activeIntervals.indexOf(fade);
-        if (idx > -1) this.activeIntervals.splice(idx, 1);
-        this.scene.remove(flash);
-      } else {
-        flash.intensity = i;
-      }
-    }, 50);
-    this.activeIntervals.push(fade);
   }
 
   clearAllTimers() {

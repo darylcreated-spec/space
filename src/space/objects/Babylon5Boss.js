@@ -253,11 +253,6 @@ export class Babylon5Boss {
     this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 250, 5.5);
     this.particleManager.createExplosion(this.meshGroup.position, 0xff0000, 180, 4.0);
     this.particleManager.createEmpShockwave(this.meshGroup.position, 140);
-    const flash = new THREE.PointLight(0xff5500, 150, 1400);
-    flash.position.copy(this.meshGroup.position);
-    this.scene.add(flash);
-    let i = 150;
-    const fade = setInterval(() => { i -= 6; if (i <= 0) { clearInterval(fade); this.scene.remove(flash); } else flash.intensity = i; }, 50);
   }
 
   destroy() {

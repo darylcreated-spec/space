@@ -1,6 +1,7 @@
 export class UpgradeSystem {
   constructor() {
-    this.scrap = parseInt(localStorage.getItem('ov_scrap') || '0', 10);
+    let parsedScrap = parseInt(localStorage.getItem('ov_scrap') || '0', 10);
+    this.scrap = isNaN(parsedScrap) ? 0 : parsedScrap;
 
     // Levels
     this.upgrades = {
@@ -9,6 +10,12 @@ export class UpgradeSystem {
       lasers: parseInt(localStorage.getItem('ov_upg_lasers') || '0', 10),
       emp: parseInt(localStorage.getItem('ov_upg_emp') || '0', 10)
     };
+
+    for (const key in this.upgrades) {
+      if (isNaN(this.upgrades[key])) {
+        this.upgrades[key] = 0;
+      }
+    }
 
     this.maxLevel = 5;
     this.baseCost = 150;
@@ -49,16 +56,20 @@ export class UpgradeSystem {
   }
 
   applyUpgradesToShip(playerShip) {
-    const tLvl = this.upgrades.thrust || 0;
+    let tLvl = this.upgrades.thrust;
+    if (typeof tLvl !== 'number' || isNaN(tLvl)) tLvl = 0;
     playerShip.speed = 28 + tLvl * 4;
 
-    const sLvl = this.upgrades.shield || 0;
+    let sLvl = this.upgrades.shield;
+    if (typeof sLvl !== 'number' || isNaN(sLvl)) sLvl = 0;
     playerShip.maxShield = 100 + sLvl * 25;
 
-    const lLvl = this.upgrades.lasers || 0;
+    let lLvl = this.upgrades.lasers;
+    if (typeof lLvl !== 'number' || isNaN(lLvl)) lLvl = 0;
     playerShip.laserFireDelay = Math.max(0.06, 0.12 - lLvl * 0.012);
 
-    const eLvl = this.upgrades.emp || 0;
+    let eLvl = this.upgrades.emp;
+    if (typeof eLvl !== 'number' || isNaN(eLvl)) eLvl = 0;
     playerShip.maxPulseCD = Math.max(3.5, 8.0 - eLvl * 0.9);
   }
 }

@@ -7,6 +7,26 @@
   <meta name="description" content="ORBITAL VANGUARD - AAA 3D Space Shooter PWA" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <script>
+    window.addEventListener('error', (event) => {
+      const errDiv = document.createElement('div');
+      errDiv.style.position = 'fixed';
+      errDiv.style.top = '10px';
+      errDiv.style.left = '10px';
+      errDiv.style.right = '10px';
+      errDiv.style.background = 'rgba(255, 0, 0, 0.95)';
+      errDiv.style.color = '#fff';
+      errDiv.style.padding = '15px';
+      errDiv.style.fontFamily = 'monospace';
+      errDiv.style.fontSize = '12px';
+      errDiv.style.zIndex = '999999';
+      errDiv.style.borderRadius = '8px';
+      errDiv.style.border = '2px solid #fff';
+      errDiv.style.textAlign = 'left';
+      errDiv.innerHTML = `<strong>Game Error Captured:</strong><br>${event.message}<br><br><strong>Source:</strong> \${event.filename}:\${event.lineno}:\${event.colno}<br><br><strong>Stack:</strong><br>\${event.error ? event.error.stack : 'N/A'}`;
+      document.body.appendChild(errDiv);
+    });
+  </script>
   
   <title>ORBITAL VANGUARD - 3D Space Shooter PWA</title>
   

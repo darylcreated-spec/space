@@ -213,11 +213,6 @@ export class HaloRingBoss {
     this.particleManager.createExplosion(this.meshGroup.position, 0xb87333, 200, 4.5);
     this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 100, 3.5);
     this.particleManager.createEmpShockwave(this.meshGroup.position, 120);
-    const flash = new THREE.PointLight(0x00e5ff, 100, 1000);
-    flash.position.copy(this.meshGroup.position);
-    this.scene.add(flash);
-    let i = 100;
-    const fade = setInterval(() => { i -= 5; if (i <= 0) { clearInterval(fade); this.scene.remove(flash); } else flash.intensity = i; }, 50);
   }
 
   destroy() {
