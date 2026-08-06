@@ -773,3 +773,118 @@ html, body {
     grid-template-columns: 1fr;
   }
 }
+
+/* AAA Gameplay & Graphics Upgrades Styles */
+
+/* Cockpit HUD Overlay */
+.cockpit-hud-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow: inset 0 0 120px rgba(0, 243, 255, 0.14);
+}
+.scanlines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.22) 50%
+  );
+  background-size: 100% 4px;
+  opacity: 0.08;
+}
+.vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+}
+.hud-glass-reflection {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 15%, rgba(255, 255, 255, 0.04), transparent 60%);
+  opacity: 0.7;
+}
+
+/* Ship Selection Cards */
+.ship-select-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  padding: 0.8rem;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ship-select-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+.ship-select-card.active {
+  background: rgba(0, 243, 255, 0.12);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+}
+.ship-select-card.active strong {
+  color: var(--accent-cyan) !important;
+}
+
+/* Rogue-Lite Perk Selection Cards */
+.perk-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.2rem;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.perk-card:hover {
+  background: rgba(0, 243, 255, 0.08);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+  transform: translateY(-4px);
+}
+.perk-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.6rem;
+}
+.perk-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  margin-bottom: 0.4rem;
+}
+.perk-desc {
+  font-size: 0.72rem;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+/* Camera Glitch Post-Processing Shake effect */
+@keyframes cameraGlitch {
+  0% { filter: hue-rotate(0deg) contrast(1); transform: translate(0, 0); }
+  20% { filter: hue-rotate(45deg) contrast(1.4) saturate(1.8); transform: translate(-3px, 2px); }
+  45% { filter: hue-rotate(-45deg) contrast(1.1); transform: translate(3px, -2px); }
+  75% { filter: hue-rotate(90deg) saturate(2); transform: translate(-2px, -1px); }
+  100% { filter: hue-rotate(0deg) contrast(1); transform: translate(0, 0); }
+}
+.camera-glitch {
+  animation: cameraGlitch 0.3s ease-out both;
+}

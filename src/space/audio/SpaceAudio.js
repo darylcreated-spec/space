@@ -66,7 +66,7 @@ export class SpaceAudio {
     this.droneOsc.frequency.setTargetAtTime(targetPitch, now, 0.2);
   }
 
-  playLaserPew() {
+  playLaserPew(xPos) {
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -81,18 +81,29 @@ export class SpaceAudio {
     gain.gain.setValueAtTime(0.12, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    let panVal = 0;
+    if (xPos !== undefined) {
+      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+    }
 
-    osc.start(now);
-    osc.stop(now + 0.08);
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panVal, now);
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (e) {}
   }
 
-  playExplosion() {
-    this.playLaserHit();
-  }
-
-  playLaserHit() {
+  playExplosion(xPos) {
     this.ensureContext();
     if (!this.ctx) return;
 
@@ -107,11 +118,30 @@ export class SpaceAudio {
     gain.gain.setValueAtTime(0.15, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    let panVal = 0;
+    if (xPos !== undefined) {
+      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+    }
 
-    osc.start(now);
-    osc.stop(now + 0.06);
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panVal, now);
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } catch (e) {}
+  }
+
+  playLaserHit(xPos) {
+    this.playExplosion(xPos);
   }
 
   playPowerUpSound() {
@@ -326,5 +356,54 @@ export class SpaceAudio {
     if ('vibrate' in navigator) {
       try { navigator.vibrate(pattern); } catch (e) {}
     }
+  }
+
+  playLowShieldAlarm() {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(380, now);
+    osc.frequency.linearRampToValueAtTime(220, now + 0.18);
+
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch (e) {}
+  }
+
+  playDodgeSound() {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(450, now + 0.22);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.45);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.45);
+    } catch (e) {}
   }
 }

@@ -8,7 +8,8 @@ export class UpgradeSystem {
       thrust: parseInt(localStorage.getItem('ov_upg_thrust') || '0', 10),
       shield: parseInt(localStorage.getItem('ov_upg_shield') || '0', 10),
       lasers: parseInt(localStorage.getItem('ov_upg_lasers') || '0', 10),
-      emp: parseInt(localStorage.getItem('ov_upg_emp') || '0', 10)
+      emp: parseInt(localStorage.getItem('ov_upg_emp') || '0', 10),
+      magnet: parseInt(localStorage.getItem('ov_upg_magnet') || '0', 10)
     };
 
     for (const key in this.upgrades) {
@@ -71,5 +72,9 @@ export class UpgradeSystem {
     let eLvl = this.upgrades.emp;
     if (typeof eLvl !== 'number' || isNaN(eLvl)) eLvl = 0;
     playerShip.maxPulseCD = Math.max(3.5, 8.0 - eLvl * 0.9);
+
+    let mLvl = this.upgrades.magnet;
+    if (typeof mLvl !== 'number' || isNaN(mLvl)) mLvl = 0;
+    playerShip.tractorBeamLevel = mLvl;
   }
 }

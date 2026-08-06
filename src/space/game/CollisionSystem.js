@@ -12,6 +12,58 @@ export class CollisionSystem {
     if (!player || !player.meshGroup) return;
     const pPos = player.meshGroup.position;
 
+    // Retaliatory EMP perk check
+    if (player.pendingRetaliateEMP) {
+      player.pendingRetaliateEMP = false;
+      this.spaceAudio.playExplosion();
+      this.spaceScene.addScreenShake(0.9);
+      
+      const aoeRadius = 55.0;
+      
+      // Damage asteroids
+      gameManager.asteroids.forEach(rock => {
+        if (rock && rock.meshGroup && !rock.isDead && pPos.distanceTo(rock.meshGroup.position) < aoeRadius) {
+          const dead = rock.takeDamage(100);
+          if (dead) {
+            gameManager.addScore(rock.scoreValue);
+            gameManager.addScrap(15);
+            gameManager.achievementSystem.recordAsteroidDestroyed();
+          }
+        }
+      });
+
+      // Damage drones
+      gameManager.drones.forEach(drone => {
+        if (drone && drone.meshGroup && !drone.isDead && pPos.distanceTo(drone.meshGroup.position) < aoeRadius) {
+          const dead = drone.takeDamage(100);
+          if (dead) {
+            gameManager.addScore(drone.scoreValue);
+            gameManager.addScrap(30);
+            gameManager.achievementSystem.recordDroneKill();
+          }
+        }
+      });
+
+      // Damage capital ships
+      gameManager.capitalShips.forEach(ship => {
+        if (ship && ship.meshGroup && !ship.isDead && pPos.distanceTo(ship.meshGroup.position) < aoeRadius) {
+          const dead = ship.takeDamage(100);
+          if (dead) {
+            gameManager.addScore(ship.scoreValue);
+            gameManager.addScrap(80);
+            gameManager.achievementSystem.recordDroneKill();
+          }
+        }
+      });
+
+      // Damage boss
+      const boss = gameManager.activeBoss;
+      if (boss && boss.meshGroup && !boss.isDead && pPos.distanceTo(boss.meshGroup.position) < aoeRadius + 20) {
+        if (boss.takeCoreDamage) boss.takeCoreDamage(100);
+        else if (boss.takeDamage) boss.takeDamage('core', 100);
+      }
+    }
+
     // 1. Power-Up Collection by Player Ship
     for (let i = gameManager.powerUps.length - 1; i >= 0; i--) {
       const pow = gameManager.powerUps[i];
@@ -54,28 +106,41 @@ export class CollisionSystem {
           const rock = gameManager.asteroids[j];
           if (!rock || !rock.meshGroup || rock.isDead) continue;
 
+          laser.hitEntities = laser.hitEntities || new Set();
+          if (laser.hitEntities.has(rock.meshGroup.uuid)) continue;
+
           const dist = lPos.distanceTo(rock.meshGroup.position);
-
           if (dist < rock.radius + laser.radius) {
-            hit = true;
-            laser.destroy();
-            gameManager.lasers.splice(i, 1);
+            laser.hitEntities.add(rock.meshGroup.uuid);
+            let dmg = 25;
+            if (laser.isCritical) {
+              dmg *= 3;
+              this.particleManager.createExplosion(lPos, 0xff0044, 25);
+            } else {
+              this.particleManager.createExplosion(lPos, 0x00f3ff, 12);
+            }
+            if (laser.hitEntities.size > 1) dmg *= 0.5;
 
-            this.particleManager.createExplosion(lPos, 0x00f3ff, 12);
-            const dead = rock.takeDamage(25);
+            const dead = rock.takeDamage(dmg);
             this.spaceAudio.playExplosion();
 
             if (dead) {
               gameManager.addScore(rock.scoreValue);
               gameManager.addScrap(15);
               gameManager.achievementSystem.recordAsteroidDestroyed();
-
-
-
+              if (gameManager.activePerks.has('siphon')) {
+                player.shield = Math.min(player.maxShield, player.shield + 5);
+              }
               const frags = rock.getSplitFragments();
               gameManager.spawnAsteroidFragments(frags);
             }
-            break;
+
+            if (!gameManager.activePerks.has('piercing')) {
+              hit = true;
+              laser.destroy();
+              gameManager.lasers.splice(i, 1);
+              break;
+            }
           }
         }
 
@@ -86,27 +151,43 @@ export class CollisionSystem {
           const drone = gameManager.drones[j];
           if (!drone || !drone.meshGroup || drone.isDead) continue;
 
+          laser.hitEntities = laser.hitEntities || new Set();
+          if (laser.hitEntities.has(drone.meshGroup.uuid)) continue;
+
           const dist = lPos.distanceTo(drone.meshGroup.position);
-
           if (dist < drone.radius + laser.radius) {
-            hit = true;
-            laser.destroy();
-            gameManager.lasers.splice(i, 1);
+            laser.hitEntities.add(drone.meshGroup.uuid);
+            let dmg = 20;
+            if (laser.isCritical) {
+              dmg *= 3;
+              this.particleManager.createExplosion(lPos, 0xff0044, 28);
+            } else {
+              this.particleManager.createExplosion(lPos, 0xff0055, 18);
+            }
+            if (laser.hitEntities.size > 1) dmg *= 0.5;
 
-            this.particleManager.createExplosion(lPos, 0xff0055, 18);
-            const dead = drone.takeDamage(20);
+            const dead = drone.takeDamage(dmg);
             this.spaceAudio.playExplosion();
 
             if (dead) {
               gameManager.addScore(drone.scoreValue);
               gameManager.addScrap(30);
               gameManager.achievementSystem.recordDroneKill();
-
-
+              if (gameManager.activePerks.has('siphon')) {
+                player.shield = Math.min(player.maxShield, player.shield + 5);
+              }
             }
-            break;
+
+            if (!gameManager.activePerks.has('piercing')) {
+              hit = true;
+              laser.destroy();
+              gameManager.lasers.splice(i, 1);
+              break;
+            }
           }
         }
+
+        if (hit) continue;
 
         // Player Lasers vs Capital Ships
         if (gameManager.capitalShips && gameManager.capitalShips.length > 0) {
@@ -114,23 +195,39 @@ export class CollisionSystem {
             const ship = gameManager.capitalShips[j];
             if (!ship || !ship.meshGroup || ship.isDead) continue;
 
+            laser.hitEntities = laser.hitEntities || new Set();
+            if (laser.hitEntities.has(ship.meshGroup.uuid)) continue;
+
             const dist = lPos.distanceTo(ship.meshGroup.position);
             if (dist < ship.radius + laser.radius) {
-              hit = true;
-              laser.destroy();
-              gameManager.lasers.splice(i, 1);
+              laser.hitEntities.add(ship.meshGroup.uuid);
+              let dmg = 20;
+              if (laser.isCritical) {
+                dmg *= 3;
+                this.particleManager.createExplosion(lPos, 0xff0044, 30);
+              } else {
+                this.particleManager.createExplosion(lPos, 0x00aaff, 22);
+              }
+              if (laser.hitEntities.size > 1) dmg *= 0.5;
 
-              this.particleManager.createExplosion(lPos, 0x00aaff, 22);
-              const dead = ship.takeDamage(20);
+              const dead = ship.takeDamage(dmg);
               this.spaceAudio.playExplosion();
 
               if (dead) {
                 gameManager.addScore(ship.scoreValue);
                 gameManager.addScrap(80);
                 gameManager.achievementSystem.recordDroneKill();
-
+                if (gameManager.activePerks.has('siphon')) {
+                  player.shield = Math.min(player.maxShield, player.shield + 5);
+                }
               }
-              break;
+
+              if (!gameManager.activePerks.has('piercing')) {
+                hit = true;
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                break;
+              }
             }
           }
         }
@@ -142,20 +239,24 @@ export class CollisionSystem {
           const boss = gameManager.activeBoss;
           const bPos = boss.meshGroup.position;
           const distB = lPos.distanceTo(bPos);
-
-          // Dynamic hit radius — large bosses need bigger collision zones
           const bossHitRadius = boss.hitRadius || 28;
 
-          if (distB < bossHitRadius) {
-            laser.destroy();
-            gameManager.lasers.splice(i, 1);
-            this.particleManager.createExplosion(lPos, 0xffea00, 15);
+          laser.hitEntities = laser.hitEntities || new Set();
 
+          if (distB < bossHitRadius) {
+            let dmg = 25;
+            if (laser.isCritical) {
+              dmg *= 3;
+              this.particleManager.createExplosion(lPos, 0xff0044, 25);
+            } else {
+              this.particleManager.createExplosion(lPos, 0xffea00, 15);
+            }
+            if (laser.hitEntities.size > 1) dmg *= 0.5;
+
+            let hitRegistered = false;
             let dead = false;
 
-            // Modern boss API: turrets[] array + takeCoreDamage()
             if (boss.turrets && Array.isArray(boss.turrets)) {
-              // Try to find and damage the first living turret near the hit
               const livingTurrets = boss.turrets.filter(t => !t.isDead && t.mesh);
               let hitTurret = null;
               let closestDist = Infinity;
@@ -165,24 +266,43 @@ export class CollisionSystem {
                 if (td < closestDist) { closestDist = td; hitTurret = t; }
               }
               if (hitTurret && closestDist < 12) {
-                boss.takeTurretDamage(hitTurret.id, 25);
+                if (!laser.hitEntities.has(hitTurret.id)) {
+                  laser.hitEntities.add(hitTurret.id);
+                  boss.takeTurretDamage(hitTurret.id, dmg);
+                  hitRegistered = true;
+                }
               } else {
-                dead = boss.takeCoreDamage(25);
+                if (!laser.hitEntities.has('boss_core')) {
+                  laser.hitEntities.add('boss_core');
+                  dead = boss.takeCoreDamage(dmg);
+                  hitRegistered = true;
+                }
               }
-            } else if (boss.takeDamage) {
-              // Legacy BossDreadnought API
-              let target = 'core';
-              if (boss.turretLeftHp > 0) target = 'turretLeft';
-              else if (boss.turretRightHp > 0) target = 'turretRight';
-              dead = boss.takeDamage(target, 25);
-            } else if (boss.takeCoreDamage) {
-              dead = boss.takeCoreDamage(25);
+            } else {
+              if (!laser.hitEntities.has('boss_core')) {
+                laser.hitEntities.add('boss_core');
+                let target = 'core';
+                if (boss.turretLeftHp > 0) target = 'turretLeft';
+                else if (boss.turretRightHp > 0) target = 'turretRight';
+                dead = boss.takeDamage ? boss.takeDamage(target, dmg) : (boss.takeCoreDamage ? boss.takeCoreDamage(dmg) : false);
+                hitRegistered = true;
+              }
             }
 
-            if (dead || boss.isDead) {
-              gameManager.addScore(boss.scoreValue);
-              gameManager.addScrap(300);
-              gameManager.achievementSystem.recordBossKilled();
+            if (hitRegistered) {
+              if (dead || boss.isDead) {
+                gameManager.addScore(boss.scoreValue);
+                gameManager.addScrap(300);
+                gameManager.achievementSystem.recordBossKilled();
+                if (gameManager.activePerks.has('siphon')) {
+                  player.shield = Math.min(player.maxShield, player.shield + 5);
+                }
+              }
+
+              if (!gameManager.activePerks.has('piercing')) {
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+              }
             }
             continue;
           }
@@ -296,6 +416,60 @@ export class CollisionSystem {
         if (dead) gameManager.onGameOver('Collision with Capital Ship');
       }
     });
+
+    // Asteroids vs Enemy Drones & Capital Ships (Kinetic Debris Physics)
+    for (let i = gameManager.asteroids.length - 1; i >= 0; i--) {
+      const rock = gameManager.asteroids[i];
+      if (!rock || !rock.meshGroup || rock.isDead) continue;
+
+      // Check vs Drones
+      for (let j = gameManager.drones.length - 1; j >= 0; j--) {
+        const drone = gameManager.drones[j];
+        if (!drone || !drone.meshGroup || drone.isDead) continue;
+
+        const dist = rock.meshGroup.position.distanceTo(drone.meshGroup.position);
+        if (dist < rock.radius + drone.radius) {
+          rock.isDead = true;
+          const dead = drone.takeDamage(50);
+          this.particleManager.createExplosion(rock.meshGroup.position, 0xffaa00, 20);
+          this.spaceAudio.playExplosion();
+          if (dead) {
+            gameManager.addScore(drone.scoreValue);
+            gameManager.addScrap(30);
+            gameManager.achievementSystem.recordDroneKill();
+            if (gameManager.activePerks.has('siphon')) {
+              player.shield = Math.min(player.maxShield, player.shield + 5);
+            }
+          }
+          break;
+        }
+      }
+
+      if (rock.isDead) continue;
+
+      // Check vs Capital Ships
+      for (let j = gameManager.capitalShips.length - 1; j >= 0; j--) {
+        const ship = gameManager.capitalShips[j];
+        if (!ship || !ship.meshGroup || ship.isDead) continue;
+
+        const dist = rock.meshGroup.position.distanceTo(ship.meshGroup.position);
+        if (dist < rock.radius + ship.radius) {
+          rock.isDead = true;
+          const dead = ship.takeDamage(100);
+          this.particleManager.createExplosion(rock.meshGroup.position, 0xffaa00, 25);
+          this.spaceAudio.playExplosion();
+          if (dead) {
+            gameManager.addScore(ship.scoreValue);
+            gameManager.addScrap(80);
+            gameManager.achievementSystem.recordDroneKill();
+            if (gameManager.activePerks.has('siphon')) {
+              player.shield = Math.min(player.maxShield, player.shield + 5);
+            }
+          }
+          break;
+        }
+      }
+    }
 
     // 6. Planet Impacts
     gameManager.asteroids.forEach(rock => {

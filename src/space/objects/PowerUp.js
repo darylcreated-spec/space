@@ -55,7 +55,7 @@ export class PowerUp {
     });
   }
 
-  update(dt, playerPos) {
+  update(dt, playerShip) {
     this.lifetime -= dt;
     if (this.lifetime <= 0) {
       this.isDead = true;
@@ -70,9 +70,16 @@ export class PowerUp {
     this.meshGroup.position.z += 6.0 * dt;
 
     // Magnetic attraction to player ship if close
-    if (playerPos) {
+    if (playerShip && playerShip.meshGroup) {
+      const playerPos = playerShip.meshGroup.position;
       const dist = this.meshGroup.position.distanceTo(playerPos);
-      if (dist < 12) {
+      
+      let magnetRange = 12 + (playerShip.tractorBeamLevel || 0) * 6;
+      if (playerShip.activePerks && playerShip.activePerks.has('magnet')) {
+        magnetRange *= 2;
+      }
+
+      if (dist < magnetRange) {
         this.meshGroup.position.lerp(playerPos, 0.12);
       }
     }

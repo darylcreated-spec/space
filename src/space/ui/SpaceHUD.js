@@ -43,6 +43,7 @@ export class SpaceHUD {
     this.btnBuyShield = document.getElementById('btn-buy-shield');
     this.btnBuyLasers = document.getElementById('btn-buy-lasers');
     this.btnBuyEmp = document.getElementById('btn-buy-emp');
+    this.btnBuyMagnet = document.getElementById('btn-buy-magnet');
 
     this.btnBuyRepair = document.getElementById('btn-buy-repair');
     this.btnBuyOvercharge = document.getElementById('btn-buy-overcharge');
@@ -53,6 +54,14 @@ export class SpaceHUD {
     this.upgLvlShield = document.getElementById('upg-lvl-shield');
     this.upgLvlLasers = document.getElementById('upg-lvl-lasers');
     this.upgLvlEmp = document.getElementById('upg-lvl-emp');
+    this.upgLvlMagnet = document.getElementById('upg-lvl-magnet');
+
+    this.btnSelectInterceptor = document.getElementById('btn-select-interceptor');
+    this.btnSelectDreadnought = document.getElementById('btn-select-dreadnought');
+    this.btnSelectTactician = document.getElementById('btn-select-tactician');
+    this.btnDodgeRoll = document.getElementById('btn-dodge-roll');
+    this.modalPerks = document.getElementById('space-modal-perks');
+    this.perkCardsContainer = document.getElementById('perk-cards-container');
 
     // Achievement Toast
     this.toastElem = document.getElementById('achievement-toast');
@@ -76,6 +85,52 @@ export class SpaceHUD {
         this.gameManager.startGame();
       }
     };
+
+    const selectShip = (selectedBtn, className) => {
+      [this.btnSelectInterceptor, this.btnSelectDreadnought, this.btnSelectTactician].forEach(btn => {
+        if (btn) {
+          btn.classList.remove('active');
+          btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+          btn.style.background = 'rgba(255, 255, 255, 0.02)';
+          const str = btn.querySelector('strong');
+          if (str) str.style.color = '#fff';
+        }
+      });
+      if (selectedBtn) {
+        selectedBtn.classList.add('active');
+        selectedBtn.style.borderColor = 'var(--accent-cyan)';
+        selectedBtn.style.background = 'rgba(0, 243, 255, 0.12)';
+        const str = selectedBtn.querySelector('strong');
+        if (str) str.style.color = 'var(--accent-cyan)';
+      }
+      this.gameManager.setSelectedShipClass(className);
+    };
+
+    if (this.btnSelectInterceptor) {
+      this.btnSelectInterceptor.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShip(this.btnSelectInterceptor, 'INTERCEPTOR');
+      });
+    }
+    if (this.btnSelectDreadnought) {
+      this.btnSelectDreadnought.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShip(this.btnSelectDreadnought, 'DREADNOUGHT');
+      });
+    }
+    if (this.btnSelectTactician) {
+      this.btnSelectTactician.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShip(this.btnSelectTactician, 'TACTICIAN');
+      });
+    }
+
+    if (this.btnDodgeRoll) {
+      this.btnDodgeRoll.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.triggerDodgeRoll();
+      });
+    }
 
     // User-triggered Hangar Modal open
     if (this.btnOpenHangar) {
@@ -169,6 +224,7 @@ export class SpaceHUD {
     bindUpgBtn(this.btnBuyShield, 'shield');
     bindUpgBtn(this.btnBuyLasers, 'lasers');
     bindUpgBtn(this.btnBuyEmp, 'emp');
+    bindUpgBtn(this.btnBuyMagnet, 'magnet');
 
     const bindBoostBtn = (btn, boostType, cost, action) => {
       if (btn) {
@@ -229,6 +285,7 @@ export class SpaceHUD {
     updateBtn(this.btnBuyShield, this.upgLvlShield, 'shield');
     updateBtn(this.btnBuyLasers, this.upgLvlLasers, 'lasers');
     updateBtn(this.btnBuyEmp, this.upgLvlEmp, 'emp');
+    updateBtn(this.btnBuyMagnet, this.upgLvlMagnet, 'magnet');
 
     if (this.btnBuyRepair) this.btnBuyRepair.disabled = upgradeSystem.scrap < 100;
     if (this.btnBuyOvercharge) this.btnBuyOvercharge.disabled = upgradeSystem.scrap < 120;
@@ -311,5 +368,41 @@ export class SpaceHUD {
     if (this.waveBadge) this.waveBadge.textContent = `WAVE ${data.waveNum}`;
 
     if (this.cdRingPulse) this.cdRingPulse.style.opacity = data.pulseCdRatio > 0 ? '1' : '0';
+  }
+
+  showPerksModal(perks, onSelectCallback) {
+    if (!this.modalPerks || !this.perkCardsContainer) return;
+    this.perkCardsContainer.innerHTML = '';
+
+    perks.forEach(perk => {
+      const card = document.createElement('div');
+      card.className = 'perk-card';
+
+      let icon = '🌀';
+      if (perk.id === 'piercing') icon = '⚡';
+      else if (perk.id === 'siphon') icon = '💚';
+      else if (perk.id === 'retaliate') icon = '💥';
+      else if (perk.id === 'magnet') icon = '🧲';
+      else if (perk.id === 'crit') icon = '🟥';
+      else if (perk.id === 'dodge_boost') icon = '🚀';
+
+      card.innerHTML = `
+        <div class="perk-icon">${icon}</div>
+        <div class="perk-title">${perk.name}</div>
+        <div class="perk-desc">${perk.desc}</div>
+      `;
+
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.spaceAudio.playPowerUpSound();
+        this.modalPerks.classList.add('hidden');
+        onSelectCallback(perk);
+      });
+
+      this.perkCardsContainer.appendChild(card);
+    });
+
+    this.gameManager.state = 'PERK_SELECTION';
+    this.modalPerks.classList.remove('hidden');
   }
 }

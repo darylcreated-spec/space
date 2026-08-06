@@ -44,6 +44,12 @@
 
   <!-- ==================== ORBITAL VANGUARD SPACE SHOOTER HUD ==================== -->
   <div id="hud-space" class="hud-container space-hud">
+    <!-- Cockpit HUD overlay -->
+    <div class="cockpit-hud-overlay">
+      <div class="scanlines"></div>
+      <div class="vignette"></div>
+      <div class="hud-glass-reflection"></div>
+    </div>
     <!-- Boss Dreadnought HP Bar Overlay -->
     <div id="space-boss-bar-container" class="glass-panel boss-hp-panel hidden">
       <div class="boss-title">⚠️ SECTOR DREADNOUGHT CORE ⚠️</div>
@@ -127,6 +133,10 @@
 
       <!-- Action Weapon Special Buttons (Right) -->
       <div class="action-buttons-zone">
+        <button id="btn-dodge-roll" class="action-btn dodge-btn" title="Tactical Dodge Roll (Double-tap A/D)">
+          <span class="icon">🌀</span>
+          <span class="btn-label">DODGE</span>
+        </button>
         <button id="btn-fire-pulse" class="action-btn pulse-btn" title="Plasma Pulse Charge (Q / Shift / Space)">
           <span class="cooldown-ring" id="cd-ring-pulse"></span>
           <span class="icon">⚡</span>
@@ -171,6 +181,29 @@
         <div class="witem">
           <span class="wicon">⚡</span>
           <div class="wdesc"><strong>Plasma Pulse Charge:</strong> Tap to launch a heavy superheated plasma ball!</div>
+        </div>
+      </div>
+
+      <div style="height: 1px; background: rgba(255, 255, 255, 0.15); margin: 1.2rem 0; width: 100%;"></div>
+      <h3 style="margin: 0 0 0.5rem 0; color: var(--accent-cyan); font-family: var(--font-header); font-size: 0.95rem; letter-spacing: 2px;">SELECT FIGHTER CLASS</h3>
+      
+      <div class="ship-select-grid" style="display: flex; gap: 10px; width: 100%; margin-bottom: 1.2rem;">
+        <div class="ship-select-card active" id="btn-select-interceptor">
+          <div style="font-size: 1.5rem;">🚀</div>
+          <strong style="font-size: 0.8rem; color: var(--accent-yellow); display: block; margin-top: 4px;">INTERCEPTOR</strong>
+          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">High Speed / Rapid Fire</span>
+        </div>
+
+        <div class="ship-select-card" id="btn-select-dreadnought">
+          <div style="font-size: 1.5rem;">🛡️</div>
+          <strong style="font-size: 0.8rem; color: #fff; display: block; margin-top: 4px;">DREADNOUGHT</strong>
+          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">Double Shields / Heavy Armor</span>
+        </div>
+
+        <div class="ship-select-card" id="btn-select-tactician">
+          <div style="font-size: 1.5rem;">⚡</div>
+          <strong style="font-size: 0.8rem; color: #fff; display: block; margin-top: 4px;">TACTICIAN</strong>
+          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">Fast EMP / Balanced Build</span>
         </div>
       </div>
 
@@ -221,6 +254,14 @@
           </div>
           <button id="btn-buy-emp" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
         </div>
+
+        <div class="upg-item">
+          <div class="uinfo">
+            <span class="utitle">🧲 Scrap Tractor Beam</span>
+            <span class="ulevel" id="upg-lvl-magnet">Lvl 0 / 5</span>
+          </div>
+          <button id="btn-buy-magnet" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+        </div>
       </div>
 
       <div style="height: 1px; background: rgba(255, 255, 255, 0.15); margin: 1.5rem 0 1rem 0; width: 100%;"></div>
@@ -262,6 +303,18 @@
       </div>
 
       <button id="btn-next-wave" class="btn-primary">RESUME DEFENSE →</button>
+    </div>
+  </div>
+
+  <!-- Rogue-Lite Perks Choice Modal -->
+  <div id="space-modal-perks" class="modal-overlay hidden">
+    <div class="glass-panel modal-card perk-choice-card" style="max-width: 650px;">
+      <h2>🌀 ACTIVE PERK SELECTION</h2>
+      <p class="hangar-subtitle">SELECT ONE COMBAT AUGMENTATION FOR THE COMING WAVE</p>
+      
+      <div id="perk-cards-container" style="display: flex; gap: 14px; margin: 1.5rem 0; width: 100%;">
+        <!-- Instantiated dynamically in SpaceHUD.js -->
+      </div>
     </div>
   </div>
 

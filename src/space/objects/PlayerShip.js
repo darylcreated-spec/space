@@ -30,6 +30,15 @@ export class PlayerShip {
     this._thrusterTick = 0;
     this._time = 0;
 
+    // AAA Upgrade Subsystems
+    this.shipClass = 'INTERCEPTOR';
+    this.dodgeTimer = 0;
+    this.dodgeCooldown = 0;
+    this.dodgeDirection = null;
+    this.isInvulnerable = false;
+    this.tractorBeamLevel = 0;
+    this.activePerks = new Set();
+
     this.buildShipMesh();
     this.meshGroup.position.set(0, 0, 0);
     this.scene.add(this.meshGroup);
@@ -52,7 +61,7 @@ export class PlayerShip {
     // ── 2. Cockpit Canopy — larger, more prominent ──
     const canopyGeo = new THREE.SphereGeometry(0.6, 14, 14);
     canopyGeo.scale(0.85, 0.65, 1.6);
-    const canopyMat = new THREE.MeshStandardMaterial({
+    this.canopyMat = new THREE.MeshStandardMaterial({
       color: 0x00c8ff,
       transparent: true,
       opacity: 0.75,
@@ -61,7 +70,7 @@ export class PlayerShip {
       emissive: 0x00aaff,
       emissiveIntensity: 1.2,
     });
-    const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+    const canopy = new THREE.Mesh(canopyGeo, this.canopyMat);
     canopy.position.set(0, 0.32, -0.3);
     this.meshGroup.add(canopy);
 
@@ -90,10 +99,10 @@ export class PlayerShip {
     this.meshGroup.add(leftWing);
 
     // ── 4. Wing Edge Accent Strips — neon cyan glow ──
-    const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    this.edgeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
     const makeEdge = (x) => {
       const eg = new THREE.BoxGeometry(0.06, 0.06, 2.4);
-      const e = new THREE.Mesh(eg, edgeMat);
+      const e = new THREE.Mesh(eg, this.edgeMat);
       e.position.set(x, 0.07, 0.1);
       this.meshGroup.add(e);
     };
@@ -103,14 +112,14 @@ export class PlayerShip {
     const cannonGeo = new THREE.CylinderGeometry(0.09, 0.09, 2.0, 7);
     cannonGeo.rotateX(Math.PI / 2);
     const cannonMat = new THREE.MeshStandardMaterial({ color: 0x28405e, metalness: 0.95, roughness: 0.08 });
-    const muzzleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    this.muzzleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
 
     [-2.9, 2.9].forEach(x => {
       const cannon = new THREE.Mesh(cannonGeo, cannonMat);
       cannon.position.set(x, 0, -0.8);
       this.meshGroup.add(cannon);
       // Muzzle tip glow dot
-      const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), muzzleMat);
+      const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), this.muzzleMat);
       muzzle.position.set(x, 0, -1.8);
       this.meshGroup.add(muzzle);
     });
@@ -129,35 +138,35 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLeft);
 
     // Engine inner glow rings
-    const glowRingMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    this.glowRingMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
     [this.engineRight, this.engineLeft].forEach(eng => {
-      const gr = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.06, 8, 20), glowRingMat);
+      const gr = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.06, 8, 20), this.glowRingMat);
       gr.rotation.x = Math.PI / 2;
       gr.position.z = 0.5;
       eng.add(gr);
     });
 
     // ── 7. Afterburner Flame Cones — dynamic, large ──
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
-    const flameOuterMat = new THREE.MeshBasicMaterial({ color: 0x0044ff, transparent: true, opacity: 0.5 });
+    this.flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    this.flameOuterMat = new THREE.MeshBasicMaterial({ color: 0x0044ff, transparent: true, opacity: 0.5 });
 
-    this.flameR_inner = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.4, 10), flameMat);
+    this.flameR_inner = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.4, 10), this.flameMat);
     this.flameR_inner.rotation.x = -Math.PI / 2;
     this.flameR_inner.position.set(0, 0, 0.65);
     this.engineRight.add(this.flameR_inner);
 
-    this.flameL_inner = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.4, 10), flameMat);
+    this.flameL_inner = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.4, 10), this.flameMat);
     this.flameL_inner.rotation.x = -Math.PI / 2;
     this.flameL_inner.position.set(0, 0, 0.65);
     this.engineLeft.add(this.flameL_inner);
 
     // outer halo
-    this.flameR_outer = new THREE.Mesh(new THREE.ConeGeometry(0.44, 1.0, 10), flameOuterMat);
+    this.flameR_outer = new THREE.Mesh(new THREE.ConeGeometry(0.44, 1.0, 10), this.flameOuterMat);
     this.flameR_outer.rotation.x = -Math.PI / 2;
     this.flameR_outer.position.set(0, 0, 0.5);
     this.engineRight.add(this.flameR_outer);
 
-    this.flameL_outer = new THREE.Mesh(new THREE.ConeGeometry(0.44, 1.0, 10), flameOuterMat);
+    this.flameL_outer = new THREE.Mesh(new THREE.ConeGeometry(0.44, 1.0, 10), this.flameOuterMat);
     this.flameL_outer.rotation.x = -Math.PI / 2;
     this.flameL_outer.position.set(0, 0, 0.5);
     this.engineLeft.add(this.flameL_outer);
@@ -185,10 +194,114 @@ export class PlayerShip {
   }
 
   takeDamage(amount) {
-    this.shield = Math.max(0, this.shield - amount);
+    if (this.dodgeTimer > 0 || this.isInvulnerable) {
+      return false; // Immune during dodge roll!
+    }
+
+    let finalAmount = amount;
+    if (this.shipClass === 'DREADNOUGHT') {
+      finalAmount *= 0.75; // Dreadnought takes 25% less damage!
+    }
+
+    const prevShield = this.shield;
+    this.shield = Math.max(0, this.shield - finalAmount);
     this.shieldRippleTimer = 0.45;
     if (this.shieldMat) this.shieldMat.opacity = 0.95;
+
+    // Trigger visual glitch overlay on DOM canvas-container!
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer) {
+      canvasContainer.classList.add('camera-glitch');
+      setTimeout(() => {
+        canvasContainer.classList.remove('camera-glitch');
+      }, 300);
+    }
+
+    // Breach check: if shields were > 0 and are now <= 0
+    if (prevShield > 0 && this.shield <= 0) {
+      if (this.activePerks && this.activePerks.has('retaliate')) {
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 90);
+        this.pendingRetaliateEMP = true;
+      }
+    }
+
     return this.shield <= 0;
+  }
+
+  setShipClass(className) {
+    this.shipClass = className;
+    if (className === 'INTERCEPTOR') {
+      this.maxShield = 80;
+      this.speed = 36;
+      this.laserFireDelay = 0.08;
+
+      const yellow = 0xffea00;
+      const gold = 0xffaa00;
+      if (this.canopyMat) { this.canopyMat.color.setHex(yellow); this.canopyMat.emissive.setHex(gold); }
+      if (this.edgeMat) this.edgeMat.color.setHex(yellow);
+      if (this.muzzleMat) this.muzzleMat.color.setHex(yellow);
+      if (this.glowRingMat) this.glowRingMat.color.setHex(yellow);
+      if (this.flameMat) this.flameMat.color.setHex(yellow);
+      if (this.flameOuterMat) this.flameOuterMat.color.setHex(gold);
+      if (this.engineLight) this.engineLight.color.setHex(yellow);
+      if (this.noseLight) this.noseLight.color.setHex(yellow);
+      if (this.shieldMat) this.shieldMat.color.setHex(yellow);
+    } else if (className === 'DREADNOUGHT') {
+      this.maxShield = 180;
+      this.speed = 22;
+      this.laserFireDelay = 0.14;
+
+      const red = 0xff0044;
+      const darkRed = 0x990000;
+      if (this.canopyMat) { this.canopyMat.color.setHex(red); this.canopyMat.emissive.setHex(darkRed); }
+      if (this.edgeMat) this.edgeMat.color.setHex(red);
+      if (this.muzzleMat) this.muzzleMat.color.setHex(red);
+      if (this.glowRingMat) this.glowRingMat.color.setHex(red);
+      if (this.flameMat) this.flameMat.color.setHex(red);
+      if (this.flameOuterMat) this.flameOuterMat.color.setHex(darkRed);
+      if (this.engineLight) this.engineLight.color.setHex(red);
+      if (this.noseLight) this.noseLight.color.setHex(red);
+      if (this.shieldMat) this.shieldMat.color.setHex(red);
+    } else if (className === 'TACTICIAN') {
+      this.maxShield = 100;
+      this.speed = 28;
+      this.laserFireDelay = 0.11;
+
+      const green = 0x00ff66;
+      const magenta = 0xff00ff;
+      if (this.canopyMat) { this.canopyMat.color.setHex(green); this.canopyMat.emissive.setHex(magenta); }
+      if (this.edgeMat) this.edgeMat.color.setHex(green);
+      if (this.muzzleMat) this.muzzleMat.color.setHex(green);
+      if (this.glowRingMat) this.glowRingMat.color.setHex(green);
+      if (this.flameMat) this.flameMat.color.setHex(green);
+      if (this.flameOuterMat) this.flameOuterMat.color.setHex(magenta);
+      if (this.engineLight) this.engineLight.color.setHex(green);
+      if (this.noseLight) this.noseLight.color.setHex(green);
+      if (this.shieldMat) this.shieldMat.color.setHex(green);
+    }
+    this.shield = this.maxShield;
+  }
+
+  triggerDodge(direction) {
+    if (this.dodgeCooldown > 0) return;
+    this.dodgeTimer = 0.5; // 0.5s roll duration
+    this.dodgeDirection = direction;
+    
+    const baseCD = this.activePerks.has('dodge_boost') ? 1.5 : 3.0;
+    this.dodgeCooldown = baseCD;
+
+    if (this.activePerks.has('dodge_boost')) {
+      this._dodgeBoostTimer = 2.0; // 2 seconds of super fire rate!
+    }
+
+    for (let i = 0; i < 15; i++) {
+      const pOffset = new THREE.Vector3(
+        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 1,
+        (Math.random() - 0.5) * 1
+      ).add(this.meshGroup.position);
+      this.particleManager.spawnEngineParticle(pOffset, this.shipClass === 'INTERCEPTOR' ? 0xffaa00 : 0x00f3ff);
+    }
   }
 
   reset() {
@@ -205,6 +318,8 @@ export class PlayerShip {
     this._time += dt;
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
     if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
+    if (this.dodgeCooldown > 0) this.dodgeCooldown -= dt;
+    if (this._dodgeBoostTimer > 0) this._dodgeBoostTimer -= dt;
 
     // Shield ripple decay
     if (this.shieldRippleTimer > 0) {
@@ -218,22 +333,39 @@ export class PlayerShip {
       }
     }
 
-    this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.18;
-    this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.18;
+    if (this.dodgeTimer > 0) {
+      this.dodgeTimer -= dt;
+      const dodgeSpeed = 54.0;
+      this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
+      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
 
-    this.meshGroup.position.x += this.velocity.x * dt;
-    this.meshGroup.position.y += this.velocity.y * dt;
+      // 360 roll rotation
+      const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
+      this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
+      this.meshGroup.rotation.x = 0; // lock pitch during roll
+      
+      // Spawn extra dodge exhaust trail
+      if (Math.random() < 0.4) {
+        this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+      }
+    } else {
+      this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.18;
+      this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.18;
 
-    this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
-    this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, this.bounds.minY, this.bounds.maxY);
+      this.meshGroup.position.x += this.velocity.x * dt;
+      this.meshGroup.position.y += this.velocity.y * dt;
 
-    // Banking & pitch
-    this.targetRoll = -inputDir.x * 0.65;
-    this.targetPitch = inputDir.y * 0.28;
-    this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
-    this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
-    this.meshGroup.rotation.z = this.currentRoll;
-    this.meshGroup.rotation.x = this.currentPitch;
+      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
+      this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, this.bounds.minY, this.bounds.maxY);
+
+      // Banking & pitch
+      this.targetRoll = -inputDir.x * 0.65;
+      this.targetPitch = inputDir.y * 0.28;
+      this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
+      this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
+      this.meshGroup.rotation.z = this.currentRoll;
+      this.meshGroup.rotation.x = this.currentPitch;
+    }
 
     // Animate flame flicker
     const flicker = 1.0 + Math.sin(this._time * 20) * 0.15;
@@ -251,13 +383,19 @@ export class PlayerShip {
     if (this._thrusterTick % 2 === 0) {
       const pR = new THREE.Vector3(0.68, -0.1, 3.2).add(this.meshGroup.position);
       const pL = new THREE.Vector3(-0.68, -0.1, 3.2).add(this.meshGroup.position);
-      this.particleManager.spawnEngineParticle(pR, 0x00f3ff);
-      this.particleManager.spawnEngineParticle(pL, 0x00f3ff);
+      
+      let pColor = 0x00f3ff;
+      if (this.shipClass === 'INTERCEPTOR') pColor = 0xffea00;
+      else if (this.shipClass === 'DREADNOUGHT') pColor = 0xff0044;
+      else if (this.shipClass === 'TACTICIAN') pColor = 0x00ff66;
+
+      this.particleManager.spawnEngineParticle(pR, pColor);
+      this.particleManager.spawnEngineParticle(pL, pColor);
     }
     // Side exhaust when banking hard
     if (Math.abs(inputDir.x) > 0.5 && this._thrusterTick % 4 === 0) {
       const sideP = new THREE.Vector3(-inputDir.x * 1.5, 0, 1.5).add(this.meshGroup.position);
-      this.particleManager.spawnEngineParticle(sideP, 0x0055ff);
+      this.particleManager.spawnEngineParticle(sideP, this.shipClass === 'DREADNOUGHT' ? 0x990000 : 0x0055ff);
     }
   }
 }

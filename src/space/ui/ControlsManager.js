@@ -6,6 +6,10 @@ export class ControlsManager {
     this.touchStartPos = { x: 0, y: 0 };
     this.dragRadius = 50; // Comfortable 50px finger drag radius for max steering speed
 
+    this.lastPressA = 0;
+    this.lastPressD = 0;
+    this.pendingDodge = null;
+
     // Listeners for Keyboard
     window.addEventListener('keydown', this.onKeyDown.bind(this));
     window.addEventListener('keyup', this.onKeyUp.bind(this));
@@ -21,12 +25,32 @@ export class ControlsManager {
     this.keys[e.code] = true;
     this.keys[e.key] = true;
     this.keys[e.key.toLowerCase()] = true;
+
+    const now = performance.now();
+    if (e.code === 'KeyA' || e.code === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+      if (now - this.lastPressA < 250) {
+        this.pendingDodge = 'left';
+      }
+      this.lastPressA = now;
+    }
+    if (e.code === 'KeyD' || e.code === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+      if (now - this.lastPressD < 250) {
+        this.pendingDodge = 'right';
+      }
+      this.lastPressD = now;
+    }
   }
 
   onKeyUp(e) {
     this.keys[e.code] = false;
     this.keys[e.key] = false;
     this.keys[e.key.toLowerCase()] = false;
+  }
+
+  getPendingDodge() {
+    const d = this.pendingDodge;
+    this.pendingDodge = null;
+    return d;
   }
 
   onPointerDown(e) {

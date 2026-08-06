@@ -31,6 +31,12 @@ export class GameManager {
     this.voiceAnnouncer = new VoiceAnnouncer();
     this.achievementSystem = new AchievementSystem();
 
+    // AAA Upgrade States
+    this.selectedShipClass = 'INTERCEPTOR';
+    this.activePerks = new Set();
+    this.lowShieldWarningSoundTimer = 0;
+    this.glitchOverlayTimer = 0;
+
     // Stats
     this.planetHp = 100;
     this.maxPlanetHp = 100;
@@ -80,11 +86,29 @@ export class GameManager {
 
   startGame() {
     this.resetState();
+    if (this.selectedShipClass) {
+      this.playerShip.setShipClass(this.selectedShipClass);
+    } else {
+      this.playerShip.setShipClass('INTERCEPTOR');
+    }
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.state = 'PLAYING';
     this.waveSpawner.startWave(1);
     this.spaceAudio.ensureContext();
     this.spaceAudio.startDrone();
+  }
+
+  setSelectedShipClass(shipClass) {
+    this.selectedShipClass = shipClass;
+  }
+
+  triggerDodgeRoll(direction = null) {
+    if (this.state !== 'PLAYING') return;
+    if (!direction) {
+      direction = Math.random() < 0.5 ? 'left' : 'right';
+    }
+    this.playerShip.triggerDodge(direction);
+    this.spaceAudio.playDodgeSound();
   }
 
   resetState() {
@@ -95,6 +119,10 @@ export class GameManager {
     this.stasisTimer = 0;
     this.specialWeaponActive = false;
     this.pendingNukeOnWaveStart = false;
+    this.activePerks.clear();
+    if (this.playerShip) {
+      this.playerShip.activePerks.clear();
+    }
     this.playerShip.reset();
     this.waveSpawner.reset();
     this.clearAllEntities();
@@ -220,6 +248,11 @@ export class GameManager {
       this.stasisTimer = 6.0;
     } else if (type === 'NUKE') {
       this.particleManager.createEmpShockwave(this.playerShip.meshGroup.position, 60);
+      const canvasContainer = document.getElementById('canvas-container');
+      if (canvasContainer) {
+        canvasContainer.classList.add('camera-glitch');
+        setTimeout(() => { canvasContainer.classList.remove('camera-glitch'); }, 400);
+      }
       this.asteroids.forEach(a => {
         a.takeDamage(500);
         this.addScore(a.scoreValue);
@@ -235,20 +268,31 @@ export class GameManager {
   fireRapidLaser() {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0 || this.specialWeaponActive) return;
 
-    this.playerShip.laserCooldown = this.playerShip.laserFireDelay || 0.12;
+    let delay = this.playerShip.laserFireDelay || 0.12;
+    if (this.playerShip._dodgeBoostTimer > 0) {
+      delay *= 0.8;
+    }
+    this.playerShip.laserCooldown = delay;
+
     const pPos = this.playerShip.meshGroup.position;
+    const isCrit = this.activePerks.has('crit') && Math.random() < 0.20;
+    const color = isCrit ? 0xff0044 : (this.overchargeTimer > 0 ? 0xffea00 : 0x00f3ff);
 
     if (this.overchargeTimer > 0) {
-      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(3.0, 0, -0.4).add(pPos), 0xffea00));
-      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(1.0, 0, -0.4).add(pPos), 0xffea00));
-      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-1.0, 0, -0.4).add(pPos), 0xffea00));
-      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-3.0, 0, -0.4).add(pPos), 0xffea00));
+      const b1 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(3.0, 0, -0.4).add(pPos), color);
+      const b2 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(1.0, 0, -0.4).add(pPos), color);
+      const b3 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-1.0, 0, -0.4).add(pPos), color);
+      const b4 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-3.0, 0, -0.4).add(pPos), color);
+      if (isCrit) { b1.isCritical = true; b2.isCritical = true; b3.isCritical = true; b4.isCritical = true; }
+      this.lasers.push(b1, b2, b3, b4);
     } else {
-      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(2.0, 0, -0.4).add(pPos), 0x00f3ff));
-      this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-2.0, 0, -0.4).add(pPos), 0x00f3ff));
+      const b1 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(2.0, 0, -0.4).add(pPos), color);
+      const b2 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-2.0, 0, -0.4).add(pPos), color);
+      if (isCrit) { b1.isCritical = true; b2.isCritical = true; }
+      this.lasers.push(b1, b2);
     }
 
-    this.spaceAudio.playLaserPew();
+    this.spaceAudio.playLaserPew(pPos.x);
   }
 
 
@@ -302,6 +346,32 @@ export class GameManager {
 
   resumeFromHangar() {
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
+
+    const perks = this.getThreeRandomPerks();
+    if (this.spaceHUD) {
+      this.spaceHUD.showPerksModal(perks, (chosenPerk) => {
+        this.activePerks.add(chosenPerk.id);
+        this.playerShip.activePerks.add(chosenPerk.id);
+        this.executeWaveResume();
+      });
+    } else {
+      this.executeWaveResume();
+    }
+  }
+
+  getThreeRandomPerks() {
+    const pool = [
+      { id: 'piercing', name: 'PIERCING BEAM', desc: 'Main lasers pierce through small asteroids, dealing 50% damage to targets behind.' },
+      { id: 'siphon', name: 'NANO-SIPHON', desc: 'Destroying any enemy drone or capital cruiser restores +5 shield instantly.' },
+      { id: 'retaliate', name: 'RETALIATORY EMP', desc: 'Releases a localized 100-damage EMP shockwave when your shields are breached.' },
+      { id: 'magnet', name: 'SUPER MAGNETISM', desc: 'Tractor beam collection range is doubled for Tech Scrap drops.' },
+      { id: 'crit', name: 'CRITICAL CAPACITOR', desc: 'Lasers have a 20% chance to fire red critical bolts dealing 3x damage.' },
+      { id: 'dodge_boost', name: 'THRUST THRILLER', desc: 'Dodge roll cooldown is halved (1.5s). Dodging grants +20% fire rate for 2s.' }
+    ];
+    return pool.sort(() => 0.5 - Math.random()).slice(0, 3);
+  }
+
+  executeWaveResume() {
     this.state = 'PLAYING';
 
     if (this.pendingNukeOnWaveStart) {
@@ -349,6 +419,17 @@ export class GameManager {
       return;
     }
 
+    // Low shield warning beep sound
+    if (this.playerShip && this.playerShip.shield < this.playerShip.maxShield * 0.25 && this.playerShip.shield > 0) {
+      this.lowShieldWarningSoundTimer -= dt;
+      if (this.lowShieldWarningSoundTimer <= 0) {
+        this.spaceAudio.playLowShieldAlarm();
+        this.lowShieldWarningSoundTimer = 1.2;
+      }
+    } else {
+      this.lowShieldWarningSoundTimer = 0;
+    }
+
     // AAA Hit Freeze-Frame Micro-Stutter for heavy impacts
     if (this.hitFreezeTimer > 0) {
       this.hitFreezeTimer -= dt;
@@ -364,6 +445,10 @@ export class GameManager {
 
     // 1. Update Controls & Player Ship Movement
     const inputDir = this.controlsManager.getInputVector();
+    const pendingDodge = this.controlsManager.getPendingDodge();
+    if (pendingDodge) {
+      this.triggerDodgeRoll(pendingDodge);
+    }
     this.playerShip.update(dt, inputDir);
 
     // DEFAULT WEAPON AUTO-FIRE: Rapid Lasers fire continuously while playing
@@ -433,7 +518,7 @@ export class GameManager {
 
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pow = this.powerUps[i];
-      pow.update(dt, pPos);
+      pow.update(dt, this.playerShip);
       if (pow.isDead) {
         pow.destroy();
         this.powerUps.splice(i, 1);
