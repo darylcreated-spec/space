@@ -87,8 +87,8 @@ export class MoonBase {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 6750; // Increased by 50%
-    this.maxCoreHp = 6750;
+    this.coreHp = 750; // Reduced by 6000
+    this.maxCoreHp = 750;
     this.scoreValue = 40000;
     this.isDead = false;
     this.hitRadius = 27; // Reduced size by 25%

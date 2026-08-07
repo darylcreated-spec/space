@@ -92,6 +92,7 @@ export class GameManager {
       this.playerShip.setShipClass('INTERCEPTOR');
     }
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
+    this.playerShip.shield = this.playerShip.maxShield;
     this.state = 'PLAYING';
     this.waveSpawner.startWave(1);
     this.spaceAudio.ensureContext();
