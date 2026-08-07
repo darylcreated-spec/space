@@ -372,6 +372,24 @@ export class CollisionSystem {
 
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
+          
+          // Deflector shield vulnerable point collision check with Special Pulse
+          if (boss.hasShield && boss.vulnMesh && boss.vulnMesh.visible) {
+            const vulnWorldPos = boss.vulnMesh.getWorldPosition(new THREE.Vector3());
+            const distToVuln = pulsePos.distanceTo(vulnWorldPos);
+            if (distToVuln < pulse.aoeRadius + 3.0) {
+              boss.hasShield = false;
+              boss.vulnMesh.visible = false;
+              if (boss.vulnRing) boss.vulnRing.visible = false;
+              this.particleManager.createExplosion(vulnWorldPos, 0xff3300, 80, 3.5);
+              this.spaceAudio.playExplosion();
+              gameManager.voiceAnnouncer.speak("Moon Base deflector shields offline! Attack the core!", true);
+              if (gameManager.spaceHUD) {
+                gameManager.spaceHUD.showWaveBanner("SHIELD DOWN", "DEFLECTOR SHIELDS OFFLINE!");
+              }
+            }
+          }
+
           if (pulsePos.distanceTo(boss.meshGroup.position) < pulse.aoeRadius + 10) {
             const dead = boss.takeCoreDamage ? boss.takeCoreDamage(200) : boss.takeDamage('core', 200);
             if (dead) {

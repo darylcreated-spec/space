@@ -5,7 +5,7 @@ import { EnemyDrone } from '../objects/EnemyDrone.js';
 import { PowerUp } from '../objects/PowerUp.js';
 import { BossDreadnought } from '../objects/BossDreadnought.js';
 import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
-import { SpaceStation } from '../objects/SpaceStation.js';
+import { MoonBase } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { Babylon5Boss } from '../objects/Babylon5Boss.js';
 import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
@@ -215,8 +215,8 @@ export class GameManager {
   }
 
   spawnSpaceStation() {
-    this.activeBoss = new SpaceStation(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Warning! Sector Alpha Death Star Superweapon in Sight!", true);
+    this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Warning! Sector Alpha Moon Base in Sight!", true);
   }
 
   spawnHaloBoss() {

@@ -109,7 +109,7 @@ export class WaveSpawner {
       this.waveState = 'WAITING_CLEAR';
 
       if (this.currentWave === 1) {
-        // Wave 1: Star Wars Death Star Superweapon
+        // Wave 1: Sector Alpha Moon Base
         this.gameManager.spawnSpaceStation();
       } else if (this.currentWave === 2) {
         // Wave 2: Halo Megastructure Ring Boss

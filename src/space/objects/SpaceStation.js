@@ -76,7 +76,7 @@ const ShieldShader = {
       gl_FragColor = vec4(edgeCol * (2.5 + uHitTime * 4.0 + hexPattern * 0.5), alpha); }`
 };
 
-export class SpaceStation {
+export class MoonBase {
   constructor(scene, particleManager) {
     this.scene = scene;
     this.particleManager = particleManager;
@@ -87,11 +87,11 @@ export class SpaceStation {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 4500;
-    this.maxCoreHp = 4500;
+    this.coreHp = 6750; // Increased by 50%
+    this.maxCoreHp = 6750;
     this.scoreValue = 40000;
     this.isDead = false;
-    this.hitRadius = 36;
+    this.hitRadius = 27; // Reduced size by 25%
 
     // Phase system — changes attack pattern as HP drops
     this.phase = 1;
@@ -101,13 +101,16 @@ export class SpaceStation {
     this.phaseShieldTimer = 0;
     this.justPhaseTransitioned = false;
 
+    // Deflector shield state & vulnerable point configuration
+    this.hasShield = true;
+
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-22, 12, 16), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(22, 12, 16),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(-22, -12, 16), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(22, -12, 16),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(0, 26, 0),    hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(0, -26, 0),   hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
+      { id: 0, relPos: new THREE.Vector3(-16.5, 9, 12), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(16.5, 9, 12),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(-16.5, -9, 12), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(16.5, -9, 12),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(0, 19.5, 0),    hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(0, -19.5, 0),   hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
     ];
 
     this.shaderMaterials = [];
@@ -118,23 +121,23 @@ export class SpaceStation {
   }
 
   _build() {
-    const R = 30.0;
+    const R = 22.5;
     const normalMap = generateHullNormalMap();
 
     // ── 1. Dramatic 3-point lighting ──
     this.rimLight = new THREE.DirectionalLight(0xd0e8ff, 2.2);
-    this.rimLight.position.set(80, 50, -60);
+    this.rimLight.position.set(60, 37.5, -45);
     this.scene.add(this.rimLight);
 
     this.backLight = new THREE.DirectionalLight(0x002244, 0.5);
-    this.backLight.position.set(-60, -30, 40);
+    this.backLight.position.set(-45, -22.5, 30);
     this.scene.add(this.backLight);
 
     // Ambient fill
     this.ambLight = new THREE.AmbientLight(0x050d14, 0.5);
     this.scene.add(this.ambLight);
 
-    // ── 2. Main PBR Sphere Hull — flat-shaded for panelling effect ──
+    // ── 2. Main PBR Sphere Hull ──
     const hullGeo = new THREE.SphereGeometry(R, 48, 40);
     const hullMat = new THREE.MeshStandardMaterial({
       color: 0x16202e,
@@ -147,15 +150,15 @@ export class SpaceStation {
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 3. Equatorial Trench — the iconic Death Star ring ──
-    const trenchGeo = new THREE.TorusGeometry(R + 0.4, 3.0, 12, 100);
+    // ── 3. Equatorial Trench — the iconic Moon Base ring ──
+    const trenchGeo = new THREE.TorusGeometry(R + 0.3, 2.25, 12, 100);
     const trenchMat = new THREE.MeshStandardMaterial({
       color: 0x060c14, roughness: 0.9, metalness: 1.0, normalMap,
     });
     this.meshGroup.add(new THREE.Mesh(trenchGeo, trenchMat));
 
     // Scrolling conduit light in trench
-    const conduitGeo = new THREE.TorusGeometry(R + 0.5, 0.55, 10, 100);
+    const conduitGeo = new THREE.TorusGeometry(R + 0.375, 0.41, 10, 100);
     this.conduitMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(TrenchShader.uniforms),
       vertexShader: TrenchShader.vertexShader,
@@ -165,40 +168,40 @@ export class SpaceStation {
     this.meshGroup.add(new THREE.Mesh(conduitGeo, this.conduitMat));
 
     // 60° N sub-trench
-    const subTGeo = new THREE.TorusGeometry(R * 0.86 + 0.2, 1.2, 10, 80);
+    const subTGeo = new THREE.TorusGeometry(R * 0.86 + 0.15, 0.9, 10, 80);
     const subT = new THREE.Mesh(subTGeo, trenchMat);
     subT.rotation.x = Math.PI / 3.5;
     this.meshGroup.add(subT);
 
     // ── 4. Northern Superlaser Dish ──
     const dishGroup = new THREE.Group();
-    dishGroup.position.set(-7, 10, R - 2);
+    dishGroup.position.set(-5.25, 7.5, R - 1.5);
     dishGroup.rotation.y = -Math.PI / 10;
     dishGroup.rotation.x = Math.PI / 12;
     this.dishGroup = dishGroup;
 
-    // Dish rim — large and prominent
-    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(8.5, 1.5, 14, 36), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
-    dishGroup.position.set(-7, 10, R - 2);
+    // Dish rim
+    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(6.375, 1.125, 14, 36), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
+    dishGroup.position.set(-5.25, 7.5, R - 1.5);
 
     // Dish face
-    const dishFaceGeo = new THREE.CylinderGeometry(8.0, 6.0, 2.0, 28);
+    const dishFaceGeo = new THREE.CylinderGeometry(6.0, 4.5, 1.5, 28);
     dishFaceGeo.rotateX(Math.PI / 2);
     dishGroup.add(new THREE.Mesh(dishFaceGeo, new THREE.MeshStandardMaterial({ color: 0x08101a, roughness: 0.2, metalness: 0.98 })));
 
     // 8 converging emitter beams
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      const beamGeo = new THREE.CylinderGeometry(0.18, 0.18, 7.0, 7);
+      const beamGeo = new THREE.CylinderGeometry(0.135, 0.135, 5.25, 7);
       const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 }));
-      beam.position.set(Math.cos(a) * 5.8, Math.sin(a) * 5.8, 0.5);
+      beam.position.set(Math.cos(a) * 4.35, Math.sin(a) * 4.35, 0.375);
       beam.rotation.z = a + Math.PI / 2;
       beam.rotation.x = Math.PI / 5;
       dishGroup.add(beam);
     }
 
     // Central churning plasma orb
-    const orbGeo = new THREE.SphereGeometry(2.5, 28, 28);
+    const orbGeo = new THREE.SphereGeometry(1.875, 28, 28);
     this.plasmaShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(PlasmaOrbShader.uniforms),
       vertexShader: PlasmaOrbShader.vertexShader,
@@ -206,25 +209,25 @@ export class SpaceStation {
     });
     this.shaderMaterials.push(this.plasmaShaderMat);
     this.coreMesh = new THREE.Mesh(orbGeo, this.plasmaShaderMat);
-    this.coreMesh.position.z = -0.5;
+    this.coreMesh.position.z = -0.375;
     dishGroup.add(this.coreMesh);
 
     this.meshGroup.add(dishGroup);
 
-    // Dish point light — very bright
+    // Dish point light
     this.superlightBoss = new THREE.PointLight(0x00ff44, 8.0, 100);
-    this.superlightBoss.position.set(-7, 10, R + 2);
+    this.superlightBoss.position.set(-5.25, 7.5, R + 1.5);
     this.meshGroup.add(this.superlightBoss);
 
     // ── 5. Superlaser Beam (visual, fires periodically) ──
-    const laserBeamGeo = new THREE.CylinderGeometry(0.6, 0.6, 80, 10);
+    const laserBeamGeo = new THREE.CylinderGeometry(0.45, 0.45, 60, 10);
     laserBeamGeo.rotateX(Math.PI / 2);
     this.laserBeamMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, transparent: true, opacity: 0.0 });
     this.laserBeam = new THREE.Mesh(laserBeamGeo, this.laserBeamMat);
-    this.laserBeam.position.set(-7, 10, R + 38);
+    this.laserBeam.position.set(-5.25, 7.5, R + 28.5);
     this.meshGroup.add(this.laserBeam);
 
-    const outerBeamGeo = new THREE.CylinderGeometry(1.4, 1.4, 80, 10);
+    const outerBeamGeo = new THREE.CylinderGeometry(1.05, 1.05, 60, 10);
     outerBeamGeo.rotateX(Math.PI / 2);
     this.outerBeamMat = new THREE.MeshBasicMaterial({ color: 0x88ffaa, transparent: true, opacity: 0.0 });
     this.outerBeam = new THREE.Mesh(outerBeamGeo, this.outerBeamMat);
@@ -232,7 +235,7 @@ export class SpaceStation {
     this.meshGroup.add(this.outerBeam);
 
     // ── 6. Fresnel Shield ──
-    const shieldGeo = new THREE.IcosahedronGeometry(R + 5.5, 4);
+    const shieldGeo = new THREE.IcosahedronGeometry(R + 4.125, 4);
     this.shieldShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
       vertexShader: ShieldShader.vertexShader,
@@ -245,10 +248,25 @@ export class SpaceStation {
     this.shieldRing = new THREE.Mesh(shieldGeo, this.shieldShaderMat);
     this.meshGroup.add(this.shieldRing);
 
-    // ── 7. Heavy Turrets — 6 total ──
-    const baseGeo = new THREE.BoxGeometry(4.0, 1.8, 4.0);
+    // ── 7. Shield Vulnerable Regulator Core ──
+    const vulnGeo = new THREE.SphereGeometry(2.0, 16, 16);
+    this.vulnMat = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.9 });
+    this.vulnMesh = new THREE.Mesh(vulnGeo, this.vulnMat);
+    this.vulnRelPos = new THREE.Vector3(12, -8, R - 1.5);
+    this.vulnMesh.position.copy(this.vulnRelPos);
+    this.meshGroup.add(this.vulnMesh);
+
+    const ringGeo = new THREE.TorusGeometry(3.0, 0.25, 8, 24);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    this.vulnRing = new THREE.Mesh(ringGeo, ringMat);
+    this.vulnRing.position.copy(this.vulnRelPos);
+    this.vulnRing.lookAt(new THREE.Vector3(0, 0, 1).add(this.vulnRelPos));
+    this.meshGroup.add(this.vulnRing);
+
+    // ── 8. Heavy Turrets ──
+    const baseGeo = new THREE.BoxGeometry(3.0, 1.35, 3.0);
     const baseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
-    const barrelGeo = new THREE.CylinderGeometry(0.35, 0.5, 4.5, 9);
+    const barrelGeo = new THREE.CylinderGeometry(0.26, 0.375, 3.375, 9);
     barrelGeo.rotateX(Math.PI / 2);
     this.barrelMat = new THREE.MeshStandardMaterial({
       color: 0x001100,
@@ -257,7 +275,7 @@ export class SpaceStation {
       roughness: 0.2,
       metalness: 0.8
     });
-    const turretRingGeo = new THREE.TorusGeometry(1.0, 0.25, 8, 16);
+    const turretRingGeo = new THREE.TorusGeometry(0.75, 0.1875, 8, 16);
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
@@ -266,9 +284,9 @@ export class SpaceStation {
       tGroup.add(new THREE.Mesh(turretRingGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 })));
 
       const bGroup = new THREE.Group();
-      [-0.9, 0.9].forEach(xOff => {
+      [-0.675, 0.675].forEach(xOff => {
         const b = new THREE.Mesh(barrelGeo, this.barrelMat);
-        b.position.set(xOff, 0.7, 1.5);
+        b.position.set(xOff, 0.525, 1.125);
         bGroup.add(b);
       });
       tGroup.add(bGroup);
@@ -292,6 +310,10 @@ export class SpaceStation {
   }
 
   takeCoreDamage(amount) {
+    if (this.hasShield) {
+      if (this.shieldShaderMat) this.shieldShaderMat.uniforms.uHitTime.value = 1.4;
+      return false;
+    }
     if (this.phaseShieldTimer > 0) return false;
 
     const activeTurrets = this.turrets.some(t => !t.isDead);
@@ -384,8 +406,19 @@ export class SpaceStation {
     this.meshGroup.rotation.y += 0.05 * dt;
 
     if (this.shieldRing) {
-      this.shieldRing.rotation.z += 0.55 * dt;
-      this.shieldRing.rotation.x += 0.32 * dt;
+      this.shieldRing.visible = this.hasShield;
+      if (this.hasShield) {
+        this.shieldRing.rotation.z += 0.55 * dt;
+        this.shieldRing.rotation.x += 0.32 * dt;
+      }
+    }
+
+    // Vulnerable Point indicator animation
+    if (this.vulnRing && this.vulnMesh && this.vulnMesh.visible) {
+      this.vulnRing.rotation.z += 1.8 * dt;
+      if (this.vulnMat) {
+        this.vulnMat.opacity = 0.5 + Math.sin(time * 8.0) * 0.4;
+      }
     }
 
     // Superlaser dish aim toward player
