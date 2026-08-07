@@ -128,9 +128,7 @@ export class CollisionSystem {
               gameManager.addScore(rock.scoreValue);
               gameManager.addScrap(15);
               gameManager.achievementSystem.recordAsteroidDestroyed();
-              if (gameManager.activePerks.has('siphon')) {
-                player.shield = Math.min(player.maxShield, player.shield + 5);
-              }
+              player.onKillHeal();
               const frags = rock.getSplitFragments();
               gameManager.spawnAsteroidFragments(frags);
             }
@@ -173,9 +171,7 @@ export class CollisionSystem {
               gameManager.addScore(drone.scoreValue);
               gameManager.addScrap(30);
               gameManager.achievementSystem.recordDroneKill();
-              if (gameManager.activePerks.has('siphon')) {
-                player.shield = Math.min(player.maxShield, player.shield + 5);
-              }
+              player.onKillHeal();
             }
 
             if (!gameManager.activePerks.has('piercing')) {
@@ -217,9 +213,7 @@ export class CollisionSystem {
                 gameManager.addScore(ship.scoreValue);
                 gameManager.addScrap(80);
                 gameManager.achievementSystem.recordDroneKill();
-                if (gameManager.activePerks.has('siphon')) {
-                  player.shield = Math.min(player.maxShield, player.shield + 5);
-                }
+                player.onKillHeal();
               }
 
               if (!gameManager.activePerks.has('piercing')) {
@@ -294,9 +288,7 @@ export class CollisionSystem {
                 gameManager.addScore(boss.scoreValue);
                 gameManager.addScrap(300);
                 gameManager.achievementSystem.recordBossKilled();
-                if (gameManager.activePerks.has('siphon')) {
-                  player.shield = Math.min(player.maxShield, player.shield + 5);
-                }
+                  player.onKillHeal();
               }
 
               if (!gameManager.activePerks.has('piercing')) {
@@ -455,9 +447,7 @@ export class CollisionSystem {
             gameManager.addScore(drone.scoreValue);
             gameManager.addScrap(30);
             gameManager.achievementSystem.recordDroneKill();
-            if (gameManager.activePerks.has('siphon')) {
-              player.shield = Math.min(player.maxShield, player.shield + 5);
-            }
+            player.onKillHeal();
           }
           break;
         }
@@ -480,9 +470,7 @@ export class CollisionSystem {
             gameManager.addScore(ship.scoreValue);
             gameManager.addScrap(80);
             gameManager.achievementSystem.recordDroneKill();
-            if (gameManager.activePerks.has('siphon')) {
-              player.shield = Math.min(player.maxShield, player.shield + 5);
-            }
+            player.onKillHeal();
           }
           break;
         }

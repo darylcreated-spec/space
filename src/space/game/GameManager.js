@@ -36,6 +36,11 @@ export class GameManager {
     this.activePerks = new Set();
     this.lowShieldWarningSoundTimer = 0;
     this.glitchOverlayTimer = 0;
+    
+    // Sentinel Companion states
+    this.sentinelDrone = null;
+    this.sentinelDroneWings = null;
+    this.sentinelDroneFireTimer = 0;
 
     // Stats
     this.planetHp = 100;
@@ -46,6 +51,7 @@ export class GameManager {
 
     // Active Entities
     this.playerShip = new PlayerShip(this.spaceScene.scene, this.particleManager);
+    this.playerShip.gameManager = this;
     this.asteroids = [];
     this.drones = [];
     this.capitalShips = [];
@@ -154,6 +160,7 @@ export class GameManager {
     }
 
     this.activeEmpPulse = null;
+    this.destroySentinelDrone();
   }
 
   triggerHitFreeze(duration = 0.04) {
@@ -526,6 +533,16 @@ export class GameManager {
       }
     }
 
+    // Update Sentinel Companion Drone
+    if (this.playerShip && this.playerShip.shipClass === 'SENTINEL') {
+      if (!this.sentinelDrone) {
+        this.spawnSentinelDrone();
+      }
+      this.updateSentinelDrone(effectiveDt);
+    } else {
+      this.destroySentinelDrone();
+    }
+
     if (this.activeBoss && !this.activeBoss.isDead) {
       const salvo = this.activeBoss.update(effectiveDt, pPos);
       
@@ -604,5 +621,118 @@ export class GameManager {
     this.spaceScene.update(dt, this.playerShip.velocity);
     this.particleManager.update();
     this.renderScene();
+  }
+
+  spawnSentinelDrone() {
+    const droneGroup = new THREE.Group();
+    
+    // Drone Core Spherical hull
+    const coreGeo = new THREE.SphereGeometry(0.55, 12, 12);
+    const coreMat = new THREE.MeshStandardMaterial({
+      color: 0x0c1e30,
+      roughness: 0.3,
+      metalness: 0.9,
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    droneGroup.add(core);
+
+    // Glowing sensor eye
+    const eyeGeo = new THREE.SphereGeometry(0.18, 8, 8);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(0, 0, -0.45);
+    droneGroup.add(eye);
+
+    // Rotating wings
+    const wingGeo = new THREE.BoxGeometry(1.6, 0.08, 0.4);
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x0055ff, metalness: 0.8, roughness: 0.2 });
+    const wings = new THREE.Mesh(wingGeo, wingMat);
+    wings.position.set(0, 0, 0);
+    droneGroup.add(wings);
+    this.sentinelDroneWings = wings;
+
+    // Point light glow
+    const light = new THREE.PointLight(0x00f3ff, 1.5, 8);
+    droneGroup.add(light);
+
+    const pPos = this.playerShip.meshGroup.position;
+    droneGroup.position.copy(pPos).add(new THREE.Vector3(4, 2, -1));
+
+    this.spaceScene.scene.add(droneGroup);
+    this.sentinelDrone = droneGroup;
+    this.sentinelDroneFireTimer = 1.0;
+  }
+
+  destroySentinelDrone() {
+    if (this.sentinelDrone) {
+      this.spaceScene.scene.remove(this.sentinelDrone);
+      this.sentinelDrone.traverse(child => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+      });
+      this.sentinelDrone = null;
+      this.sentinelDroneWings = null;
+    }
+  }
+
+  updateSentinelDrone(dt) {
+    if (!this.sentinelDrone || !this.playerShip || !this.playerShip.meshGroup) return;
+
+    const pPos = this.playerShip.meshGroup.position;
+    const time = performance.now() * 0.001;
+
+    // Smooth orbiting follow logic
+    const angle = time * 2.2;
+    const targetPos = new THREE.Vector3(
+      pPos.x + Math.cos(angle) * 3.5,
+      pPos.y + Math.sin(angle * 0.5) * 1.5 + 1.2,
+      pPos.z - 1.0
+    );
+    this.sentinelDrone.position.lerp(targetPos, 0.08);
+
+    // Rotate wings
+    if (this.sentinelDroneWings) {
+      this.sentinelDroneWings.rotation.y += 2.0 * dt;
+    }
+
+    this.sentinelDrone.rotation.y = Math.sin(time) * 0.25;
+
+    // Firing logic
+    this.sentinelDroneFireTimer -= dt;
+    if (this.sentinelDroneFireTimer <= 0) {
+      this.sentinelDroneFireTimer = 2.5; // shoots every 2.5s
+
+      // Search closest threat (drone, capital ship, asteroid, or boss)
+      let closestTarget = null;
+      let minDist = 9999;
+      const threats = [...this.asteroids, ...this.drones, ...this.capitalShips];
+      if (this.activeBoss && !this.activeBoss.isDead) {
+        threats.push(this.activeBoss);
+      }
+
+      threats.forEach(t => {
+        if (t && t.meshGroup && !t.isDead) {
+          const dist = this.sentinelDrone.position.distanceTo(t.meshGroup.position);
+          if (dist < minDist) {
+            minDist = dist;
+            closestTarget = t;
+          }
+        }
+      });
+
+      // Aim and fire!
+      let fireDir = new THREE.Vector3(0, 0, -1);
+      if (closestTarget && closestTarget.meshGroup) {
+        fireDir.copy(closestTarget.meshGroup.position).sub(this.sentinelDrone.position).normalize();
+      }
+
+      const bolt = new LaserBolt(this.spaceScene.scene, this.sentinelDrone.position.clone(), 0x00f3ff);
+      bolt.velocity.copy(fireDir).multiplyScalar(58);
+      this.lasers.push(bolt);
+
+      // Trigger visual/audio feedback
+      this.particleManager.createExplosion(this.sentinelDrone.position, 0x00f3ff, 5, 0.4);
+      this.spaceAudio.playLaserPew(this.sentinelDrone.position.x);
+    }
   }
 }

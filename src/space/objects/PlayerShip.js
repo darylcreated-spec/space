@@ -278,6 +278,38 @@ export class PlayerShip {
       if (this.engineLight) this.engineLight.color.setHex(green);
       if (this.noseLight) this.noseLight.color.setHex(green);
       if (this.shieldMat) this.shieldMat.color.setHex(green);
+    } else if (className === 'REAPER') {
+      this.maxShield = 90;
+      this.speed = 30;
+      this.laserFireDelay = 0.10;
+
+      const purple = 0x8800ff;
+      const magenta = 0xff00bb;
+      if (this.canopyMat) { this.canopyMat.color.setHex(purple); this.canopyMat.emissive.setHex(magenta); }
+      if (this.edgeMat) this.edgeMat.color.setHex(purple);
+      if (this.muzzleMat) this.muzzleMat.color.setHex(purple);
+      if (this.glowRingMat) this.glowRingMat.color.setHex(purple);
+      if (this.flameMat) this.flameMat.color.setHex(purple);
+      if (this.flameOuterMat) this.flameOuterMat.color.setHex(magenta);
+      if (this.engineLight) this.engineLight.color.setHex(purple);
+      if (this.noseLight) this.noseLight.color.setHex(purple);
+      if (this.shieldMat) this.shieldMat.color.setHex(purple);
+    } else if (className === 'SENTINEL') {
+      this.maxShield = 120;
+      this.speed = 25;
+      this.laserFireDelay = 0.13;
+
+      const cyan = 0x00f3ff;
+      const blue = 0x0044ff;
+      if (this.canopyMat) { this.canopyMat.color.setHex(cyan); this.canopyMat.emissive.setHex(blue); }
+      if (this.edgeMat) this.edgeMat.color.setHex(cyan);
+      if (this.muzzleMat) this.muzzleMat.color.setHex(cyan);
+      if (this.glowRingMat) this.glowRingMat.color.setHex(cyan);
+      if (this.flameMat) this.flameMat.color.setHex(cyan);
+      if (this.flameOuterMat) this.flameOuterMat.color.setHex(blue);
+      if (this.engineLight) this.engineLight.color.setHex(cyan);
+      if (this.noseLight) this.noseLight.color.setHex(cyan);
+      if (this.shieldMat) this.shieldMat.color.setHex(cyan);
     }
     this.shield = this.maxShield;
   }
@@ -312,6 +344,19 @@ export class PlayerShip {
     this.pulseCooldown = 0;
     this.shieldRippleTimer = 0;
     if (this.shieldMat) this.shieldMat.opacity = 0.0;
+  }
+
+  onKillHeal() {
+    let heal = 0;
+    if (this.gameManager && this.gameManager.activePerks.has('siphon')) {
+      heal += 5;
+    }
+    if (this.shipClass === 'REAPER') {
+      heal += 2;
+    }
+    if (heal > 0) {
+      this.shield = Math.min(this.maxShield, this.shield + heal);
+    }
   }
 
   update(dt, inputDir = { x: 0, y: 0 }) {

@@ -59,6 +59,8 @@ export class SpaceHUD {
     this.btnSelectInterceptor = document.getElementById('btn-select-interceptor');
     this.btnSelectDreadnought = document.getElementById('btn-select-dreadnought');
     this.btnSelectTactician = document.getElementById('btn-select-tactician');
+    this.btnSelectReaper = document.getElementById('btn-select-reaper');
+    this.btnSelectSentinel = document.getElementById('btn-select-sentinel');
     this.btnDodgeRoll = document.getElementById('btn-dodge-roll');
     this.modalPerks = document.getElementById('space-modal-perks');
     this.perkCardsContainer = document.getElementById('perk-cards-container');
@@ -87,7 +89,13 @@ export class SpaceHUD {
     };
 
     const selectShip = (selectedBtn, className) => {
-      [this.btnSelectInterceptor, this.btnSelectDreadnought, this.btnSelectTactician].forEach(btn => {
+      [
+        this.btnSelectInterceptor,
+        this.btnSelectDreadnought,
+        this.btnSelectTactician,
+        this.btnSelectReaper,
+        this.btnSelectSentinel
+      ].forEach(btn => {
         if (btn) {
           btn.classList.remove('active');
           btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
@@ -122,6 +130,18 @@ export class SpaceHUD {
       this.btnSelectTactician.addEventListener('click', (e) => {
         e.stopPropagation();
         selectShip(this.btnSelectTactician, 'TACTICIAN');
+      });
+    }
+    if (this.btnSelectReaper) {
+      this.btnSelectReaper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShip(this.btnSelectReaper, 'REAPER');
+      });
+    }
+    if (this.btnSelectSentinel) {
+      this.btnSelectSentinel.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectShip(this.btnSelectSentinel, 'SENTINEL');
       });
     }
 
