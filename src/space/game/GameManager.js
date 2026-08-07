@@ -163,6 +163,26 @@ export class GameManager {
     this.destroySentinelDrone();
   }
 
+  clearAllThreats() {
+    this.asteroids.forEach(a => {
+      if (a.meshGroup) this.particleManager.createExplosion(a.meshGroup.position, 0xffaa00, 10);
+      a.destroy();
+    });
+    this.asteroids = [];
+
+    this.drones.forEach(d => {
+      if (d.meshGroup) this.particleManager.createExplosion(d.meshGroup.position, 0xff0055, 12);
+      d.destroy();
+    });
+    this.drones = [];
+
+    this.capitalShips.forEach(c => {
+      if (c.meshGroup) this.particleManager.createExplosion(c.meshGroup.position, 0x00aaff, 20);
+      c.destroy();
+    });
+    this.capitalShips = [];
+  }
+
   triggerHitFreeze(duration = 0.04) {
     this.hitFreezeTimer = duration;
   }
@@ -571,6 +591,7 @@ export class GameManager {
     } else if (this.activeBoss && this.activeBoss.isDead) {
       this.activeBoss.destroy();
       this.activeBoss = null;
+      this.clearAllThreats();
     }
 
     for (let i = this.lasers.length - 1; i >= 0; i--) {
