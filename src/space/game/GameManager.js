@@ -790,8 +790,13 @@ export class GameManager {
         fireDir.copy(closestTarget.meshGroup.position).sub(this.sentinelDrone.position).normalize();
       }
 
-      const bolt = new LaserBolt(this.spaceScene.scene, this.sentinelDrone.position.clone(), 0x00f3ff);
-      bolt.velocity.copy(fireDir).multiplyScalar(58);
+      const bolt = new LaserBolt(
+        this.spaceScene.scene,
+        this.sentinelDrone.position.clone(),
+        0x00f3ff,
+        false,
+        fireDir
+      );
       this.lasers.push(bolt);
 
       // Trigger visual/audio feedback
