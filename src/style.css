@@ -1043,4 +1043,38 @@ html, body {
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
 }
 
+/* Mobile browser scrollable GUI overrides */
+@media (max-width: 1024px) {
+  html.gui-active, body.gui-active {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    touch-action: pan-y !important;
+    height: auto !important;
+    min-height: 100%;
+  }
+
+  /* Allow overlays to scroll when taller than viewport */
+  .gui-active .modal-overlay {
+    position: absolute !important;
+    min-height: 100%;
+    height: auto !important;
+    overflow-y: auto !important;
+    touch-action: pan-y !important;
+    display: flex !important;
+    align-items: flex-start !important; /* Top-align card so user can scroll down to see the whole card */
+    padding: 2rem 1rem !important;
+  }
+
+  .gui-active .modal-card {
+    margin: 2rem auto !important;
+    touch-action: pan-y !important;
+    max-height: none !important; /* Don't restrict height so we can scroll the whole page */
+  }
+
+  /* Maintain bottom alignment for Hangar drawer but let it scroll if needed */
+  .gui-active #space-modal-hangar {
+    align-items: flex-end !important;
+  }
+}
+
 

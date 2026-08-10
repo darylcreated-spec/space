@@ -75,6 +75,34 @@ export class GameManager {
     this.waveSpawner = new WaveSpawner(this);
 
     this.spaceHUD = null;
+    
+    // Dynamically update scroll behavior on resize (e.g. rotating device or resizing desktop tester)
+    window.addEventListener('resize', () => this.updateBodyGuiClass());
+  }
+
+  get state() {
+    return this._state;
+  }
+
+  set state(val) {
+    this._state = val;
+    this.updateBodyGuiClass();
+  }
+
+  updateBodyGuiClass() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 1024;
+    if (isMobile) {
+      if (this._state !== 'PLAYING') {
+        document.documentElement.classList.add('gui-active');
+        document.body.classList.add('gui-active');
+      } else {
+        document.documentElement.classList.remove('gui-active');
+        document.body.classList.remove('gui-active');
+      }
+    } else {
+      document.documentElement.classList.remove('gui-active');
+      document.body.classList.remove('gui-active');
+    }
   }
 
   setHUD(hud) {
