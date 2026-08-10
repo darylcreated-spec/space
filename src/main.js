@@ -51,7 +51,11 @@ class OrbitalVanguardApp {
     if (isNaN(dt) || dt <= 0 || dt > 0.1) dt = 0.016;
     this.lastTime = timestamp;
 
-    this.spaceGameManager.update(dt);
+    try {
+      this.spaceGameManager.update(dt);
+    } catch (err) {
+      console.error('Game update error (frame survived):', err);
+    }
   }
 
   registerServiceWorker() {

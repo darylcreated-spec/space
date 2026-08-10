@@ -193,22 +193,33 @@ export class GameManager {
 
   clearAllThreats() {
     this.asteroids.forEach(a => {
-      if (a.meshGroup) this.particleManager.createExplosion(a.meshGroup.position, 0xffaa00, 10);
-      a.destroy();
+      if (a && a.meshGroup) this.particleManager.createExplosion(a.meshGroup.position, 0xffaa00, 10);
+      try { a.destroy(); } catch(e) { /* already disposed */ }
     });
     this.asteroids = [];
 
     this.drones.forEach(d => {
-      if (d.meshGroup) this.particleManager.createExplosion(d.meshGroup.position, 0xff0055, 12);
-      d.destroy();
+      if (d && d.meshGroup) this.particleManager.createExplosion(d.meshGroup.position, 0xff0055, 12);
+      try { d.destroy(); } catch(e) { /* already disposed */ }
     });
     this.drones = [];
 
     this.capitalShips.forEach(c => {
-      if (c.meshGroup) this.particleManager.createExplosion(c.meshGroup.position, 0x00aaff, 20);
-      c.destroy();
+      if (c && c.meshGroup) this.particleManager.createExplosion(c.meshGroup.position, 0x00aaff, 20);
+      try { c.destroy(); } catch(e) { /* already disposed */ }
     });
     this.capitalShips = [];
+
+    // Clear ALL in-flight projectiles (enemy lasers, plasma pulses) to prevent
+    // stale references after boss death / wave transition
+    this.lasers.forEach(l => { try { l.destroy(); } catch(e) {} });
+    this.lasers = [];
+
+    this.plasmaPulses.forEach(p => { try { p.destroy(); } catch(e) {} });
+    this.plasmaPulses = [];
+
+    this.powerUps.forEach(p => { try { p.destroy(); } catch(e) {} });
+    this.powerUps = [];
   }
 
   triggerHitFreeze(duration = 0.04) {
@@ -529,6 +540,7 @@ export class GameManager {
     // 3. Update Entities
     for (let i = this.asteroids.length - 1; i >= 0; i--) {
       const rock = this.asteroids[i];
+      if (!rock || !rock.meshGroup) { this.asteroids.splice(i, 1); continue; }
       rock.update(effectiveDt);
       if (rock.isDead) {
         rock.destroy();
@@ -540,9 +552,10 @@ export class GameManager {
 
     for (let i = 0; i < this.drones.length; i++) {
       const drone = this.drones[i];
+      if (!drone || drone.isDead || !drone.meshGroup) continue;
       const firePlasma = drone.update(effectiveDt, pPos);
 
-      if (firePlasma) {
+      if (firePlasma && drone.meshGroup) {
         const dPos = drone.meshGroup.position;
         const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
         this.lasers.push(new LaserBolt(this.spaceScene.scene, dPos, 0xff0055, true, targetDir));
@@ -561,6 +574,7 @@ export class GameManager {
     // Update Capital Ships
     for (let i = 0; i < this.capitalShips.length; i++) {
       const ship = this.capitalShips[i];
+      if (!ship || ship.isDead || !ship.meshGroup) continue;
       const firePositions = ship.update(effectiveDt, pPos);
 
       if (firePositions && Array.isArray(firePositions)) {
@@ -582,6 +596,7 @@ export class GameManager {
 
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pow = this.powerUps[i];
+      if (!pow || !pow.meshGroup) { this.powerUps.splice(i, 1); continue; }
       pow.update(dt, this.playerShip);
       if (pow.isDead) {
         pow.destroy();
@@ -639,6 +654,7 @@ export class GameManager {
 
     for (let i = this.lasers.length - 1; i >= 0; i--) {
       const laser = this.lasers[i];
+      if (!laser || !laser.meshGroup) { this.lasers.splice(i, 1); continue; }
       laser.update(dt);
       if (laser.isDead) {
         laser.destroy();
@@ -648,6 +664,7 @@ export class GameManager {
 
     for (let i = this.plasmaPulses.length - 1; i >= 0; i--) {
       const pulse = this.plasmaPulses[i];
+      if (!pulse || !pulse.meshGroup) { this.plasmaPulses.splice(i, 1); continue; }
       pulse.update(dt);
       if (pulse.isDead) {
         pulse.destroy();
