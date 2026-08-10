@@ -342,7 +342,6 @@ export class CollisionSystem {
           boss.vulnMesh.updateMatrixWorld(true);
           const vulnWorldPos = boss.vulnMesh.getWorldPosition(new THREE.Vector3());
           const distToVuln = pulsePos.distanceTo(vulnWorldPos);
-          console.log("[CollisionSystem] pulsePos:", pulsePos.clone(), "vulnWorldPos:", vulnWorldPos.clone(), "distToVuln:", distToVuln);
           if (distToVuln < 22) { // Direct hit or close AoE hit on the regulator core
             boss.hasShield = false;
             boss.vulnMesh.visible = false;

@@ -21,11 +21,11 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 2; // Temporary test value
+      this.totalToSpawnInWave = 30; // Full Wave 1: asteroid corridor + drone attacks
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 45; // Longer Wave 2
+      this.totalToSpawnInWave = 45; // Wave 2: heavier assault
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 60; // Longer Wave 3
+      this.totalToSpawnInWave = 60; // Wave 3: final siege
     } else {
       this.totalToSpawnInWave = 60 + (this.currentWave - 3) * 10;
     }
