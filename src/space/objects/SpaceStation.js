@@ -87,8 +87,8 @@ export class MoonBase {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 750; // Reduced by 6000
-    this.maxCoreHp = 750;
+    this.coreHp = 1; // Temporary test value
+    this.maxCoreHp = 1;
     this.scoreValue = 40000;
     this.isDead = false;
     this.hitRadius = 27; // Reduced size by 25%
@@ -366,6 +366,7 @@ export class MoonBase {
   }
 
   destroy() {
+    this.isDead = true; // Ensure isDead is set before clearing timers
     this.clearAllTimers();
     if (this.rimLight) this.scene.remove(this.rimLight);
     if (this.backLight) this.scene.remove(this.backLight);
@@ -375,9 +376,20 @@ export class MoonBase {
       if (c.geometry) c.geometry.dispose();
       if (c.material) c.material.dispose();
     });
+    // Null out material references so async callbacks can detect disposal
+    this.laserBeamMat = null;
+    this.outerBeamMat = null;
+    this.shieldShaderMat = null;
+    this.plasmaShaderMat = null;
+    this.conduitMat = null;
+    this.vulnMat = null;
+    this.barrelMat = null;
   }
 
   update(dt, playerPos) {
+    // If already dead, don't update anything — materials may be disposed
+    if (this.isDead) return [];
+
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) this.meshGroup.position.z += this.speed * dt;
 
@@ -475,6 +487,12 @@ export class MoonBase {
     if (!this.laserBeamMat || !this.outerBeamMat) return;
     let alpha = 0;
     const chargeUp = setInterval(() => {
+      // Guard: stop if boss was destroyed while this interval was in flight
+      if (this.isDead || !this.laserBeamMat || !this.outerBeamMat) {
+        clearInterval(chargeUp);
+        this.superlaserfiring = false;
+        return;
+      }
       alpha += 0.08;
       this.laserBeamMat.opacity = Math.min(alpha, 0.95);
       this.outerBeamMat.opacity = Math.min(alpha * 0.5, 0.4);
@@ -484,10 +502,21 @@ export class MoonBase {
         if (idx > -1) this.activeIntervals.splice(idx, 1);
 
         const timeoutId = setTimeout(() => {
+          // Guard: stop if boss was destroyed during the hold phase
+          if (this.isDead || !this.laserBeamMat || !this.outerBeamMat) {
+            this.superlaserfiring = false;
+            return;
+          }
           const tIdx = this.activeTimeouts.indexOf(timeoutId);
           if (tIdx > -1) this.activeTimeouts.splice(tIdx, 1);
 
           const fadeOut = setInterval(() => {
+            // Guard: stop if boss was destroyed during fade-out
+            if (this.isDead || !this.laserBeamMat || !this.outerBeamMat) {
+              clearInterval(fadeOut);
+              this.superlaserfiring = false;
+              return;
+            }
             alpha -= 0.04;
             this.laserBeamMat.opacity = Math.max(0, alpha);
             this.outerBeamMat.opacity = Math.max(0, alpha * 0.4);

@@ -12,28 +12,45 @@ export class PostProcessing {
     // Detect mobile device
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    if (!this.isMobile) {
-      try {
-        this.composer = new EffectComposer(this.renderer);
-        const renderPass = new RenderPass(this.scene, this.camera);
-        this.composer.addPass(renderPass);
+    const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
+    const useBloom = savedQuality ? (savedQuality === 'high') : !this.isMobile;
 
-        this.bloomPass = new UnrealBloomPass(
-          new THREE.Vector2(window.innerWidth, window.innerHeight),
-          0.7,  // bloom strength
-          0.4,  // radius
-          0.05  // threshold
-        );
-        this.composer.addPass(this.bloomPass);
-      } catch (e) {
-        console.warn('EffectComposer init fallback to direct WebGL render:', e);
-        this.composer = null;
-      }
+    if (useBloom) {
+      this._initComposer();
     } else {
       this.composer = null;
     }
 
     window.addEventListener('resize', this.onResize.bind(this));
+  }
+
+  _initComposer() {
+    try {
+      this.composer = new EffectComposer(this.renderer);
+      const renderPass = new RenderPass(this.scene, this.camera);
+      this.composer.addPass(renderPass);
+
+      this.bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.7,  // bloom strength
+        0.4,  // radius
+        0.05  // threshold
+      );
+      this.composer.addPass(this.bloomPass);
+    } catch (e) {
+      console.warn('EffectComposer init fallback to direct WebGL render:', e);
+      this.composer = null;
+    }
+  }
+
+  setGraphicsQuality(level) {
+    if (level === 'low') {
+      this.composer = null;
+    } else {
+      if (!this.composer) {
+        this._initComposer();
+      }
+    }
   }
 
   onResize() {

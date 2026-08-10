@@ -35,7 +35,7 @@ export class PlayerShip {
     this.dodgeTimer = 0;
     this.dodgeCooldown = 0;
     this.dodgeDirection = null;
-    this.isInvulnerable = false;
+    this.isInvulnerable = true; // Temporary test value
     this.tractorBeamLevel = 0;
     this.activePerks = new Set();
 

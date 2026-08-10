@@ -535,45 +535,122 @@ html, body {
   color: var(--accent-cyan);
 }
 
-/* Hangar Modal & Upgrade Grid */
-.hangar-card {
-  max-width: 650px;
+/* Hangar Modal bottom sliding drawer, column layouts & custom pips */
+#space-modal-hangar {
+  background: rgba(4, 6, 12, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+#space-modal-hangar .hangar-card {
+  width: 100%;
+  max-width: 900px;
+  height: auto;
+  max-height: 85vh;
+  margin: 0;
+  border-radius: 24px 24px 0 0;
+  border-top: 3px solid var(--accent-cyan);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
+  background: rgba(6, 8, 16, 0.94);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  box-shadow: 0 -15px 40px rgba(0, 243, 255, 0.25);
+  transform: translateY(100%);
+  transition: transform 0.45s cubic-bezier(0.19, 1, 0.22, 1);
+  padding: 2rem 2.5rem 3rem 2.5rem;
+  overflow-y: auto;
   text-align: center;
 }
 
+#space-modal-hangar:not(.hidden) .hangar-card {
+  transform: translateY(0);
+}
+
+.drawer-handle-bar {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  margin: -1rem auto 1.2rem auto;
+}
+
 .hangar-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.70rem;
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--text-muted);
+  text-transform: uppercase;
 }
 
 .hangar-scrap-bar {
-  background: rgba(0, 243, 255, 0.1);
-  border: 1px solid var(--accent-cyan);
-  padding: 0.6rem 1.2rem;
-  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 243, 255, 0.18);
+  padding: 0.8rem 1.5rem;
+  border-radius: 16px;
   font-family: var(--font-code);
-  font-size: 1.1rem;
-  color: var(--accent-yellow);
+  font-size: 1rem;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.03);
+  margin-bottom: 1.5rem;
 }
 
-.upgrade-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.hangar-layout-row {
+  display: flex;
+  gap: 2rem;
+  width: 100%;
+  text-align: left;
+}
+
+.hangar-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.column-title {
+  margin: 0 0 0.2rem 0;
+  font-family: var(--font-header);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.upgrade-grid-column {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
 }
 
 .upg-item {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1rem;
-  border-radius: 14px;
+  background: rgba(4, 6, 12, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 1.1rem;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  text-align: left;
+  gap: 12px;
+  transition: all 0.22s ease;
+  box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.01);
+}
+
+.upg-item:hover {
+  border-color: rgba(0, 243, 255, 0.25);
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.03), 0 4px 15px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
 .uinfo {
@@ -585,6 +662,15 @@ html, body {
 .utitle {
   font-size: 0.85rem;
   font-weight: 800;
+  color: #fff;
+  display: flex;
+  align-items: center;
+}
+
+.upg-svg-icon {
+  margin-right: 8px;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 5px rgba(0, 243, 255, 0.4));
 }
 
 .ulevel {
@@ -595,7 +681,37 @@ html, body {
 
 .upg-btn {
   font-size: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.6rem;
+  font-family: var(--font-header);
+  letter-spacing: 1px;
+}
+
+/* Custom premium progress pips inside items */
+.upgrade-pips {
+  display: flex;
+  gap: 4px;
+}
+
+.upg-pip {
+  width: 12px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1px;
+  transition: all 0.25s ease;
+}
+
+.upg-pip.active {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.85);
+}
+
+@media (max-width: 768px) {
+  .hangar-layout-row {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 }
 
 /* Space Start & GameOver Cards */
@@ -888,3 +1004,43 @@ html, body {
 .camera-glitch {
   animation: cameraGlitch 0.3s ease-out both;
 }
+
+/* Settings Segmented Controls & Buttons */
+.seg-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: #777;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: var(--font-header);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  transition: all 0.2s ease;
+}
+
+.seg-btn:hover {
+  color: #bbb;
+}
+
+.seg-btn.active {
+  background: var(--accent-cyan);
+  color: #000;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+}
+
+/* System Notch & Safe Area Support for Native Mobile Layouts */
+.hud-container {
+  padding-top: max(1.25rem, env(safe-area-inset-top, 1.25rem));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+  padding-left: max(1.25rem, env(safe-area-inset-left, 1.25rem));
+  padding-right: max(1.25rem, env(safe-area-inset-right, 1.25rem));
+}
+
+.modal-overlay {
+  padding-top: max(1.5rem, env(safe-area-inset-top, 1.5rem));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
+}
+
+

@@ -78,6 +78,37 @@ export class SpaceHUD {
     this.finalWave = document.getElementById('space-final-wave');
     this.finalKills = document.getElementById('space-final-kills');
     this.btnRestartGame = document.getElementById('btn-restart-space');
+
+    // Settings Modal cache
+    this.btnOpenSettings = document.getElementById('btn-open-settings');
+    this.modalSettings = document.getElementById('space-modal-settings');
+    this.btnCloseSettings = document.getElementById('btn-close-settings');
+    this.btnGraphicsLow = document.getElementById('btn-graphics-low');
+    this.btnGraphicsHigh = document.getElementById('btn-graphics-high');
+    this.btnVoiceOff = document.getElementById('btn-voice-off');
+    this.btnVoiceOn = document.getElementById('btn-voice-on');
+    this.btnStartSettings = document.getElementById('btn-start-settings');
+    this.btnExitGame = document.getElementById('btn-exit-game');
+
+    // Run platform detection & adjust UI settings for Vercel Web vs. Android Native
+    this.configurePlatformUI();
+  }
+
+  configurePlatformUI() {
+    this.isNativeApp = window.Capacitor || window.cordova || navigator.userAgent.includes('WV') || window.location.search.includes('platform=android');
+    
+    // Show native exit button in settings only for Android App
+    if (this.isNativeApp && this.btnExitGame) {
+      this.btnExitGame.classList.remove('hidden');
+    }
+
+    // Hide desktop keyboard indicators completely if running natively as an app
+    if (this.isNativeApp) {
+      const keyboardLegend = document.querySelector('.desktop-controls-hint');
+      if (keyboardLegend) {
+        keyboardLegend.style.display = 'none';
+      }
+    }
   }
 
   bindEvents() {
@@ -114,36 +145,27 @@ export class SpaceHUD {
       this.gameManager.setSelectedShipClass(className);
     };
 
-    if (this.btnSelectInterceptor) {
-      this.btnSelectInterceptor.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectShip(this.btnSelectInterceptor, 'INTERCEPTOR');
-      });
-    }
-    if (this.btnSelectDreadnought) {
-      this.btnSelectDreadnought.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectShip(this.btnSelectDreadnought, 'DREADNOUGHT');
-      });
-    }
-    if (this.btnSelectTactician) {
-      this.btnSelectTactician.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectShip(this.btnSelectTactician, 'TACTICIAN');
-      });
-    }
-    if (this.btnSelectReaper) {
-      this.btnSelectReaper.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectShip(this.btnSelectReaper, 'REAPER');
-      });
-    }
-    if (this.btnSelectSentinel) {
-      this.btnSelectSentinel.addEventListener('click', (e) => {
-        e.stopPropagation();
-        selectShip(this.btnSelectSentinel, 'SENTINEL');
-      });
-    }
+    const bindShipSelect = (btn, className) => {
+      if (btn) {
+        let triggered = false;
+        const handler = (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (triggered) return;
+          triggered = true;
+          setTimeout(() => { triggered = false; }, 300);
+          selectShip(btn, className);
+        };
+        btn.addEventListener('pointerdown', handler, { passive: false });
+        btn.addEventListener('click', handler);
+      }
+    };
+
+    bindShipSelect(this.btnSelectInterceptor, 'INTERCEPTOR');
+    bindShipSelect(this.btnSelectDreadnought, 'DREADNOUGHT');
+    bindShipSelect(this.btnSelectTactician, 'TACTICIAN');
+    bindShipSelect(this.btnSelectReaper, 'REAPER');
+    bindShipSelect(this.btnSelectSentinel, 'SENTINEL');
 
     if (this.btnDodgeRoll) {
       this.btnDodgeRoll.addEventListener('click', (e) => {
@@ -178,6 +200,74 @@ export class SpaceHUD {
       });
     }
 
+    if (this.btnOpenSettings) {
+      this.btnOpenSettings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showSettingsModal();
+      });
+    }
+
+    if (this.btnStartSettings) {
+      this.btnStartSettings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showSettingsModal();
+      });
+    }
+
+    if (this.btnCloseSettings) {
+      this.btnCloseSettings.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeSettingsModal();
+      });
+    }
+
+    if (this.btnExitGame) {
+      this.btnExitGame.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (navigator.app && navigator.app.exitApp) {
+          navigator.app.exitApp();
+        } else if (window.close) {
+          window.close();
+        } else {
+          window.location.href = 'about:blank';
+        }
+      });
+    }
+
+    if (this.btnGraphicsLow) {
+      this.btnGraphicsLow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        localStorage.setItem('orbital_vanguard_graphics_quality', 'low');
+        this.gameManager.postProcessing.setGraphicsQuality('low');
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnGraphicsHigh) {
+      this.btnGraphicsHigh.addEventListener('click', (e) => {
+        e.stopPropagation();
+        localStorage.setItem('orbital_vanguard_graphics_quality', 'high');
+        this.gameManager.postProcessing.setGraphicsQuality('high');
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnVoiceOff) {
+      this.btnVoiceOff.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.voiceAnnouncer.enabled = false;
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnVoiceOn) {
+      this.btnVoiceOn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.voiceAnnouncer.enabled = true;
+        this.updateSettingsUI();
+      });
+    }
+
     // Global Key Triggers
     window.addEventListener('keydown', (e) => {
       if (this.gameManager.state === 'START') {
@@ -194,6 +284,13 @@ export class SpaceHUD {
       if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
         this.gameManager.spaceAudio.vibrate(10);
         this.gameManager.spaceScene.toggleCameraMode();
+      }
+      if (e.code === 'Escape') {
+        if (this.modalSettings && !this.modalSettings.classList.contains('hidden')) {
+          this.closeSettingsModal();
+        } else {
+          this.showSettingsModal();
+        }
       }
     });
 
@@ -218,12 +315,32 @@ export class SpaceHUD {
       });
     }
 
+    // Stop event propagation inside panel cards so clicking inside them does not trigger backdrop pointerdowns
+    const stopCardProp = (selector) => {
+      const card = document.querySelector(selector);
+      if (card) {
+        ['pointerdown', 'mousedown', 'click'].forEach(evtName => {
+          card.addEventListener(evtName, (e) => e.stopPropagation());
+        });
+      }
+    };
+    stopCardProp('.space-start-card');
+    stopCardProp('.settings-card');
+    stopCardProp('.hangar-card');
+    stopCardProp('.perk-choice-card');
+    stopCardProp('.space-gameover-card');
+
     // Hangar Upgrade Buttons
     if (this.btnNextWave) {
       this.btnNextWave.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (this.modalHangar) this.modalHangar.classList.add('hidden');
-        this.gameManager.resumeFromHangar();
+        try {
+          e.stopPropagation();
+          if (this.modalHangar) this.modalHangar.classList.add('hidden');
+          this.gameManager.resumeFromHangar();
+        } catch (err) {
+          console.error("CRITICAL ERROR IN RESUME DEFENSE CLICK:", err);
+          alert("CRITICAL ERROR IN RESUME DEFENSE CLICK: " + err.message + "\n" + err.stack);
+        }
       });
     }
 
@@ -275,10 +392,14 @@ export class SpaceHUD {
   }
 
   showHangarModal(completedWaveNum, upgradeSystem) {
-    if (this.modalHangar) {
-      this.gameManager.state = 'HANGAR';
-      this.updateHangarUI(upgradeSystem);
-      this.modalHangar.classList.remove('hidden');
+    try {
+      if (this.modalHangar) {
+        this.gameManager.state = 'HANGAR';
+        this.updateHangarUI(upgradeSystem);
+        this.modalHangar.classList.remove('hidden');
+      }
+    } catch (err) {
+      console.error("Error in showHangarModal UI code:", err);
     }
   }
 
@@ -289,7 +410,14 @@ export class SpaceHUD {
       const lvl = upgradeSystem.upgrades[type] || 0;
       const cost = upgradeSystem.getCost(type);
 
-      if (lvlSpan) lvlSpan.textContent = `Lvl ${lvl} / 5`;
+      if (lvlSpan) {
+        let pipsHtml = `<div class="upgrade-pips" title="Lvl ${lvl} / 5">`;
+        for (let i = 1; i <= 5; i++) {
+          pipsHtml += `<span class="upg-pip ${i <= lvl ? 'active' : ''}"></span>`;
+        }
+        pipsHtml += '</div>';
+        lvlSpan.innerHTML = pipsHtml;
+      }
       if (btn) {
         if (lvl >= upgradeSystem.maxLevel) {
           btn.textContent = 'MAX LEVEL';
@@ -314,15 +442,19 @@ export class SpaceHUD {
   }
 
   showAchievementToast(ach) {
-    if (this.toastElem) {
-      this.achIcon.textContent = ach.icon;
-      this.achTitle.textContent = ach.title;
-      this.achDesc.textContent = ach.desc;
+    try {
+      if (this.toastElem) {
+        if (this.achIcon) this.achIcon.textContent = ach.icon || '🏆';
+        if (this.achTitle) this.achTitle.textContent = ach.title || '';
+        if (this.achDesc) this.achDesc.textContent = ach.desc || '';
 
-      this.toastElem.classList.remove('hidden');
-      setTimeout(() => {
-        this.toastElem.classList.add('hidden');
-      }, 4000);
+        this.toastElem.classList.remove('hidden');
+        setTimeout(() => {
+          if (this.toastElem) this.toastElem.classList.add('hidden');
+        }, 4000);
+      }
+    } catch (err) {
+      console.error("Error in showAchievementToast:", err);
     }
   }
 
@@ -412,17 +544,71 @@ export class SpaceHUD {
         <div class="perk-desc">${perk.desc}</div>
       `;
 
-      card.addEventListener('click', (e) => {
+      let triggered = false;
+      const selectPerkHandler = (e) => {
         e.stopPropagation();
+        e.preventDefault();
+        if (triggered) return;
+        triggered = true;
+        setTimeout(() => { triggered = false; }, 300);
         this.gameManager.spaceAudio.playPowerUpSound();
         this.modalPerks.classList.add('hidden');
         onSelectCallback(perk);
-      });
+      };
+      card.addEventListener('pointerdown', selectPerkHandler, { passive: false });
+      card.addEventListener('click', selectPerkHandler);
 
       this.perkCardsContainer.appendChild(card);
     });
 
     this.gameManager.state = 'PERK_SELECTION';
     this.modalPerks.classList.remove('hidden');
+  }
+
+  showSettingsModal() {
+    if (!this.modalSettings) return;
+    
+    this.prevHUDState = this.gameManager.state;
+    if (this.gameManager.state === 'PLAYING') {
+      this.gameManager.state = 'SETTINGS';
+    }
+    
+    this.updateSettingsUI();
+    this.modalSettings.classList.remove('hidden');
+  }
+
+  closeSettingsModal() {
+    if (!this.modalSettings) return;
+    this.modalSettings.classList.add('hidden');
+    
+    if (this.gameManager.state === 'SETTINGS') {
+      this.gameManager.state = this.prevHUDState || 'PLAYING';
+    }
+  }
+
+  updateSettingsUI() {
+    const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
+    const quality = savedQuality || (this.gameManager.postProcessing.isMobile ? 'low' : 'high');
+      
+    if (this.btnGraphicsLow && this.btnGraphicsHigh) {
+      if (quality === 'low') {
+        this.btnGraphicsLow.classList.add('active');
+        this.btnGraphicsHigh.classList.remove('active');
+      } else {
+        this.btnGraphicsLow.classList.remove('active');
+        this.btnGraphicsHigh.classList.add('active');
+      }
+    }
+
+    const voiceEnabled = this.gameManager.voiceAnnouncer.enabled;
+    if (this.btnVoiceOff && this.btnVoiceOn) {
+      if (voiceEnabled) {
+        this.btnVoiceOff.classList.remove('active');
+        this.btnVoiceOn.classList.add('active');
+      } else {
+        this.btnVoiceOff.classList.add('active');
+        this.btnVoiceOn.classList.remove('active');
+      }
+    }
   }
 }

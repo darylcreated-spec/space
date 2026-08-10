@@ -357,19 +357,27 @@ export class GameManager {
   }
 
   onWaveCompleted(completedWaveNum) {
-    this.spaceAudio.playVictoryArpeggio();
-    this.voiceAnnouncer.speak(`Wave ${completedWaveNum} Cleared!`, true);
+    try {
+      this.spaceAudio.playVictoryArpeggio();
+      this.voiceAnnouncer.speak(`Wave ${completedWaveNum} Cleared!`, true);
 
-    this.pendingNextWaveNum = completedWaveNum + 1;
+      this.pendingNextWaveNum = completedWaveNum + 1;
 
-    // Automatically open the Hangar Upgrade Modal so player can upgrade craft before next wave!
-    setTimeout(() => {
-      if (this.state === 'PLAYING') {
-        if (this.spaceHUD) {
-          this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem);
+      // Automatically open the Hangar Upgrade Modal so player can upgrade craft before next wave!
+      setTimeout(() => {
+        try {
+          if (this.state === 'PLAYING') {
+            if (this.spaceHUD) {
+              this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem);
+            }
+          }
+        } catch (innerErr) {
+          console.error("Error in showHangarModal timeout callback:", innerErr);
         }
-      }
-    }, 1200);
+      }, 1200);
+    } catch (err) {
+      console.error("Error in onWaveCompleted:", err);
+    }
   }
 
   resumeFromHangar() {
@@ -563,35 +571,42 @@ export class GameManager {
       this.destroySentinelDrone();
     }
 
-    if (this.activeBoss && !this.activeBoss.isDead) {
-      const salvo = this.activeBoss.update(effectiveDt, pPos);
-      
-      if (this.activeBoss.justPhaseTransitioned) {
-        this.activeBoss.justPhaseTransitioned = false;
-        this.voiceAnnouncer.speak("Warning! Boss shield overcharging!", true);
-        if (this.spaceHUD) {
-          this.spaceHUD.showWaveBanner("WARNING", "BOSS SHIELD OVERCHARGED!");
-        }
-      }
+    if (this.activeBoss) {
+      if (this.activeBoss.isDead) {
+        // Boss just died — destroy and null immediately so nothing accesses disposed materials
+        try { this.activeBoss.destroy(); } catch(e) { console.warn('Boss destroy error:', e); }
+        this.activeBoss = null;
+        this.clearAllThreats();
+      } else {
+        try {
+          const salvo = this.activeBoss.update(effectiveDt, pPos);
 
-      if (salvo) {
-        if (Array.isArray(salvo)) {
-          salvo.forEach(tPos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-            this.lasers.push(new LaserBolt(this.spaceScene.scene, tPos, 0xff0055, true, targetDir));
-          });
-        } else {
-          const bPos = this.activeBoss.meshGroup.position;
-          const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
-          this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir));
-          this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir));
+          if (this.activeBoss && this.activeBoss.justPhaseTransitioned) {
+            this.activeBoss.justPhaseTransitioned = false;
+            this.voiceAnnouncer.speak("Warning! Boss shield overcharging!", true);
+            if (this.spaceHUD) {
+              this.spaceHUD.showWaveBanner("WARNING", "BOSS SHIELD OVERCHARGED!");
+            }
+          }
+
+          if (salvo && this.activeBoss) {
+            if (Array.isArray(salvo)) {
+              salvo.forEach(tPos => {
+                const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+                this.lasers.push(new LaserBolt(this.spaceScene.scene, tPos, 0xff0055, true, targetDir));
+              });
+            } else if (salvo !== false) {
+              const bPos = this.activeBoss.meshGroup.position;
+              const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
+              this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir));
+              this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir));
+            }
+            this.spaceAudio.playLaserPew();
+          }
+        } catch(e) {
+          console.warn('Boss update error (suppressed):', e);
         }
-        this.spaceAudio.playLaserPew();
       }
-    } else if (this.activeBoss && this.activeBoss.isDead) {
-      this.activeBoss.destroy();
-      this.activeBoss = null;
-      this.clearAllThreats();
     }
 
     for (let i = this.lasers.length - 1; i >= 0; i--) {

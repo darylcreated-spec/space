@@ -115,6 +115,7 @@ export class CapitalShip {
       this.hullMat.emissive.setHex(0xff0044);
       this.hullMat.emissiveIntensity = 2.5;
       setTimeout(() => {
+        if (this.isDead) return;
         if (this.hullMat) {
           this.hullMat.emissive.setHex(0x000c1a);
           this.hullMat.emissiveIntensity = 0.4;

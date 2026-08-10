@@ -106,6 +106,10 @@
             <circle cx="12" cy="13" r="4"/>
           </svg>
         </button>
+
+        <button id="btn-open-settings" class="icon-btn" title="Open Game Settings">
+          <span>⚙️</span>
+        </button>
       </div>
     </header>
 
@@ -218,102 +222,116 @@
         </div>
       </div>
 
-      <button id="btn-start-space" class="btn-primary btn-start-game">ENGAGE DEFENSE →</button>
+      <div style="display: flex; gap: 12px; width: 100%;">
+        <button id="btn-start-space" class="btn-primary btn-start-game" style="flex: 2;">ENGAGE DEFENSE →</button>
+        <button id="btn-start-settings" class="btn-secondary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 12px; cursor: pointer; font-family: var(--font-header); font-weight: 800; font-size: 0.85rem; letter-spacing: 1px;">
+          <span>⚙️</span> SETTINGS
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- User-Triggered Hangar Ship Upgrades Modal -->
+  <!-- User-Triggered Hangar Ship Upgrades Modal Drawer -->
   <div id="space-modal-hangar" class="modal-overlay hidden">
     <div class="glass-panel modal-card hangar-card">
+      <!-- Drawer Handle Indicator -->
+      <div class="drawer-handle-bar"></div>
+
       <h2>🛠️ SHIP HANGAR UPGRADES</h2>
-      <p class="hangar-subtitle">SPEND SCRAP TO UPGRADE DEFENSE SYSTEMS</p>
+      <p class="hangar-subtitle" style="text-align: center; margin-bottom: 1.2rem;">SPEND TECH SCRAP TO INSTANTLY IMPROVE COCKPIT SYSTEMS</p>
 
       <div class="hangar-scrap-bar">
-        <span>TECH SCRAP AVAILABLE:</span>
-        <strong id="hangar-scrap-val">0</strong> ⚙️
+        <span style="font-family: var(--font-header); letter-spacing: 1.5px; font-size: 0.85rem; color: var(--text-muted);">TECH SCRAP AVAILABLE</span>
+        <div><strong id="hangar-scrap-val" style="color: var(--accent-cyan); font-size: 1.4rem;">0</strong> <span style="color: var(--accent-cyan); font-size: 1.2rem; vertical-align: middle;">⚙️</span></div>
       </div>
 
-      <div class="upgrade-grid">
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">🚀 Engine Thrust</span>
-            <span class="ulevel" id="upg-lvl-thrust">Lvl 0 / 5</span>
+      <div class="hangar-layout-row">
+        <!-- Left Column: CORE UPGRADES -->
+        <div class="hangar-column">
+          <h3 class="column-title">⚙️ CORE SHIP SYSTEM UPGRADES</h3>
+          <div class="upgrade-grid-column">
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2L4 9v7c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V9l-8-7zm0 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="var(--accent-cyan)"/></svg>Engine Thrust</span>
+                <span class="ulevel" id="upg-lvl-thrust"></span>
+              </div>
+              <button id="btn-buy-thrust" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+            </div>
+
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2L2 5v6c0 5.52 4.48 10 10 10s10-4.48 10-10V5l-10-3zm0 16c-3.87 0-7-3.13-7-7V6.78l7-2.1 7 2.1V11c0 3.87-3.13 7-7 7z" fill="var(--accent-cyan)"/></svg>Deflector Shield</span>
+                <span class="ulevel" id="upg-lvl-shield"></span>
+              </div>
+              <button id="btn-buy-shield" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+            </div>
+
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M2 13h10v2H2zm0-4h10v2H2zm12-4v14h6v-2h-4V7h4V5z" fill="var(--accent-cyan)"/></svg>Plasma Capacitors</span>
+                <span class="ulevel" id="upg-lvl-lasers"></span>
+              </div>
+              <button id="btn-buy-lasers" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+            </div>
+
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="var(--accent-cyan)"/></svg>EMP Recharge</span>
+                <span class="ulevel" id="upg-lvl-emp"></span>
+              </div>
+              <button id="btn-buy-emp" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+            </div>
+
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="var(--accent-cyan)"/></svg>Tractor Magnet</span>
+                <span class="ulevel" id="upg-lvl-magnet"></span>
+              </div>
+              <button id="btn-buy-magnet" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+            </div>
           </div>
-          <button id="btn-buy-thrust" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
         </div>
 
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">🛡️ Deflector Shield Matrix</span>
-            <span class="ulevel" id="upg-lvl-shield">Lvl 0 / 5</span>
-          </div>
-          <button id="btn-buy-shield" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
-        </div>
+        <!-- Right Column: BATTLE BOOSTS -->
+        <div class="hangar-column">
+          <h3 class="column-title">💥 SINGLE-WAVE TACTICAL BOOSTS</h3>
+          <div class="upgrade-grid-column">
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#00ff66"/></svg>Nano-Repair Grid</span>
+                <span class="ulevel" style="color: #00ff66;">+50 Shield</span>
+              </div>
+              <button id="btn-buy-repair" class="btn-secondary upg-btn">BUY (100 Scrap)</button>
+            </div>
 
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">💥 Plasma Capacitors</span>
-            <span class="ulevel" id="upg-lvl-lasers">Lvl 0 / 5</span>
-          </div>
-          <button id="btn-buy-lasers" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
-        </div>
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M7 2v11h3v9l7-12h-4l3-8z" fill="#ffea00"/></svg>Weapon Overcharge</span>
+                <span class="ulevel" style="color: #ffea00;">8s Super Fire</span>
+              </div>
+              <button id="btn-buy-overcharge" class="btn-secondary upg-btn">BUY (120 Scrap)</button>
+            </div>
 
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">⚡ EMP Recharge Subsystem</span>
-            <span class="ulevel" id="upg-lvl-emp">Lvl 0 / 5</span>
-          </div>
-          <button id="btn-buy-emp" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
-        </div>
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#00aaff"/></svg>Stasis Matrix</span>
+                <span class="ulevel" style="color: #00aaff;">6s Slow Field</span>
+              </div>
+              <button id="btn-buy-stasis" class="btn-secondary upg-btn">BUY (150 Scrap)</button>
+            </div>
 
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">🧲 Scrap Tractor Beam</span>
-            <span class="ulevel" id="upg-lvl-magnet">Lvl 0 / 5</span>
+            <div class="upg-item">
+              <div class="uinfo">
+                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" fill="#ff0077"/></svg>Tactical Shockwave</span>
+                <span class="ulevel" style="color: #ff0077;">Screen-Wide EMP</span>
+              </div>
+              <button id="btn-buy-nuke" class="btn-secondary upg-btn">BUY (200 Scrap)</button>
+            </div>
           </div>
-          <button id="btn-buy-magnet" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
         </div>
       </div>
 
-      <div style="height: 1px; background: rgba(255, 255, 255, 0.15); margin: 1.5rem 0 1rem 0; width: 100%;"></div>
-      <h3 style="margin: 0 0 0.2rem 0; font-family: var(--font-header); font-size: 1.1rem; letter-spacing: 2px; color: var(--accent-cyan); text-align: left;">🛒 TACTICAL BATTLE BOOSTS</h3>
-      <p class="hangar-subtitle" style="margin-bottom: 0.8rem; text-align: left;">SINGLE-WAVE DEPLOYABLE WEAPONS & SYSTEMS</p>
-
-      <div class="upgrade-grid" style="margin-bottom: 1.5rem;">
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">💚 Nano-Repair Grid</span>
-            <span class="ulevel">+50 Shield</span>
-          </div>
-          <button id="btn-buy-repair" class="btn-secondary upg-btn">BUY (100 Scrap)</button>
-        </div>
-
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">💛 Weapon Overcharge</span>
-            <span class="ulevel">8s Supercharged Fire</span>
-          </div>
-          <button id="btn-buy-overcharge" class="btn-secondary upg-btn">BUY (120 Scrap)</button>
-        </div>
-
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">💙 Stasis Matrix</span>
-            <span class="ulevel">6s Slow Field</span>
-          </div>
-          <button id="btn-buy-stasis" class="btn-secondary upg-btn">BUY (150 Scrap)</button>
-        </div>
-
-        <div class="upg-item">
-          <div class="uinfo">
-            <span class="utitle">💖 Tactical Shockwave</span>
-            <span class="ulevel">Screen-Wide EMP</span>
-          </div>
-          <button id="btn-buy-nuke" class="btn-secondary upg-btn">BUY (200 Scrap)</button>
-        </div>
-      </div>
-
-      <button id="btn-next-wave" class="btn-primary">RESUME DEFENSE →</button>
+      <button id="btn-next-wave" class="btn-primary" style="margin-top: 2rem;">RESUME DEFENSE →</button>
     </div>
   </div>
 
@@ -325,6 +343,45 @@
       
       <div id="perk-cards-container" style="display: flex; gap: 14px; margin: 1.5rem 0; width: 100%;">
         <!-- Instantiated dynamically in SpaceHUD.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Space Settings Modal -->
+  <div id="space-modal-settings" class="modal-overlay hidden">
+    <div class="glass-panel modal-card settings-card" style="max-width: 480px;">
+      <h2>⚙️ GAME SETTINGS</h2>
+      <p class="hangar-subtitle" style="text-align: center;">ADJUST AUDIO AND GRAPHICS OPTIONS</p>
+
+      <div class="settings-content" style="margin: 1.5rem 0; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+        <!-- Graphics Toggle -->
+        <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="color: #fff; font-size: 0.95rem; display: block; font-family: var(--font-header);">Graphics Quality</strong>
+            <span style="font-size: 0.70rem; color: #aaa;">High enables glowing bloom shaders (CPU/GPU intensive)</span>
+          </div>
+          <div class="segmented-control" style="display: flex; background: rgba(0,0,0,0.4); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+            <button id="btn-graphics-low" class="seg-btn">LOW</button>
+            <button id="btn-graphics-high" class="seg-btn">HIGH</button>
+          </div>
+        </div>
+
+        <!-- Audio Toggle -->
+        <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="color: #fff; font-size: 0.95rem; display: block; font-family: var(--font-header);">Voice Announcer</strong>
+            <span style="font-size: 0.70rem; color: #aaa;">Tactical speech cues on wave transitions</span>
+          </div>
+          <div class="segmented-control" style="display: flex; background: rgba(0,0,0,0.4); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+            <button id="btn-voice-off" class="seg-btn">OFF</button>
+            <button id="btn-voice-on" class="seg-btn">ON</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="settings-actions-container" style="display: flex; gap: 12px; width: 100%;">
+        <button id="btn-close-settings" class="btn-primary" style="flex: 2;">CLOSE SETTINGS</button>
+        <button id="btn-exit-game" class="btn-secondary hidden" style="flex: 1; border-radius: 12px; font-family: var(--font-header); font-weight: 800; font-size: 0.85rem; cursor: pointer;">EXIT GAME</button>
       </div>
     </div>
   </div>

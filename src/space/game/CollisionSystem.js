@@ -255,6 +255,7 @@ export class CollisionSystem {
               let hitTurret = null;
               let closestDist = Infinity;
               for (const t of livingTurrets) {
+                t.mesh.updateMatrixWorld(true);
                 const tPos = t.mesh.getWorldPosition(new THREE.Vector3());
                 const td = lPos.distanceTo(tPos);
                 if (td < closestDist) { closestDist = td; hitTurret = t; }
@@ -312,14 +313,51 @@ export class CollisionSystem {
       const pulsePos = pulse.meshGroup.position;
       let hitTarget = false;
 
+      // When a boss is active, the Plasma Pulse PIERCES through normal threats
+      // (dealing damage to them) so it can reach the shield regulator.
+      // When no boss is active, it still detonates on normal enemies.
+      const bossActive = gameManager.activeBoss && !gameManager.activeBoss.isDead;
       [...gameManager.asteroids, ...gameManager.drones, ...gameManager.capitalShips].forEach(target => {
         if (target && !target.isDead && target.meshGroup && pulsePos.distanceTo(target.meshGroup.position) < target.radius + pulse.radius + 1.0) {
-          hitTarget = true;
+          if (!bossActive) {
+            // No boss — detonate on contact with any enemy
+            hitTarget = true;
+          } else {
+            // Boss active — pierce: deal AOE-tier damage but don't stop the pulse
+            if (target.takeDamage) target.takeDamage(250);
+            else if (target.takeCoreDamage) target.takeCoreDamage(250);
+            if (target.isDead) {
+              gameManager.addScore(target.scoreValue || 0);
+              gameManager.addScrap(target.scoreValue ? 20 : 0);
+            }
+          }
         }
       });
 
       if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
-        if (pulsePos.distanceTo(gameManager.activeBoss.meshGroup.position) < 22) {
+        const boss = gameManager.activeBoss;
+        
+        // Deflector shield vulnerable point collision check with Special Pulse
+        if (boss.hasShield && boss.vulnMesh && boss.vulnMesh.visible) {
+          boss.vulnMesh.updateMatrixWorld(true);
+          const vulnWorldPos = boss.vulnMesh.getWorldPosition(new THREE.Vector3());
+          const distToVuln = pulsePos.distanceTo(vulnWorldPos);
+          console.log("[CollisionSystem] pulsePos:", pulsePos.clone(), "vulnWorldPos:", vulnWorldPos.clone(), "distToVuln:", distToVuln);
+          if (distToVuln < 22) { // Direct hit or close AoE hit on the regulator core
+            boss.hasShield = false;
+            boss.vulnMesh.visible = false;
+            if (boss.vulnRing) boss.vulnRing.visible = false;
+            this.particleManager.createExplosion(vulnWorldPos, 0xff3300, 80, 3.5);
+            this.spaceAudio.playExplosion();
+            gameManager.voiceAnnouncer.speak("Moon Base deflector shields offline! Attack the core!", true);
+            if (gameManager.spaceHUD) {
+              gameManager.spaceHUD.showWaveBanner("SHIELD DOWN", "DEFLECTOR SHIELDS OFFLINE!");
+            }
+            hitTarget = true;
+          }
+        }
+
+        if (pulsePos.distanceTo(boss.meshGroup.position) < 22) {
           hitTarget = true;
         }
       }
@@ -364,24 +402,6 @@ export class CollisionSystem {
 
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
-          
-          // Deflector shield vulnerable point collision check with Special Pulse
-          if (boss.hasShield && boss.vulnMesh && boss.vulnMesh.visible) {
-            const vulnWorldPos = boss.vulnMesh.getWorldPosition(new THREE.Vector3());
-            const distToVuln = pulsePos.distanceTo(vulnWorldPos);
-            if (distToVuln < pulse.aoeRadius + 3.0) {
-              boss.hasShield = false;
-              boss.vulnMesh.visible = false;
-              if (boss.vulnRing) boss.vulnRing.visible = false;
-              this.particleManager.createExplosion(vulnWorldPos, 0xff3300, 80, 3.5);
-              this.spaceAudio.playExplosion();
-              gameManager.voiceAnnouncer.speak("Moon Base deflector shields offline! Attack the core!", true);
-              if (gameManager.spaceHUD) {
-                gameManager.spaceHUD.showWaveBanner("SHIELD DOWN", "DEFLECTOR SHIELDS OFFLINE!");
-              }
-            }
-          }
-
           if (pulsePos.distanceTo(boss.meshGroup.position) < pulse.aoeRadius + 10) {
             const dead = boss.takeCoreDamage ? boss.takeCoreDamage(200) : boss.takeDamage('core', 200);
             if (dead) {

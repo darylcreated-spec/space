@@ -175,6 +175,7 @@ export class Asteroid {
       this.rockMat.emissiveIntensity = 3.5;
       if (this.wireMat) { this.wireMat.opacity = 1.0; }
       setTimeout(() => {
+        if (this.isDead) return;
         if (this.rockMat) {
           const baseEm = this._type === 2 ? 0xff3300 : this._type === 1 ? 0x0044aa : 0x000000;
           const baseInt = this._type === 0 ? 0.0 : this._type === 1 ? 0.35 : 0.5;

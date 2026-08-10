@@ -1,4 +1,4 @@
-const CACHE_NAME = 'orbital-vanguard-cache-v2';
+const CACHE_NAME = 'orbital-vanguard-cache-v10';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

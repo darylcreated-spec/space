@@ -128,7 +128,7 @@ export class EnemyDrone {
     // Flash red on hit
     if (this.bodyMesh && this.bodyMesh.material) {
       this.bodyMesh.material.emissiveIntensity = 3.0;
-      setTimeout(() => { if (this.bodyMesh && this.bodyMesh.material) this.bodyMesh.material.emissiveIntensity = 0.3; }, 80);
+      setTimeout(() => { if (!this.isDead && this.bodyMesh && this.bodyMesh.material) this.bodyMesh.material.emissiveIntensity = 0.3; }, 80);
     }
     if (this.hp <= 0) this.isDead = true;
     return this.isDead;

@@ -21,7 +21,7 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 55; // Longer Wave 1
+      this.totalToSpawnInWave = 2; // Temporary test value
     } else if (this.currentWave === 2) {
       this.totalToSpawnInWave = 45; // Longer Wave 2
     } else if (this.currentWave === 3) {
