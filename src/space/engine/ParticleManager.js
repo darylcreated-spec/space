@@ -12,6 +12,19 @@ export class ParticleManager {
     // 2. PRE-ALLOCATE Reusable Explosion Particle Pool (400 particles)
     this.explosionPool = this._buildParticlePool(400, 0.6);
     this.explosionIndex = 0;
+    // Cached Color object for explosion pool assignment
+    this._tempColor = new THREE.Color();
+
+    // Shared Geometry and Material for EMP Shockwaves
+    this._shockwaveGeo = new THREE.RingGeometry(0.1, 0.5, 20);
+    this._shockwaveMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
   }
 
   _buildParticlePool(count, defaultSize) {
@@ -77,7 +90,7 @@ export class ParticleManager {
     const pool = this.explosionPool;
     const safeCount = Math.min(count, 15);
 
-    const c = new THREE.Color(colorHex);
+    this._tempColor.setHex(colorHex);
 
     for (let i = 0; i < safeCount; i++) {
       const idx = this.explosionIndex % pool.count;
@@ -87,9 +100,9 @@ export class ParticleManager {
       pool.positions[idx * 3 + 1] = pos.y;
       pool.positions[idx * 3 + 2] = pos.z;
 
-      pool.colors[idx * 3] = c.r;
-      pool.colors[idx * 3 + 1] = c.g;
-      pool.colors[idx * 3 + 2] = c.b;
+      pool.colors[idx * 3] = this._tempColor.r;
+      pool.colors[idx * 3 + 1] = this._tempColor.g;
+      pool.colors[idx * 3 + 2] = this._tempColor.b;
 
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.random() * Math.PI;
@@ -105,17 +118,7 @@ export class ParticleManager {
   }
 
   createEmpShockwave(pos, maxRadius = 25) {
-    const geo = new THREE.RingGeometry(0.1, 0.5, 20);
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-
-    const ring = new THREE.Mesh(geo, mat);
+    const ring = new THREE.Mesh(this._shockwaveGeo, this._shockwaveMat.clone());
     ring.position.copy(pos);
     ring.rotation.x = Math.PI / 2;
     this.scene.add(ring);
@@ -137,8 +140,7 @@ export class ParticleManager {
 
       if (sw.currentRadius >= sw.maxRadius) {
         this.scene.remove(sw.mesh);
-        sw.mesh.geometry.dispose();
-        sw.mesh.material.dispose();
+        if (sw.mesh.material) sw.mesh.material.dispose();
         this.shockwaves.splice(i, 1);
         continue;
       }

@@ -1,16 +1,63 @@
 import * as THREE from 'three';
 
+// ── Shared Cache for LaserBolt Geometries & Materials ──
+const laserGeoCache = {};
+const laserMatCache = {};
+
+function getLaserGeometries(isEnemy) {
+  const key = isEnemy ? 'enemy' : 'player';
+  if (!laserGeoCache[key]) {
+    const len = isEnemy ? 2.8 : 3.6;
+    
+    const beamGeo = new THREE.CylinderGeometry(isEnemy ? 0.16 : 0.13, isEnemy ? 0.16 : 0.13, len, 8);
+    beamGeo.rotateX(Math.PI / 2);
+
+    const glowGeo = new THREE.CylinderGeometry(isEnemy ? 0.42 : 0.32, isEnemy ? 0.42 : 0.32, len * 0.85, 8);
+    glowGeo.rotateX(Math.PI / 2);
+
+    const coreGeo = new THREE.CylinderGeometry(0.055, 0.055, len * 1.1, 6);
+    coreGeo.rotateX(Math.PI / 2);
+
+    const muzzleGeo = new THREE.SphereGeometry(isEnemy ? 0.28 : 0.22, 8, 8);
+
+    laserGeoCache[key] = { beamGeo, glowGeo, coreGeo, muzzleGeo, len };
+  }
+  return laserGeoCache[key];
+}
+
+function getLaserMaterial(colorHex, transparent = false, opacity = 1.0) {
+  const key = `${colorHex}_${transparent}_${opacity}`;
+  if (!laserMatCache[key]) {
+    laserMatCache[key] = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent,
+      opacity
+    });
+  }
+  return laserMatCache[key];
+}
+
 export class LaserBolt {
   constructor(scene, startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null) {
     this.scene = scene;
+    this.meshGroup = new THREE.Group();
+    this.hitEntities = new Set();
+    this.reset(startPos, colorHex, isEnemy, targetDir);
+    this.scene.add(this.meshGroup);
+  }
+
+  reset(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null) {
     this.isEnemy = isEnemy;
     this.damage = 15;
     this.speed = isEnemy ? 52 : 110;
     this.radius = 1.4;
     this.isDead = false;
+    this.isCritical = false;
+    if (this.hitEntities) this.hitEntities.clear();
+    else this.hitEntities = new Set();
 
-    this.meshGroup = new THREE.Group();
     this.meshGroup.position.copy(startPos);
+    this.meshGroup.visible = true;
 
     if (targetDir) {
       this.direction = targetDir.clone().normalize();
@@ -18,49 +65,42 @@ export class LaserBolt {
     } else {
       this.direction = new THREE.Vector3(0, 0, isEnemy ? 1 : -1);
       if (isEnemy) this.meshGroup.rotation.y = Math.PI;
+      else this.meshGroup.rotation.set(0, 0, 0);
     }
 
-    // ── Outer glowing beam — thick and bright ──
-    const len = isEnemy ? 2.8 : 3.6;
-    const beamGeo = new THREE.CylinderGeometry(isEnemy ? 0.16 : 0.13, isEnemy ? 0.16 : 0.13, len, 8);
-    beamGeo.rotateX(Math.PI / 2);
-    const beamMat = new THREE.MeshBasicMaterial({ color: colorHex });
-    const beam = new THREE.Mesh(beamGeo, beamMat);
-    this.meshGroup.add(beam);
+    // Build or update mesh children using shared geometries
+    if (this.meshGroup.children.length === 0) {
+      const geos = getLaserGeometries(isEnemy);
 
-    // ── Soft outer glow halo ──
-    const glowGeo = new THREE.CylinderGeometry(isEnemy ? 0.42 : 0.32, isEnemy ? 0.42 : 0.32, len * 0.85, 8);
-    glowGeo.rotateX(Math.PI / 2);
-    const glowMat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.2 });
-    const glow = new THREE.Mesh(glowGeo, glowMat);
-    this.meshGroup.add(glow);
+      // Beam
+      this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
+      this.meshGroup.add(this.beamMesh);
 
-    // ── Bright white inner core ──
-    const coreGeo = new THREE.CylinderGeometry(0.055, 0.055, len * 1.1, 6);
-    coreGeo.rotateX(Math.PI / 2);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    this.meshGroup.add(core);
+      // Glow
+      this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.2));
+      this.meshGroup.add(this.glowMesh);
 
-    // ── Muzzle flash sphere at tip ──
-    const muzzleGeo = new THREE.SphereGeometry(isEnemy ? 0.28 : 0.22, 8, 8);
-    const muzzleMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const muzzle = new THREE.Mesh(muzzleGeo, muzzleMat);
-    muzzle.position.z = -len / 2;
-    this.meshGroup.add(muzzle);
+      // Core
+      this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
+      this.meshGroup.add(this.coreMesh);
 
-    this.scene.add(this.meshGroup);
+      // Muzzle
+      this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(0xffffff));
+      this.muzzleMesh.position.z = -geos.len / 2;
+      this.meshGroup.add(this.muzzleMesh);
+    } else {
+      this.beamMesh.material = getLaserMaterial(colorHex);
+      this.glowMesh.material = getLaserMaterial(colorHex, true, 0.2);
+    }
   }
 
   destroy() {
-    this.scene.remove(this.meshGroup);
-    this.meshGroup.traverse(child => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
-    });
+    this.isDead = true;
+    this.meshGroup.visible = false;
   }
 
   update(dt) {
+    if (this.isDead) return;
     this.meshGroup.position.addScaledVector(this.direction, this.speed * dt);
 
     if (
@@ -69,27 +109,47 @@ export class LaserBolt {
       Math.abs(this.meshGroup.position.x) > 60 ||
       Math.abs(this.meshGroup.position.y) > 50
     ) {
-      this.isDead = true;
+      this.destroy();
     }
   }
+}
+
+// ── Shared Cache for PlasmaPulse ──
+let plasmaGeoCache = null;
+let plasmaMatCache = null;
+
+function getPlasmaResources() {
+  if (!plasmaGeoCache) {
+    plasmaGeoCache = {
+      orbGeo: new THREE.SphereGeometry(1.8, 20, 20),
+      haloGeo: new THREE.SphereGeometry(3.2, 16, 16),
+      ringGeo: new THREE.TorusGeometry(2.6, 0.22, 10, 30),
+      centerGeo: new THREE.SphereGeometry(0.9, 12, 12),
+    };
+    plasmaMatCache = {
+      haloMat: new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.18 }),
+      rMat1: new THREE.MeshBasicMaterial({ color: 0xff00cc }),
+      rMat2: new THREE.MeshBasicMaterial({ color: 0x00f3ff }),
+      rMat3: new THREE.MeshBasicMaterial({ color: 0x8800ff }),
+      centerMat: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+    };
+  }
+  return { geos: plasmaGeoCache, mats: plasmaMatCache };
 }
 
 export class PlasmaPulse {
   constructor(scene, startPos, particleManager) {
     this.scene = scene;
     this.particleManager = particleManager;
-    this.damage = 300;
-    this.aoeRadius = 20.0;
-    this.speed = 62;
-    this.radius = 2.2;
-    this.isDead = false;
-    this._time = 0;
-
     this.meshGroup = new THREE.Group();
-    this.meshGroup.position.copy(startPos);
+    this._build();
+    this.reset(startPos);
+    this.scene.add(this.meshGroup);
+  }
 
-    // ── 1. Core — large superheated plasma orb ──
-    const orbGeo = new THREE.SphereGeometry(1.8, 28, 28);
+  _build() {
+    const { geos, mats } = getPlasmaResources();
+
     this.orbMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
       emissive: 0x00f3ff,
@@ -97,55 +157,52 @@ export class PlasmaPulse {
       roughness: 0.0,
       metalness: 0.0,
     });
-    this.orbMesh = new THREE.Mesh(orbGeo, this.orbMat);
+    this.orbMesh = new THREE.Mesh(geos.orbGeo, this.orbMat);
     this.meshGroup.add(this.orbMesh);
 
-    // ── 2. Outer glow halo ──
-    const haloGeo = new THREE.SphereGeometry(3.2, 20, 20);
-    const haloMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.18 });
-    this.meshGroup.add(new THREE.Mesh(haloGeo, haloMat));
+    this.meshGroup.add(new THREE.Mesh(geos.haloGeo, mats.haloMat));
 
-    // ── 3. 3 Orbiting energy rings ──
     this.rings = [];
     [[0, 0, 0], [Math.PI / 2, 0, 0], [0, Math.PI / 2, 0]].forEach((rot, i) => {
-      const rGeo = new THREE.TorusGeometry(2.6, 0.22, 12, 40);
-      const rMat = new THREE.MeshBasicMaterial({ color: i === 0 ? 0xff00cc : i === 1 ? 0x00f3ff : 0x8800ff });
-      const ring = new THREE.Mesh(rGeo, rMat);
+      const mat = i === 0 ? mats.rMat1 : i === 1 ? mats.rMat2 : mats.rMat3;
+      const ring = new THREE.Mesh(geos.ringGeo, mat);
       ring.rotation.set(...rot);
       this.meshGroup.add(ring);
       this.rings.push(ring);
     });
 
-    // ── 4. Bright white center core ──
-    const centerGeo = new THREE.SphereGeometry(0.9, 16, 16);
-    this.meshGroup.add(new THREE.Mesh(centerGeo, new THREE.MeshBasicMaterial({ color: 0xffffff })));
+    this.meshGroup.add(new THREE.Mesh(geos.centerGeo, mats.centerMat));
 
-    // ── 5. Dynamic point light traveling with bolt ──
     this.light = new THREE.PointLight(0x00f3ff, 8.0, 24);
     this.meshGroup.add(this.light);
+  }
 
-    this.scene.add(this.meshGroup);
+  reset(startPos) {
+    this.damage = 300;
+    this.aoeRadius = 20.0;
+    this.speed = 62;
+    this.radius = 2.2;
+    this.isDead = false;
+    this._time = 0;
+
+    this.meshGroup.position.copy(startPos);
+    this.meshGroup.visible = true;
   }
 
   destroy() {
-    if (this.light) this.scene.remove(this.light);
-    this.scene.remove(this.meshGroup);
-    this.meshGroup.traverse(child => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) child.material.dispose();
-    });
+    this.isDead = true;
+    this.meshGroup.visible = false;
   }
 
   update(dt) {
+    if (this.isDead) return;
     this._time += dt;
     this.meshGroup.position.z -= this.speed * dt;
 
-    // Rings orbit at different speeds/axes
     if (this.rings[0]) this.rings[0].rotation.z += 6.0 * dt;
     if (this.rings[1]) this.rings[1].rotation.x += 5.0 * dt;
     if (this.rings[2]) this.rings[2].rotation.y += 4.5 * dt;
 
-    // Pulse the orb
     if (this.orbMat) {
       this.orbMat.emissiveIntensity = 3.5 + Math.sin(this._time * 20) * 1.5;
     }
@@ -154,10 +211,12 @@ export class PlasmaPulse {
       this.orbMesh.scale.setScalar(s);
     }
 
-    // Particle trail — dense, vivid
-    this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
-    if (Math.random() < 0.5) this.particleManager.spawnEngineParticle(this.meshGroup.position, 0xff00cc);
+    if (this.particleManager) {
+      this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+      if (Math.random() < 0.5) this.particleManager.spawnEngineParticle(this.meshGroup.position, 0xff00cc);
+    }
 
-    if (this.meshGroup.position.z < -160) this.isDead = true;
+    if (this.meshGroup.position.z < -160) this.destroy();
   }
 }
+

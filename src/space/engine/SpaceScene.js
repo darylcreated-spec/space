@@ -48,12 +48,18 @@ export class SpaceScene {
     // WebGL Context Recovery
     this.renderer.domElement.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
-      console.warn('WebGL context lost — recovering...');
+      console.warn('WebGL context lost — preserving game state for auto-recovery...');
     }, false);
 
     this.renderer.domElement.addEventListener('webglcontextrestored', () => {
-      console.log('WebGL context restored.');
+      console.log('WebGL context restored — re-initializing environment...');
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
+      this.starTexture = this.createGlowingStarTexture();
+      if (this.starField && this.starField.material) {
+        this.starField.material.map = this.starTexture;
+        this.starField.material.needsUpdate = true;
+      }
     }, false);
 
     // Procedural Radial Glow Star Texture

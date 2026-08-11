@@ -58,6 +58,8 @@ export class GameManager {
     this.powerUps = [];
     this.lasers = [];
     this.plasmaPulses = [];
+    this.laserPool = [];
+    this.plasmaPulsePool = [];
     this.activeEmpPulse = null;
     this.activeBoss = null;
 
@@ -332,6 +334,39 @@ export class GameManager {
     }
   }
 
+  spawnLaser(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, isCrit = false) {
+    let bolt = this.laserPool.find(l => l.isDead);
+    if (!bolt) {
+      if (this.laserPool.length < 200) {
+        bolt = new LaserBolt(this.spaceScene.scene, startPos, colorHex, isEnemy, targetDir);
+        this.laserPool.push(bolt);
+      } else {
+        bolt = this.laserPool[0];
+        this.laserPool.push(this.laserPool.shift());
+      }
+    }
+    bolt.reset(startPos, colorHex, isEnemy, targetDir);
+    if (isCrit) bolt.isCritical = true;
+    if (!this.lasers.includes(bolt)) this.lasers.push(bolt);
+    return bolt;
+  }
+
+  spawnPlasmaPulse(startPos) {
+    let pulse = this.plasmaPulsePool.find(p => p.isDead);
+    if (!pulse) {
+      if (this.plasmaPulsePool.length < 15) {
+        pulse = new PlasmaPulse(this.spaceScene.scene, startPos, this.particleManager);
+        this.plasmaPulsePool.push(pulse);
+      } else {
+        pulse = this.plasmaPulsePool[0];
+        this.plasmaPulsePool.push(this.plasmaPulsePool.shift());
+      }
+    }
+    pulse.reset(startPos);
+    if (!this.plasmaPulses.includes(pulse)) this.plasmaPulses.push(pulse);
+    return pulse;
+  }
+
   fireRapidLaser() {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0 || this.specialWeaponActive) return;
 
@@ -346,23 +381,17 @@ export class GameManager {
     const color = isCrit ? 0xff0044 : (this.overchargeTimer > 0 ? 0xffea00 : 0x00f3ff);
 
     if (this.overchargeTimer > 0) {
-      const b1 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(3.0, 0, -0.4).add(pPos), color);
-      const b2 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(1.0, 0, -0.4).add(pPos), color);
-      const b3 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-1.0, 0, -0.4).add(pPos), color);
-      const b4 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-3.0, 0, -0.4).add(pPos), color);
-      if (isCrit) { b1.isCritical = true; b2.isCritical = true; b3.isCritical = true; b4.isCritical = true; }
-      this.lasers.push(b1, b2, b3, b4);
+      this.spawnLaser(new THREE.Vector3(3.0, 0, -0.4).add(pPos), color, false, null, isCrit);
+      this.spawnLaser(new THREE.Vector3(1.0, 0, -0.4).add(pPos), color, false, null, isCrit);
+      this.spawnLaser(new THREE.Vector3(-1.0, 0, -0.4).add(pPos), color, false, null, isCrit);
+      this.spawnLaser(new THREE.Vector3(-3.0, 0, -0.4).add(pPos), color, false, null, isCrit);
     } else {
-      const b1 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(2.0, 0, -0.4).add(pPos), color);
-      const b2 = new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-2.0, 0, -0.4).add(pPos), color);
-      if (isCrit) { b1.isCritical = true; b2.isCritical = true; }
-      this.lasers.push(b1, b2);
+      this.spawnLaser(new THREE.Vector3(2.0, 0, -0.4).add(pPos), color, false, null, isCrit);
+      this.spawnLaser(new THREE.Vector3(-2.0, 0, -0.4).add(pPos), color, false, null, isCrit);
     }
 
     this.spaceAudio.playLaserPew(pPos.x);
   }
-
-
 
   fireEmpPulse() {
     this.firePlasmaPulse();
@@ -378,14 +407,14 @@ export class GameManager {
     const pPos = this.playerShip.meshGroup.position;
     const startPos = new THREE.Vector3(0, 0, -1.5).add(pPos);
 
-    const pulse = new PlasmaPulse(this.spaceScene.scene, startPos, this.particleManager);
-    this.plasmaPulses.push(pulse);
+    this.spawnPlasmaPulse(startPos);
 
     this.achievementSystem.recordEmpUsed();
     this.spaceAudio.playEmpPulse();
     this.spaceAudio.vibrate([50, 30, 50]);
     this.spaceScene.addScreenShake(1.8);
   }
+
 
   announceWave(waveNum, subtitle) {
     if (this.spaceHUD) {
@@ -558,7 +587,7 @@ export class GameManager {
       if (firePlasma && drone.meshGroup) {
         const dPos = drone.meshGroup.position;
         const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
-        this.lasers.push(new LaserBolt(this.spaceScene.scene, dPos, 0xff0055, true, targetDir));
+        this.spawnLaser(dPos, 0xff0055, true, targetDir);
         this.spaceAudio.playLaserPew();
       }
     }
@@ -580,7 +609,7 @@ export class GameManager {
       if (firePositions && Array.isArray(firePositions)) {
         firePositions.forEach(tPos => {
           const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-          this.lasers.push(new LaserBolt(this.spaceScene.scene, tPos, 0xff0055, true, targetDir));
+          this.spawnLaser(tPos, 0xff0055, true, targetDir);
         });
         this.spaceAudio.playLaserPew();
       }
@@ -636,14 +665,15 @@ export class GameManager {
             if (Array.isArray(salvo)) {
               salvo.forEach(tPos => {
                 const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-                this.lasers.push(new LaserBolt(this.spaceScene.scene, tPos, 0xff0055, true, targetDir));
+                this.spawnLaser(tPos, 0xff0055, true, targetDir);
               });
             } else if (salvo !== false) {
               const bPos = this.activeBoss.meshGroup.position;
               const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
-              this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir));
-              this.lasers.push(new LaserBolt(this.spaceScene.scene, new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir));
+              this.spawnLaser(new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir);
+              this.spawnLaser(new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir);
             }
+
             this.spaceAudio.playLaserPew();
           }
         } catch(e) {
@@ -807,14 +837,12 @@ export class GameManager {
         fireDir.copy(closestTarget.meshGroup.position).sub(this.sentinelDrone.position).normalize();
       }
 
-      const bolt = new LaserBolt(
-        this.spaceScene.scene,
+      this.spawnLaser(
         this.sentinelDrone.position.clone(),
         0x00f3ff,
         false,
         fireDir
       );
-      this.lasers.push(bolt);
 
       // Trigger visual/audio feedback
       this.particleManager.createExplosion(this.sentinelDrone.position, 0x00f3ff, 5, 0.4);

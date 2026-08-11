@@ -426,21 +426,26 @@ export class PlayerShip {
     // Engine trail particles
     this._thrusterTick++;
     if (this._thrusterTick % 2 === 0) {
-      const pR = new THREE.Vector3(0.68, -0.1, 3.2).add(this.meshGroup.position);
-      const pL = new THREE.Vector3(-0.68, -0.1, 3.2).add(this.meshGroup.position);
+      if (!this._tempTrailR) {
+        this._tempTrailR = new THREE.Vector3();
+        this._tempTrailL = new THREE.Vector3();
+        this._tempSide = new THREE.Vector3();
+      }
+      this._tempTrailR.set(0.68, -0.1, 3.2).add(this.meshGroup.position);
+      this._tempTrailL.set(-0.68, -0.1, 3.2).add(this.meshGroup.position);
       
       let pColor = 0x00f3ff;
       if (this.shipClass === 'INTERCEPTOR') pColor = 0xffea00;
       else if (this.shipClass === 'DREADNOUGHT') pColor = 0xff0044;
       else if (this.shipClass === 'TACTICIAN') pColor = 0x00ff66;
 
-      this.particleManager.spawnEngineParticle(pR, pColor);
-      this.particleManager.spawnEngineParticle(pL, pColor);
+      this.particleManager.spawnEngineParticle(this._tempTrailR, pColor);
+      this.particleManager.spawnEngineParticle(this._tempTrailL, pColor);
     }
     // Side exhaust when banking hard
     if (Math.abs(inputDir.x) > 0.5 && this._thrusterTick % 4 === 0) {
-      const sideP = new THREE.Vector3(-inputDir.x * 1.5, 0, 1.5).add(this.meshGroup.position);
-      this.particleManager.spawnEngineParticle(sideP, this.shipClass === 'DREADNOUGHT' ? 0x990000 : 0x0055ff);
+      this._tempSide.set(-inputDir.x * 1.5, 0, 1.5).add(this.meshGroup.position);
+      this.particleManager.spawnEngineParticle(this._tempSide, this.shipClass === 'DREADNOUGHT' ? 0x990000 : 0x0055ff);
     }
   }
 }

@@ -5,6 +5,10 @@ export class CollisionSystem {
     this.particleManager = particleManager;
     this.spaceAudio = spaceAudio;
     this.spaceScene = spaceScene;
+
+    // Pre-allocated reusable vectors to eliminate Garbage Collection thrashing
+    this._tempVec1 = new THREE.Vector3();
+    this._tempVec2 = new THREE.Vector3();
   }
 
   checkCollisions(gameManager) {
@@ -256,7 +260,7 @@ export class CollisionSystem {
               let closestDist = Infinity;
               for (const t of livingTurrets) {
                 t.mesh.updateMatrixWorld(true);
-                const tPos = t.mesh.getWorldPosition(new THREE.Vector3());
+                const tPos = t.mesh.getWorldPosition(this._tempVec1);
                 const td = lPos.distanceTo(tPos);
                 if (td < closestDist) { closestDist = td; hitTurret = t; }
               }
@@ -340,7 +344,7 @@ export class CollisionSystem {
         // Deflector shield vulnerable point collision check with Special Pulse
         if (boss.hasShield && boss.vulnMesh && boss.vulnMesh.visible) {
           boss.vulnMesh.updateMatrixWorld(true);
-          const vulnWorldPos = boss.vulnMesh.getWorldPosition(new THREE.Vector3());
+          const vulnWorldPos = boss.vulnMesh.getWorldPosition(this._tempVec2);
           const distToVuln = pulsePos.distanceTo(vulnWorldPos);
           if (distToVuln < 22) { // Direct hit or close AoE hit on the regulator core
             boss.hasShield = false;

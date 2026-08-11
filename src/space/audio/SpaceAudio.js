@@ -97,6 +97,10 @@ export class SpaceAudio {
       gain.connect(this.ctx.destination);
     }
 
+    osc.onended = () => {
+      try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+    };
+
     try {
       osc.start(now);
       osc.stop(now + 0.08);
@@ -133,6 +137,10 @@ export class SpaceAudio {
       osc.connect(gain);
       gain.connect(this.ctx.destination);
     }
+
+    osc.onended = () => {
+      try { osc.disconnect(); gain.disconnect(); } catch(e) {}
+    };
 
     try {
       osc.start(now);
