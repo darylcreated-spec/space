@@ -485,12 +485,22 @@ export class MoonBase {
 
   _fireSuperLaser() {
     if (!this.laserBeamMat || !this.outerBeamMat) return;
+    
+    // Trigger HUD warning & audio alarm for incoming superlaser beam
+    if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+      window.spaceGameManager.spaceHUD.showLockOnWarning(true, '⚠️ SUPERLASER TARGETING YOU! DODGE NOW!');
+      if (window.spaceGameManager.spaceAudio) window.spaceGameManager.spaceAudio.playLockOnAlarm();
+    }
+
     let alpha = 0;
     const chargeUp = setInterval(() => {
       // Guard: stop if boss was destroyed while this interval was in flight
       if (this.isDead || !this.laserBeamMat || !this.outerBeamMat) {
         clearInterval(chargeUp);
         this.superlaserfiring = false;
+        if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+          window.spaceGameManager.spaceHUD.showLockOnWarning(false);
+        }
         return;
       }
       alpha += 0.08;

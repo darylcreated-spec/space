@@ -210,8 +210,10 @@ export class CarrierCapitalShip {
     if (!arrived) {
       this.meshGroup.position.z += this.speed * dt;
     } else {
+      // Turn broadside sideways (90 deg) to face player craft!
+      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, Math.PI / 2, dt * 2.5);
       // Hover weaving
-      this.meshGroup.position.x = Math.sin(this._time * 0.8) * 12.0;
+      this.meshGroup.position.x = Math.sin(this._time * 0.8) * 14.0;
       this.meshGroup.position.y = 5.0 + Math.cos(this._time * 0.6) * 3.0;
     }
 

@@ -467,14 +467,31 @@ export class CollisionSystem {
     const boss = gameManager.activeBoss;
     if (boss && !boss.isDead && boss.meshGroup && boss.superlaserfiring) {
       const bPos = boss.meshGroup.position;
-      if (Math.abs(pPos.x - bPos.x) < 6.5 && Math.abs(pPos.y - bPos.y) < 6.5) {
-        player.takeDamage(9999);
-        this.particleManager.createExplosion(pPos, 0x00f3ff, 150, 4.0);
-        this.particleManager.createExplosion(pPos, 0xff0055, 100, 3.0);
-        this.spaceAudio.playExplosion();
-        this.spaceScene.addScreenShake(3.5);
-        gameManager.onGameOver('Vaporized by Moon Base Superlaser');
-        return;
+      
+      // Calculate perpendicular distance from player to beam center line (Z-axis corridor)
+      const dx = pPos.x - bPos.x;
+      const dy = pPos.y - bPos.y;
+      const distFromBeamCenter = Math.sqrt(dx * dx + dy * dy);
+
+      // Superlaser beam radius is 9.5 units
+      if (distFromBeamCenter < 9.5) {
+        if (player.isDodging) {
+          // Player executed tactical dodge roll to clear the superlaser beam path!
+          if (gameManager.spaceHUD) {
+            gameManager.spaceHUD.showLockOnWarning(false);
+          }
+        } else {
+          // Direct hit! Player craft is vaporized immediately!
+          player.takeDamage(9999);
+          this.particleManager.createExplosion(pPos, 0x00f3ff, 200, 5.0);
+          this.particleManager.createExplosion(pPos, 0xff0055, 150, 4.0);
+          this.particleManager.createExplosion(pPos, 0xffea00, 100, 3.5);
+          this.particleManager.createEmpShockwave(pPos, 120);
+          this.spaceAudio.playExplosion();
+          this.spaceScene.addScreenShake(5.0);
+          gameManager.onGameOver('VAPORIZED BY MOON BASE SUPERLASER');
+          return;
+        }
       }
     }
 
