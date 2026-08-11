@@ -193,13 +193,67 @@ export class SpaceScene {
     this.buildTargetPlanet();
   }
 
+  createProceduralPlanetTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // Deep Ocean Surface
+    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+    gradient.addColorStop(0, '#0d2b52');
+    gradient.addColorStop(0.5, '#165296');
+    gradient.addColorStop(1, '#0d2b52');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Green/Brown Landmass Continents
+    ctx.fillStyle = '#248f52';
+    const drawContinent = (x, y, r) => {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    drawContinent(120, 90, 48);
+    drawContinent(155, 115, 38);
+    drawContinent(320, 140, 52);
+    drawContinent(355, 120, 42);
+    drawContinent(420, 80, 32);
+
+    // Highlands & Mountains
+    ctx.fillStyle = '#3eb56f';
+    drawContinent(125, 95, 28);
+    drawContinent(325, 145, 32);
+
+    // Swirling Cloud Atmosphere Layers
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.beginPath();
+    ctx.ellipse(200, 70, 90, 12, Math.PI / 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(380, 180, 110, 14, -Math.PI / 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Polar Ice Caps
+    ctx.fillStyle = '#edf6ff';
+    ctx.fillRect(0, 0, 512, 18);
+    ctx.fillRect(0, 238, 512, 18);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
   buildTargetPlanet() {
     const planetGeo = new THREE.SphereGeometry(32, 32, 32);
+    const planetTex = this.createProceduralPlanetTexture();
     const planetMat = new THREE.MeshPhongMaterial({
-      color: 0x1a4b8c,
+      map: planetTex,
+      color: 0xffffff,
       emissive: 0x051833,
       specular: 0x00f3ff,
-      shininess: 25
+      shininess: 30
     });
     this.targetPlanet = new THREE.Mesh(planetGeo, planetMat);
     this.targetPlanet.position.set(50, 30, -320);
@@ -208,7 +262,7 @@ export class SpaceScene {
     const atmosMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.28,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending
     });
@@ -220,7 +274,12 @@ export class SpaceScene {
 
   triggerPlanetVaporization(moonBasePos, particleManager) {
     if (!this.targetPlanet) return;
-    this.bossIntroTimer = 3.5; // Hold camera focus on planet destruction cutscene
+    this.bossIntroTimer = 3.5;
+
+    // Trigger mobile haptic vibration charge pattern
+    if (window.spaceGameManager && window.spaceGameManager.spaceAudio) {
+      window.spaceGameManager.spaceAudio.vibrateSuperlaserCharge();
+    }
 
     const startPos = moonBasePos ? moonBasePos.clone() : new THREE.Vector3(0, 0, -55);
     const endPos = this.targetPlanet.position.clone();
@@ -229,9 +288,9 @@ export class SpaceScene {
     const beamGeo = new THREE.CylinderGeometry(2.5, 4.0, distance, 16);
     beamGeo.rotateX(Math.PI / 2);
     const beamMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: 0x00ff66,
       transparent: true,
-      opacity: 1.0,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending
     });
     const superBeam = new THREE.Mesh(beamGeo, beamMat);
@@ -242,15 +301,18 @@ export class SpaceScene {
     this.addScreenShake(1.5);
 
     setTimeout(() => {
-      if (this.targetPlanet) {
-        this.planetAtmosphere.material.color.setHex(0xffffff);
-        this.planetAtmosphere.material.opacity = 0.95;
-        this.targetPlanet.material.color.setHex(0xffffff);
-        this.addScreenShake(4.5);
+      // Trigger heavy mobile haptic vibration impact
+      if (window.spaceGameManager && window.spaceGameManager.spaceAudio) {
+        window.spaceGameManager.spaceAudio.vibrateSuperlaserImpact();
+      }
 
+      if (this.targetPlanet) {
+        this.addScreenShake(4.5);
         if (particleManager) {
-          particleManager.createExplosion(endPos, 0x00f3ff, 200, 3.5);
-          particleManager.createExplosion(endPos, 0xff0055, 150, 2.5);
+          particleManager.createExplosion(endPos, 0x00f3ff, 250, 4.5);
+          particleManager.createExplosion(endPos, 0xff0055, 200, 3.5);
+          particleManager.createExplosion(endPos, 0xffea00, 150, 3.0);
+          particleManager.createEmpShockwave(endPos, 140);
         }
       }
     }, 900);

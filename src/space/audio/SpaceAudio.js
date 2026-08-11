@@ -452,4 +452,20 @@ export class SpaceAudio {
     osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(e){} };
     try { osc.start(now); osc.stop(now + 0.2); } catch(e){}
   }
+
+  vibrateSuperlaserCharge() {
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate([100, 50, 150, 50, 200, 50, 400]);
+      } catch (e) {}
+    }
+  }
+
+  vibrateSuperlaserImpact() {
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate([800, 100, 800, 100, 1200]);
+      } catch (e) {}
+    }
+  }
 }
