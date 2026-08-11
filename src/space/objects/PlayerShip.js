@@ -378,39 +378,45 @@ export class PlayerShip {
       }
     }
 
-    if (this.dodgeTimer > 0) {
-      this.dodgeTimer -= dt;
-      const dodgeSpeed = 54.0;
-      this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
-      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
+      const bossActive = this.gameManager && this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead;
+      const minX = bossActive ? -36 : this.bounds.minX;
+      const maxX = bossActive ? 36 : this.bounds.maxX;
+      const minY = bossActive ? -20 : this.bounds.minY;
+      const maxY = bossActive ? 20 : this.bounds.maxY;
 
-      // 360 roll rotation
-      const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
-      this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
-      this.meshGroup.rotation.x = 0; // lock pitch during roll
-      
-      // Spawn extra dodge exhaust trail
-      if (Math.random() < 0.4) {
-        this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+      if (this.dodgeTimer > 0) {
+        this.dodgeTimer -= dt;
+        const dodgeSpeed = 54.0;
+        this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
+        this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
+
+        // 360 roll rotation
+        const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
+        this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
+        this.meshGroup.rotation.x = 0; // lock pitch during roll
+        
+        // Spawn extra dodge exhaust trail
+        if (Math.random() < 0.4) {
+          this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+        }
+      } else {
+        this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.18;
+        this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.18;
+
+        this.meshGroup.position.x += this.velocity.x * dt;
+        this.meshGroup.position.y += this.velocity.y * dt;
+
+        this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
+        this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, minY, maxY);
+
+        // Banking & pitch
+        this.targetRoll = -inputDir.x * 0.65;
+        this.targetPitch = inputDir.y * 0.28;
+        this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
+        this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
+        this.meshGroup.rotation.z = this.currentRoll;
+        this.meshGroup.rotation.x = this.currentPitch;
       }
-    } else {
-      this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.18;
-      this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.18;
-
-      this.meshGroup.position.x += this.velocity.x * dt;
-      this.meshGroup.position.y += this.velocity.y * dt;
-
-      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, this.bounds.minX, this.bounds.maxX);
-      this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, this.bounds.minY, this.bounds.maxY);
-
-      // Banking & pitch
-      this.targetRoll = -inputDir.x * 0.65;
-      this.targetPitch = inputDir.y * 0.28;
-      this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
-      this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
-      this.meshGroup.rotation.z = this.currentRoll;
-      this.meshGroup.rotation.x = this.currentPitch;
-    }
 
     // Animate flame flicker
     const flicker = 1.0 + Math.sin(this._time * 20) * 0.15;

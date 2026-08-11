@@ -276,26 +276,31 @@ export class GameManager {
   spawnBoss() {
     this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Sector Dreadnought Approaching!", true);
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnTitanBoss() {
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Titan Asteroid Core Approaching!", true);
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnSpaceStation() {
     this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Sector Alpha Moon Base in Sight!", true);
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnHaloBoss() {
     this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Halo Megastructure Ring Approaching!", true);
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnBabylon5Boss() {
     this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Babylon 5 Industrial Rotating Citadel Approaching!", true);
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnPowerUp(pos) {
@@ -517,7 +522,7 @@ export class GameManager {
   update(dt) {
     if (this.state !== 'PLAYING') {
       this.playerShip.update(dt, { x: 0, y: 0 });
-      this.spaceScene.update(dt, { x: 0, y: 0 });
+      this.spaceScene.update(dt, this.playerShip, this.activeBoss);
       this.particleManager.update();
       this.renderScene();
       return;
@@ -729,7 +734,7 @@ export class GameManager {
     }
 
     // 7. Update Scene & Render
-    this.spaceScene.update(dt, this.playerShip.velocity);
+    this.spaceScene.update(dt, this.playerShip, this.activeBoss);
     this.particleManager.update();
     this.renderScene();
   }

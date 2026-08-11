@@ -188,6 +188,10 @@ export class SpaceScene {
     this.scene.add(this.dustPoints);
   }
 
+  triggerBossIntroCamera() {
+    this.bossIntroTimer = 2.2; // 2.2 second cinematic camera intro sweep
+  }
+
   setCameraMode(mode) {
     this.cameraMode = mode;
     if (mode === 'isometric') {
@@ -224,7 +228,7 @@ export class SpaceScene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
   }
 
-  update(dt, playerVelocity = { x: 0, y: 0 }) {
+  update(dt, playerShip = null, activeBoss = null) {
     if (this.starField) this.starField.rotation.y += 0.0002;
     if (this.nebula1) this.nebula1.rotation.y += 0.0001;
     if (this.nebula2) this.nebula2.rotation.y -= 0.0001;
@@ -240,14 +244,75 @@ export class SpaceScene {
       this.dustPoints.geometry.attributes.position.needsUpdate = true;
     }
 
-    this.camera.position.lerp(this.targetCameraPos, 0.1);
-    this.camera.lookAt(this.targetLookAt);
+    const pPos = (playerShip && playerShip.meshGroup) ? playerShip.meshGroup.position : null;
+    const pVel = playerShip ? (playerShip.velocity || { x: 0, y: 0 }) : { x: 0, y: 0 };
+    const bossActive = activeBoss && !activeBoss.isDead && activeBoss.meshGroup;
 
-    if (this.cameraMode === 'chase') {
-      const targetRoll = -playerVelocity.x * 0.15;
-      this.camera.rotation.z += (targetRoll - this.camera.rotation.z) * 0.1;
+    if (this.bossIntroTimer > 0) {
+      this.bossIntroTimer -= dt;
     }
 
+    if (bossActive && pPos) {
+      const bPos = activeBoss.meshGroup.position;
+
+      if (this.bossIntroTimer > 0) {
+        // Dramatic Intro Zoom: Low behind player ship pointing at boss core
+        const progress = 1.0 - (this.bossIntroTimer / 2.2);
+        this.targetCameraPos.set(
+          pPos.x * 0.4,
+          8.0 + (1.0 - progress) * 6.0,
+          pPos.z + 18.0 - (1.0 - progress) * 8.0
+        );
+        this.targetLookAt.set(
+          bPos.x * 0.8,
+          bPos.y * 0.8,
+          bPos.z * 0.9
+        );
+      } else {
+        // Dynamic Cinematic Boss Duel Tracking Mode:
+        // Camera smoothly follows player craft X/Y/Z while framing the boss core
+        this.targetCameraPos.set(
+          pPos.x * 0.65,
+          13.0 + pPos.y * 0.45,
+          pPos.z + 24.0
+        );
+
+        // Weighted lookAt target (55% player craft, 45% boss core)
+        this.targetLookAt.set(
+          pPos.x * 0.55 + bPos.x * 0.45,
+          pPos.y * 0.45 + bPos.y * 0.55,
+          pPos.z * 0.25 + bPos.z * 0.75
+        );
+      }
+    } else if (pPos) {
+      // Normal gameplay: camera smoothly tracks player craft lateral movement
+      if (this.cameraMode === 'isometric') {
+        this.targetCameraPos.set(pPos.x * 0.55, 14.0 + pPos.y * 0.35, 24.0);
+        this.targetLookAt.set(pPos.x * 0.45, -1.0 + pPos.y * 0.35, -15.0);
+      } else if (this.cameraMode === 'chase') {
+        this.targetCameraPos.set(pPos.x * 0.8, 5.0 + pPos.y * 0.5, pPos.z + 18.0);
+        this.targetLookAt.set(pPos.x * 0.7, pPos.y * 0.5, -30.0);
+      } else if (this.cameraMode === 'topdown') {
+        this.targetCameraPos.set(pPos.x * 0.8, 55.0, -15.0);
+        this.targetLookAt.set(pPos.x * 0.8, -5.0, -15.1);
+      }
+    }
+
+    // Smooth camera position lerp
+    const lerpSpeed = bossActive ? 0.12 : 0.08;
+    this.camera.position.lerp(this.targetCameraPos, lerpSpeed);
+
+    // Smooth lookAt target lerp
+    this.currentCamLookAt.lerp(this.targetLookAt, lerpSpeed);
+    this.camera.lookAt(this.currentCamLookAt);
+
+    // Dynamic camera roll/tilt when banking during dogfights
+    if (this.cameraMode !== 'topdown') {
+      const targetRoll = -pVel.x * (bossActive ? 0.035 : 0.02);
+      this.camera.rotation.z += (targetRoll - this.camera.rotation.z) * 0.12;
+    }
+
+    // Screen Shake processing
     if (this.shakeIntensity > 0.01) {
       this.camera.position.x += (Math.random() - 0.5) * this.shakeIntensity;
       this.camera.position.y += (Math.random() - 0.5) * this.shakeIntensity;
