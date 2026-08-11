@@ -116,7 +116,7 @@ export class CarrierCapitalShip {
     });
 
     // Engine Point Light
-    this.engineLight = new THREE.PointLight(0x0088ff, 6.0, 40);
+    this.engineLight = new THREE.PointLight(0x0088ff, 2.0, 30);
     this.engineLight.position.set(0, 0, 20.0);
     this.meshGroup.add(this.engineLight);
 
@@ -206,18 +206,21 @@ export class CarrierCapitalShip {
     // Emissive damage feedback
     if (this.hullMat) {
       this.hullMat.emissive.setHex(0xff0044);
-      this.hullMat.emissiveIntensity = 2.5;
+      this.hullMat.emissiveIntensity = 0.8;
       setTimeout(() => {
         if (this.isDead) return;
         if (this.hullMat) {
           this.hullMat.emissive.setHex(0x000c1c);
-          this.hullMat.emissiveIntensity = 0.4;
+          this.hullMat.emissiveIntensity = 0.3;
         }
       }, 100);
     }
 
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
+      if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+        window.spaceGameManager.spaceHUD.showLockOnWarning(false);
+      }
       this._explode();
     }
     return this.isDead;
@@ -232,6 +235,9 @@ export class CarrierCapitalShip {
 
   destroy() {
     this.isDead = true;
+    if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+      window.spaceGameManager.spaceHUD.showLockOnWarning(false);
+    }
     if (this.engineLight) this.scene.remove(this.engineLight);
     this.scene.remove(this.meshGroup);
 

@@ -19,6 +19,7 @@ export class SpaceHUD {
 
     this.bossBarContainer = document.getElementById('space-boss-bar-container');
     this.bossHpFill = document.getElementById('space-boss-hp-fill');
+    this.bossTitleElem = document.getElementById('space-boss-title');
 
     this.waveBanner = document.getElementById('space-wave-banner');
     this.waveTitle = document.getElementById('banner-wave-title') || document.getElementById('space-wave-title');
@@ -544,6 +545,9 @@ export class SpaceHUD {
       if (data.bossHpRatio !== null) {
         this.bossBarContainer.classList.remove('hidden');
         this.bossHpFill.style.width = `${data.bossHpRatio * 100}%`;
+        if (this.bossTitleElem && data.bossTitle) {
+          this.bossTitleElem.textContent = data.bossTitle;
+        }
       } else {
         this.bossBarContainer.classList.add('hidden');
       }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'starbound-space-defender-cache-v29';
+const CACHE_NAME = 'starbound-space-defender-cache-v30';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
