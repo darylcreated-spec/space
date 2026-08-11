@@ -60,14 +60,14 @@
 
     <!-- Top Left & Right Bar Panels -->
     <div class="hud-top-bar">
-      <!-- Left: Base Planet Shield -->
-      <div class="glass-panel meter-panel planet-panel">
+      <!-- Left: Craft Shield -->
+      <div class="glass-panel meter-panel player-panel">
         <div class="meter-header">
-          <span class="meter-label">COMMAND SHIELD</span>
-          <span class="meter-value" id="space-planet-hp-text">100%</span>
+          <span class="meter-label">CRAFT SHIELD</span>
+          <span class="meter-value" id="space-player-hp-text">100%</span>
         </div>
         <div class="meter-bar-track">
-          <div id="space-planet-hp-fill" class="meter-bar-fill planet-fill" style="width: 100%;"></div>
+          <div id="space-player-hp-fill" class="meter-bar-fill player-fill" style="width: 100%;"></div>
         </div>
       </div>
 
@@ -81,17 +81,6 @@
         <div class="scrap-display">
           <span class="scrap-icon">⚙️</span>
           <span id="space-scrap-val" class="scrap-num">0</span>
-        </div>
-      </div>
-
-      <!-- Right: Craft Shield -->
-      <div class="glass-panel meter-panel player-panel">
-        <div class="meter-header">
-          <span class="meter-label">CRAFT SHIELD</span>
-          <span class="meter-value" id="space-player-hp-text">100%</span>
-        </div>
-        <div class="meter-bar-track">
-          <div id="space-player-hp-fill" class="meter-bar-fill player-fill" style="width: 100%;"></div>
         </div>
       </div>
 
@@ -141,11 +130,6 @@
 
     <!-- Mobile Action Weapon Buttons Layer -->
     <div id="space-mobile-controls" class="mobile-controls-layer">
-      <!-- Touch Steering Hint Overlay -->
-      <div class="touch-steering-hint">
-        TOUCH SCREEN LEFT / RIGHT / TOP / BOTTOM TO STEER
-      </div>
-
       <!-- Action Weapon Special Buttons (Right) -->
       <div class="action-buttons-zone">
         <button id="btn-dodge-roll" class="action-btn dodge-btn" title="Tactical Dodge Roll (Double-tap A/D)">
@@ -158,14 +142,6 @@
           <span class="btn-label">PULSE</span>
         </button>
       </div>
-    </div>
-
-    <!-- Desktop Keyboard Shortcuts Legend -->
-    <div class="desktop-controls-hint">
-      <span class="hint-key"><kbd>WASD / Touch Screen</kbd> Flight Pitch/Yaw</span>
-      <span class="hint-key"><kbd>H</kbd> Open Hangar Upgrades</span>
-      <span class="hint-key"><kbd>C</kbd> Camera Angle Toggle</span>
-      <span class="hint-key"><kbd>Q / Space / Pulse Button</kbd> Launch Plasma Pulse</span>
     </div>
   </div>
 
@@ -390,6 +366,28 @@
           <div class="segmented-control" style="display: flex; background: rgba(0,0,0,0.4); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
             <button id="btn-voice-off" class="seg-btn">OFF</button>
             <button id="btn-voice-on" class="seg-btn">ON</button>
+          </div>
+        </div>
+
+        <!-- How To Play & Controls Section -->
+        <div class="setting-controls-guide" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+          <strong style="color: var(--accent-cyan); font-size: 0.95rem; display: block; font-family: var(--font-header); margin-bottom: 0.5rem;">🎮 HOW TO PLAY & CONTROLS</strong>
+          
+          <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.78rem; color: #d0e0f0;">
+            <div style="background: rgba(0, 243, 255, 0.05); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--accent-cyan);">
+              <strong style="color: #fff; display: block; margin-bottom: 2px;">📱 Mobile Touch Browsers:</strong>
+              <div>• <strong>Steer Craft</strong>: Touch anywhere on screen (Left / Right / Up / Down)</div>
+              <div>• <strong>Dodge Roll</strong>: Tap <strong>DODGE</strong> button to break missile lock-ons</div>
+              <div>• <strong>Plasma Pulse</strong>: Tap <strong>PULSE</strong> button for EMP shockwave</div>
+            </div>
+
+            <div style="background: rgba(255, 0, 119, 0.05); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--accent-magenta);">
+              <strong style="color: #fff; display: block; margin-bottom: 2px;">💻 Computer Keyboard Browsers:</strong>
+              <div>• <strong>Steer Craft</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">WASD</kbd> or <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Arrow Keys</kbd></div>
+              <div>• <strong>Dodge Roll</strong>: Double-tap <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">A</kbd> or <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">D</kbd> keys</div>
+              <div>• <strong>Plasma Pulse</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Q</kbd> / <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Shift</kbd> / <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Space</kbd></div>
+              <div>• <strong>Hangar Upgrades</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">H</kbd> key | <strong>Camera Toggle</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">C</kbd> key</div>
+            </div>
           </div>
         </div>
       </div>
