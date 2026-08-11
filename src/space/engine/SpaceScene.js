@@ -188,10 +188,114 @@ export class SpaceScene {
 
     this.dustPoints = new THREE.Points(dustGeo, dustMat);
     this.scene.add(this.dustPoints);
+
+    // Build Distant Target Planet for Mission 1 Superlaser Cutscene
+    this.buildTargetPlanet();
+  }
+
+  buildTargetPlanet() {
+    const planetGeo = new THREE.SphereGeometry(32, 32, 32);
+    const planetMat = new THREE.MeshPhongMaterial({
+      color: 0x1a4b8c,
+      emissive: 0x051833,
+      specular: 0x00f3ff,
+      shininess: 25
+    });
+    this.targetPlanet = new THREE.Mesh(planetGeo, planetMat);
+    this.targetPlanet.position.set(50, 30, -320);
+
+    const atmosGeo = new THREE.SphereGeometry(34, 32, 32);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending
+    });
+    this.planetAtmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+    this.targetPlanet.add(this.planetAtmosphere);
+
+    this.scene.add(this.targetPlanet);
+  }
+
+  triggerPlanetVaporization(moonBasePos, particleManager) {
+    if (!this.targetPlanet) return;
+
+    const startPos = moonBasePos ? moonBasePos.clone() : new THREE.Vector3(0, 0, -55);
+    const endPos = this.targetPlanet.position.clone();
+    const distance = startPos.distanceTo(endPos);
+
+    const beamGeo = new THREE.CylinderGeometry(2.5, 4.0, distance, 16);
+    beamGeo.rotateX(Math.PI / 2);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 1.0,
+      blending: THREE.AdditiveBlending
+    });
+    const superBeam = new THREE.Mesh(beamGeo, beamMat);
+    superBeam.position.copy(startPos).lerp(endPos, 0.5);
+    superBeam.lookAt(endPos);
+    this.scene.add(superBeam);
+
+    this.addScreenShake(1.5);
+
+    setTimeout(() => {
+      if (this.targetPlanet) {
+        this.planetAtmosphere.material.color.setHex(0xffffff);
+        this.planetAtmosphere.material.opacity = 0.95;
+        this.targetPlanet.material.color.setHex(0xffffff);
+        this.addScreenShake(4.5);
+
+        if (particleManager) {
+          particleManager.createExplosion(endPos, 0x00f3ff, 200, 3.5);
+          particleManager.createExplosion(endPos, 0xff0055, 150, 2.5);
+        }
+      }
+    }, 900);
+
+    setTimeout(() => {
+      if (superBeam) this.scene.remove(superBeam);
+
+      if (this.targetPlanet) {
+        this.targetPlanet.visible = false;
+
+        const debrisGroup = new THREE.Group();
+        const debrisGeo = new THREE.DodecahedronGeometry(4, 1);
+        const debrisMat = new THREE.MeshStandardMaterial({
+          color: 0xff4400,
+          emissive: 0xff2200,
+          roughness: 0.8
+        });
+
+        for (let i = 0; i < 20; i++) {
+          const chunk = new THREE.Mesh(debrisGeo, debrisMat);
+          chunk.position.copy(endPos).add(new THREE.Vector3(
+            (Math.random() - 0.5) * 80,
+            (Math.random() - 0.5) * 60,
+            (Math.random() - 0.5) * 80
+          ));
+          chunk.scale.setScalar(0.5 + Math.random() * 1.5);
+          debrisGroup.add(chunk);
+        }
+        this.scene.add(debrisGroup);
+
+        let t = 0;
+        const interval = setInterval(() => {
+          t += 0.05;
+          debrisGroup.position.z += 1.8;
+          debrisGroup.rotation.y += 0.02;
+          if (t >= 5.0) {
+            clearInterval(interval);
+            this.scene.remove(debrisGroup);
+          }
+        }, 30);
+      }
+    }, 1400);
   }
 
   triggerBossIntroCamera() {
-    this.bossIntroTimer = 2.2; // 2.2 second cinematic camera intro sweep
+    this.bossIntroTimer = 2.2;
   }
 
   setCameraMode(mode) {

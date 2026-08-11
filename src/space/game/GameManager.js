@@ -287,8 +287,15 @@ export class GameManager {
 
   spawnSpaceStation() {
     this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Warning! Sector Alpha Moon Base in Sight!", true);
-    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+    this.voiceAnnouncer.speak("Warning! Orbital Alpha Moon Base superlaser activated! Planet vaporized... space debris incoming!", true);
+    if (this.spaceScene) {
+      this.spaceScene.triggerBossIntroCamera();
+      this.spaceScene.triggerPlanetVaporization(this.activeBoss.meshGroup.position, this.particleManager);
+    }
+    // Spawn planet explosion shrapnel asteroids
+    for (let i = 0; i < 5; i++) {
+      this.spawnAsteroid({ sizeCategory: 'medium', isComet: true });
+    }
   }
 
   spawnHaloBoss() {

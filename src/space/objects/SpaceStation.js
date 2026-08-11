@@ -87,8 +87,8 @@ export class MoonBase {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 1; // Temporary test value
-    this.maxCoreHp = 1;
+    this.coreHp = 2500;
+    this.maxCoreHp = 2500;
     this.scoreValue = 40000;
     this.isDead = false;
     this.hitRadius = 27; // Reduced size by 25%

@@ -34,7 +34,7 @@ export class WaveSpawner {
   }
 
   getWaveSubtitle() {
-    if (this.currentWave === 1) return 'MISSION 1: NAVIGATE ASTEROID CORRIDOR';
+    if (this.currentWave === 1) return 'MISSION 1: NAVIGATE ASTEROID FIELD & DESTROY MOON BASE SUPERWEAPON';
     if (this.currentWave === 2) return 'MISSION 2: HALO MEGASTRUCTURE SIEGE';
     if (this.currentWave === 3) return 'FINAL MISSION: BABYLON 5 CYLINDER CITADEL';
     return `ENDLESS ASSAULT - PHASE ${this.currentWave}`;
