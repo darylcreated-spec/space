@@ -10,6 +10,7 @@ import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { Babylon5Boss } from '../objects/Babylon5Boss.js';
 import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
+import { CarrierCapitalShip } from '../objects/CarrierCapitalShip.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -25,6 +26,9 @@ export class GameManager {
     this.controlsManager = controlsManager;
 
     this.state = 'START'; // 'START', 'PLAYING', 'HANGAR', 'GAME_OVER'
+
+    this.activeBoss = null;
+    this.carrierBoss = null;
 
     // Systems
     this.upgradeSystem = new UpgradeSystem();
@@ -282,6 +286,12 @@ export class GameManager {
   spawnTitanBoss() {
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Titan Asteroid Core Approaching!", true);
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+  }
+
+  spawnCarrierBoss() {
+    this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Alert! Heavy Enemy Aircraft Carrier Detected! Interceptors Launching!", true);
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
@@ -635,6 +645,31 @@ export class GameManager {
       }
     }
 
+    // Update Carrier Capital Ship (Mission 1 Mid-Boss)
+    if (this.carrierBoss) {
+      if (this.carrierBoss.isDead) {
+        this.carrierBoss.destroy();
+        this.carrierBoss = null;
+        this.voiceAnnouncer.speak("Carrier Destroyed! Clearing asteroid corridor!", true);
+        this.addScore(25000);
+        this.addScrap(300);
+      } else {
+        const carrierStatus = this.carrierBoss.update(effectiveDt, this.playerShip);
+        if (carrierStatus && carrierStatus.lasers && Array.isArray(carrierStatus.lasers)) {
+          carrierStatus.lasers.forEach(tPos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+            this.spawnLaser(tPos, 0x00ff66, true, targetDir);
+          });
+          this.spaceAudio.playLaserPew();
+        }
+        if (carrierStatus && carrierStatus.droneSpawns > 0) {
+          for (let d = 0; d < carrierStatus.droneSpawns; d++) {
+            this.spawnDrone();
+          }
+        }
+      }
+    }
+
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pow = this.powerUps[i];
       if (!pow || !pow.meshGroup) { this.powerUps.splice(i, 1); continue; }
@@ -734,7 +769,7 @@ export class GameManager {
         scrap: this.upgradeSystem.scrap,
         waveNum: this.waveSpawner.currentWave,
         pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD,
-        bossHpRatio: this.activeBoss ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) : null,
+        bossHpRatio: (this.activeBoss && !this.activeBoss.isDead) ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) : ((this.carrierBoss && !this.carrierBoss.isDead) ? Math.max(0, this.carrierBoss.coreHp / this.carrierBoss.maxCoreHp) : null),
         overchargeActive: this.overchargeTimer > 0,
         stasisActive: this.stasisTimer > 0
       });

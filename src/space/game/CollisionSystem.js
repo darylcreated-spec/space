@@ -304,6 +304,26 @@ export class CollisionSystem {
             continue;
           }
         }
+
+        // Carrier Capital Ship Laser Hit Check
+        if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
+          const carrier = gameManager.carrierBoss;
+          const distC = lPos.distanceTo(carrier.meshGroup.position);
+          if (distC < carrier.hitRadius) {
+            this.particleManager.createExplosion(lPos, 0x00f3ff, 15);
+            let dmg = laser.isCritical ? 75 : 25;
+            const dead = carrier.takeDamage(dmg);
+            if (dead) {
+              gameManager.addScore(carrier.scoreValue);
+              gameManager.addScrap(300);
+            }
+            if (!gameManager.activePerks.has('piercing')) {
+              laser.destroy();
+              gameManager.lasers.splice(i, 1);
+            }
+            continue;
+          }
+        }
       }
     }
 
@@ -413,6 +433,23 @@ export class CollisionSystem {
             }
           }
         }
+
+        if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
+          const carrier = gameManager.carrierBoss;
+          if (pulsePos.distanceTo(carrier.meshGroup.position) < pulse.aoeRadius + 10) {
+            carrier.takeDamage(300);
+          }
+        }
+      }
+    }
+
+    // Direct Carrier Collision with Player Ship
+    if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
+      const carrier = gameManager.carrierBoss;
+      if (pPos.distanceTo(carrier.meshGroup.position) < player.radius + carrier.hitRadius) {
+        player.takeDamage(40);
+        this.particleManager.createExplosion(pPos, 0x00f3ff, 35);
+        this.spaceAudio.playExplosion();
       }
     }
 

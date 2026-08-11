@@ -51,7 +51,11 @@ export class WaveSpawner {
       this.spawnedCount++;
 
       // Milestone Capital Ship spawning
-      if (this.currentWave === 2) {
+      if (this.currentWave === 1) {
+        if (this.spawnedCount === 35) {
+          this.gameManager.spawnCarrierBoss();
+        }
+      } else if (this.currentWave === 2) {
         if (this.spawnedCount === 20 || this.spawnedCount === 35) {
           this.gameManager.spawnCapitalShip();
         }
