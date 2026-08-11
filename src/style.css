@@ -1215,6 +1215,14 @@ html, body {
   gap: 2px;
 }
 
+.meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
 .meter-label {
   font-size: 0.65rem;
   font-weight: 800;
@@ -1224,11 +1232,23 @@ html, body {
 
 .meter-value {
   font-family: var(--font-code);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 800;
   color: #ffffff;
-  float: right;
-  margin-top: -16px;
+}
+
+.boss-hp-panel {
+  position: absolute;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 480px;
+  width: 90%;
+  padding: 0.4rem 1rem;
+  text-align: center;
+  border-color: var(--accent-magenta);
+  box-shadow: 0 0 20px rgba(255, 0, 119, 0.4);
+  z-index: 25;
 }
 
 .center-score-panel {
