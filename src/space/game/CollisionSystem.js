@@ -114,7 +114,8 @@ export class CollisionSystem {
           if (laser.hitEntities.has(rock.meshGroup.uuid)) continue;
 
           const dist = lPos.distanceTo(rock.meshGroup.position);
-          if (dist < rock.radius + laser.radius) {
+          const rockPhysicalRadius = (rock.radius || 3.0) * 0.75 + 0.3;
+          if (dist < rockPhysicalRadius) {
             laser.hitEntities.add(rock.meshGroup.uuid);
             let dmg = 25;
             if (laser.isCritical) {
@@ -157,7 +158,8 @@ export class CollisionSystem {
           if (laser.hitEntities.has(drone.meshGroup.uuid)) continue;
 
           const dist = lPos.distanceTo(drone.meshGroup.position);
-          if (dist < drone.radius + laser.radius) {
+          const dronePhysicalRadius = 1.3;
+          if (dist < dronePhysicalRadius) {
             laser.hitEntities.add(drone.meshGroup.uuid);
             let dmg = 20;
             if (laser.isCritical) {
@@ -242,7 +244,7 @@ export class CollisionSystem {
             if (!bPos) continue;
 
             const distB = lPos.distanceTo(bPos);
-            const bossHitRadius = boss.hitRadius || 28;
+            const bossHitRadius = 12.5;
 
             laser.hitEntities = laser.hitEntities || new Set();
 
@@ -318,8 +320,9 @@ export class CollisionSystem {
         // Carrier Capital Ship Laser Hit Check
         if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
           const carrier = gameManager.carrierBoss;
-          const distC = lPos.distanceTo(carrier.meshGroup.position);
-          if (distC < carrier.hitRadius) {
+          const carrierLocalPos = carrier.meshGroup.worldToLocal(lPos.clone());
+          // Exact Physical Hull Mesh Bounds (BoxGeometry 22 x 7 x 36)
+          if (Math.abs(carrierLocalPos.x) < 11.5 && Math.abs(carrierLocalPos.y) < 4.5 && Math.abs(carrierLocalPos.z) < 18.5) {
             this.particleManager.createExplosion(lPos, 0x00f3ff, 15);
             let dmg = laser.isCritical ? 75 : 25;
             const dead = carrier.takeDamage(dmg);
