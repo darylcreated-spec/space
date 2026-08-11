@@ -235,73 +235,83 @@ export class CollisionSystem {
         // Player Lasers vs Boss (SpaceStation / HaloRingBoss / Babylon5Boss / BossDreadnought)
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
-          const bPos = boss.meshGroup.position;
-          const distB = lPos.distanceTo(bPos);
-          const bossHitRadius = boss.hitRadius || 28;
+          if (boss.isDead) continue;
 
-          laser.hitEntities = laser.hitEntities || new Set();
+          try {
+            const bPos = boss.meshGroup ? boss.meshGroup.position : null;
+            if (!bPos) continue;
 
-          if (distB < bossHitRadius) {
-            let dmg = 25;
-            if (laser.isCritical) {
-              dmg *= 3;
-              this.particleManager.createExplosion(lPos, 0xff0044, 25);
-            } else {
-              this.particleManager.createExplosion(lPos, 0xffea00, 15);
-            }
-            if (laser.hitEntities.size > 1) dmg *= 0.5;
+            const distB = lPos.distanceTo(bPos);
+            const bossHitRadius = boss.hitRadius || 28;
 
-            let hitRegistered = false;
-            let dead = false;
+            laser.hitEntities = laser.hitEntities || new Set();
 
-            if (boss.turrets && Array.isArray(boss.turrets)) {
-              const livingTurrets = boss.turrets.filter(t => !t.isDead && t.mesh);
-              let hitTurret = null;
-              let closestDist = Infinity;
-              for (const t of livingTurrets) {
-                t.mesh.updateMatrixWorld(true);
-                const tPos = t.mesh.getWorldPosition(this._tempVec1);
-                const td = lPos.distanceTo(tPos);
-                if (td < closestDist) { closestDist = td; hitTurret = t; }
+            if (distB < bossHitRadius) {
+              let dmg = 25;
+              if (laser.isCritical) {
+                dmg *= 3;
+                this.particleManager.createExplosion(lPos, 0xff0044, 25);
+              } else {
+                this.particleManager.createExplosion(lPos, 0xffea00, 15);
               }
-              if (hitTurret && closestDist < 12) {
-                if (!laser.hitEntities.has(hitTurret.id)) {
-                  laser.hitEntities.add(hitTurret.id);
-                  boss.takeTurretDamage(hitTurret.id, dmg);
-                  hitRegistered = true;
+              if (laser.hitEntities.size > 1) dmg *= 0.5;
+
+              let hitRegistered = false;
+              let dead = false;
+
+              if (boss.turrets && Array.isArray(boss.turrets)) {
+                const livingTurrets = boss.turrets.filter(t => t && !t.isDead && t.mesh);
+                let hitTurret = null;
+                let closestDist = Infinity;
+                for (const t of livingTurrets) {
+                  if (t.mesh) {
+                    t.mesh.updateMatrixWorld(true);
+                    const tPos = t.mesh.getWorldPosition(this._tempVec1);
+                    const td = lPos.distanceTo(tPos);
+                    if (td < closestDist) { closestDist = td; hitTurret = t; }
+                  }
+                }
+                if (hitTurret && closestDist < 12) {
+                  if (!laser.hitEntities.has(hitTurret.id)) {
+                    laser.hitEntities.add(hitTurret.id);
+                    boss.takeTurretDamage(hitTurret.id, dmg);
+                    hitRegistered = true;
+                  }
+                } else {
+                  if (!laser.hitEntities.has('boss_core')) {
+                    laser.hitEntities.add('boss_core');
+                    dead = boss.takeCoreDamage(dmg);
+                    hitRegistered = true;
+                  }
                 }
               } else {
                 if (!laser.hitEntities.has('boss_core')) {
                   laser.hitEntities.add('boss_core');
-                  dead = boss.takeCoreDamage(dmg);
+                  let target = 'core';
+                  if (boss.turretLeftHp > 0) target = 'turretLeft';
+                  else if (boss.turretRightHp > 0) target = 'turretRight';
+                  dead = boss.takeDamage ? boss.takeDamage(target, dmg) : (boss.takeCoreDamage ? boss.takeCoreDamage(dmg) : false);
                   hitRegistered = true;
                 }
               }
-            } else {
-              if (!laser.hitEntities.has('boss_core')) {
-                laser.hitEntities.add('boss_core');
-                let target = 'core';
-                if (boss.turretLeftHp > 0) target = 'turretLeft';
-                else if (boss.turretRightHp > 0) target = 'turretRight';
-                dead = boss.takeDamage ? boss.takeDamage(target, dmg) : (boss.takeCoreDamage ? boss.takeCoreDamage(dmg) : false);
-                hitRegistered = true;
-              }
-            }
 
-            if (hitRegistered) {
-              if (dead || boss.isDead) {
-                gameManager.addScore(boss.scoreValue);
-                gameManager.addScrap(300);
-                gameManager.achievementSystem.recordBossKilled();
+              if (hitRegistered) {
+                if (dead || boss.isDead) {
+                  gameManager.addScore(boss.scoreValue);
+                  gameManager.addScrap(300);
+                  gameManager.achievementSystem.recordBossKilled();
                   player.onKillHeal();
-              }
+                }
 
-              if (!gameManager.activePerks.has('piercing')) {
-                laser.destroy();
-                gameManager.lasers.splice(i, 1);
+                if (!gameManager.activePerks.has('piercing')) {
+                  laser.destroy();
+                  gameManager.lasers.splice(i, 1);
+                }
               }
+              continue;
             }
-            continue;
+          } catch (bossErr) {
+            console.warn('Laser vs Boss collision error caught safely:', bossErr);
           }
         }
 
