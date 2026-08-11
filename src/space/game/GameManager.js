@@ -135,6 +135,9 @@ export class GameManager {
     this.playerShip.shield = this.playerShip.maxShield;
     this.state = 'PLAYING';
     this.waveSpawner.startWave(1);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("All Vanguard units, Sector Alpha IV is under attack! Clear the asteroid corridor!", "STARBOUND COMMAND", 5.0);
+    }
     this.spaceAudio.ensureContext();
     this.spaceAudio.startDrone();
   }
@@ -292,12 +295,18 @@ export class GameManager {
   spawnCarrierBoss() {
     this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Alert! Heavy Enemy Aircraft Carrier Detected! Interceptors Launching!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("ALERT: Heavy Enemy Aircraft Carrier detected! Target its flight decks & missile pods!", "STARBOUND COMMAND", 5.5);
+    }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnSpaceStation() {
     this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Orbital Alpha Moon Base superlaser activated! Planet vaporized... space debris incoming!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("WARNING: Orbital Alpha superlaser charging! It's targeting planet Alpha IV—GET CLEAR!", "STARBOUND COMMAND", 6.0);
+    }
     if (this.spaceScene) {
       this.spaceScene.triggerBossIntroCamera();
       this.spaceScene.triggerPlanetVaporization(this.activeBoss.meshGroup.position, this.particleManager);

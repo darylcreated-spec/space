@@ -1097,4 +1097,90 @@ html, body {
   }
 }
 
+/* Radio Transmission Comms Box */
+.comms-panel {
+  position: absolute;
+  top: 90px;
+  left: 20px;
+  max-width: 380px;
+  padding: 12px 16px;
+  border-left: 4px solid var(--accent-cyan);
+  background: rgba(6, 12, 24, 0.88);
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  z-index: 20;
+  animation: slideInLeft 0.3s ease-out;
+}
+.comms-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-code);
+  font-size: 0.7rem;
+  color: var(--accent-cyan);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+}
+.comms-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.comms-avatar {
+  font-size: 1.8rem;
+  padding: 4px;
+  background: rgba(0, 243, 255, 0.1);
+  border-radius: 50%;
+  border: 1px solid var(--accent-cyan);
+}
+.comms-msg {
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: #e0f0ff;
+  font-weight: 500;
+}
+
+/* Homing Missile Lock-On Warning Banner */
+.lockon-warning-banner {
+  position: absolute;
+  top: 135px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(255, 0, 85, 0.85);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 25px rgba(255, 0, 85, 0.8);
+  border-radius: 30px;
+  z-index: 35;
+  animation: pulseLockWarning 0.6s infinite alternate;
+}
+.lockon-icon {
+  font-size: 1.6rem;
+}
+.lockon-title {
+  font-family: var(--font-code);
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
+  letter-spacing: 1.5px;
+}
+.lockon-sub {
+  font-size: 0.75rem;
+  color: #ffea00;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+@keyframes pulseLockWarning {
+  0% { transform: translateX(-50%) scale(1.0); opacity: 0.85; }
+  100% { transform: translateX(-50%) scale(1.06); opacity: 1.0; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-40px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 

@@ -34,6 +34,14 @@ export class CarrierCapitalShip {
       { id: 3, relPos: new THREE.Vector3(10.5, -3.5, 4),  hp: 400, isDead: false, mesh: null }
     ];
 
+    // Targetable Carrier Sub-Systems
+    this.subsystems = [
+      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-11, 0, 2), hp: 450, maxHp: 450, isDead: false, mesh: null },
+      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(11, 0, 2), hp: 450, maxHp: 450, isDead: false, mesh: null },
+      { id: 'missilePodLeft', name: 'PORT MISSILE POD', relPos: new THREE.Vector3(-9, 4, 0), hp: 350, maxHp: 350, isDead: false, mesh: null },
+      { id: 'missilePodRight', name: 'STARBOARD MISSILE POD', relPos: new THREE.Vector3(9, 4, 0), hp: 350, maxHp: 350, isDead: false, mesh: null }
+    ];
+
     this._build();
     this.scene.add(this.meshGroup);
   }
@@ -133,6 +141,20 @@ export class CarrierCapitalShip {
     });
   }
 
+  takeSubsystemDamage(systemId, amount) {
+    const sub = this.subsystems.find(s => s.id === systemId);
+    if (!sub || sub.isDead) return false;
+
+    sub.hp -= amount;
+    if (sub.hp <= 0) {
+      sub.isDead = true;
+      const wp = this.meshGroup.position.clone().add(sub.relPos);
+      this.particleManager.createExplosion(wp, 0xffaa00, 80, 3.0);
+      this.particleManager.createEmpShockwave(wp, 35);
+    }
+    return sub.isDead;
+  }
+
   takeDamage(amount) {
     this.coreHp -= amount;
 
@@ -215,16 +237,40 @@ export class CarrierCapitalShip {
       });
     }
 
-    // 2. Homing Missile Salvo firing (every 4.0s)
+    // 2. Homing Missile Salvo firing (if missile pods active)
+    const podL = this.subsystems.find(s => s.id === 'missilePodLeft');
+    const podR = this.subsystems.find(s => s.id === 'missilePodRight');
+    const canFireMissiles = (podL && !podL.isDead) || (podR && !podR.isDead);
+
     this.missileTimer -= dt;
-    if (this.missileTimer <= 0 && arrived) {
+    if (this.missileTimer <= 0 && arrived && canFireMissiles) {
       this.missileTimer = 4.2;
-      // Fire 2 homing missiles from left and right dorsal launchers
-      [-9, 9].forEach(xOff => {
+      const xOffsets = [];
+      if (podL && !podL.isDead) xOffsets.push(-9);
+      if (podR && !podR.isDead) xOffsets.push(9);
+
+      xOffsets.forEach(xOff => {
         const launchPos = this.meshGroup.position.clone().add(new THREE.Vector3(xOff, 4.0, 0));
         const missile = new HomingMissile(this.scene, launchPos, playerPos);
         this.homingMissiles.push(missile);
       });
+
+      if (playerShip && playerShip.gameManager && playerShip.gameManager.spaceHUD) {
+        playerShip.gameManager.spaceHUD.showLockOnWarning(true, 'MISSILE LOCK DETECTED!');
+        if (playerShip.gameManager.spaceAudio) playerShip.gameManager.spaceAudio.playLockOnAlarm();
+      }
+    }
+
+    // Lock-break check when player dodges
+    if (playerShip && playerShip.isDodging && this.homingMissiles.length > 0) {
+      if (playerShip.gameManager && playerShip.gameManager.spaceHUD) {
+        playerShip.gameManager.spaceHUD.showLockOnWarning(false);
+        if (playerShip.gameManager.spaceAudio && !this._hasPlayedLockBreak) {
+          playerShip.gameManager.spaceAudio.playLockBrokenSound();
+          this._hasPlayedLockBreak = true;
+          setTimeout(() => { this._hasPlayedLockBreak = false; }, 1000);
+        }
+      }
     }
 
     // Update active in-flight homing missiles
@@ -232,6 +278,9 @@ export class CarrierCapitalShip {
       const m = this.homingMissiles[i];
       if (!m || m.isDead) {
         this.homingMissiles.splice(i, 1);
+        if (this.homingMissiles.length === 0 && playerShip && playerShip.gameManager && playerShip.gameManager.spaceHUD) {
+          playerShip.gameManager.spaceHUD.showLockOnWarning(false);
+        }
         continue;
       }
       m.update(dt, playerShip, this.particleManager);
@@ -248,12 +297,16 @@ export class CarrierCapitalShip {
       }
     }
 
-    // 3. Drone Flight Deck Launching (every 5.5s)
+    // 3. Drone Flight Deck Launching (if hangar bays active)
+    const hL = this.subsystems.find(s => s.id === 'hangarLeft');
+    const hR = this.subsystems.find(s => s.id === 'hangarRight');
+    const canLaunchDrones = (hL && !hL.isDead) || (hR && !hR.isDead);
+
     this.droneLaunchTimer -= dt;
     let spawnDronesCount = 0;
-    if (this.droneLaunchTimer <= 0 && arrived) {
+    if (this.droneLaunchTimer <= 0 && arrived && canLaunchDrones) {
       this.droneLaunchTimer = 5.5;
-      spawnDronesCount = 2; // Request GameManager to launch 2 fighter drones
+      spawnDronesCount = (hL && !hL.isDead ? 1 : 0) + (hR && !hR.isDead ? 1 : 0);
     }
 
     return {

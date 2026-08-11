@@ -299,6 +299,41 @@ export class SpaceHUD {
         triggerStartIfInStartScreen();
       });
     }
+  }
+
+  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 4.5) {
+    if (!this.commsBox) {
+      this.commsBox = document.getElementById('space-comms-box');
+      this.commsSender = document.getElementById('comms-sender');
+      this.commsMessage = document.getElementById('comms-message');
+    }
+    if (!this.commsBox || !this.commsMessage) return;
+
+    if (this.commsSender) this.commsSender.textContent = sender;
+    this.commsMessage.textContent = message;
+
+    this.commsBox.classList.remove('hidden');
+    if (this.commsTimer) clearTimeout(this.commsTimer);
+
+    this.commsTimer = setTimeout(() => {
+      this.commsBox.classList.add('hidden');
+    }, duration * 1000);
+  }
+
+  showLockOnWarning(active, text = 'MISSILE LOCK DETECTED!') {
+    if (!this.lockonBox) {
+      this.lockonBox = document.getElementById('space-lockon-warning');
+      this.lockonTitle = document.getElementById('lockon-title');
+    }
+    if (!this.lockonBox) return;
+
+    if (active) {
+      if (this.lockonTitle) this.lockonTitle.textContent = text;
+      this.lockonBox.classList.remove('hidden');
+    } else {
+      this.lockonBox.classList.add('hidden');
+    }
+  }
 
     if (this.btnStartGame) {
       this.btnStartGame.addEventListener('click', (e) => {
