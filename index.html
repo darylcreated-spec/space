@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#060810" />
-  <meta name="description" content="ORBITAL VANGUARD - AAA 3D Space Shooter PWA" />
+  <meta name="description" content="STARBOUND SPACE DEFENDER - AAA 3D Sci-Fi Space Shooter Game" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script>
@@ -23,15 +23,15 @@
       errDiv.style.borderRadius = '8px';
       errDiv.style.border = '2px solid #fff';
       errDiv.style.textAlign = 'left';
-      errDiv.innerHTML = `<strong>Game Error Captured:</strong><br>${event.message}<br><br><strong>Source:</strong> \${event.filename}:\${event.lineno}:\${event.colno}<br><br><strong>Stack:</strong><br>\${event.error ? event.error.stack : 'N/A'}`;
+      errDiv.innerHTML = `<strong>Game Error Captured:</strong><br>${event.message}<br><br><strong>Source:</strong> ${event.filename}:${event.lineno}:${event.colno}<br><br><strong>Stack:</strong><br>${event.error ? event.error.stack : 'N/A'}`;
       document.body.appendChild(errDiv);
     });
   </script>
   
-  <title>ORBITAL VANGUARD - 3D Space Shooter PWA</title>
+  <title>STARBOUND SPACE DEFENDER - 3D Space Shooter</title>
   
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%2300f3ff'/><path d='M30 50 L70 50 M50 30 L50 70' stroke='%23ff0077' stroke-width='8'/></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23060810' stroke='%2300f3ff' stroke-width='4'/><path d='M15 70 Q 50 10 85 70' fill='none' stroke='%23ffffff' stroke-width='3'/><polygon points='50,20 75,70 25,70' fill='%230b1528' stroke='%23ff0055' stroke-width='3'/><circle cx='50' cy='50' r='10' fill='%2300f3ff'/></svg>" />
 
   <!-- Google Fonts: Outfit & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -42,7 +42,7 @@
   <!-- 3D Canvas Container -->
   <div id="canvas-container"></div>
 
-  <!-- ==================== ORBITAL VANGUARD SPACE SHOOTER HUD ==================== -->
+  <!-- ==================== STARBOUND SPACE DEFENDER HUD ==================== -->
   <div id="hud-space" class="hud-container space-hud">
     <!-- Cockpit HUD overlay -->
     <div class="cockpit-hud-overlay">
@@ -58,74 +58,60 @@
       </div>
     </div>
 
-    <!-- Top Defense Status Bar -->
-    <header class="glass-panel space-top-bar">
-      <!-- Command Shield Meter -->
-      <div class="meter-group">
-        <div class="meter-label">
-          <span class="title">COMMAND SHIELD</span>
-          <span class="val" id="space-planet-hp-text">100%</span>
-        </div>
+    <!-- Top Left & Right Bar Panels -->
+    <div class="hud-top-bar">
+      <!-- Left: Base Planet Shield -->
+      <div class="glass-panel meter-panel planet-panel">
+        <div class="meter-label">COMMAND SHIELD</div>
+        <div class="meter-value" id="space-planet-hp-text">100%</div>
         <div class="meter-bar-track">
           <div id="space-planet-hp-fill" class="meter-bar-fill planet-fill" style="width: 100%;"></div>
         </div>
       </div>
 
-      <!-- Wave, Score & Scrap Info -->
-      <div class="space-score-box">
-        <div class="wave-pill" id="space-wave-badge">WAVE 1</div>
-        <div class="score-pill">
-          <span class="lbl">SCORE</span>
-          <span class="val" id="space-score">000000</span>
+      <!-- Center: Score & Wave Badge -->
+      <div class="glass-panel center-score-panel">
+        <div id="space-wave-badge" class="wave-pill">WAVE 1</div>
+        <div class="score-display">
+          <span class="score-label">SCORE</span>
+          <span id="space-score-val" class="score-num">000000</span>
         </div>
-        <div class="scrap-pill">
-          <span class="icon">⚙️</span>
-          <span class="val" id="space-scrap">0</span>
+        <div class="scrap-display">
+          <span class="scrap-icon">⚙️</span>
+          <span id="space-scrap-val" class="scrap-num">0</span>
         </div>
       </div>
 
-      <!-- Player Shield Meter & Action Buttons -->
-      <div class="meter-group align-right">
-        <div class="meter-label">
-          <span class="title">CRAFT SHIELD</span>
-          <span class="val" id="space-player-hp-text">100%</span>
-        </div>
+      <!-- Right: Craft Shield -->
+      <div class="glass-panel meter-panel player-panel">
+        <div class="meter-label">CRAFT SHIELD</div>
+        <div class="meter-value" id="space-player-hp-text">100%</div>
         <div class="meter-bar-track">
           <div id="space-player-hp-fill" class="meter-bar-fill player-fill" style="width: 100%;"></div>
         </div>
       </div>
 
-      <div class="top-bar-actions">
-        <button id="btn-open-hangar" class="icon-btn hangar-top-btn" title="Open Hangar Ship Upgrades">
-          <span>🛠️</span>
-        </button>
-
-        <button id="btn-space-camera" class="icon-btn" title="Toggle Camera Angle (Isometric 45° / Chase / Top-Down)">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-            <circle cx="12" cy="13" r="4"/>
-          </svg>
-        </button>
-
-        <button id="btn-open-settings" class="icon-btn" title="Open Game Settings">
-          <span>⚙️</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Achievement Toast Notification Popup -->
-    <div id="achievement-toast" class="achievement-toast hidden">
-      <div class="ach-icon" id="ach-icon">🏆</div>
-      <div class="ach-text">
-        <div class="ach-title" id="ach-title">ACHIEVEMENT UNLOCKED</div>
-        <div class="ach-desc" id="ach-desc">First Blood</div>
+      <!-- Top Right Action Controls -->
+      <div class="hud-top-actions">
+        <button id="btn-open-hangar" class="icon-btn hangar-top-btn" title="Open Hangar Upgrades (H)">🛠️</button>
+        <button id="btn-space-camera" class="icon-btn" title="Toggle Camera Angle (C)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+        <button id="btn-open-settings" class="icon-btn" title="Game Settings">⚙️</button>
       </div>
     </div>
 
-    <!-- Center Wave Announcer Overlay -->
+    <!-- Achievement Toast Notification -->
+    <div id="achievement-toast" class="achievement-toast hidden">
+      <div id="ach-icon" class="ach-icon">🏆</div>
+      <div class="ach-text">
+        <div id="ach-title" class="ach-title">ACHIEVEMENT UNLOCKED</div>
+        <div id="ach-desc" class="ach-desc">First Blood</div>
+      </div>
+    </div>
+
+    <!-- Wave Announcer Banner -->
     <div id="space-wave-banner" class="wave-announcer hidden">
-      <h1 id="space-wave-title">WAVE 1</h1>
-      <p id="space-wave-subtitle">ASTEROID SHOWER DETECTED</p>
+      <div class="wave-title" id="banner-wave-title">WAVE 1</div>
+      <div class="wave-subtitle" id="banner-wave-subtitle">ASTEROID SHOWER DETECTED</div>
     </div>
 
     <!-- Mobile Action Weapon Buttons Layer -->
@@ -163,14 +149,18 @@
     <div class="glass-panel modal-card space-start-card">
       <div class="space-title-glow"></div>
       <div class="space-logo">
-        <svg viewBox="0 0 100 100" width="80" height="80">
-          <circle cx="50" cy="50" r="35" fill="none" stroke="#00f3ff" stroke-width="4"/>
-          <polygon points="50,15 85,75 15,75" fill="none" stroke="#ff0077" stroke-width="5"/>
-          <circle cx="50" cy="50" r="10" fill="#00ff66"/>
+        <!-- NASA Mission Patch Insignia SVG -->
+        <svg viewBox="0 0 120 120" width="90" height="90">
+          <circle cx="60" cy="60" r="54" fill="#060810" stroke="#00f3ff" stroke-width="4"/>
+          <circle cx="60" cy="60" r="58" fill="none" stroke="#0066ff" stroke-width="1.5" stroke-dasharray="6,4"/>
+          <path d="M 18 85 Q 60 15 102 85" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+          <polygon points="60,22 88,80 32,80" fill="#0c182c" stroke="#ff0055" stroke-width="4"/>
+          <polygon points="60,32 78,74 42,74" fill="#00f3ff" opacity="0.8"/>
+          <circle cx="60" cy="60" r="14" fill="#00ff66"/>
         </svg>
       </div>
-      <h1 class="space-game-title">ORBITAL VANGUARD</h1>
-      <p class="space-game-tagline">DEFEND THE HOMEWORLD AGAINST THE ASTEROID SIEGE & ENEMY SQUADRONS</p>
+      <h1 class="space-game-title">STARBOUND<br><span style="font-size: 0.6em; color: var(--accent-cyan); letter-spacing: 4px;">SPACE DEFENDER</span></h1>
+      <p class="space-game-tagline">DEFEND SECTOR ALPHA AGAINST THE ASTEROID SIEGE & MEGASTRUCTURE BOSSES</p>
 
       <div class="high-score-banner">
         <span class="lbl">HIGH SCORE</span>

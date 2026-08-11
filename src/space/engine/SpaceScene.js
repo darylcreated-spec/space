@@ -20,6 +20,7 @@ export class SpaceScene {
     this.cameraMode = 'isometric';
     this.targetCameraPos = new THREE.Vector3();
     this.targetLookAt = new THREE.Vector3();
+    this.currentCamLookAt = new THREE.Vector3(0, -1, -15);
     this.setCameraMode('isometric');
     this.camera.position.copy(this.targetCameraPos);
     this.camera.lookAt(this.targetLookAt);

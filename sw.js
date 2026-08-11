@@ -1,4 +1,4 @@
-const CACHE_NAME = 'orbital-vanguard-cache-v17';
+const CACHE_NAME = 'starbound-space-defender-cache-v18';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

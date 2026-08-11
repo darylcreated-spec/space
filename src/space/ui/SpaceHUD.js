@@ -13,16 +13,16 @@ export class SpaceHUD {
     this.playerHpFill = document.getElementById('space-player-hp-fill');
     this.playerHpText = document.getElementById('space-player-hp-text');
 
-    this.scoreVal = document.getElementById('space-score');
-    this.scrapVal = document.getElementById('space-scrap');
+    this.scoreVal = document.getElementById('space-score-val') || document.getElementById('space-score');
+    this.scrapVal = document.getElementById('space-scrap-val') || document.getElementById('space-scrap');
     this.waveBadge = document.getElementById('space-wave-badge');
 
     this.bossBarContainer = document.getElementById('space-boss-bar-container');
     this.bossHpFill = document.getElementById('space-boss-hp-fill');
 
     this.waveBanner = document.getElementById('space-wave-banner');
-    this.waveTitle = document.getElementById('space-wave-title');
-    this.waveSubtitle = document.getElementById('space-wave-subtitle');
+    this.waveTitle = document.getElementById('banner-wave-title') || document.getElementById('space-wave-title');
+    this.waveSubtitle = document.getElementById('banner-wave-subtitle') || document.getElementById('space-wave-subtitle');
 
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnSpaceCamera = document.getElementById('btn-space-camera');
