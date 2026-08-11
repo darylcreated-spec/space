@@ -6,12 +6,16 @@ export class CarrierCapitalShip {
     this.scene = scene;
     this.particleManager = particleManager;
 
-    this.radius = 16.0;
-    this.coreHp = 2500;
-    this.maxCoreHp = 2500;
-    this.scoreValue = 25000;
+    this.radius = 18.0;
+    this.coreHp = 3500;
+    this.maxCoreHp = 3500;
+    this.shieldHp = 1000;
+    this.maxShieldHp = 1000;
+    this.hasShield = false;
+    this.hasShieldTriggered = false;
+    this.scoreValue = 35000;
     this.isDead = false;
-    this.hitRadius = 18.0;
+    this.hitRadius = 22.0;
 
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 5, -160);
@@ -20,26 +24,26 @@ export class CarrierCapitalShip {
     this.speed = 10.0;
     this._time = Math.random() * 100;
 
-    this.fireTimer = 1.2;
-    this.missileTimer = 3.5;
-    this.droneLaunchTimer = 5.0;
+    this.fireTimer = 1.0;
+    this.missileTimer = 3.2;
+    this.droneLaunchTimer = 4.2;
 
     this.homingMissiles = [];
     this.pendingDroneSpawns = 0;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-8.5, 3.5, -6), hp: 400, isDead: false, mesh: null },
-      { id: 1, relPos: new THREE.Vector3(8.5, 3.5, -6),  hp: 400, isDead: false, mesh: null },
-      { id: 2, relPos: new THREE.Vector3(-10.5, -3.5, 4), hp: 400, isDead: false, mesh: null },
-      { id: 3, relPos: new THREE.Vector3(10.5, -3.5, 4),  hp: 400, isDead: false, mesh: null }
+      { id: 0, relPos: new THREE.Vector3(-8.5, 3.5, -6), hp: 500, isDead: false, mesh: null },
+      { id: 1, relPos: new THREE.Vector3(8.5, 3.5, -6),  hp: 500, isDead: false, mesh: null },
+      { id: 2, relPos: new THREE.Vector3(-10.5, -3.5, 4), hp: 500, isDead: false, mesh: null },
+      { id: 3, relPos: new THREE.Vector3(10.5, -3.5, 4),  hp: 500, isDead: false, mesh: null }
     ];
 
     // Targetable Carrier Sub-Systems
     this.subsystems = [
-      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-11, 0, 2), hp: 450, maxHp: 450, isDead: false, mesh: null },
-      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(11, 0, 2), hp: 450, maxHp: 450, isDead: false, mesh: null },
-      { id: 'missilePodLeft', name: 'PORT MISSILE POD', relPos: new THREE.Vector3(-9, 4, 0), hp: 350, maxHp: 350, isDead: false, mesh: null },
-      { id: 'missilePodRight', name: 'STARBOARD MISSILE POD', relPos: new THREE.Vector3(9, 4, 0), hp: 350, maxHp: 350, isDead: false, mesh: null }
+      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-11, 0, 2), hp: 600, maxHp: 600, isDead: false, mesh: null },
+      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(11, 0, 2), hp: 600, maxHp: 600, isDead: false, mesh: null },
+      { id: 'missilePodLeft', name: 'PORT MISSILE POD', relPos: new THREE.Vector3(-9, 4, 0), hp: 500, maxHp: 500, isDead: false, mesh: null },
+      { id: 'missilePodRight', name: 'STARBOARD MISSILE POD', relPos: new THREE.Vector3(9, 4, 0), hp: 500, maxHp: 500, isDead: false, mesh: null }
     ];
 
     this._build();
@@ -139,6 +143,19 @@ export class CarrierCapitalShip {
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
     });
+
+    // ── 4. Fresnel Energy Shield Mesh ──
+    const shieldGeo = new THREE.IcosahedronGeometry(22.0, 3);
+    this.shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.0,
+      wireframe: true,
+      blending: THREE.AdditiveBlending
+    });
+    this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
+    this.shieldMesh.visible = false;
+    this.meshGroup.add(this.shieldMesh);
   }
 
   takeSubsystemDamage(systemId, amount) {
@@ -156,7 +173,35 @@ export class CarrierCapitalShip {
   }
 
   takeDamage(amount) {
+    if (this.hasShield && this.shieldHp > 0) {
+      this.shieldHp -= amount;
+      if (this.shieldMesh) {
+        this.shieldMesh.visible = true;
+        this.shieldMat.opacity = 0.85;
+      }
+      if (this.shieldHp <= 0) {
+        this.hasShield = false;
+        if (this.shieldMesh) this.shieldMesh.visible = false;
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 60);
+      }
+      return false;
+    }
+
     this.coreHp -= amount;
+
+    // Phase 2 Energy Shield Overcharge at 50% HP (1750 HP)
+    if (this.coreHp <= 1750 && !this.hasShieldTriggered && !this.isDead) {
+      this.hasShield = true;
+      this.hasShieldTriggered = true;
+      this.shieldHp = this.maxShieldHp;
+      if (this.shieldMesh) this.shieldMesh.visible = true;
+      if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+        window.spaceGameManager.spaceHUD.showRadioTransmission("WARNING: Enemy Carrier Energy Shield Overcharged! Target Flight Decks!", "STARBOUND COMMAND", 5.5);
+      }
+      if (window.spaceGameManager && window.spaceGameManager.voiceAnnouncer) {
+        window.spaceGameManager.voiceAnnouncer.speak("Warning! Heavy Carrier Shield Overcharged!", true);
+      }
+    }
 
     // Emissive damage feedback
     if (this.hullMat) {
