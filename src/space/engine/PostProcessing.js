@@ -9,11 +9,12 @@ export class PostProcessing {
     this.scene = scene;
     this.camera = camera;
 
-    // Detect mobile device
-    this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+    // Detect mobile device (phones, tablets, touch devices)
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024 || ('ontouchstart' in window && window.innerWidth < 1024);
 
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    const useBloom = savedQuality ? (savedQuality === 'high') : !this.isMobile;
+    // NEVER enable bloom on mobile devices by default — UnrealBloomPass causes black canvas on mobile WebGL GPUs
+    const useBloom = !this.isMobile && (savedQuality ? savedQuality === 'high' : true);
 
     if (useBloom) {
       this._initComposer();
@@ -25,6 +26,10 @@ export class PostProcessing {
   }
 
   _initComposer() {
+    if (this.isMobile) {
+      this.composer = null;
+      return;
+    }
     try {
       this.composer = new EffectComposer(this.renderer);
       const renderPass = new RenderPass(this.scene, this.camera);
@@ -44,7 +49,7 @@ export class PostProcessing {
   }
 
   setGraphicsQuality(level) {
-    if (level === 'low') {
+    if (level === 'low' || this.isMobile) {
       this.composer = null;
     } else {
       if (!this.composer) {
@@ -60,10 +65,11 @@ export class PostProcessing {
   }
 
   render() {
-    if (this.composer) {
+    if (this.composer && !this.isMobile) {
       try {
         this.composer.render();
       } catch (e) {
+        this.composer = null;
         this.renderer.render(this.scene, this.camera);
       }
     } else {

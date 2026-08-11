@@ -27,8 +27,9 @@ export class SpaceScene {
     // WebGL Renderer
     this.renderer = new THREE.WebGLRenderer({
       antialias: !this.isMobile,
-      powerPreference: 'high-performance',
-      alpha: false
+      alpha: false,
+      precision: this.isMobile ? 'mediump' : 'highp',
+      stencil: false
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
