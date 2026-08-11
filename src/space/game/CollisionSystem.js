@@ -416,6 +416,21 @@ export class CollisionSystem {
       }
     }
 
+    // Superlaser Insta-Kill Collision Check
+    const boss = gameManager.activeBoss;
+    if (boss && !boss.isDead && boss.meshGroup && boss.superlaserfiring) {
+      const bPos = boss.meshGroup.position;
+      if (Math.abs(pPos.x - bPos.x) < 6.5 && Math.abs(pPos.y - bPos.y) < 6.5) {
+        player.takeDamage(9999);
+        this.particleManager.createExplosion(pPos, 0x00f3ff, 150, 4.0);
+        this.particleManager.createExplosion(pPos, 0xff0055, 100, 3.0);
+        this.spaceAudio.playExplosion();
+        this.spaceScene.addScreenShake(3.5);
+        gameManager.onGameOver('Vaporized by Moon Base Superlaser');
+        return;
+      }
+    }
+
     // 5. Direct Player Collisions with Threats
     gameManager.asteroids.forEach(rock => {
       if (rock && !rock.isDead && rock.meshGroup && pPos.distanceTo(rock.meshGroup.position) < player.radius + rock.radius) {

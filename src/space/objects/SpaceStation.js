@@ -87,8 +87,8 @@ export class MoonBase {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 2500;
-    this.maxCoreHp = 2500;
+    this.coreHp = 4000;
+    this.maxCoreHp = 4000;
     this.scoreValue = 40000;
     this.isDead = false;
     this.hitRadius = 27; // Reduced size by 25%
@@ -105,12 +105,12 @@ export class MoonBase {
     this.hasShield = true;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-16.5, 9, 12), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(16.5, 9, 12),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(-16.5, -9, 12), hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(16.5, -9, 12),  hp: 750, maxHp: 750, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(0, 19.5, 0),    hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(0, -19.5, 0),   hp: 650, maxHp: 650, isDead: false, mesh: null, light: null },
+      { id: 0, relPos: new THREE.Vector3(-16.5, 9, 12), hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
+      { id: 1, relPos: new THREE.Vector3(16.5, 9, 12),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
+      { id: 2, relPos: new THREE.Vector3(-16.5, -9, 12), hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
+      { id: 3, relPos: new THREE.Vector3(16.5, -9, 12),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
+      { id: 4, relPos: new THREE.Vector3(0, 19.5, 0),    hp: 1000, maxHp: 1000, isDead: false, mesh: null, light: null },
+      { id: 5, relPos: new THREE.Vector3(0, -19.5, 0),   hp: 1000, maxHp: 1000, isDead: false, mesh: null, light: null },
     ];
 
     this.shaderMaterials = [];

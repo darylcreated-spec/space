@@ -21,7 +21,7 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 30; // Full Wave 1: asteroid corridor + drone attacks
+      this.totalToSpawnInWave = 75; // Extended Wave 1: deep asteroid corridor + drone squadrons
     } else if (this.currentWave === 2) {
       this.totalToSpawnInWave = 45; // Wave 2: heavier assault
     } else if (this.currentWave === 3) {

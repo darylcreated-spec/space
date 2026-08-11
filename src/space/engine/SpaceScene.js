@@ -220,6 +220,7 @@ export class SpaceScene {
 
   triggerPlanetVaporization(moonBasePos, particleManager) {
     if (!this.targetPlanet) return;
+    this.bossIntroTimer = 3.5; // Hold camera focus on planet destruction cutscene
 
     const startPos = moonBasePos ? moonBasePos.clone() : new THREE.Vector3(0, 0, -55);
     const endPos = this.targetPlanet.position.clone();
