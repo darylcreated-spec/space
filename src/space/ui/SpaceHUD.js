@@ -498,10 +498,10 @@ export class SpaceHUD {
       }
       if (btn) {
         if (lvl >= upgradeSystem.maxLevel) {
-          btn.textContent = 'MAX LEVEL';
+          btn.textContent = 'MAX REFIT';
           btn.disabled = true;
         } else {
-          btn.textContent = `UPGRADE (${cost} Scrap)`;
+          btn.textContent = `REFIT (${cost} CR)`;
           btn.disabled = upgradeSystem.scrap < cost;
         }
       }
@@ -523,13 +523,13 @@ export class SpaceHUD {
       if (this.gameManager.playerShip.hasMiningAddon) {
         this.miningAddonStatus.textContent = 'UNLOCKED / ACTIVE';
         this.miningAddonStatus.className = 'premium-status unlocked';
-        this.btnBuyMiningAddon.textContent = 'INSTALLED 💎';
+        this.btnBuyMiningAddon.textContent = 'INSTALLED ⚡';
         this.btnBuyMiningAddon.disabled = true;
       } else {
         this.miningAddonStatus.textContent = 'LOCKED';
         this.miningAddonStatus.className = 'premium-status';
         const canAfford = upgradeSystem.scrap >= 500;
-        this.btnBuyMiningAddon.textContent = 'UNLOCK DRILL (500 Scrap)';
+        this.btnBuyMiningAddon.textContent = 'UNLOCK DRILL (500 CR)';
         this.btnBuyMiningAddon.disabled = !canAfford;
       }
     }
@@ -641,16 +641,23 @@ export class SpaceHUD {
       const card = document.createElement('div');
       card.className = 'perk-card';
 
-      let icon = '🌀';
-      if (perk.id === 'piercing') icon = '⚡';
-      else if (perk.id === 'siphon') icon = '💚';
-      else if (perk.id === 'retaliate') icon = '💥';
-      else if (perk.id === 'magnet') icon = '🧲';
-      else if (perk.id === 'crit') icon = '🟥';
-      else if (perk.id === 'dodge_boost') icon = '🚀';
+      let iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="var(--accent-cyan)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>';
+      if (perk.id === 'piercing') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#00f3ff" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+      } else if (perk.id === 'siphon') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#00ff66" stroke-width="2"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>';
+      } else if (perk.id === 'retaliate') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ff0055" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
+      } else if (perk.id === 'magnet') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ffb700" stroke-width="2"><path d="M6 3v7a6 6 0 0 0 12 0V3M6 7h12"/></svg>';
+      } else if (perk.id === 'crit') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ff0044" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>';
+      } else if (perk.id === 'dodge_boost') {
+        iconSvg = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#ffea00" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
+      }
 
       card.innerHTML = `
-        <div class="perk-icon">${icon}</div>
+        <div class="perk-icon">${iconSvg}</div>
         <div class="perk-title">${perk.name}</div>
         <div class="perk-desc">${perk.desc}</div>
       `;

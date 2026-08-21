@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#060810" />
-  <meta name="description" content="STARBOUND SPACE DEFENDER - AAA 3D Sci-Fi Space Shooter Game" />
+  <meta name="theme-color" content="#040814" />
+  <meta name="description" content="STARBOUND SPACE DEFENDER - AAA Sci-Fi Aerospace Flight Combat Simulator" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script>
@@ -14,7 +14,7 @@
       errDiv.style.top = '10px';
       errDiv.style.left = '10px';
       errDiv.style.right = '10px';
-      errDiv.style.background = 'rgba(255, 0, 0, 0.95)';
+      errDiv.style.background = 'rgba(255, 0, 40, 0.95)';
       errDiv.style.color = '#fff';
       errDiv.style.padding = '15px';
       errDiv.style.fontFamily = 'monospace';
@@ -28,304 +28,491 @@
     });
   </script>
   
-  <title>STARBOUND SPACE DEFENDER - 3D Space Shooter</title>
+  <title>STARBOUND // SPACE DEFENDER - AAA Sci-Fi Combat</title>
   
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23060810' stroke='%2300f3ff' stroke-width='4'/><path d='M15 70 Q 50 10 85 70' fill='none' stroke='%23ffffff' stroke-width='3'/><polygon points='50,20 75,70 25,70' fill='%230b1528' stroke='%23ff0055' stroke-width='3'/><circle cx='50' cy='50' r='10' fill='%2300f3ff'/></svg>" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23040814' stroke='%2300f3ff' stroke-width='4'/><path d='M15 70 Q 50 10 85 70' fill='none' stroke='%23ffffff' stroke-width='3'/><polygon points='50,20 75,70 25,70' fill='%230b1528' stroke='%23ff0055' stroke-width='3'/><circle cx='50' cy='50' r='10' fill='%2300f3ff'/></svg>" />
 
-  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <!-- Google Fonts: Orbitron, Chakra Petch, Rajdhani & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;600;700;800&family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <!-- 3D Canvas Container -->
   <div id="canvas-container"></div>
 
-  <!-- ==================== STARBOUND SPACE DEFENDER HUD ==================== -->
+  <!-- ==================== AAA SCI-FI FLIGHT COMBAT HUD ==================== -->
   <div id="hud-space" class="hud-container space-hud">
-    <!-- Cockpit HUD overlay -->
+    <!-- Cockpit Optical Filter & Telemetry Scanlines Overlay -->
     <div class="cockpit-hud-overlay">
       <div class="scanlines"></div>
       <div class="vignette"></div>
       <div class="hud-glass-reflection"></div>
-    </div>
-    <!-- Boss Dreadnought HP Bar Overlay -->
-    <div id="space-boss-bar-container" class="glass-panel boss-hp-panel hidden">
-      <div id="space-boss-title" class="boss-title">⚠️ ENEMY TARGET ⚠️</div>
-      <div class="meter-bar-track boss-track">
-        <div id="space-boss-hp-fill" class="meter-bar-fill boss-fill" style="width: 100%;"></div>
+      <div class="hud-tactical-corners">
+        <div class="hud-corner top-left"></div>
+        <div class="hud-corner top-right"></div>
       </div>
     </div>
 
-    <!-- Bottom Left, Center & Right Unified Dashboard -->
+    <!-- Central Cockpit Flight Crosshair Reticle -->
+    <div class="flight-reticle-container">
+      <div class="reticle-horizon-line left"></div>
+      <div class="reticle-horizon-line right"></div>
+      <div class="reticle-ring">
+        <div class="reticle-dot"></div>
+      </div>
+      <div class="reticle-brackets">
+        <span class="reticle-bracket top"></span>
+        <span class="reticle-bracket bottom"></span>
+      </div>
+    </div>
+
+    <!-- Boss Dreadnought / Moon Base Health Telemetry Visor -->
+    <div id="space-boss-bar-container" class="glass-panel boss-hp-panel hidden">
+      <div class="boss-header-bar">
+        <svg class="hazard-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ff0055" stroke-width="2.5">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span id="space-boss-title" class="boss-title">TARGET ENGAGEMENT: ORBITAL ALPHA</span>
+        <span class="boss-status-tag">HOSTILE</span>
+      </div>
+      <div class="meter-bar-track boss-track">
+        <div id="space-boss-hp-fill" class="meter-bar-fill boss-fill" style="width: 100%;"></div>
+        <div class="meter-grid-ticks"></div>
+      </div>
+    </div>
+
+    <!-- Unified Bottom Aerospace Flight Command Deck -->
     <div class="hud-bottom-bar">
-      <!-- Left: Craft Shield -->
+      <!-- Left Cluster: SYS.DEF Shield & Reactor -->
       <div class="glass-panel meter-panel player-panel">
         <div class="meter-header">
-          <span class="meter-label">CRAFT SHIELD</span>
+          <div class="meter-title-wrap">
+            <svg class="hud-mini-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span class="meter-label">SYS.DEF // SHIELD</span>
+          </div>
           <span class="meter-value" id="space-player-hp-text">100%</span>
         </div>
         <div class="meter-bar-track">
           <div id="space-player-hp-fill" class="meter-bar-fill player-fill" style="width: 100%;"></div>
+          <div class="meter-grid-ticks"></div>
         </div>
       </div>
 
-      <!-- Center: Score & Wave Badge -->
+      <!-- Center Cluster: TAC.NAV Wave, Score & Tech Scrap -->
       <div class="glass-panel center-score-panel">
-        <div id="space-wave-badge" class="wave-pill">WAVE 1</div>
-        <div class="score-display">
-          <span class="score-label">SCORE</span>
+        <div class="tac-cluster-left">
+          <div id="space-wave-badge" class="wave-pill">WAVE 1</div>
+        </div>
+        <div class="tac-cluster-mid">
+          <span class="score-label">MISSION SCORE</span>
           <span id="space-score-val" class="score-num">000000</span>
         </div>
-        <div class="scrap-display">
-          <span class="scrap-icon">⚙️</span>
-          <span id="space-scrap-val" class="scrap-num">0</span>
+        <div class="tac-cluster-right">
+          <div class="scrap-display">
+            <svg class="scrap-icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v3M12 20v3M1 12h3M20 12h3"/>
+            </svg>
+            <span id="space-scrap-val" class="scrap-num">0</span>
+            <span class="scrap-unit">CR</span>
+          </div>
         </div>
       </div>
 
-      <!-- Bottom Right Action Controls -->
+      <!-- Right Cluster: Auxiliary Rail Controls -->
       <div class="hud-bottom-actions">
-        <button id="btn-open-hangar" class="icon-btn hangar-top-btn" title="Open Hangar Upgrades (H)">🛠️</button>
-        <button id="btn-space-camera" class="icon-btn" title="Toggle Camera Angle (C)"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
-        <button id="btn-open-settings" class="icon-btn" title="Game Settings">⚙️</button>
+        <button id="btn-open-hangar" class="icon-btn hangar-top-btn" title="Shipyard Hangar (H)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          <span class="btn-tooltip-label">HANGAR</span>
+        </button>
+        <button id="btn-space-camera" class="icon-btn" title="Toggle Optics (C)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+          </svg>
+          <span class="btn-tooltip-label">OPTICS</span>
+        </button>
+        <button id="btn-open-settings" class="icon-btn" title="Flight Config (ESC)">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span class="btn-tooltip-label">CONFIG</span>
+        </button>
       </div>
     </div>
 
     <!-- Achievement Toast Notification -->
     <div id="achievement-toast" class="achievement-toast hidden">
-      <div id="ach-icon" class="ach-icon">🏆</div>
+      <div class="ach-icon-wrap">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffb700" stroke-width="2">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34M18 4H6v7a6 6 0 0 0 12 0V4z"/>
+        </svg>
+      </div>
       <div class="ach-text">
-        <div id="ach-title" class="ach-title">ACHIEVEMENT UNLOCKED</div>
-        <div id="ach-desc" class="ach-desc">First Blood</div>
+        <div class="ach-title" id="ach-title">MEDAL AWARDED</div>
+        <div class="ach-desc" id="ach-desc">First Blood</div>
       </div>
     </div>
 
     <!-- Wave Announcer Banner -->
     <div id="space-wave-banner" class="wave-announcer hidden">
-      <div class="wave-title" id="banner-wave-title">WAVE 1</div>
-      <div class="wave-subtitle" id="banner-wave-subtitle">ASTEROID SHOWER DETECTED</div>
+      <div class="wave-bracket-left"></div>
+      <div class="wave-content-wrap">
+        <div class="wave-title" id="banner-wave-title">SECTOR ALPHA // WAVE 1</div>
+        <div class="wave-subtitle" id="banner-wave-subtitle">ASTEROID CORRIDOR INCOMING</div>
+      </div>
+      <div class="wave-bracket-right"></div>
     </div>
 
     <!-- Mission Command Radio Transmission Comms Box -->
     <div id="space-comms-box" class="glass-panel comms-panel hidden">
       <div class="comms-header">
-        <span class="comms-signal">📡 INCOMING MISSION TRANSMISSION</span>
-        <span class="comms-sender" id="comms-sender">STARBOUND COMMAND</span>
+        <div class="comms-signal-wrap">
+          <span class="comms-signal-dot"></span>
+          <span class="comms-signal">TAC.COM // SECURE TRANSMISSION</span>
+        </div>
+        <span class="comms-sender" id="comms-sender">VANGUARD COMMAND</span>
       </div>
       <div class="comms-body">
-        <div class="comms-avatar">👨‍🚀</div>
-        <div class="comms-msg" id="comms-message">All Vanguard units, Sector Alpha IV is under attack! Clear the asteroid corridor!</div>
+        <div class="comms-avatar">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--accent-cyan)" stroke-width="1.8">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M12 14v4M9 18h6"/>
+          </svg>
+        </div>
+        <div class="comms-msg" id="comms-message">All Vanguard interceptors, Sector Alpha IV is under siege! Defend the corridor!</div>
       </div>
     </div>
 
     <!-- Homing Missile Lock-On Warning Overlay -->
     <div id="space-lockon-warning" class="lockon-warning-banner hidden">
-      <div class="lockon-icon">⚠️</div>
+      <div class="lockon-icon-wrap">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ff0044" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
       <div class="lockon-text-group">
         <div class="lockon-title" id="lockon-title">MISSILE LOCK DETECTED!</div>
-        <div class="lockon-sub">TAP DODGE TO BREAK LOCK-ON</div>
+        <div class="lockon-sub">EXECUTE EVASIVE ROLL TO BREAK LOCK</div>
       </div>
     </div>
 
-    <!-- Mobile Action Weapon Buttons Layer -->
+    <!-- Mobile / Tactile Flight Action Buttons Layer -->
     <div id="space-mobile-controls" class="mobile-controls-layer">
-      <!-- Action Weapon Special Buttons (Right) -->
+      <!-- 4 Tactical Ordnance Pods -->
       <div class="action-buttons-zone">
-        <button id="btn-dodge-roll" class="action-btn dodge-btn" title="Tactical Dodge Roll (Double-tap A/D)">
-          <span class="icon">🌀</span>
-          <span class="btn-label">DODGE</span>
+        <!-- 1. Tactical Dodge Roll -->
+        <button id="btn-dodge-roll" class="action-btn dodge-btn" title="Tactical Evasive Roll (Double-tap A/D)">
+          <div class="action-btn-inner">
+            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ff0055" stroke-width="2.2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span class="btn-label">DODGE</span>
+            <span class="btn-hotkey">[A/D]</span>
+          </div>
         </button>
+
+        <!-- 2. Multi-Target Swarm Missiles -->
         <button id="btn-fire-swarm" class="action-btn swarm-btn" title="Multi-Target Swarm Missiles (E / 2)">
           <span class="cooldown-ring" id="cd-ring-swarm"></span>
-          <span class="icon">🚀</span>
-          <span class="btn-label">SWARM</span>
+          <div class="action-btn-inner">
+            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent-cyan)" stroke-width="2.2">
+              <path d="M12 2l3 5-3 5-3-5zM6 8l3 5-3 5-3-5zM18 8l3 5-3 5-3-5z"/>
+            </svg>
+            <span class="btn-label">SWARM</span>
+            <span class="btn-hotkey">[E]</span>
+          </div>
         </button>
+
+        <!-- 3. Hyper-Boost Surge -->
         <button id="btn-hyper-boost" class="action-btn boost-btn" title="Hyper-Boost Thrusters (W / Space)">
-          <span class="icon">⚡</span>
-          <span class="btn-label">BOOST</span>
+          <div class="action-btn-inner">
+            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffea00" stroke-width="2.2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span class="btn-label">BOOST</span>
+            <span class="btn-hotkey">[B]</span>
+          </div>
         </button>
-        <button id="btn-fire-pulse" class="action-btn pulse-btn" title="Plasma Pulse Charge (Q / Shift)">
+
+        <!-- 4. Plasma Pulse Charge -->
+        <button id="btn-fire-pulse" class="action-btn pulse-btn" title="Plasma Pulse EMP Charge (Q / Shift)">
           <span class="cooldown-ring" id="cd-ring-pulse"></span>
-          <span class="icon">💥</span>
-          <span class="btn-label">PULSE</span>
+          <div class="action-btn-inner">
+            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ff00bb" stroke-width="2.2">
+              <circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/>
+            </svg>
+            <span class="btn-label">PULSE</span>
+            <span class="btn-hotkey">[Q]</span>
+          </div>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Space Start Screen Modal -->
+  <!-- Space Start Screen Modal // Mission Briefing Terminal -->
   <div id="space-modal-start" class="modal-overlay">
     <div class="glass-panel modal-card space-start-card">
       <div class="space-title-glow"></div>
+      
+      <!-- Aerospace Mission Patch Insignia SVG -->
       <div class="space-logo">
-        <!-- NASA Mission Patch Insignia SVG -->
-        <svg viewBox="0 0 120 120" width="90" height="90">
-          <circle cx="60" cy="60" r="54" fill="#060810" stroke="#00f3ff" stroke-width="4"/>
-          <circle cx="60" cy="60" r="58" fill="none" stroke="#0066ff" stroke-width="1.5" stroke-dasharray="6,4"/>
-          <path d="M 18 85 Q 60 15 102 85" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
-          <polygon points="60,22 88,80 32,80" fill="#0c182c" stroke="#ff0055" stroke-width="4"/>
-          <polygon points="60,32 78,74 42,74" fill="#00f3ff" opacity="0.8"/>
-          <circle cx="60" cy="60" r="14" fill="#00ff66"/>
+        <svg viewBox="0 0 120 120" width="84" height="84">
+          <defs>
+            <linearGradient id="patchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00f3ff"/>
+              <stop offset="100%" stop-color="#0066ff"/>
+            </linearGradient>
+          </defs>
+          <circle cx="60" cy="60" r="54" fill="#040814" stroke="url(#patchGrad)" stroke-width="3"/>
+          <circle cx="60" cy="60" r="58" fill="none" stroke="#00f3ff" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.6"/>
+          <path d="M 18 85 Q 60 15 102 85" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+          <polygon points="60,22 88,80 32,80" fill="#0c182c" stroke="#ff0055" stroke-width="3"/>
+          <polygon points="60,32 78,74 42,74" fill="#00f3ff" opacity="0.85"/>
+          <circle cx="60" cy="60" r="10" fill="#00ff66"/>
         </svg>
       </div>
-      <h1 class="space-game-title">STARBOUND<br><span style="font-size: 0.6em; color: var(--accent-cyan); letter-spacing: 4px;">SPACE DEFENDER</span></h1>
-      <p class="space-game-tagline">DEFEND SECTOR ALPHA AGAINST THE ASTEROID SIEGE & MEGASTRUCTURE BOSSES</p>
+
+      <div class="terminal-badge-line">
+        <span class="terminal-id">VANGUARD-INITIATIVE // ORBITAL SECTOR IV</span>
+        <span class="terminal-status">STATUS: COMBAT READY</span>
+      </div>
+
+      <h1 class="space-game-title">STARBOUND<br><span class="space-title-sub">AEROSPACE COMBAT SIMULATOR</span></h1>
+      <p class="space-game-tagline">DEFEND ORBITAL SPACE AGAINST CAPITAL DREADNOUGHTS & SIEGE FLEETS</p>
 
       <div class="high-score-banner">
-        <span class="lbl">HIGH SCORE</span>
+        <span class="lbl">RECORD SCORE</span>
         <span class="val" id="space-high-score">000000</span>
       </div>
 
-      <div class="weapon-guide">
-        <div class="witem">
-          <span class="wicon">💥</span>
-          <div class="wdesc"><strong>Rapid Lasers:</strong> Continuous automatic energy beam fire.</div>
+      <!-- Tactical Fighter Class Selection Matrix -->
+      <div class="ship-select-container">
+        <div class="ship-select-header">
+          <span class="select-header-title">SELECT FIGHTER AIRFRAME</span>
+          <span class="select-header-meta">TACTICAL SUB-SYSTEMS</span>
         </div>
-        <div class="witem">
-          <span class="wicon">⚡</span>
-          <div class="wdesc"><strong>Plasma Pulse Charge:</strong> Tap to launch a heavy superheated plasma ball!</div>
+
+        <div class="ship-select-grid">
+          <div class="ship-select-card active" id="btn-select-interceptor">
+            <div class="ship-icon-svg-wrap">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ffea00" stroke-width="2">
+                <polygon points="12 2 19 21 12 17 5 21 12 2"/>
+              </svg>
+            </div>
+            <strong class="ship-title">INTERCEPTOR</strong>
+            <span class="ship-sub">High Speed / Twin Lasers</span>
+          </div>
+
+          <div class="ship-select-card" id="btn-select-dreadnought">
+            <div class="ship-icon-svg-wrap">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ff0055" stroke-width="2">
+                <path d="M12 2L3 7v9l9 6 9-6V7l-9-5z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+            <strong class="ship-title">DREADNOUGHT</strong>
+            <span class="ship-sub">Reinforced Plating / Armor</span>
+          </div>
+
+          <div class="ship-select-card" id="btn-select-tactician">
+            <div class="ship-icon-svg-wrap">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00ff66" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><polygon points="12 6 15 11 9 11 12 6"/><polygon points="12 18 9 13 15 13 12 18"/>
+              </svg>
+            </div>
+            <strong class="ship-title">TACTICIAN</strong>
+            <span class="ship-sub">Rapid EMP / Micro-Recharge</span>
+          </div>
+
+          <div class="ship-select-card" id="btn-select-reaper">
+            <div class="ship-icon-svg-wrap">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#aa00ff" stroke-width="2">
+                <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+              </svg>
+            </div>
+            <strong class="ship-title">REAPER</strong>
+            <span class="ship-sub">Nano-Siphon / Plasma Claws</span>
+          </div>
+
+          <div class="ship-select-card" id="btn-select-sentinel">
+            <div class="ship-icon-svg-wrap">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="4"/>
+              </svg>
+            </div>
+            <strong class="ship-title">SENTINEL</strong>
+            <span class="ship-sub">Autonomous Escort Drone</span>
+          </div>
         </div>
       </div>
 
-      <div style="height: 1px; background: rgba(255, 255, 255, 0.15); margin: 1.2rem 0; width: 100%;"></div>
-      <h3 style="margin: 0 0 0.5rem 0; color: var(--accent-cyan); font-family: var(--font-header); font-size: 0.95rem; letter-spacing: 2px;">SELECT FIGHTER CLASS</h3>
-      <div class="ship-select-grid">
-        <div class="ship-select-card active" id="btn-select-interceptor">
-          <div style="font-size: 1.5rem;">🚀</div>
-          <strong style="font-size: 0.8rem; color: var(--accent-yellow); display: block; margin-top: 4px;">INTERCEPTOR</strong>
-          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">High Speed / Rapid Fire</span>
-        </div>
-
-        <div class="ship-select-card" id="btn-select-dreadnought">
-          <div style="font-size: 1.5rem;">🛡️</div>
-          <strong style="font-size: 0.8rem; color: #fff; display: block; margin-top: 4px;">DREADNOUGHT</strong>
-          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">Double Shields / Armor</span>
-        </div>
-
-        <div class="ship-select-card" id="btn-select-tactician">
-          <div style="font-size: 1.5rem;">⚡</div>
-          <strong style="font-size: 0.8rem; color: #fff; display: block; margin-top: 4px;">TACTICIAN</strong>
-          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">Fast EMP / Balanced</span>
-        </div>
-
-        <div class="ship-select-card" id="btn-select-reaper">
-          <div style="font-size: 1.5rem;">💀</div>
-          <strong style="font-size: 0.8rem; color: #fff; display: block; margin-top: 4px;">REAPER</strong>
-          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">Nano-Siphon / Purple Fire</span>
-        </div>
-
-        <div class="ship-select-card" id="btn-select-sentinel">
-          <div style="font-size: 1.5rem;">🛸</div>
-          <strong style="font-size: 0.8rem; color: #fff; display: block; margin-top: 4px;">SENTINEL</strong>
-          <span style="font-size: 0.60rem; color: #aaa; display: block; margin-top: 2px;">Support Drone / Twin Fire</span>
-        </div>
-      </div>
-
-      <div style="display: flex; gap: 12px; width: 100%;">
-        <button id="btn-start-space" class="btn-primary btn-start-game" style="flex: 2;">ENGAGE DEFENSE →</button>
-        <button id="btn-start-settings" class="btn-secondary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; border-radius: 12px; cursor: pointer; font-family: var(--font-header); font-weight: 800; font-size: 0.85rem; letter-spacing: 1px;">
-          <span>⚙️</span> SETTINGS
+      <div class="start-actions-row">
+        <button id="btn-start-space" class="btn-primary btn-start-game">
+          <span>ENGAGE COMBAT SECTOR</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </button>
+        <button id="btn-start-settings" class="btn-secondary">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>CONFIG</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- User-Triggered Hangar Ship Upgrades Modal Drawer -->
+  <!-- Shipyard Hangar Upgrades Terminal Modal Drawer -->
   <div id="space-modal-hangar" class="modal-overlay hidden">
     <div class="glass-panel modal-card hangar-card">
-      <!-- Drawer Handle Indicator -->
       <div class="drawer-handle-bar"></div>
 
-      <h2>🛠️ SHIP HANGAR UPGRADES</h2>
-      <p class="hangar-subtitle" style="text-align: center; margin-bottom: 1.2rem;">SPEND TECH SCRAP TO INSTANTLY IMPROVE COCKPIT SYSTEMS</p>
+      <div class="hangar-title-block">
+        <div class="terminal-badge-line">
+          <span class="terminal-id">ORBITAL SHIPYARD // REFIT BAY 04</span>
+          <span class="terminal-status">DRYDOCK ONLINE</span>
+        </div>
+        <h2>SHIPYARD HANGAR REFIT TERMINAL</h2>
+        <p class="hangar-subtitle">ALLOCATE SALVAGED TECH SCRAP TO ENHANCE SHIP AIRFRAME SYSTEMS</p>
+      </div>
 
       <div class="hangar-scrap-bar">
-        <span style="font-family: var(--font-header); letter-spacing: 1.5px; font-size: 0.85rem; color: var(--text-muted);">TECH SCRAP AVAILABLE</span>
-        <div><strong id="hangar-scrap-val" style="color: var(--accent-cyan); font-size: 1.4rem;">0</strong> <span style="color: var(--accent-cyan); font-size: 1.2rem; vertical-align: middle;">⚙️</span></div>
+        <span class="scrap-bar-lbl">SALVAGED TECH SCRAP BALANCE</span>
+        <div class="scrap-bar-val-group">
+          <strong id="hangar-scrap-val">0</strong>
+          <span class="scrap-bar-unit">CR</span>
+        </div>
       </div>
 
       <div class="hangar-layout-row">
         <!-- Left Column: CORE UPGRADES -->
         <div class="hangar-column">
-          <h3 class="column-title">⚙️ CORE SHIP SYSTEM UPGRADES</h3>
+          <h3 class="column-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+            </svg>
+            <span>CORE AIRFRAME SUBSYSTEMS</span>
+          </h3>
           <div class="upgrade-grid-column">
+            <!-- 1. Engine Thrust -->
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2L4 9v7c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V9l-8-7zm0 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="var(--accent-cyan)"/></svg>Engine Thrust</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2L4 9v7c0 2.21 1.79 4 4 4h8c2.21 0 4-1.79 4-4V9l-8-7zm0 14a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="var(--accent-cyan)"/></svg>
+                  Ion Thrusters
+                </span>
                 <span class="ulevel" id="upg-lvl-thrust"></span>
               </div>
-              <button id="btn-buy-thrust" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+              <button id="btn-buy-thrust" class="btn-secondary upg-btn">REFIT (150 CR)</button>
             </div>
 
+            <!-- 2. Deflector Shield -->
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2L2 5v6c0 5.52 4.48 10 10 10s10-4.48 10-10V5l-10-3zm0 16c-3.87 0-7-3.13-7-7V6.78l7-2.1 7 2.1V11c0 3.87-3.13 7-7 7z" fill="var(--accent-cyan)"/></svg>Deflector Shield</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2L2 5v6c0 5.52 4.48 10 10 10s10-4.48 10-10V5l-10-3zm0 16c-3.87 0-7-3.13-7-7V6.78l7-2.1 7 2.1V11c0 3.87-3.13 7-7 7z" fill="var(--accent-cyan)"/></svg>
+                  Deflector Shield
+                </span>
                 <span class="ulevel" id="upg-lvl-shield"></span>
               </div>
-              <button id="btn-buy-shield" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+              <button id="btn-buy-shield" class="btn-secondary upg-btn">REFIT (150 CR)</button>
             </div>
 
+            <!-- 3. Plasma Capacitors -->
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M2 13h10v2H2zm0-4h10v2H2zm12-4v14h6v-2h-4V7h4V5z" fill="var(--accent-cyan)"/></svg>Plasma Capacitors</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M2 13h10v2H2zm0-4h10v2H2zm12-4v14h6v-2h-4V7h4V5z" fill="var(--accent-cyan)"/></svg>
+                  Plasma Capacitors
+                </span>
                 <span class="ulevel" id="upg-lvl-lasers"></span>
               </div>
-              <button id="btn-buy-lasers" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+              <button id="btn-buy-lasers" class="btn-secondary upg-btn">REFIT (150 CR)</button>
             </div>
 
+            <!-- 4. EMP Surge -->
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="var(--accent-cyan)"/></svg>EMP Recharge</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="var(--accent-cyan)"/></svg>
+                  EMP Surge Core
+                </span>
                 <span class="ulevel" id="upg-lvl-emp"></span>
               </div>
-              <button id="btn-buy-emp" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+              <button id="btn-buy-emp" class="btn-secondary upg-btn">REFIT (150 CR)</button>
             </div>
 
+            <!-- 5. Tractor Beam -->
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="var(--accent-cyan)"/></svg>Tractor Magnet</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" fill="var(--accent-cyan)"/></svg>
+                  Tractor Field
+                </span>
                 <span class="ulevel" id="upg-lvl-magnet"></span>
               </div>
-              <button id="btn-buy-magnet" class="btn-secondary upg-btn">UPGRADE (150 Scrap)</button>
+              <button id="btn-buy-magnet" class="btn-secondary upg-btn">REFIT (150 CR)</button>
             </div>
           </div>
         </div>
 
         <!-- Right Column: BATTLE BOOSTS -->
         <div class="hangar-column">
-          <h3 class="column-title">💥 SINGLE-WAVE TACTICAL BOOSTS</h3>
+          <h3 class="column-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ff0055" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span>SINGLE-WAVE TACTICAL BOOSTS</span>
+          </h3>
           <div class="upgrade-grid-column">
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#00ff66"/></svg>Nano-Repair Grid</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#00ff66"/></svg>
+                  Nano-Repair Grid
+                </span>
                 <span class="ulevel" style="color: #00ff66;">+50 Shield</span>
               </div>
-              <button id="btn-buy-repair" class="btn-secondary upg-btn">BUY (100 Scrap)</button>
+              <button id="btn-buy-repair" class="btn-secondary upg-btn">LOAD (100 CR)</button>
             </div>
 
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M7 2v11h3v9l7-12h-4l3-8z" fill="#ffea00"/></svg>Weapon Overcharge</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M7 2v11h3v9l7-12h-4l3-8z" fill="#ffea00"/></svg>
+                  Overcharge Matrix
+                </span>
                 <span class="ulevel" style="color: #ffea00;">8s Super Fire</span>
               </div>
-              <button id="btn-buy-overcharge" class="btn-secondary upg-btn">BUY (120 Scrap)</button>
+              <button id="btn-buy-overcharge" class="btn-secondary upg-btn">LOAD (120 CR)</button>
             </div>
 
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#00aaff"/></svg>Stasis Matrix</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="#00aaff"/></svg>
+                  Stasis Web
+                </span>
                 <span class="ulevel" style="color: #00aaff;">6s Slow Field</span>
               </div>
-              <button id="btn-buy-stasis" class="btn-secondary upg-btn">BUY (150 Scrap)</button>
+              <button id="btn-buy-stasis" class="btn-secondary upg-btn">LOAD (150 CR)</button>
             </div>
 
             <div class="upg-item">
               <div class="uinfo">
-                <span class="utitle"><svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" fill="#ff0077"/></svg>Tactical Shockwave</span>
-                <span class="ulevel" style="color: #ff0077;">Screen-Wide EMP</span>
+                <span class="utitle">
+                  <svg class="upg-svg-icon" viewBox="0 0 24 24" width="16" height="16"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" fill="#ff0077"/></svg>
+                  Tactical Nuke Pulse
+                </span>
+                <span class="ulevel" style="color: #ff0077;">Screen EMP</span>
               </div>
-              <button id="btn-buy-nuke" class="btn-secondary upg-btn">BUY (200 Scrap)</button>
+              <button id="btn-buy-nuke" class="btn-secondary upg-btn">LOAD (200 CR)</button>
             </div>
           </div>
         </div>
@@ -334,29 +521,43 @@
       <!-- 👑 Premium Add-On: Vortex Mining Drill & Asteroid Splitter -->
       <div class="premium-addon-card" id="premium-mining-card">
         <div class="premium-badge-row">
-          <span class="premium-badge">👑 PREMIUM ADD-ON</span>
+          <span class="premium-badge">PREMIUM ADD-ON</span>
           <span class="premium-status" id="mining-addon-status">LOCKED</span>
         </div>
         <div class="premium-body">
           <div class="premium-info">
-            <h4 class="premium-title">⚡ VORTEX MINING DRILL & ASTEROID SPLITTER</h4>
-            <p class="premium-desc">Fractures destroyed asteroids into tumbling mineral shards yielding bonus scrap & rare glowing ore crystals!</p>
+            <h4 class="premium-title">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ffb700" stroke-width="2" style="vertical-align: text-bottom; margin-right: 6px;">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              VORTEX MINING DRILL & ASTEROID SPLITTER
+            </h4>
+            <p class="premium-desc">Fractures destroyed asteroids into tumbling mineral shards yielding high-density ore crystals & bonus tech scrap rewards.</p>
           </div>
-          <button id="btn-buy-mining-addon" class="btn-primary premium-buy-btn">UNLOCK DRILL (500 Scrap)</button>
+          <button id="btn-buy-mining-addon" class="btn-primary premium-buy-btn">UNLOCK DRILL (500 CR)</button>
         </div>
       </div>
 
-      <button id="btn-next-wave" class="btn-primary" style="margin-top: 1.5rem;">RESUME DEFENSE →</button>
+      <button id="btn-next-wave" class="btn-primary" style="margin-top: 1.5rem; width: 100%;">
+        <span>LAUNCH DEFENSE PATROL</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
     </div>
   </div>
 
   <!-- Rogue-Lite Perks Choice Modal -->
   <div id="space-modal-perks" class="modal-overlay hidden">
-    <div class="glass-panel modal-card perk-choice-card" style="max-width: 650px;">
-      <h2>🌀 ACTIVE PERK SELECTION</h2>
+    <div class="glass-panel modal-card perk-choice-card">
+      <div class="terminal-badge-line">
+        <span class="terminal-id">TACTICAL COMBAT ENHANCEMENT</span>
+        <span class="terminal-status">SELECT ONE</span>
+      </div>
+      <h2>ACTIVE PERK SELECTION</h2>
       <p class="hangar-subtitle">SELECT ONE COMBAT AUGMENTATION FOR THE COMING WAVE</p>
       
-      <div id="perk-cards-container" style="display: flex; gap: 14px; margin: 1.5rem 0; width: 100%;">
+      <div id="perk-cards-container" class="perk-cards-grid">
         <!-- Instantiated dynamically in SpaceHUD.js -->
       </div>
     </div>
@@ -364,61 +565,68 @@
 
   <!-- Space Settings Modal -->
   <div id="space-modal-settings" class="modal-overlay hidden">
-    <div class="glass-panel modal-card settings-card" style="max-width: 480px;">
-      <h2>⚙️ GAME SETTINGS</h2>
-      <p class="hangar-subtitle" style="text-align: center;">ADJUST AUDIO AND GRAPHICS OPTIONS</p>
+    <div class="glass-panel modal-card settings-card">
+      <div class="terminal-badge-line">
+        <span class="terminal-id">FLIGHT SYSTEM CONFIGURATION</span>
+      </div>
+      <h2>TACTICAL SETTINGS</h2>
+      <p class="hangar-subtitle" style="text-align: center;">ADJUST AUDIO AND GRAPHICS SHADERS</p>
 
-      <div class="settings-content" style="margin: 1.5rem 0; text-align: left; display: flex; flex-direction: column; gap: 1.5rem;">
+      <div class="settings-content">
         <!-- Graphics Toggle -->
-        <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="setting-row">
           <div>
-            <strong style="color: #fff; font-size: 0.95rem; display: block; font-family: var(--font-header);">Graphics Quality</strong>
-            <span style="font-size: 0.70rem; color: #aaa;">High enables glowing bloom shaders (CPU/GPU intensive)</span>
+            <strong class="setting-title">Post-Processing Shaders</strong>
+            <span class="setting-desc">Enables Unreal Bloom optical flares and distortion filters</span>
           </div>
-          <div class="segmented-control" style="display: flex; background: rgba(0,0,0,0.4); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+          <div class="segmented-control">
             <button id="btn-graphics-low" class="seg-btn">LOW</button>
             <button id="btn-graphics-high" class="seg-btn">HIGH</button>
           </div>
         </div>
 
         <!-- Audio Toggle -->
-        <div class="setting-row" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="setting-row">
           <div>
-            <strong style="color: #fff; font-size: 0.95rem; display: block; font-family: var(--font-header);">Voice Announcer</strong>
-            <span style="font-size: 0.70rem; color: #aaa;">Tactical speech cues on wave transitions</span>
+            <strong class="setting-title">Tactical Voice Synthesizer</strong>
+            <span class="setting-desc">Acoustic threat warnings and wave transitions</span>
           </div>
-          <div class="segmented-control" style="display: flex; background: rgba(0,0,0,0.4); padding: 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-            <button id="btn-voice-off" class="seg-btn">OFF</button>
-            <button id="btn-voice-on" class="seg-btn">ON</button>
+          <div class="segmented-control">
+            <button id="btn-voice-off" class="seg-btn">MUTED</button>
+            <button id="btn-voice-on" class="seg-btn">ONLINE</button>
           </div>
         </div>
 
-        <!-- How To Play & Controls Section -->
-        <div class="setting-controls-guide" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-          <strong style="color: var(--accent-cyan); font-size: 0.95rem; display: block; font-family: var(--font-header); margin-bottom: 0.5rem;">🎮 HOW TO PLAY & CONTROLS</strong>
+        <!-- Flight Telemetry Controls Guide -->
+        <div class="setting-controls-guide">
+          <strong class="controls-guide-title">FLIGHT MANUAL & CONTROLS</strong>
           
-          <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.78rem; color: #d0e0f0;">
-            <div style="background: rgba(0, 243, 255, 0.05); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--accent-cyan);">
-              <strong style="color: #fff; display: block; margin-bottom: 2px;">📱 Mobile Touch Browsers:</strong>
-              <div>• <strong>Steer Craft</strong>: Touch anywhere on screen (Left / Right / Up / Down)</div>
-              <div>• <strong>Dodge Roll</strong>: Tap <strong>DODGE</strong> button to break missile lock-ons</div>
-              <div>• <strong>Plasma Pulse</strong>: Tap <strong>PULSE</strong> button for EMP shockwave</div>
+          <div class="guide-box-grid">
+            <div class="guide-box touch-guide">
+              <strong class="guide-box-header">📱 Mobile Touch Browsers:</strong>
+              <div>• <strong>Pitch / Yaw</strong>: Touch & drag anywhere on screen</div>
+              <div>• <strong>Evasive Roll</strong>: Tap <strong>DODGE</strong> to break missile locks</div>
+              <div>• <strong>Swarm Salvo</strong>: Tap <strong>SWARM</strong> to launch micro-missiles</div>
+              <div>• <strong>Hyper-Boost</strong>: Tap <strong>BOOST</strong> for afterburner surge</div>
+              <div>• <strong>Plasma Pulse</strong>: Tap <strong>PULSE</strong> for EMP shockwave</div>
             </div>
 
-            <div style="background: rgba(255, 0, 119, 0.05); padding: 8px 12px; border-radius: 8px; border-left: 3px solid var(--accent-magenta);">
-              <strong style="color: #fff; display: block; margin-bottom: 2px;">💻 Computer Keyboard Browsers:</strong>
-              <div>• <strong>Steer Craft</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">WASD</kbd> or <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Arrow Keys</kbd></div>
-              <div>• <strong>Dodge Roll</strong>: Double-tap <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">A</kbd> or <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">D</kbd> keys</div>
-              <div>• <strong>Plasma Pulse</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Q</kbd> / <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Shift</kbd> / <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">Space</kbd></div>
-              <div>• <strong>Hangar Upgrades</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">H</kbd> key | <strong>Camera Toggle</strong>: <kbd style="background: #223; padding: 2px 5px; border-radius: 4px;">C</kbd> key</div>
+            <div class="guide-box keyboard-guide">
+              <strong class="guide-box-header">💻 Keyboard & Mouse:</strong>
+              <div>• <strong>Pitch / Roll</strong>: <kbd>WASD</kbd> or <kbd>Arrow Keys</kbd></div>
+              <div>• <strong>Evasive Roll</strong>: Double-tap <kbd>A</kbd> / <kbd>D</kbd></div>
+              <div>• <strong>Swarm Salvo</strong>: <kbd>E</kbd> or <kbd>2</kbd> key</div>
+              <div>• <strong>Hyper-Boost</strong>: <kbd>B</kbd> or <kbd>Space</kbd></div>
+              <div>• <strong>Plasma Pulse</strong>: <kbd>Q</kbd> or <kbd>Shift</kbd></div>
+              <div>• <strong>Shipyard Hangar</strong>: <kbd>H</kbd> | <strong>Optics</strong>: <kbd>C</kbd></div>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="settings-actions-container" style="display: flex; gap: 12px; width: 100%;">
-        <button id="btn-close-settings" class="btn-primary" style="flex: 2;">CLOSE SETTINGS</button>
-        <button id="btn-exit-game" class="btn-secondary hidden" style="flex: 1; border-radius: 12px; font-family: var(--font-header); font-weight: 800; font-size: 0.85rem; cursor: pointer;">EXIT GAME</button>
+      <div id="settings-actions-container" class="settings-actions-row">
+        <button id="btn-close-settings" class="btn-primary" style="flex: 2;">SAVE & RESUME</button>
+        <button id="btn-exit-game" class="btn-secondary hidden" style="flex: 1;">EXIT</button>
       </div>
     </div>
   </div>
@@ -427,27 +635,33 @@
   <div id="space-modal-gameover" class="modal-overlay hidden">
     <div class="glass-panel modal-card space-gameover-card">
       <div class="gameover-header">
-        <h2 id="space-gameover-title">PLANET DESTROYED</h2>
-        <p id="space-gameover-reason">Defenses Breached</p>
+        <div class="critical-alert-tag">CRITICAL MISSION FAILURE</div>
+        <h2 id="space-gameover-title">AIRFRAME DESTROYED</h2>
+        <p id="space-gameover-reason">Defenses Breached in Sector Alpha</p>
       </div>
 
       <div class="final-stats-grid">
         <div class="fstat">
-          <span class="lbl">FINAL SCORE</span>
+          <span class="lbl">FINAL COMBAT SCORE</span>
           <span class="val" id="space-final-score">000000</span>
         </div>
         <div class="fstat">
-          <span class="lbl">WAVES SURVIVED</span>
+          <span class="lbl">PATROLS COMPLETED</span>
           <span class="val" id="space-final-wave">Wave 3</span>
         </div>
         <div class="fstat">
-          <span class="lbl">THREATS DESTROYED</span>
+          <span class="lbl">THREATS INTERCEPTED</span>
           <span class="val" id="space-final-kills">0</span>
         </div>
       </div>
 
       <div class="modal-actions">
-        <button id="btn-restart-space" class="btn-primary btn-restart-game">DEFEND AGAIN ↺</button>
+        <button id="btn-restart-space" class="btn-primary btn-restart-game">
+          <span>RE-ENGAGE PATROL</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
