@@ -87,11 +87,11 @@ export class MoonBase {
     this.targetZ = -55;
     this.speed = 7.0;
 
-    this.coreHp = 4000;
-    this.maxCoreHp = 4000;
-    this.scoreValue = 40000;
+    this.coreHp = 4500;
+    this.maxCoreHp = 4500;
+    this.scoreValue = 60000;
     this.isDead = false;
-    this.hitRadius = 27; // Reduced size by 25%
+    this.hitRadius = 32;
 
     // Phase system — changes attack pattern as HP drops
     this.phase = 1;
@@ -100,19 +100,26 @@ export class MoonBase {
     this.superlaserfiring = false;
     this.phaseShieldTimer = 0;
     this.justPhaseTransitioned = false;
+    this.droneSpawnTimer = 6.0;
 
-    // Deflector shield state & vulnerable point configuration
+    // Deflector shield state & generator configuration
     this.hasShield = true;
 
-    this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-16.5, 9, 12), hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(16.5, 9, 12),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(-16.5, -9, 12), hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(16.5, -9, 12),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(0, 19.5, 0),    hp: 1000, maxHp: 1000, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(0, -19.5, 0),   hp: 1000, maxHp: 1000, isDead: false, mesh: null, light: null },
+    // ── Targetable Equatorial Shield Generator Hubs (Must destroy both to drop shields) ──
+    this.generators = [
+      { id: 0, name: 'PORT SHIELD HUB', relPos: new THREE.Vector3(-18.5, 0, 10), hp: 750, maxHp: 750, isDead: false, mesh: null, coil: null, reticle: null },
+      { id: 1, name: 'STBD SHIELD HUB', relPos: new THREE.Vector3(18.5, 0, 10), hp: 750, maxHp: 750, isDead: false, mesh: null, coil: null, reticle: null }
     ];
 
+    // ── 4 Targetable Heavy Defense Batteries ──
+    this.turrets = [
+      { id: 0, name: 'NORTH-WEST BATTERY', relPos: new THREE.Vector3(-15, 8.5, 12), hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'NORTH-EAST BATTERY', relPos: new THREE.Vector3(15, 8.5, 12),  hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'SOUTH-WEST BATTERY', relPos: new THREE.Vector3(-15, -8.5, 12), hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'SOUTH-EAST BATTERY', relPos: new THREE.Vector3(15, -8.5, 12),  hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null }
+    ];
+
+    this.reticleMeshes = [];
     this.shaderMaterials = [];
     this.activeIntervals = [];
     this.activeTimeouts = [];
@@ -125,32 +132,54 @@ export class MoonBase {
     const normalMap = generateHullNormalMap();
 
     // ── 1. Dramatic 3-point lighting ──
-    this.rimLight = new THREE.DirectionalLight(0xd0e8ff, 2.2);
+    this.rimLight = new THREE.DirectionalLight(0xd0e8ff, 2.4);
     this.rimLight.position.set(60, 37.5, -45);
     this.scene.add(this.rimLight);
 
-    this.backLight = new THREE.DirectionalLight(0x002244, 0.5);
+    this.backLight = new THREE.DirectionalLight(0x002244, 0.6);
     this.backLight.position.set(-45, -22.5, 30);
     this.scene.add(this.backLight);
 
-    // Ambient fill
     this.ambLight = new THREE.AmbientLight(0x050d14, 0.5);
     this.scene.add(this.ambLight);
 
-    // ── 2. Main PBR Sphere Hull ──
+    // ── 2. Main PBR Cratered Lunar Sphere Hull ──
     const hullGeo = new THREE.SphereGeometry(R, 48, 40);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x16202e,
-      roughness: 0.52,
-      metalness: 0.92,
+      color: 0x141e2c,
+      roughness: 0.55,
+      metalness: 0.9,
       normalMap,
-      normalScale: new THREE.Vector2(1.1, 1.1),
+      normalScale: new THREE.Vector2(1.2, 1.2),
       flatShading: true,
     });
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 3. Equatorial Trench — the iconic Moon Base ring ──
+    // ── 3. Geodesic Bio-Dome Habitation Colonies (Surface Domes) ──
+    const domePositions = [
+      new THREE.Vector3(-10, 14, 11),
+      new THREE.Vector3(10, 14, 11),
+      new THREE.Vector3(-8, -14, 13),
+      new THREE.Vector3(8, -14, 13)
+    ];
+    domePositions.forEach(dPos => {
+      const dGeo = new THREE.SphereGeometry(2.8, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
+      const dMat = new THREE.MeshStandardMaterial({
+        color: 0x002844,
+        emissive: 0x00f3ff,
+        emissiveIntensity: 0.6,
+        roughness: 0.2,
+        metalness: 0.9,
+        wireframe: true
+      });
+      const dome = new THREE.Mesh(dGeo, dMat);
+      dome.position.copy(dPos);
+      dome.lookAt(dPos.clone().multiplyScalar(2));
+      this.meshGroup.add(dome);
+    });
+
+    // ── 4. Equatorial Industrial Trench & Power Conduit ──
     const trenchGeo = new THREE.TorusGeometry(R + 0.3, 2.25, 12, 100);
     const trenchMat = new THREE.MeshStandardMaterial({
       color: 0x060c14, roughness: 0.9, metalness: 1.0, normalMap,
@@ -158,7 +187,7 @@ export class MoonBase {
     this.meshGroup.add(new THREE.Mesh(trenchGeo, trenchMat));
 
     // Scrolling conduit light in trench
-    const conduitGeo = new THREE.TorusGeometry(R + 0.375, 0.41, 10, 100);
+    const conduitGeo = new THREE.TorusGeometry(R + 0.38, 0.45, 10, 100);
     this.conduitMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(TrenchShader.uniforms),
       vertexShader: TrenchShader.vertexShader,
@@ -167,41 +196,34 @@ export class MoonBase {
     this.shaderMaterials.push(this.conduitMat);
     this.meshGroup.add(new THREE.Mesh(conduitGeo, this.conduitMat));
 
-    // 60° N sub-trench
-    const subTGeo = new THREE.TorusGeometry(R * 0.86 + 0.15, 0.9, 10, 80);
-    const subT = new THREE.Mesh(subTGeo, trenchMat);
-    subT.rotation.x = Math.PI / 3.5;
-    this.meshGroup.add(subT);
-
-    // ── 4. Northern Superlaser Dish ──
+    // ── 5. Northern Superlaser Megastructure Cannon ──
     const dishGroup = new THREE.Group();
     dishGroup.position.set(-5.25, 7.5, R - 1.5);
     dishGroup.rotation.y = -Math.PI / 10;
     dishGroup.rotation.x = Math.PI / 12;
     this.dishGroup = dishGroup;
 
-    // Dish rim
-    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(6.375, 1.125, 14, 36), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
-    dishGroup.position.set(-5.25, 7.5, R - 1.5);
+    // Heavy Dish Rim & Armor Mantlet
+    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(6.5, 1.2, 16, 36), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
 
-    // Dish face
-    const dishFaceGeo = new THREE.CylinderGeometry(6.0, 4.5, 1.5, 28);
+    // Dish Face
+    const dishFaceGeo = new THREE.CylinderGeometry(6.2, 4.6, 1.6, 28);
     dishFaceGeo.rotateX(Math.PI / 2);
     dishGroup.add(new THREE.Mesh(dishFaceGeo, new THREE.MeshStandardMaterial({ color: 0x08101a, roughness: 0.2, metalness: 0.98 })));
 
-    // 8 converging emitter beams
+    // 8 Converging Superlaser Emitter Pylons
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      const beamGeo = new THREE.CylinderGeometry(0.135, 0.135, 5.25, 7);
+      const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, 5.5, 8);
       const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 }));
-      beam.position.set(Math.cos(a) * 4.35, Math.sin(a) * 4.35, 0.375);
+      beam.position.set(Math.cos(a) * 4.4, Math.sin(a) * 4.4, 0.4);
       beam.rotation.z = a + Math.PI / 2;
       beam.rotation.x = Math.PI / 5;
       dishGroup.add(beam);
     }
 
-    // Central churning plasma orb
-    const orbGeo = new THREE.SphereGeometry(1.875, 28, 28);
+    // Central Churning Plasma Fusion Orb
+    const orbGeo = new THREE.SphereGeometry(2.0, 28, 28);
     this.plasmaShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(PlasmaOrbShader.uniforms),
       vertexShader: PlasmaOrbShader.vertexShader,
@@ -209,7 +231,7 @@ export class MoonBase {
     });
     this.shaderMaterials.push(this.plasmaShaderMat);
     this.coreMesh = new THREE.Mesh(orbGeo, this.plasmaShaderMat);
-    this.coreMesh.position.z = -0.375;
+    this.coreMesh.position.z = -0.4;
     dishGroup.add(this.coreMesh);
 
     // 3 Concentric Superlaser Energy Focusing Rings
@@ -217,7 +239,7 @@ export class MoonBase {
     const ringRadii = [4.5, 3.2, 2.0];
     const ringDistances = [2.5, 5.0, 7.5];
     for (let i = 0; i < 3; i++) {
-      const rGeo = new THREE.TorusGeometry(ringRadii[i], 0.18, 10, 32);
+      const rGeo = new THREE.TorusGeometry(ringRadii[i], 0.2, 10, 32);
       const rMat = new THREE.MeshBasicMaterial({
         color: 0x00ff66,
         transparent: true,
@@ -236,7 +258,7 @@ export class MoonBase {
       });
     }
 
-    // Direct Targeting Red Aiming Sight Beam (telegraphs lock-on toward player)
+    // Direct Targeting Red Aiming Sight Beam
     const aimGeo = new THREE.CylinderGeometry(0.08, 0.08, 120, 6);
     aimGeo.rotateX(Math.PI / 2);
     this.aimSightMat = new THREE.MeshBasicMaterial({
@@ -251,57 +273,116 @@ export class MoonBase {
 
     this.meshGroup.add(dishGroup);
 
-    // Dish point light
+    // Superlaser Point Light
     this.superlightBoss = new THREE.PointLight(0x00ff44, 8.0, 100);
     this.superlightBoss.position.set(-5.25, 7.5, R + 1.5);
     this.meshGroup.add(this.superlightBoss);
 
-    // ── 5. Superlaser Beam (visual, fires periodically) ──
-    const laserBeamGeo = new THREE.CylinderGeometry(0.45, 0.45, 60, 10);
+    // Superlaser Main Discharge Beams
+    const laserBeamGeo = new THREE.CylinderGeometry(0.5, 0.5, 60, 10);
     laserBeamGeo.rotateX(Math.PI / 2);
     this.laserBeamMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, transparent: true, opacity: 0.0 });
     this.laserBeam = new THREE.Mesh(laserBeamGeo, this.laserBeamMat);
     this.laserBeam.position.set(-5.25, 7.5, R + 28.5);
     this.meshGroup.add(this.laserBeam);
 
-    const outerBeamGeo = new THREE.CylinderGeometry(1.05, 1.05, 60, 10);
+    const outerBeamGeo = new THREE.CylinderGeometry(1.2, 1.2, 60, 10);
     outerBeamGeo.rotateX(Math.PI / 2);
     this.outerBeamMat = new THREE.MeshBasicMaterial({ color: 0x88ffaa, transparent: true, opacity: 0.0 });
     this.outerBeam = new THREE.Mesh(outerBeamGeo, this.outerBeamMat);
     this.outerBeam.position.copy(this.laserBeam.position);
     this.meshGroup.add(this.outerBeam);
 
-    // ── 6. Outer Rotating Habitat Ring & Navigation Strobes ──
+    // ── 6. Outer Rotating Habitat Ring with Solar Pylons & Docking Struts ──
     const habRingGroup = new THREE.Group();
-    const habRingGeo = new THREE.TorusGeometry(R + 7.5, 0.75, 12, 64);
-    const habRingMat = new THREE.MeshStandardMaterial({ color: 0x0a1422, roughness: 0.4, metalness: 0.95 });
+    const habRingGeo = new THREE.TorusGeometry(R + 8.0, 0.85, 12, 64);
+    const habRingMat = new THREE.MeshStandardMaterial({ color: 0x0c1626, roughness: 0.4, metalness: 0.95 });
     const habRingMesh = new THREE.Mesh(habRingGeo, habRingMat);
     habRingGroup.add(habRingMesh);
+
+    // 8 Industrial Docking Struts connecting Sphere to Habitat Ring
+    for (let i = 0; i < 8; i++) {
+      const ang = (i / 8) * Math.PI * 2;
+      const strutGeo = new THREE.CylinderGeometry(0.3, 0.3, 8.0, 8);
+      const strutMat = new THREE.MeshStandardMaterial({ color: 0x08101a, metalness: 0.9 });
+      const strut = new THREE.Mesh(strutGeo, strutMat);
+      strut.position.set(Math.cos(ang) * (R + 4.0), Math.sin(ang) * (R + 4.0), 0);
+      strut.rotation.z = ang + Math.PI / 2;
+      this.meshGroup.add(strut);
+    }
+
+    // 4 Photovoltaic Solar Array Wings (Gold Metallic Panels)
+    for (let s = 0; s < 4; s++) {
+      const sAng = (s / 4) * Math.PI * 2 + Math.PI / 4;
+      const wingGeo = new THREE.BoxGeometry(7.0, 0.15, 3.5);
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: 0x0a1c36,
+        roughness: 0.15,
+        metalness: 0.95,
+        emissive: 0x004488,
+        emissiveIntensity: 0.3
+      });
+      const wing = new THREE.Mesh(wingGeo, wingMat);
+      wing.position.set(Math.cos(sAng) * (R + 11.5), Math.sin(sAng) * (R + 11.5), 0);
+      wing.rotation.z = sAng;
+      habRingGroup.add(wing);
+    }
 
     this.beaconLights = [];
     for (let i = 0; i < 8; i++) {
       const ang = (i / 8) * Math.PI * 2;
-      // Habitat pod module
-      const podGeo = new THREE.BoxGeometry(2.4, 1.6, 3.5);
-      const podMat = new THREE.MeshStandardMaterial({ color: 0x121e2e, metalness: 0.85, roughness: 0.3 });
+      // Habitat Pod Module
+      const podGeo = new THREE.BoxGeometry(2.6, 1.8, 3.8);
+      const podMat = new THREE.MeshStandardMaterial({ color: 0x142032, metalness: 0.9, roughness: 0.3 });
       const pod = new THREE.Mesh(podGeo, podMat);
-      pod.position.set(Math.cos(ang) * (R + 7.5), Math.sin(ang) * (R + 7.5), 0);
+      pod.position.set(Math.cos(ang) * (R + 8.0), Math.sin(ang) * (R + 8.0), 0);
       pod.rotation.z = ang;
       habRingGroup.add(pod);
 
-      // Flashing navigation beacon
-      const strobeGeo = new THREE.SphereGeometry(0.3, 8, 8);
+      // Flashing Navigation Beacon
+      const strobeGeo = new THREE.SphereGeometry(0.35, 8, 8);
       const strobeMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xff0044 : 0x00ff66 });
       const strobe = new THREE.Mesh(strobeGeo, strobeMat);
-      strobe.position.set(Math.cos(ang) * (R + 9.0), Math.sin(ang) * (R + 9.0), 0);
+      strobe.position.set(Math.cos(ang) * (R + 9.6), Math.sin(ang) * (R + 9.6), 0);
       habRingGroup.add(strobe);
       this.beaconLights.push({ mesh: strobe, mat: strobeMat, phase: i * 0.75 });
     }
     this.habRingGroup = habRingGroup;
     this.meshGroup.add(habRingGroup);
 
-    // ── 7. Fresnel Shield ──
-    const shieldGeo = new THREE.IcosahedronGeometry(R + 4.125, 4);
+    // ── 7. Targetable Equatorial Shield Generator Hubs (Port & Starboard) ──
+    const genBaseGeo = new THREE.BoxGeometry(3.5, 3.0, 4.0);
+    const genBaseMat = new THREE.MeshStandardMaterial({ color: 0x0e1828, metalness: 0.95 });
+    const coilGeo = new THREE.TorusGeometry(1.6, 0.35, 10, 24);
+    const coilMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
+    this.generators.forEach(gen => {
+      const gGroup = new THREE.Group();
+      gGroup.position.copy(gen.relPos);
+
+      const base = new THREE.Mesh(genBaseGeo, genBaseMat);
+      gGroup.add(base);
+
+      const coil = new THREE.Mesh(coilGeo, coilMat);
+      coil.position.set(0, 0, 1.8);
+      gGroup.add(coil);
+
+      // 3D Target Reticle for Shield Generator Hub
+      const reticleGeo = new THREE.RingGeometry(1.8, 2.2, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 2.5);
+      gGroup.add(reticle);
+
+      this.meshGroup.add(gGroup);
+      gen.mesh = gGroup;
+      gen.coil = coil;
+      gen.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
+
+    // ── 8. Hexagonal Deflector Shield Sphere ──
+    const shieldGeo = new THREE.IcosahedronGeometry(R + 4.5, 4);
     this.shieldShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
       vertexShader: ShieldShader.vertexShader,
@@ -314,26 +395,26 @@ export class MoonBase {
     this.shieldRing = new THREE.Mesh(shieldGeo, this.shieldShaderMat);
     this.meshGroup.add(this.shieldRing);
 
-    // ── 7. Shield Vulnerable Regulator Core ──
-    const vulnGeo = new THREE.SphereGeometry(2.0, 16, 16);
+    // ── 9. Thermal Exhaust Reactor Core (Exposed on shield collapse) ──
+    const vulnGeo = new THREE.SphereGeometry(2.2, 16, 16);
     this.vulnMat = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.9 });
     this.vulnMesh = new THREE.Mesh(vulnGeo, this.vulnMat);
     this.vulnRelPos = new THREE.Vector3(12, -8, R - 1.5);
     this.vulnMesh.position.copy(this.vulnRelPos);
     this.meshGroup.add(this.vulnMesh);
 
-    const ringGeo = new THREE.TorusGeometry(3.0, 0.25, 8, 24);
+    const ringGeo = new THREE.TorusGeometry(3.2, 0.28, 8, 24);
     const ringMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
     this.vulnRing = new THREE.Mesh(ringGeo, ringMat);
     this.vulnRing.position.copy(this.vulnRelPos);
     this.vulnRing.lookAt(new THREE.Vector3(0, 0, 1).add(this.vulnRelPos));
     this.meshGroup.add(this.vulnRing);
 
-    // ── 8. Heavy Turrets ──
-    const baseGeo = new THREE.BoxGeometry(3.0, 1.35, 3.0);
-    const baseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
-    const barrelGeo = new THREE.CylinderGeometry(0.26, 0.375, 3.375, 9);
-    barrelGeo.rotateX(Math.PI / 2);
+    // ── 10. 4 Heavy Quad-Barrel Defense Batteries ──
+    const tBaseGeo = new THREE.BoxGeometry(3.2, 1.5, 3.2);
+    const tBaseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
+    const tBarrelGeo = new THREE.CylinderGeometry(0.28, 0.38, 3.6, 9);
+    tBarrelGeo.rotateX(Math.PI / 2);
     this.barrelMat = new THREE.MeshStandardMaterial({
       color: 0x001100,
       emissive: 0x00ff44,
@@ -341,50 +422,135 @@ export class MoonBase {
       roughness: 0.2,
       metalness: 0.8
     });
-    const turretRingGeo = new THREE.TorusGeometry(0.75, 0.1875, 8, 16);
+    const turretRingGeo = new THREE.TorusGeometry(0.8, 0.2, 8, 16);
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
-      tGroup.add(new THREE.Mesh(baseGeo, baseMat));
+      tGroup.add(new THREE.Mesh(tBaseGeo, tBaseMat));
       tGroup.add(new THREE.Mesh(turretRingGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 })));
 
       const bGroup = new THREE.Group();
-      [-0.675, 0.675].forEach(xOff => {
-        const b = new THREE.Mesh(barrelGeo, this.barrelMat);
-        b.position.set(xOff, 0.525, 1.125);
+      [-0.7, 0.7].forEach(xOff => {
+        const b = new THREE.Mesh(tBarrelGeo, this.barrelMat);
+        b.position.set(xOff, 0.55, 1.2);
         bGroup.add(b);
       });
       tGroup.add(bGroup);
 
+      // 3D Target Reticle for Turret
+      const reticleGeo = new THREE.RingGeometry(1.5, 1.9, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 1.8, 0);
+      reticle.rotation.x = -Math.PI / 2;
+      tGroup.add(reticle);
+
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
+      t.barrelGroup = bGroup;
+      t.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
   }
 
+  takeGeneratorDamage(genId, amount) {
+    const gen = this.generators.find(g => g.id === genId);
+    if (!gen || gen.isDead) return false;
+
+    gen.hp -= amount;
+    if (gen.mesh) {
+      gen.mesh.traverse(c => {
+        if (c.material && c.material.color) {
+          c.material.color.setHex(0xff0044);
+          setTimeout(() => {
+            if (c && c.material && c.material.color) {
+              c.material.color.setHex(gen.isDead ? 0x111111 : 0x0e1828);
+            }
+          }, 100);
+        }
+      });
+    }
+
+    if (gen.reticle && gen.reticle.material) {
+      const pct = gen.hp / gen.maxHp;
+      gen.reticle.material.color.setHex(pct > 0.5 ? 0x00f3ff : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
+    if (gen.hp <= 0) {
+      gen.isDead = true;
+      if (gen.reticle) gen.reticle.visible = false;
+      const wp = this.meshGroup.position.clone().add(gen.relPos);
+      this.particleManager.createExplosion(wp, 0x00f3ff, 90, 3.5);
+      this.particleManager.createEmpShockwave(wp, 45);
+      if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+
+      const allGensDead = this.generators.every(g => g.isDead);
+      if (allGensDead) {
+        this.hasShield = false;
+        if (this.shieldRing) this.shieldRing.visible = false;
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 120);
+
+        if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+          window.spaceGameManager.spaceHUD.showRadioTransmission("ALL SHIELD GENERATORS DESTROYED! DEFLECTORS DOWN! TARGET THERMAL CORE!", "STARBOUND COMMAND", 5.5);
+        }
+        if (window.spaceGameManager && window.spaceGameManager.voiceAnnouncer) {
+          window.spaceGameManager.voiceAnnouncer.speak("Deflector shields collapsed! Target the thermal core!", true);
+        }
+      } else {
+        if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+          window.spaceGameManager.spaceHUD.showRadioTransmission(`${gen.name} DESTROYED! SHIELD STABILITY DROPPING!`, "STARBOUND COMMAND", 3.5);
+        }
+      }
+    }
+    return gen.isDead;
+  }
+
   takeTurretDamage(turretId, amount) {
-    const t = this.turrets.find(t => t.id === turretId);
+    const t = this.turrets.find(item => item.id === turretId);
     if (!t || t.isDead) return false;
+
     t.hp -= amount;
+    if (t.mesh) {
+      t.mesh.traverse(c => {
+        if (c.material && c.material.color) {
+          c.material.color.setHex(0xff0044);
+          setTimeout(() => {
+            if (c && c.material && c.material.color) {
+              c.material.color.setHex(t.isDead ? 0x111111 : 0x0c1828);
+            }
+          }, 100);
+        }
+      });
+    }
+
+    if (t.reticle && t.reticle.material) {
+      const pct = t.hp / t.maxHp;
+      t.reticle.material.color.setHex(pct > 0.5 ? 0x00ff44 : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
     if (t.hp <= 0) {
       t.isDead = true;
-      t.mesh.visible = false;
-      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
-      this.particleManager.createExplosion(wp, 0x00ff44, 60, 2.5);
+      if (t.reticle) t.reticle.visible = false;
+      const wp = this.meshGroup.position.clone().add(t.relPos);
+      this.particleManager.createExplosion(wp, 0x00ff44, 70, 2.5);
+      this.particleManager.createEmpShockwave(wp, 30);
+      if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+        window.spaceGameManager.spaceHUD.showRadioTransmission(`DEFENSE BATTERY SILENCED! (${t.name})`, "STARBOUND COMMAND", 3.0);
+      }
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
     }
     return t.isDead;
   }
 
-  takeCoreDamage(amount) {
+  takeCoreDamage(amount, isThermalVent = false) {
     if (this.hasShield) {
       if (this.shieldShaderMat) this.shieldShaderMat.uniforms.uHitTime.value = 1.4;
       return false;
     }
     if (this.phaseShieldTimer > 0) return false;
 
-    const activeTurrets = this.turrets.some(t => !t.isDead);
-    const actualDamage = activeTurrets ? amount * 0.72 : amount;
-    
+    const actualDamage = isThermalVent ? amount * 2.5 : amount;
     const prevPhase = this.phase;
     this.coreHp -= actualDamage;
 
@@ -392,17 +558,23 @@ export class MoonBase {
 
     // Phase transitions
     const hpRatio = this.coreHp / this.maxCoreHp;
-    if (hpRatio < 0.5 && this.phase === 1) {
+    if (hpRatio < 0.66 && this.phase === 1) {
       this.phase = 2;
-      this.fireTimer *= 0.7; // faster fire
+      this.fireTimer *= 0.75;
+      if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+        window.spaceGameManager.spaceHUD.showRadioTransmission("WARNING: ORBITAL ALPHA ENTERING OVERDRIVE! ESCORT FIGHTERS LAUNCHING!", "STARBOUND COMMAND", 5.0);
+      }
     }
-    if (hpRatio < 0.25 && this.phase === 2) {
+    if (hpRatio < 0.33 && this.phase === 2) {
       this.phase = 3;
-      this.fireTimer *= 0.7; // even faster
+      this.fireTimer *= 0.7;
+      if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+        window.spaceGameManager.spaceHUD.showRadioTransmission("CRITICAL: MOON BASE THERMAL CORE OVERHEATING! FINISH IT NOW!", "STARBOUND COMMAND", 5.0);
+      }
     }
 
     if (this.phase > prevPhase) {
-      this.phaseShieldTimer = 3.0; // 3 seconds phase protection
+      this.phaseShieldTimer = 2.5;
       this.justPhaseTransitioned = true;
     }
 
@@ -485,6 +657,20 @@ export class MoonBase {
 
     if (this.habRingGroup) {
       this.habRingGroup.rotation.z -= 0.12 * dt;
+    }
+
+    // Generator Coils Rotation
+    if (this.generators) {
+      this.generators.forEach(gen => {
+        if (gen.coil && !gen.isDead) gen.coil.rotation.z += 3.2 * dt;
+      });
+    }
+
+    // 3D Target Reticles Rotation
+    if (this.reticleMeshes) {
+      this.reticleMeshes.forEach(r => {
+        if (r && r.visible) r.rotation.z += 1.8 * dt;
+      });
     }
 
     // 2. Flashing Navigation Strobe Beacons
@@ -649,6 +835,9 @@ export class MoonBase {
               const fIdx = this.activeIntervals.indexOf(fadeOut);
               if (fIdx > -1) this.activeIntervals.splice(fIdx, 1);
               this.superlaserfiring = false;
+              if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+                window.spaceGameManager.spaceHUD.showLockOnWarning(false);
+              }
             }
           }, 30);
           this.activeIntervals.push(fadeOut);

@@ -244,7 +244,7 @@ export class CollisionSystem {
             if (!bPos) continue;
 
             const distB = lPos.distanceTo(bPos);
-            const bossHitRadius = 12.5;
+            const bossHitRadius = boss.hitRadius || 32.0;
 
             laser.hitEntities = laser.hitEntities || new Set();
 
@@ -261,38 +261,62 @@ export class CollisionSystem {
               let hitRegistered = false;
               let dead = false;
 
-              if (boss.turrets && Array.isArray(boss.turrets)) {
+              // 1. Check Shield Generators (MoonBase)
+              if (boss.generators && Array.isArray(boss.generators)) {
+                for (const g of boss.generators) {
+                  if (!g.isDead && g.mesh) {
+                    const gPos = g.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(gPos) < 4.5) {
+                      if (!laser.hitEntities.has(`gen_${g.id}`)) {
+                        laser.hitEntities.add(`gen_${g.id}`);
+                        boss.takeGeneratorDamage(g.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 2. Check Turrets
+              if (!hitRegistered && boss.turrets && Array.isArray(boss.turrets)) {
                 const livingTurrets = boss.turrets.filter(t => t && !t.isDead && t.mesh);
                 let hitTurret = null;
                 let closestDist = Infinity;
                 for (const t of livingTurrets) {
                   if (t.mesh) {
-                    t.mesh.updateMatrixWorld(true);
                     const tPos = t.mesh.getWorldPosition(this._tempVec1);
                     const td = lPos.distanceTo(tPos);
                     if (td < closestDist) { closestDist = td; hitTurret = t; }
                   }
                 }
-                if (hitTurret && closestDist < 12) {
+                if (hitTurret && closestDist < 4.0) {
                   if (!laser.hitEntities.has(hitTurret.id)) {
                     laser.hitEntities.add(hitTurret.id);
                     boss.takeTurretDamage(hitTurret.id, dmg);
                     hitRegistered = true;
                   }
-                } else {
-                  if (!laser.hitEntities.has('boss_core')) {
-                    laser.hitEntities.add('boss_core');
-                    dead = boss.takeCoreDamage(dmg);
+                }
+              }
+
+              // 3. Check Thermal Exhaust Port Vulnerability (MoonBase)
+              if (!hitRegistered && boss.vulnMesh && !boss.hasShield) {
+                const vulnPos = boss.vulnMesh.getWorldPosition(this._tempVec1);
+                if (lPos.distanceTo(vulnPos) < 4.2) {
+                  if (!laser.hitEntities.has('boss_exhaust_core')) {
+                    laser.hitEntities.add('boss_exhaust_core');
+                    dead = boss.takeCoreDamage(dmg, true); // 2.5x Critical damage!
+                    this.particleManager.createExplosion(lPos, 0xff3300, 40);
                     hitRegistered = true;
                   }
                 }
-              } else {
+              }
+
+              // 4. Default Core Hit
+              if (!hitRegistered) {
                 if (!laser.hitEntities.has('boss_core')) {
                   laser.hitEntities.add('boss_core');
-                  let target = 'core';
-                  if (boss.turretLeftHp > 0) target = 'turretLeft';
-                  else if (boss.turretRightHp > 0) target = 'turretRight';
-                  dead = boss.takeDamage ? boss.takeDamage(target, dmg) : (boss.takeCoreDamage ? boss.takeCoreDamage(dmg) : false);
+                  dead = boss.takeCoreDamage ? boss.takeCoreDamage(dmg, false) : (boss.takeDamage ? boss.takeDamage('core', dmg) : false);
                   hitRegistered = true;
                 }
               }
@@ -300,7 +324,7 @@ export class CollisionSystem {
               if (hitRegistered) {
                 if (dead || boss.isDead) {
                   gameManager.addScore(boss.scoreValue);
-                  gameManager.addScrap(300);
+                  gameManager.addScrap(500);
                   gameManager.achievementSystem.recordBossKilled();
                   player.onKillHeal();
                 }
