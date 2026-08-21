@@ -189,6 +189,83 @@ export class SpaceScene {
 
     this.dustPoints = new THREE.Points(dustGeo, dustMat);
     this.scene.add(this.dustPoints);
+
+    // 4. Background Deep-Space Capital Fleet Silhouettes
+    this.bgFleetGroup = new THREE.Group();
+    const fleetMat = new THREE.MeshBasicMaterial({ color: 0x081426, transparent: true, opacity: 0.85 });
+    const engineGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9 });
+
+    for (let f = 0; f < 6; f++) {
+      const frigate = new THREE.Group();
+      const fx = (f % 2 === 0 ? 1 : -1) * (140 + Math.random() * 120);
+      const fy = (Math.random() - 0.5) * 80 + 20;
+      const fz = -380 - f * 60;
+      frigate.position.set(fx, fy, fz);
+
+      // Frigate Wedge Body
+      const fGeo = new THREE.ConeGeometry(8.0, 32.0, 4);
+      fGeo.rotateX(Math.PI / 2);
+      frigate.add(new THREE.Mesh(fGeo, fleetMat));
+
+      // Engine Thruster Glows
+      [-2.5, 2.5].forEach(ex => {
+        const eg = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), engineGlowMat);
+        eg.position.set(ex, 0, 16.0);
+        frigate.add(eg);
+      });
+
+      this.bgFleetGroup.add(frigate);
+    }
+    this.scene.add(this.bgFleetGroup);
+
+    this.bgLasers = [];
+  }
+
+  triggerHyperspaceWarp(position) {
+    const warpGroup = new THREE.Group();
+    warpGroup.position.copy(position);
+
+    // Flash sphere
+    const flashGeo = new THREE.SphereGeometry(18.0, 16, 16);
+    const flashMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    const flash = new THREE.Mesh(flashGeo, flashMat);
+    warpGroup.add(flash);
+
+    // Spacetime Refraction Rings
+    const ringGeo = new THREE.TorusGeometry(26.0, 0.8, 12, 32);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending
+    });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    warpGroup.add(ring);
+
+    this.scene.add(warpGroup);
+    this.addScreenShake(1.4);
+
+    let t = 0;
+    const interval = setInterval(() => {
+      t += 0.05;
+      ring.scale.addScalar(0.18);
+      flash.scale.addScalar(0.12);
+      flashMat.opacity = Math.max(0, 0.95 - t * 1.5);
+      ringMat.opacity = Math.max(0, 0.9 - t * 1.4);
+      if (t >= 0.8) {
+        clearInterval(interval);
+        this.scene.remove(warpGroup);
+        flashGeo.dispose();
+        flashMat.dispose();
+        ringGeo.dispose();
+        ringMat.dispose();
+      }
+    }, 20);
   }
 
   triggerBossIntroCamera() {
@@ -315,6 +392,37 @@ export class SpaceScene {
     // Smooth lookAt target lerp
     this.currentCamLookAt.lerp(this.targetLookAt, lerpSpeed);
     this.camera.lookAt(this.currentCamLookAt);
+
+    // Hyper-Boost Camera FOV speed warping
+    const targetFov = (playerShip && playerShip.isBoosting) ? 74 : 60;
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.0);
+    this.camera.updateProjectionMatrix();
+
+    // Background Fleet ambient laser battle tracers
+    if (this.bgFleetGroup && Math.random() < 0.04) {
+      const startF = this.bgFleetGroup.children[Math.floor(Math.random() * this.bgFleetGroup.children.length)];
+      if (startF) {
+        const tracerGeo = new THREE.CylinderGeometry(0.3, 0.3, 25.0, 4);
+        tracerGeo.rotateX(Math.PI / 2);
+        const tracerMat = new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0x00f3ff : 0xff0055 });
+        const tracer = new THREE.Mesh(tracerGeo, tracerMat);
+        tracer.position.copy(startF.position);
+        tracer.velocity = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 20, -100);
+        this.scene.add(tracer);
+        this.bgLasers.push({ mesh: tracer, life: 2.5 });
+      }
+    }
+    for (let i = this.bgLasers.length - 1; i >= 0; i--) {
+      const l = this.bgLasers[i];
+      l.life -= dt;
+      l.mesh.position.addScaledVector(l.mesh.velocity, dt);
+      if (l.life <= 0) {
+        this.scene.remove(l.mesh);
+        l.mesh.geometry.dispose();
+        l.mesh.material.dispose();
+        this.bgLasers.splice(i, 1);
+      }
+    }
 
     // Dynamic camera roll/tilt when banking during dogfights
     if (this.cameraMode !== 'topdown') {

@@ -26,10 +26,13 @@ export class SpaceHUD {
     this.waveSubtitle = document.getElementById('banner-wave-subtitle') || document.getElementById('space-wave-subtitle');
 
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
+    this.btnFireSwarm = document.getElementById('btn-fire-swarm');
+    this.btnHyperBoost = document.getElementById('btn-hyper-boost');
     this.btnSpaceCamera = document.getElementById('btn-space-camera');
     this.btnOpenHangar = document.getElementById('btn-open-hangar');
 
     this.cdRingPulse = document.getElementById('cd-ring-pulse');
+    this.cdRingSwarm = document.getElementById('cd-ring-swarm');
 
     this.modalStart = document.getElementById('space-modal-start');
     this.btnStartGame = document.getElementById('btn-start-space');
@@ -45,6 +48,8 @@ export class SpaceHUD {
     this.btnBuyLasers = document.getElementById('btn-buy-lasers');
     this.btnBuyEmp = document.getElementById('btn-buy-emp');
     this.btnBuyMagnet = document.getElementById('btn-buy-magnet');
+    this.btnBuyMiningAddon = document.getElementById('btn-buy-mining-addon');
+    this.miningAddonStatus = document.getElementById('mining-addon-status');
 
     this.btnBuyRepair = document.getElementById('btn-buy-repair');
     this.btnBuyOvercharge = document.getElementById('btn-buy-overcharge');
@@ -193,6 +198,24 @@ export class SpaceHUD {
       });
     }
 
+    if (this.btnFireSwarm) {
+      this.btnFireSwarm.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerStartIfInStartScreen();
+        this.gameManager.fireSwarmMissiles();
+      });
+    }
+
+    if (this.btnHyperBoost) {
+      this.btnHyperBoost.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerStartIfInStartScreen();
+        this.gameManager.triggerHyperBoost();
+      });
+    }
+
     if (this.btnSpaceCamera) {
       this.btnSpaceCamera.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -278,7 +301,9 @@ export class SpaceHUD {
         }
       }
 
-      if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.code === 'ShiftLeft' || e.code === 'Space') this.gameManager.fireEmpPulse();
+      if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.code === 'ShiftLeft') this.gameManager.fireEmpPulse();
+      if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E' || e.code === 'Digit2') this.gameManager.fireSwarmMissiles();
+      if (e.code === 'KeyB' || e.key === 'b' || e.key === 'B') this.gameManager.triggerHyperBoost();
       if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
         this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
       }
@@ -390,6 +415,24 @@ export class SpaceHUD {
     bindBoostBtn(this.btnBuyNuke, 'nuke', 200, () => {
       this.gameManager.pendingNukeOnWaveStart = true;
     });
+
+    if (this.btnBuyMiningAddon) {
+      this.btnBuyMiningAddon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.playerShip.hasMiningAddon) return;
+        const cost = 500;
+        if (this.gameManager.upgradeSystem.scrap >= cost) {
+          this.gameManager.upgradeSystem.scrap -= cost;
+          this.gameManager.playerShip.hasMiningAddon = true;
+          this.gameManager.spaceAudio.playPowerUpSound();
+          this.gameManager.voiceAnnouncer.speak("Vortex Mining Drill Online!", true);
+          this.updateHangarUI(this.gameManager.upgradeSystem);
+          this.updateScrap(this.gameManager.upgradeSystem.scrap);
+        } else {
+          this.gameManager.spaceAudio.playExplosion();
+        }
+      });
+    }
   }
 
   showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 4.5) {
@@ -474,6 +517,22 @@ export class SpaceHUD {
     if (this.btnBuyOvercharge) this.btnBuyOvercharge.disabled = upgradeSystem.scrap < 120;
     if (this.btnBuyStasis) this.btnBuyStasis.disabled = upgradeSystem.scrap < 150;
     if (this.btnBuyNuke) this.btnBuyNuke.disabled = upgradeSystem.scrap < 200;
+
+    // Premium Mining Addon card state
+    if (this.btnBuyMiningAddon && this.miningAddonStatus && this.gameManager.playerShip) {
+      if (this.gameManager.playerShip.hasMiningAddon) {
+        this.miningAddonStatus.textContent = 'UNLOCKED / ACTIVE';
+        this.miningAddonStatus.className = 'premium-status unlocked';
+        this.btnBuyMiningAddon.textContent = 'INSTALLED 💎';
+        this.btnBuyMiningAddon.disabled = true;
+      } else {
+        this.miningAddonStatus.textContent = 'LOCKED';
+        this.miningAddonStatus.className = 'premium-status';
+        const canAfford = upgradeSystem.scrap >= 500;
+        this.btnBuyMiningAddon.textContent = 'UNLOCK DRILL (500 Scrap)';
+        this.btnBuyMiningAddon.disabled = !canAfford;
+      }
+    }
   }
 
   showAchievementToast(ach) {
@@ -562,6 +621,16 @@ export class SpaceHUD {
     if (this.waveBadge) this.waveBadge.textContent = `WAVE ${data.waveNum}`;
 
     if (this.cdRingPulse) this.cdRingPulse.style.opacity = data.pulseCdRatio > 0 ? '1' : '0';
+    if (this.cdRingSwarm && this.gameManager.playerShip) {
+      this.cdRingSwarm.style.opacity = this.gameManager.playerShip.swarmMissileCooldown > 0 ? '1' : '0';
+    }
+    if (this.btnHyperBoost && this.gameManager.playerShip) {
+      if (this.gameManager.playerShip.isBoosting) {
+        this.btnHyperBoost.classList.add('active-boost');
+      } else {
+        this.btnHyperBoost.classList.remove('active-boost');
+      }
+    }
   }
 
   showPerksModal(perks, onSelectCallback) {

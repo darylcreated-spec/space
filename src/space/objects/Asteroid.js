@@ -190,16 +190,19 @@ export class Asteroid {
     return this.isDead;
   }
 
-  getSplitFragments() {
+  getSplitFragments(hasMiningAddon = false) {
+    if (!hasMiningAddon) return [];
+    
     if (this.sizeCategory === 'large') {
       return [
-        { sizeCategory: 'medium', x: this.meshGroup.position.x - 1.2, y: this.meshGroup.position.y + 0.5, z: this.meshGroup.position.z, vx: -5, vy: 1.5, vz: this.velocity.z },
-        { sizeCategory: 'medium', x: this.meshGroup.position.x + 1.2, y: this.meshGroup.position.y - 0.5, z: this.meshGroup.position.z, vx: 5, vy: -1.5, vz: this.velocity.z }
+        { sizeCategory: 'medium', x: this.meshGroup.position.x - 1.4, y: this.meshGroup.position.y + 0.6, z: this.meshGroup.position.z, vx: -6, vy: 2.0, vz: this.velocity.z },
+        { sizeCategory: 'medium', x: this.meshGroup.position.x + 1.4, y: this.meshGroup.position.y - 0.6, z: this.meshGroup.position.z, vx: 6, vy: -2.0, vz: this.velocity.z },
+        { sizeCategory: 'small',  x: this.meshGroup.position.x,       y: this.meshGroup.position.y + 1.2, z: this.meshGroup.position.z, vx: 0, vy: 4.0,  vz: this.velocity.z }
       ];
     } else if (this.sizeCategory === 'medium') {
       return [
-        { sizeCategory: 'small', x: this.meshGroup.position.x - 0.7, y: this.meshGroup.position.y + 0.3, z: this.meshGroup.position.z, vx: -6, vy: 2.5, vz: this.velocity.z },
-        { sizeCategory: 'small', x: this.meshGroup.position.x + 0.7, y: this.meshGroup.position.y - 0.3, z: this.meshGroup.position.z, vx: 6, vy: -2.5, vz: this.velocity.z }
+        { sizeCategory: 'small', x: this.meshGroup.position.x - 0.8, y: this.meshGroup.position.y + 0.4, z: this.meshGroup.position.z, vx: -7, vy: 3.0, vz: this.velocity.z },
+        { sizeCategory: 'small', x: this.meshGroup.position.x + 0.8, y: this.meshGroup.position.y - 0.4, z: this.meshGroup.position.z, vx: 7, vy: -3.0, vz: this.velocity.z }
       ];
     }
     return [];

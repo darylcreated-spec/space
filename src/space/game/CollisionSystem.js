@@ -132,10 +132,12 @@ export class CollisionSystem {
             if (dead) {
               gameManager.addScore(rock.scoreValue);
               gameManager.addScrap(15);
-              gameManager.achievementSystem.recordAsteroidDestroyed();
-              player.onKillHeal();
-              const frags = rock.getSplitFragments();
-              gameManager.spawnAsteroidFragments(frags);
+              const frags = rock.getSplitFragments(player.hasMiningAddon);
+              if (frags && frags.length > 0) {
+                gameManager.spawnAsteroidFragments(frags);
+                gameManager.addScrap(25);
+                this.particleManager.createExplosion(rock.meshGroup.position, 0xffea00, 30, 2.0);
+              }
             }
 
             if (!gameManager.activePerks.has('piercing')) {
@@ -658,6 +660,114 @@ export class CollisionSystem {
             player.onKillHeal();
           }
           break;
+        }
+      }
+    }
+
+    // 5B. Player Swarm Missiles vs Threats & Bosses
+    if (gameManager.playerSwarmMissiles) {
+      for (let i = gameManager.playerSwarmMissiles.length - 1; i >= 0; i--) {
+        const missile = gameManager.playerSwarmMissiles[i];
+        if (!missile || missile.isDead) {
+          gameManager.playerSwarmMissiles.splice(i, 1);
+          continue;
+        }
+
+        const mPos = missile.meshGroup.position;
+        let detonated = false;
+
+        // Check vs Drones
+        for (let j = gameManager.drones.length - 1; j >= 0; j--) {
+          const drone = gameManager.drones[j];
+          if (drone && !drone.isDead && drone.meshGroup && mPos.distanceTo(drone.meshGroup.position) < drone.radius + 1.5) {
+            const dead = drone.takeDamage(missile.damage);
+            if (dead) {
+              gameManager.addScore(drone.scoreValue);
+              gameManager.addScrap(20);
+              gameManager.achievementSystem.recordDroneKill();
+              player.onKillHeal();
+            }
+            detonated = true;
+            break;
+          }
+        }
+
+        // Check vs Asteroids
+        if (!detonated) {
+          for (let j = gameManager.asteroids.length - 1; j >= 0; j--) {
+            const rock = gameManager.asteroids[j];
+            if (rock && !rock.isDead && rock.meshGroup && mPos.distanceTo(rock.meshGroup.position) < rock.radius + 1.5) {
+              const dead = rock.takeDamage(missile.damage);
+              if (dead) {
+                gameManager.addScore(rock.scoreValue);
+                gameManager.addScrap(15);
+                gameManager.achievementSystem.recordAsteroidDestroyed();
+                player.onKillHeal();
+                const frags = rock.getSplitFragments(player.hasMiningAddon);
+                if (frags && frags.length > 0) {
+                  gameManager.spawnAsteroidFragments(frags);
+                  gameManager.addScrap(25);
+                  this.particleManager.createExplosion(rock.meshGroup.position, 0xffea00, 30, 2.0);
+                }
+              }
+              detonated = true;
+              break;
+            }
+          }
+        }
+
+        // Check vs Carrier
+        if (!detonated && gameManager.carrierBoss && !gameManager.carrierBoss.isDead) {
+          const carrier = gameManager.carrierBoss;
+          for (let t = 0; t < carrier.turrets.length; t++) {
+            const turr = carrier.turrets[t];
+            if (!turr.isDead && turr.mesh) {
+              const turrPos = carrier.meshGroup.localToWorld(turr.relPos.clone());
+              if (mPos.distanceTo(turrPos) < 4.5) {
+                const dead = carrier.damageTurret(turr.id, missile.damage);
+                if (dead && gameManager.spawnSeveredDebris) gameManager.spawnSeveredDebris(turrPos);
+                detonated = true;
+                break;
+              }
+            }
+          }
+          if (!detonated) {
+            for (let s = 0; s < carrier.subsystems.length; s++) {
+              const sub = carrier.subsystems[s];
+              if (!sub.isDead && sub.mesh) {
+                const subPos = carrier.meshGroup.localToWorld(sub.relPos.clone());
+                if (mPos.distanceTo(subPos) < 4.8) {
+                  const dead = carrier.damageSubsystem(sub.id, missile.damage);
+                  if (dead && gameManager.spawnSeveredDebris) gameManager.spawnSeveredDebris(subPos);
+                  detonated = true;
+                  break;
+                }
+              }
+            }
+          }
+          if (!detonated && mPos.distanceTo(carrier.meshGroup.position) < carrier.radius) {
+            carrier.takeDamage(missile.damage);
+            detonated = true;
+          }
+        }
+
+        // Check vs Active Boss
+        if (!detonated && gameManager.activeBoss && !gameManager.activeBoss.isDead) {
+          const boss = gameManager.activeBoss;
+          if (boss.takeDamage) {
+            boss.takeDamage('core', missile.damage);
+            detonated = true;
+          } else if (boss.takeCoreDamage) {
+            boss.takeCoreDamage(missile.damage);
+            detonated = true;
+          }
+        }
+
+        if (detonated) {
+          missile.explode();
+          this.spaceAudio.playExplosion();
+          this.spaceScene.addScreenShake(0.6);
+          gameManager.playerSwarmMissiles.splice(i, 1);
         }
       }
     }

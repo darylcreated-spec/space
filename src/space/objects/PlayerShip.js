@@ -35,9 +35,19 @@ export class PlayerShip {
     this.dodgeTimer = 0;
     this.dodgeCooldown = 0;
     this.dodgeDirection = null;
-    this.isInvulnerable = true; // Temporary test value
+    this.isInvulnerable = true;
     this.tractorBeamLevel = 0;
     this.activePerks = new Set();
+
+    // Hyper-Boost & Swarm Missiles
+    this.boostEnergy = 100;
+    this.maxBoostEnergy = 100;
+    this.isBoosting = false;
+    this.swarmMissileCooldown = 0;
+    this.maxSwarmCD = 6.0;
+
+    // Premium Add-On Feature
+    this.hasMiningAddon = false;
 
     this.buildShipMesh();
     this.meshGroup.position.set(0, 0, 0);
@@ -388,7 +398,18 @@ export class PlayerShip {
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
     if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
     if (this.dodgeCooldown > 0) this.dodgeCooldown -= dt;
+    if (this.swarmMissileCooldown > 0) this.swarmMissileCooldown -= dt;
     if (this._dodgeBoostTimer > 0) this._dodgeBoostTimer -= dt;
+
+    // Hyper-Boost Energy Management
+    if (this.isBoosting && this.boostEnergy > 0) {
+      this.boostEnergy = Math.max(0, this.boostEnergy - dt * 40.0);
+      if (this.boostEnergy <= 0) this.isBoosting = false;
+    } else if (!this.isBoosting && this.boostEnergy < this.maxBoostEnergy) {
+      this.boostEnergy = Math.min(this.maxBoostEnergy, this.boostEnergy + dt * 20.0);
+    }
+
+    const currentSpeed = this.speed * (this.isBoosting ? 2.0 : 1.0);
 
     // Shield ripple decay
     if (this.shieldRippleTimer > 0) {
@@ -402,49 +423,49 @@ export class PlayerShip {
       }
     }
 
-      const bossActive = this.gameManager && this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead;
-      const minX = bossActive ? -36 : this.bounds.minX;
-      const maxX = bossActive ? 36 : this.bounds.maxX;
-      const minY = bossActive ? -20 : this.bounds.minY;
-      const maxY = bossActive ? 20 : this.bounds.maxY;
+    const bossActive = this.gameManager && this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead;
+    const minX = bossActive ? -36 : this.bounds.minX;
+    const maxX = bossActive ? 36 : this.bounds.maxX;
+    const minY = bossActive ? -20 : this.bounds.minY;
+    const maxY = bossActive ? 20 : this.bounds.maxY;
 
-      if (this.dodgeTimer > 0) {
-        this.dodgeTimer -= dt;
-        const dodgeSpeed = 54.0;
-        this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
-        this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
+    if (this.dodgeTimer > 0) {
+      this.dodgeTimer -= dt;
+      const dodgeSpeed = 54.0;
+      this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
+      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
 
-        // 360 roll rotation
-        const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
-        this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
-        this.meshGroup.rotation.x = 0; // lock pitch during roll
-        
-        // Spawn extra dodge exhaust trail
-        if (Math.random() < 0.4) {
-          this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
-        }
-      } else {
-        this.velocity.x += (inputDir.x * this.speed - this.velocity.x) * 0.18;
-        this.velocity.y += (inputDir.y * this.speed - this.velocity.y) * 0.18;
-
-        this.meshGroup.position.x += this.velocity.x * dt;
-        this.meshGroup.position.y += this.velocity.y * dt;
-
-        this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
-        this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, minY, maxY);
-
-        // Banking & pitch
-        this.targetRoll = -inputDir.x * 0.65;
-        this.targetPitch = inputDir.y * 0.28;
-        this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
-        this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
-        this.meshGroup.rotation.z = this.currentRoll;
-        this.meshGroup.rotation.x = this.currentPitch;
+      // 360 roll rotation
+      const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
+      this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
+      this.meshGroup.rotation.x = 0; // lock pitch during roll
+      
+      // Spawn extra dodge exhaust trail
+      if (Math.random() < 0.4) {
+        this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
       }
+    } else {
+      this.velocity.x += (inputDir.x * currentSpeed - this.velocity.x) * 0.18;
+      this.velocity.y += (inputDir.y * currentSpeed - this.velocity.y) * 0.18;
 
-    // Animate flame flicker
+      this.meshGroup.position.x += this.velocity.x * dt;
+      this.meshGroup.position.y += this.velocity.y * dt;
+
+      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
+      this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, minY, maxY);
+
+      // Banking & pitch
+      this.targetRoll = -inputDir.x * (this.isBoosting ? 0.85 : 0.65);
+      this.targetPitch = inputDir.y * 0.28;
+      this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
+      this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
+      this.meshGroup.rotation.z = this.currentRoll;
+      this.meshGroup.rotation.x = this.currentPitch;
+    }
+
+    // Animate flame flicker & boost flare
     const flicker = 1.0 + Math.sin(this._time * 20) * 0.15;
-    const thrustBoost = 1.0 + Math.abs(inputDir.x) * 0.3 + Math.abs(inputDir.y) * 0.3;
+    const thrustBoost = (this.isBoosting ? 2.4 : 1.0) * (1.0 + Math.abs(inputDir.x) * 0.3 + Math.abs(inputDir.y) * 0.3);
     if (this.flameR_inner) this.flameR_inner.scale.setScalar(flicker * thrustBoost);
     if (this.flameL_inner) this.flameL_inner.scale.setScalar(flicker * thrustBoost);
     if (this.flameR_outer) this.flameR_outer.scale.setScalar(flicker * 0.9 * thrustBoost);
@@ -462,7 +483,17 @@ export class PlayerShip {
     }
 
     // Engine light intensity
-    if (this.engineLight) this.engineLight.intensity = 1.2 + Math.sin(this._time * 12) * 0.25;
+    if (this.engineLight) this.engineLight.intensity = (this.isBoosting ? 2.5 : 1.2) + Math.sin(this._time * 12) * 0.25;
+
+    // Dynamic Wingtip Aerodynamic Vapor Ribbons (spawns when banking or boosting)
+    if (Math.abs(this.currentRoll) > 0.25 || this.isBoosting || this.dodgeTimer > 0) {
+      if (Math.random() < 0.65) {
+        const leftTip = this.meshGroup.localToWorld(new THREE.Vector3(-3.2, 0, 0.4));
+        const rightTip = this.meshGroup.localToWorld(new THREE.Vector3(3.2, 0, 0.4));
+        this.particleManager.spawnEngineParticle(leftTip, 0xe0f7ff);
+        this.particleManager.spawnEngineParticle(rightTip, 0xe0f7ff);
+      }
+    }
 
     // Engine trail particles
     this._thrusterTick++;
@@ -475,8 +506,8 @@ export class PlayerShip {
       this._tempTrailR.set(0.68, -0.1, 3.2).add(this.meshGroup.position);
       this._tempTrailL.set(-0.68, -0.1, 3.2).add(this.meshGroup.position);
       
-      let pColor = 0x00f3ff;
-      if (this.shipClass === 'INTERCEPTOR') pColor = 0xffea00;
+      let pColor = this.isBoosting ? 0xffea00 : 0x00f3ff;
+      if (this.shipClass === 'INTERCEPTOR') pColor = this.isBoosting ? 0xffffff : 0xffea00;
       else if (this.shipClass === 'DREADNOUGHT') pColor = 0xff0044;
       else if (this.shipClass === 'TACTICIAN') pColor = 0x00ff66;
 

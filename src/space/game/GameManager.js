@@ -9,6 +9,7 @@ import { MoonBase } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { Babylon5Boss } from '../objects/Babylon5Boss.js';
 import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
+import { PlayerSwarmMissile } from '../objects/PlayerSwarmMissile.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
 import { CarrierCapitalShip } from '../objects/CarrierCapitalShip.js';
 import { CollisionSystem } from './CollisionSystem.js';
@@ -62,6 +63,8 @@ export class GameManager {
     this.powerUps = [];
     this.lasers = [];
     this.plasmaPulses = [];
+    this.playerSwarmMissiles = [];
+    this.severedDebris = [];
     this.laserPool = [];
     this.plasmaPulsePool = [];
     this.activeEmpPulse = null;
@@ -299,7 +302,10 @@ export class GameManager {
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("ALERT: Heavy Enemy Aircraft Carrier detected! Target its flight decks & missile pods!", "STARBOUND COMMAND", 5.5);
     }
-    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+    if (this.spaceScene) {
+      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
+      this.spaceScene.triggerBossIntroCamera();
+    }
   }
 
   spawnSpaceStation() {
@@ -441,6 +447,76 @@ export class GameManager {
     this.spaceAudio.playEmpPulse();
     this.spaceAudio.vibrate([50, 30, 50]);
     this.spaceScene.addScreenShake(1.8);
+  }
+
+  fireSwarmMissiles() {
+    if (this.state !== 'PLAYING' || this.playerShip.swarmMissileCooldown > 0) return;
+    this.playerShip.swarmMissileCooldown = this.playerShip.maxSwarmCD;
+
+    // Collect candidate targets (drones, carrier parts, boss parts, asteroids)
+    const targets = [];
+    this.drones.forEach(d => { if (!d.isDead) targets.push(d); });
+    if (this.carrierBoss && !this.carrierBoss.isDead) {
+      this.carrierBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
+      this.carrierBoss.subsystems.forEach(s => { if (!s.isDead) targets.push(s); });
+      targets.push(this.carrierBoss);
+    }
+    if (this.activeBoss && !this.activeBoss.isDead) {
+      if (this.activeBoss.generators) {
+        this.activeBoss.generators.forEach(g => { if (!g.isDead) targets.push(g); });
+      }
+      if (this.activeBoss.turrets) {
+        this.activeBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
+      }
+      targets.push(this.activeBoss);
+    }
+    this.asteroids.forEach(a => { if (!a.isDead && a.meshGroup.position.z < 0) targets.push(a); });
+
+    const numMissiles = 6;
+    const pPos = this.playerShip.meshGroup.position;
+
+    for (let i = 0; i < numMissiles; i++) {
+      setTimeout(() => {
+        if (this.state !== 'PLAYING') return;
+        const target = targets[i % Math.max(1, targets.length)] || null;
+        const sideOffset = (i % 2 === 0 ? -2.8 : 2.8);
+        const launchPos = new THREE.Vector3(sideOffset, -0.2, 0).add(pPos);
+        const missile = new PlayerSwarmMissile(this.spaceScene.scene, launchPos, target, this.particleManager);
+        this.playerSwarmMissiles.push(missile);
+        this.spaceAudio.playLaserPew(sideOffset);
+      }, i * 70);
+    }
+
+    if (navigator.vibrate) navigator.vibrate([40, 30, 40, 30, 80]);
+  }
+
+  triggerHyperBoost() {
+    if (this.state !== 'PLAYING') return;
+    if (this.playerShip.boostEnergy > 15) {
+      this.playerShip.isBoosting = !this.playerShip.isBoosting;
+      if (this.playerShip.isBoosting) {
+        this.spaceScene.addScreenShake(0.8);
+        if (navigator.vibrate) navigator.vibrate(80);
+      }
+    }
+  }
+
+  spawnSeveredDebris(worldPos) {
+    const chunkGeo = new THREE.DodecahedronGeometry(1.6, 1);
+    const chunkMat = new THREE.MeshStandardMaterial({
+      color: 0x141e2c,
+      emissive: 0xff3300,
+      emissiveIntensity: 0.6,
+      metalness: 0.9,
+      roughness: 0.4
+    });
+    const chunk = new THREE.Mesh(chunkGeo, chunkMat);
+    chunk.position.copy(worldPos);
+    this.spaceScene.scene.add(chunk);
+
+    const vel = new THREE.Vector3((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 14 + 10);
+    const rot = new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+    this.severedDebris.push({ mesh: chunk, vel, rot, life: 4.0 });
   }
 
 
@@ -761,6 +837,35 @@ export class GameManager {
       if (pulse.isDead) {
         pulse.destroy();
         this.plasmaPulses.splice(i, 1);
+      }
+    }
+
+    // Update Player Swarm Missiles
+    for (let i = this.playerSwarmMissiles.length - 1; i >= 0; i--) {
+      const missile = this.playerSwarmMissiles[i];
+      if (!missile || missile.isDead) {
+        this.playerSwarmMissiles.splice(i, 1);
+        continue;
+      }
+      missile.update(dt);
+    }
+
+    // Update Severed Physical Debris
+    for (let i = this.severedDebris.length - 1; i >= 0; i--) {
+      const deb = this.severedDebris[i];
+      deb.life -= dt;
+      deb.mesh.position.addScaledVector(deb.vel, dt);
+      deb.mesh.rotation.x += deb.rot.x * dt;
+      deb.mesh.rotation.y += deb.rot.y * dt;
+      deb.mesh.rotation.z += deb.rot.z * dt;
+      if (Math.random() < 0.3) {
+        this.particleManager.spawnEngineParticle(deb.mesh.position, 0xff4400);
+      }
+      if (deb.life <= 0) {
+        this.spaceScene.scene.remove(deb.mesh);
+        deb.mesh.geometry.dispose();
+        deb.mesh.material.dispose();
+        this.severedDebris.splice(i, 1);
       }
     }
 

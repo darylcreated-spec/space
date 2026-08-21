@@ -136,9 +136,18 @@
           <span class="icon">🌀</span>
           <span class="btn-label">DODGE</span>
         </button>
-        <button id="btn-fire-pulse" class="action-btn pulse-btn" title="Plasma Pulse Charge (Q / Shift / Space)">
-          <span class="cooldown-ring" id="cd-ring-pulse"></span>
+        <button id="btn-fire-swarm" class="action-btn swarm-btn" title="Multi-Target Swarm Missiles (E / 2)">
+          <span class="cooldown-ring" id="cd-ring-swarm"></span>
+          <span class="icon">🚀</span>
+          <span class="btn-label">SWARM</span>
+        </button>
+        <button id="btn-hyper-boost" class="action-btn boost-btn" title="Hyper-Boost Thrusters (W / Space)">
           <span class="icon">⚡</span>
+          <span class="btn-label">BOOST</span>
+        </button>
+        <button id="btn-fire-pulse" class="action-btn pulse-btn" title="Plasma Pulse Charge (Q / Shift)">
+          <span class="cooldown-ring" id="cd-ring-pulse"></span>
+          <span class="icon">💥</span>
           <span class="btn-label">PULSE</span>
         </button>
       </div>
@@ -322,7 +331,22 @@
         </div>
       </div>
 
-      <button id="btn-next-wave" class="btn-primary" style="margin-top: 2rem;">RESUME DEFENSE →</button>
+      <!-- 👑 Premium Add-On: Vortex Mining Drill & Asteroid Splitter -->
+      <div class="premium-addon-card" id="premium-mining-card">
+        <div class="premium-badge-row">
+          <span class="premium-badge">👑 PREMIUM ADD-ON</span>
+          <span class="premium-status" id="mining-addon-status">LOCKED</span>
+        </div>
+        <div class="premium-body">
+          <div class="premium-info">
+            <h4 class="premium-title">⚡ VORTEX MINING DRILL & ASTEROID SPLITTER</h4>
+            <p class="premium-desc">Fractures destroyed asteroids into tumbling mineral shards yielding bonus scrap & rare glowing ore crystals!</p>
+          </div>
+          <button id="btn-buy-mining-addon" class="btn-primary premium-buy-btn">UNLOCK DRILL (500 Scrap)</button>
+        </div>
+      </div>
+
+      <button id="btn-next-wave" class="btn-primary" style="margin-top: 1.5rem;">RESUME DEFENSE →</button>
     </div>
   </div>
 
