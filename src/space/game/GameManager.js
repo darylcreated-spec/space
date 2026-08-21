@@ -71,6 +71,7 @@ export class GameManager {
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
     this.hitFreezeTimer = 0;
+    this.killCamSlowMoTimer = 0;
     this.pendingNukeOnWaveStart = false;
 
     // Flag for pausing laser auto-fire during EMP launch
@@ -574,8 +575,14 @@ export class GameManager {
 
     if (this.overchargeTimer > 0) this.overchargeTimer -= dt;
     if (this.stasisTimer > 0) this.stasisTimer -= dt;
+    if (this.killCamSlowMoTimer > 0) this.killCamSlowMoTimer -= dt;
 
-    const timeScale = this.stasisTimer > 0 ? 0.25 : 1.0;
+    let timeScale = this.stasisTimer > 0 ? 0.25 : 1.0;
+    if (this.killCamSlowMoTimer > 0) {
+      const slowProgress = 1.0 - (this.killCamSlowMoTimer / 2.5);
+      const killCamScale = THREE.MathUtils.lerp(0.2, 1.0, Math.pow(slowProgress, 1.8));
+      timeScale = Math.min(timeScale, killCamScale);
+    }
     const effectiveDt = dt * timeScale;
 
     // 1. Update Controls & Player Ship Movement
@@ -649,6 +656,12 @@ export class GameManager {
     for (let i = this.capitalShips.length - 1; i >= 0; i--) {
       const ship = this.capitalShips[i];
       if (ship.isDead) {
+        if (ship.meshGroup) {
+          const deadPos = ship.meshGroup.position.clone();
+          this.spaceScene.triggerKillCam(deadPos, 2.0);
+          this.killCamSlowMoTimer = 1.8;
+          if (this.spaceHUD) this.spaceHUD.showKillCam("CAPITAL SHIP ELIMINATED", "CRITICAL WARP REACTOR COLLAPSE", 2.0);
+        }
         ship.destroy();
         this.capitalShips.splice(i, 1);
       }
@@ -657,6 +670,12 @@ export class GameManager {
     // Update Carrier Capital Ship (Mission 1 Mid-Boss)
     if (this.carrierBoss) {
       if (this.carrierBoss.isDead) {
+        if (this.carrierBoss.meshGroup) {
+          const deadPos = this.carrierBoss.meshGroup.position.clone();
+          this.spaceScene.triggerKillCam(deadPos, 2.5);
+          this.killCamSlowMoTimer = 2.5;
+          if (this.spaceHUD) this.spaceHUD.showKillCam("ENEMY CARRIER NEUTRALIZED", "CARRIER FLIGHT SUPERSTRUCTURE DESTROYED", 2.5);
+        }
         this.carrierBoss.destroy();
         this.carrierBoss = null;
         this.voiceAnnouncer.speak("Carrier Destroyed! Clearing asteroid corridor!", true);
@@ -670,6 +689,15 @@ export class GameManager {
             this.spawnLaser(tPos, 0x00ff66, true, targetDir);
           });
           this.spaceAudio.playLaserPew();
+        }
+        if (carrierStatus && carrierStatus.siegeLasers && Array.isArray(carrierStatus.siegeLasers)) {
+          carrierStatus.siegeLasers.forEach(tPos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+            this.spawnLaser(tPos, 0xff0044, true, targetDir);
+          });
+          if (this.spaceAudio.playHeavyCannonSound) {
+            this.spaceAudio.playHeavyCannonSound();
+          }
         }
         if (carrierStatus && carrierStatus.droneSpawns > 0) {
           for (let d = 0; d < carrierStatus.droneSpawns; d++) {
@@ -701,6 +729,12 @@ export class GameManager {
 
     if (this.activeBoss) {
       if (this.activeBoss.isDead) {
+        if (this.activeBoss.meshGroup) {
+          const deadPos = this.activeBoss.meshGroup.position.clone();
+          this.spaceScene.triggerKillCam(deadPos, 2.8);
+          this.killCamSlowMoTimer = 2.8;
+          if (this.spaceHUD) this.spaceHUD.showKillCam("SECTOR BOSS ANNIHILATED", "CORE STATION MELTDOWN COMPLETE", 2.8);
+        }
         // Boss just died — destroy and null immediately so nothing accesses disposed materials
         try { this.activeBoss.destroy(); } catch(e) { console.warn('Boss destroy error:', e); }
         this.activeBoss = null;

@@ -409,14 +409,86 @@ html, body {
   color: var(--accent-yellow);
 }
 
-/* Mobile Controls Layer */
-.mobile-controls-layer {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  width: 100%;
-  padding: 1rem 1.5rem;
+/* Cinematic Kill-Cam Letterbox & FX */
+.killcam-bar {
+  position: fixed;
+  left: 0;
+  width: 100vw;
+  height: 11vh;
+  background: rgba(3, 7, 14, 0.96);
+  z-index: 999;
   pointer-events: none;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+.killcam-top {
+  top: 0;
+  border-bottom: 2px solid rgba(0, 243, 255, 0.5);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.85);
+}
+.killcam-bottom {
+  bottom: 0;
+  border-top: 2px solid rgba(0, 243, 255, 0.5);
+  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.85);
+}
+.killcam-banner {
+  position: fixed;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 1000;
+  pointer-events: none;
+  animation: killcamBannerPulse 2.4s ease forwards;
+}
+@keyframes killcamBannerPulse {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.85); filter: blur(4px); }
+  15% { opacity: 1; transform: translateX(-50%) scale(1.04); filter: blur(0px); }
+  80% { opacity: 1; transform: translateX(-50%) scale(1.0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
+.killcam-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  background: rgba(255, 0, 85, 0.25);
+  border: 1px solid #ff0055;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #ff0055;
+  text-shadow: 0 0 10px rgba(255, 0, 85, 0.8);
+  margin-bottom: 0.4rem;
+}
+.killcam-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 5px;
+  background: linear-gradient(90deg, #ffea00, #ff0055, #00f3ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(255, 234, 0, 0.6);
+}
+.killcam-sub {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #00f3ff;
+}
+
+/* Mobile Controls Layer - Pinned to bottom of play area */
+.mobile-controls-layer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding: 0.8rem 1.25rem;
+  padding-bottom: max(0.8rem, env(safe-area-inset-bottom, 0.8rem));
+  pointer-events: none;
+  z-index: 25;
   touch-action: none !important;
 }
 
@@ -455,7 +527,7 @@ html, body {
 
 .action-buttons-zone {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: flex-end;
   pointer-events: auto;
   touch-action: none !important;
@@ -463,45 +535,64 @@ html, body {
 
 .action-btn {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(15, 20, 32, 0.7);
-  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(0, 243, 255, 0.4);
+  background: rgba(8, 14, 24, 0.85);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 243, 255, 0.2);
+  backdrop-filter: blur(12px);
   color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
   overflow: hidden;
   pointer-events: auto;
   touch-action: manipulation !important;
 }
 
-.action-btn.main-fire {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, rgba(255, 0, 119, 0.4), rgba(0, 243, 255, 0.4));
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+.action-btn:hover {
+  border-color: #00f3ff;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
 }
 
 .action-btn:active {
-  transform: scale(0.92);
+  transform: scale(0.9);
+  background: rgba(0, 243, 255, 0.25);
+}
+
+.action-btn.dodge-btn {
+  border-color: rgba(255, 0, 85, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(255, 0, 85, 0.25);
+}
+.action-btn.dodge-btn:hover {
+  border-color: #ff0055;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.6);
+}
+.action-btn.dodge-btn:active {
+  background: rgba(255, 0, 85, 0.25);
+}
+
+.action-btn.pulse-btn {
+  border-color: rgba(0, 243, 255, 0.5);
+}
+.action-btn.pulse-btn:hover {
+  border-color: #00f3ff;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
 }
 
 .action-btn .icon {
-  font-size: 1.4rem;
+  font-size: 1.45rem;
 }
 
 .action-btn .btn-label {
-  font-size: 0.55rem;
-  font-weight: 800;
+  font-size: 0.6rem;
+  font-weight: 900;
   letter-spacing: 1px;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .cooldown-ring {
@@ -1139,38 +1230,39 @@ html, body {
   font-weight: 500;
 }
 
-/* Homing Missile Lock-On Warning Banner */
+/* Homing Missile Lock-On Warning Banner - Sleek Top Docked Alert */
 .lockon-warning-banner {
   position: absolute;
-  top: 135px;
+  top: 54px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 24px;
-  background: rgba(255, 0, 85, 0.85);
-  border: 2px solid #ffffff;
-  box-shadow: 0 0 25px rgba(255, 0, 85, 0.8);
-  border-radius: 30px;
+  gap: 8px;
+  padding: 5px 16px;
+  background: rgba(255, 0, 85, 0.92);
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.75), 0 4px 15px rgba(0, 0, 0, 0.6);
+  border-radius: 20px;
   z-index: 35;
+  pointer-events: none;
   animation: pulseLockWarning 0.6s infinite alternate;
 }
 .lockon-icon {
-  font-size: 1.6rem;
+  font-size: 1.1rem;
 }
 .lockon-title {
   font-family: var(--font-code);
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: #ffffff;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
 }
 .lockon-sub {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: #ffea00;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.8px;
 }
 
 @keyframes pulseLockWarning {

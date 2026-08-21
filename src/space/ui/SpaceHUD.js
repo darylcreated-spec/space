@@ -25,6 +25,13 @@ export class SpaceHUD {
     this.waveTitle = document.getElementById('banner-wave-title') || document.getElementById('space-wave-title');
     this.waveSubtitle = document.getElementById('banner-wave-subtitle') || document.getElementById('space-wave-subtitle');
 
+    // Kill-Cam Letterbox & Banner UI
+    this.killCamTop = document.getElementById('killcam-letterbox-top');
+    this.killCamBottom = document.getElementById('killcam-letterbox-bottom');
+    this.killCamBanner = document.getElementById('killcam-banner');
+    this.killCamTitle = document.getElementById('killcam-title');
+    this.killCamSub = document.getElementById('killcam-sub');
+
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnSpaceCamera = document.getElementById('btn-space-camera');
     this.btnOpenHangar = document.getElementById('btn-open-hangar');
@@ -515,6 +522,30 @@ export class SpaceHUD {
       this.waveBanner.offsetHeight;
       this.waveBanner.style.animation = 'bannerFade 3s ease forwards';
     }
+  }
+
+  showKillCam(title = "TARGET DESTROYED", subtitle = "CRITICAL REACTOR COLLAPSE", duration = 2.4) {
+    if (this.killCamTop && this.killCamBottom) {
+      this.killCamTop.classList.remove('hidden');
+      this.killCamBottom.classList.remove('hidden');
+    }
+    if (this.killCamBanner) {
+      if (this.killCamTitle) this.killCamTitle.textContent = title;
+      if (this.killCamSub) this.killCamSub.textContent = subtitle;
+      this.killCamBanner.classList.remove('hidden');
+      this.killCamBanner.style.animation = 'none';
+      this.killCamBanner.offsetHeight;
+      this.killCamBanner.style.animation = `killcamBannerPulse ${duration}s ease forwards`;
+    }
+    setTimeout(() => {
+      if (this.killCamTop && this.killCamBottom) {
+        this.killCamTop.classList.add('hidden');
+        this.killCamBottom.classList.add('hidden');
+      }
+      if (this.killCamBanner) {
+        this.killCamBanner.classList.add('hidden');
+      }
+    }, duration * 1000);
   }
 
   showGameOverModal(data) {

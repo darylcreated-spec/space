@@ -212,6 +212,43 @@ export class MoonBase {
     this.coreMesh.position.z = -0.375;
     dishGroup.add(this.coreMesh);
 
+    // 3 Concentric Superlaser Energy Focusing Rings
+    this.focusRings = [];
+    const ringRadii = [4.5, 3.2, 2.0];
+    const ringDistances = [2.5, 5.0, 7.5];
+    for (let i = 0; i < 3; i++) {
+      const rGeo = new THREE.TorusGeometry(ringRadii[i], 0.18, 10, 32);
+      const rMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff66,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending
+      });
+      const rMesh = new THREE.Mesh(rGeo, rMat);
+      rMesh.position.set(0, 0, ringDistances[i]);
+      dishGroup.add(rMesh);
+      this.focusRings.push({
+        mesh: rMesh,
+        mat: rMat,
+        baseZ: ringDistances[i],
+        baseRadius: ringRadii[i],
+        speed: (i % 2 === 0 ? 1 : -1) * (1.5 + i * 0.6)
+      });
+    }
+
+    // Direct Targeting Red Aiming Sight Beam (telegraphs lock-on toward player)
+    const aimGeo = new THREE.CylinderGeometry(0.08, 0.08, 120, 6);
+    aimGeo.rotateX(Math.PI / 2);
+    this.aimSightMat = new THREE.MeshBasicMaterial({
+      color: 0xff0044,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending
+    });
+    this.aimSightBeam = new THREE.Mesh(aimGeo, this.aimSightMat);
+    this.aimSightBeam.position.set(0, 0, 60);
+    dishGroup.add(this.aimSightBeam);
+
     this.meshGroup.add(dishGroup);
 
     // Dish point light
@@ -234,7 +271,36 @@ export class MoonBase {
     this.outerBeam.position.copy(this.laserBeam.position);
     this.meshGroup.add(this.outerBeam);
 
-    // ── 6. Fresnel Shield ──
+    // ── 6. Outer Rotating Habitat Ring & Navigation Strobes ──
+    const habRingGroup = new THREE.Group();
+    const habRingGeo = new THREE.TorusGeometry(R + 7.5, 0.75, 12, 64);
+    const habRingMat = new THREE.MeshStandardMaterial({ color: 0x0a1422, roughness: 0.4, metalness: 0.95 });
+    const habRingMesh = new THREE.Mesh(habRingGeo, habRingMat);
+    habRingGroup.add(habRingMesh);
+
+    this.beaconLights = [];
+    for (let i = 0; i < 8; i++) {
+      const ang = (i / 8) * Math.PI * 2;
+      // Habitat pod module
+      const podGeo = new THREE.BoxGeometry(2.4, 1.6, 3.5);
+      const podMat = new THREE.MeshStandardMaterial({ color: 0x121e2e, metalness: 0.85, roughness: 0.3 });
+      const pod = new THREE.Mesh(podGeo, podMat);
+      pod.position.set(Math.cos(ang) * (R + 7.5), Math.sin(ang) * (R + 7.5), 0);
+      pod.rotation.z = ang;
+      habRingGroup.add(pod);
+
+      // Flashing navigation beacon
+      const strobeGeo = new THREE.SphereGeometry(0.3, 8, 8);
+      const strobeMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xff0044 : 0x00ff66 });
+      const strobe = new THREE.Mesh(strobeGeo, strobeMat);
+      strobe.position.set(Math.cos(ang) * (R + 9.0), Math.sin(ang) * (R + 9.0), 0);
+      habRingGroup.add(strobe);
+      this.beaconLights.push({ mesh: strobe, mat: strobeMat, phase: i * 0.75 });
+    }
+    this.habRingGroup = habRingGroup;
+    this.meshGroup.add(habRingGroup);
+
+    // ── 7. Fresnel Shield ──
     const shieldGeo = new THREE.IcosahedronGeometry(R + 4.125, 4);
     this.shieldShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
@@ -414,9 +480,34 @@ export class MoonBase {
       this.shieldShaderMat.uniforms.uHp.value = this.coreHp / this.maxCoreHp;
     }
 
-    // Majestic slow rotation
+    // 1. Majestic slow station rotation & Outer Habitat Ring Counter-Rotation
     this.meshGroup.rotation.y += 0.05 * dt;
 
+    if (this.habRingGroup) {
+      this.habRingGroup.rotation.z -= 0.12 * dt;
+    }
+
+    // 2. Flashing Navigation Strobe Beacons
+    if (this.beaconLights) {
+      this.beaconLights.forEach(b => {
+        const flash = Math.sin(time * 8.0 + b.phase) > 0.6;
+        b.mesh.visible = flash;
+      });
+    }
+
+    // 3. Superlaser Focus Rings Animation (Spin + Contract during charge)
+    if (this.focusRings && this.dishGroup) {
+      this.focusRings.forEach(ring => {
+        ring.mesh.rotation.z += ring.speed * (this.superlaserfiring ? 7.0 : 1.0) * dt;
+        const targetZ = this.superlaserfiring ? (ring.baseZ * 0.4 + 1.2) : ring.baseZ;
+        ring.mesh.position.z = THREE.MathUtils.lerp(ring.mesh.position.z, targetZ, dt * 6.0);
+        if (ring.mat) {
+          ring.mat.opacity = this.superlaserfiring ? (0.9 + Math.sin(time * 20.0) * 0.1) : 0.6;
+        }
+      });
+    }
+
+    // 4. Shield & Vulnerable Point indicator animation
     if (this.shieldRing) {
       this.shieldRing.visible = this.hasShield;
       if (this.hasShield) {
@@ -425,7 +516,6 @@ export class MoonBase {
       }
     }
 
-    // Vulnerable Point indicator animation
     if (this.vulnRing && this.vulnMesh && this.vulnMesh.visible) {
       this.vulnRing.rotation.z += 1.8 * dt;
       if (this.vulnMat) {
@@ -433,19 +523,40 @@ export class MoonBase {
       }
     }
 
-    // Superlaser dish aim toward player
+    // 5. Superlaser dish aim toward player & Direct Targeting Red Aiming Sight
     if (this.dishGroup && arrived) {
       const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
       this.dishGroup.lookAt(localTarget);
+
+      if (this.aimSightMat) {
+        if (this.superlaserfiring) {
+          this.aimSightMat.opacity = 0.85 + Math.sin(time * 24.0) * 0.15;
+        } else if (this.phase >= 2) {
+          // Faint pre-targeting laser in Phase 2 & 3
+          this.aimSightMat.opacity = 0.25 + Math.sin(time * 6.0) * 0.15;
+        } else {
+          this.aimSightMat.opacity = 0.0;
+        }
+      }
+    }
+
+    // 6. Phase 3 Meltdown Overdrive Effects (<25% HP)
+    if (this.phase === 3 && Math.random() < 0.35) {
+      const sparkPos = this.meshGroup.position.clone().add(new THREE.Vector3(
+        (Math.random() - 0.5) * 40,
+        (Math.random() - 0.5) * 40,
+        (Math.random() - 0.5) * 40
+      ));
+      this.particleManager.spawnEngineParticle(sparkPos, Math.random() < 0.5 ? 0xff3300 : 0x00ff66);
     }
 
     // Plasma orb intensity ramps up with phase
     if (this.superlightBoss) {
-      this.superlightBoss.intensity = 6.0 + Math.sin(time * 4) * 2.0 + this.phase * 2.0;
+      this.superlightBoss.intensity = 6.0 + Math.sin(time * 4) * 2.0 + this.phase * 2.5;
     }
 
-    // ── Superlaser beam attack (every 8s in phase 1, 5s in phase 2, 3s in phase 3) ──
-    const laserInterval = this.phase === 1 ? 8 : this.phase === 2 ? 5 : 3;
+    // ── Superlaser beam attack (every 8s in phase 1, 5s in phase 2, 3.2s in phase 3) ──
+    const laserInterval = this.phase === 1 ? 8 : this.phase === 2 ? 5 : 3.2;
     this.superlasertimer += dt;
     if (this.superlasertimer >= laserInterval && arrived && !this.superlaserfiring) {
       this.superlasertimer = 0;
@@ -453,7 +564,7 @@ export class MoonBase {
       this._fireSuperLaser();
     }
 
-    // Turret tracking
+    // 7. Turret tracking & firing
     if (arrived) {
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
@@ -486,10 +597,13 @@ export class MoonBase {
   _fireSuperLaser() {
     if (!this.laserBeamMat || !this.outerBeamMat) return;
     
-    // Trigger HUD warning & audio alarm for incoming superlaser beam
+    // Trigger HUD warning, audio alarm & ramping mobile haptics for incoming superlaser beam
     if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
       window.spaceGameManager.spaceHUD.showLockOnWarning(true, '⚠️ SUPERLASER TARGETING YOU! DODGE NOW!');
       if (window.spaceGameManager.spaceAudio) window.spaceGameManager.spaceAudio.playLockOnAlarm();
+    }
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 200, 50, 400]);
     }
 
     let alpha = 0;

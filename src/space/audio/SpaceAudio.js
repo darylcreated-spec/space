@@ -453,6 +453,25 @@ export class SpaceAudio {
     try { osc.start(now); osc.stop(now + 0.2); } catch(e){}
   }
 
+  playHeavyCannonSound() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(35, now + 0.35);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(e){} };
+    try { osc.start(now); osc.stop(now + 0.35); } catch(e){}
+  }
+
   vibrateSuperlaserCharge() {
     if ('vibrate' in navigator) {
       try {

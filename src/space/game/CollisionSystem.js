@@ -317,19 +317,54 @@ export class CollisionSystem {
           }
         }
 
-        // Carrier Capital Ship Laser Hit Check
+        // Carrier Capital Ship Laser Hit Check (Turrets, Hangar Bays, Missile Pods, Hull)
         if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
           const carrier = gameManager.carrierBoss;
           const carrierLocalPos = carrier.meshGroup.worldToLocal(lPos.clone());
-          // Exact Physical Hull Mesh Bounds (BoxGeometry 22 x 7 x 36)
-          if (Math.abs(carrierLocalPos.x) < 11.5 && Math.abs(carrierLocalPos.y) < 4.5 && Math.abs(carrierLocalPos.z) < 18.5) {
+          // Broad check within carrier bounding zone
+          if (Math.abs(carrierLocalPos.x) < 14.0 && Math.abs(carrierLocalPos.y) < 6.5 && Math.abs(carrierLocalPos.z) < 22.0) {
             this.particleManager.createExplosion(lPos, 0x00f3ff, 15);
             let dmg = laser.isCritical ? 75 : 25;
-            const dead = carrier.takeDamage(dmg);
-            if (dead) {
-              gameManager.addScore(carrier.scoreValue);
-              gameManager.addScrap(300);
+            let hitRegistered = false;
+
+            // 1. Check Turret Hits
+            if (carrier.turrets) {
+              for (const t of carrier.turrets) {
+                if (!t.isDead && t.mesh) {
+                  const tPos = t.mesh.getWorldPosition(this._tempVec1);
+                  if (lPos.distanceTo(tPos) < 3.2) {
+                    carrier.takeTurretDamage(t.id, dmg);
+                    hitRegistered = true;
+                    break;
+                  }
+                }
+              }
             }
+
+            // 2. Check Subsystem Hits (Hangars & Missile Pods)
+            if (!hitRegistered && carrier.subsystems) {
+              for (const sub of carrier.subsystems) {
+                if (!sub.isDead && sub.mesh) {
+                  const subPos = sub.mesh.getWorldPosition(this._tempVec1);
+                  const hitRadius = sub.id.includes('hangar') ? 4.2 : 3.0;
+                  if (lPos.distanceTo(subPos) < hitRadius) {
+                    carrier.takeSubsystemDamage(sub.id, dmg);
+                    hitRegistered = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            // 3. Fallback: Main Hull Damage
+            if (!hitRegistered) {
+              const dead = carrier.takeDamage(dmg);
+              if (dead) {
+                gameManager.addScore(carrier.scoreValue);
+                gameManager.addScrap(300);
+              }
+            }
+
             if (!gameManager.activePerks.has('piercing')) {
               laser.destroy();
               gameManager.lasers.splice(i, 1);
@@ -449,7 +484,28 @@ export class CollisionSystem {
 
         if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
           const carrier = gameManager.carrierBoss;
-          if (pulsePos.distanceTo(carrier.meshGroup.position) < pulse.aoeRadius + 10) {
+          if (pulsePos.distanceTo(carrier.meshGroup.position) < pulse.aoeRadius + 16) {
+            // Splash damage all nearby turrets and subsystems
+            if (carrier.turrets) {
+              carrier.turrets.forEach(t => {
+                if (!t.isDead && t.mesh) {
+                  const tPos = t.mesh.getWorldPosition(this._tempVec1);
+                  if (pulsePos.distanceTo(tPos) < pulse.aoeRadius + 6.0) {
+                    carrier.takeTurretDamage(t.id, 150);
+                  }
+                }
+              });
+            }
+            if (carrier.subsystems) {
+              carrier.subsystems.forEach(sub => {
+                if (!sub.isDead && sub.mesh) {
+                  const subPos = sub.mesh.getWorldPosition(this._tempVec1);
+                  if (pulsePos.distanceTo(subPos) < pulse.aoeRadius + 7.0) {
+                    carrier.takeSubsystemDamage(sub.id, 180);
+                  }
+                }
+              });
+            }
             carrier.takeDamage(300);
           }
         }

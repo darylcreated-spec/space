@@ -21,6 +21,10 @@ export class SpaceScene {
     this.targetCameraPos = new THREE.Vector3();
     this.targetLookAt = new THREE.Vector3();
     this.currentCamLookAt = new THREE.Vector3(0, -1, -15);
+    this.bossIntroTimer = 0;
+    this.killCamTimer = 0;
+    this.killCamDuration = 2.4;
+    this.killCamTarget = new THREE.Vector3();
     this.setCameraMode('isometric');
     this.camera.position.copy(this.targetCameraPos);
     this.camera.lookAt(this.targetLookAt);
@@ -361,6 +365,13 @@ export class SpaceScene {
     this.bossIntroTimer = 2.2;
   }
 
+  triggerKillCam(targetPos, duration = 2.4) {
+    this.killCamTimer = duration;
+    this.killCamDuration = duration;
+    if (targetPos) this.killCamTarget.copy(targetPos);
+    this.addScreenShake(1.2);
+  }
+
   setCameraMode(mode) {
     this.cameraMode = mode;
     if (mode === 'isometric') {
@@ -421,7 +432,20 @@ export class SpaceScene {
       this.bossIntroTimer -= dt;
     }
 
-    if (bossActive && pPos) {
+    if (this.killCamTimer > 0) {
+      this.killCamTimer -= dt;
+      // Cinematic Kill-Cam: Slow orbital sweep around the exploding boss wreck
+      const progress = Math.max(0, 1.0 - (this.killCamTimer / this.killCamDuration));
+      const orbitAngle = progress * Math.PI * 0.45;
+      const orbitDist = 26.0 - progress * 5.0;
+
+      this.targetCameraPos.set(
+        this.killCamTarget.x + Math.sin(orbitAngle) * orbitDist,
+        this.killCamTarget.y + 6.0 + Math.sin(progress * Math.PI) * 4.0,
+        this.killCamTarget.z + Math.cos(orbitAngle) * orbitDist + 8.0
+      );
+      this.targetLookAt.copy(this.killCamTarget);
+    } else if (bossActive && pPos) {
       const bPos = activeBoss.meshGroup.position;
 
       if (this.bossIntroTimer > 0) {
@@ -468,7 +492,7 @@ export class SpaceScene {
     }
 
     // Smooth camera position lerp
-    const lerpSpeed = bossActive ? 0.12 : 0.08;
+    const lerpSpeed = (this.killCamTimer > 0) ? 0.14 : (bossActive ? 0.12 : 0.08);
     this.camera.position.lerp(this.targetCameraPos, lerpSpeed);
 
     // Smooth lookAt target lerp
@@ -476,9 +500,12 @@ export class SpaceScene {
     this.camera.lookAt(this.currentCamLookAt);
 
     // Dynamic camera roll/tilt when banking during dogfights
-    if (this.cameraMode !== 'topdown') {
+    if (this.cameraMode !== 'topdown' && this.killCamTimer <= 0) {
       const targetRoll = -pVel.x * (bossActive ? 0.035 : 0.02);
       this.camera.rotation.z += (targetRoll - this.camera.rotation.z) * 0.12;
+    } else if (this.killCamTimer > 0) {
+      const progress = 1.0 - (this.killCamTimer / this.killCamDuration);
+      this.camera.rotation.z = Math.sin(progress * Math.PI) * 0.08;
     }
 
     // Screen Shake processing
