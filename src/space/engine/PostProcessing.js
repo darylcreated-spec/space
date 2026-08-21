@@ -23,13 +23,13 @@ export class PostProcessing {
       const renderPass = new RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
-      // UnrealBloomPass: Creates glowing radiant lasers, ion plumes, and explosive shockwaves
+      // UnrealBloomPass: Subtle, crisp glow ONLY for intense energy cores and explosions (zero blinding washout)
       const res = new THREE.Vector2(window.innerWidth, window.innerHeight);
       this.bloomPass = new UnrealBloomPass(
         res,
-        1.15, // Bloom strength
-        0.55, // Bloom radius
-        0.20  // Luminance threshold
+        0.45, // Subtle, crisp bloom strength
+        0.25, // Tight radius
+        0.85  // High luminance threshold so ship hulls, planet, and space remain crystal clear
       );
       this.composer.addPass(this.bloomPass);
 

@@ -68,7 +68,7 @@ export class PlayerShip {
       roughness: 0.0,
       metalness: 0.05,
       emissive: 0x00aaff,
-      emissiveIntensity: 1.2,
+      emissiveIntensity: 0.3,
     });
     const canopy = new THREE.Mesh(canopyGeo, this.canopyMat);
     canopy.position.set(0, 0.32, -0.3);
@@ -196,12 +196,12 @@ export class PlayerShip {
     this.meshGroup.add(this.cockpitHud);
 
     // ── 11. Engine Point Lights ──
-    this.engineLight = new THREE.PointLight(0x00aaff, 4.5, 14);
+    this.engineLight = new THREE.PointLight(0x00aaff, 1.2, 8);
     this.engineLight.position.set(0, 0, 2.5);
     this.meshGroup.add(this.engineLight);
 
     // ── 12. Nose glow light ──
-    this.noseLight = new THREE.PointLight(0x00f3ff, 1.5, 8);
+    this.noseLight = new THREE.PointLight(0x00f3ff, 0.4, 6);
     this.noseLight.position.set(0, 0, -2.5);
     this.meshGroup.add(this.noseLight);
 
@@ -462,7 +462,7 @@ export class PlayerShip {
     }
 
     // Engine light intensity
-    if (this.engineLight) this.engineLight.intensity = 4.0 + Math.sin(this._time * 12) * 0.8;
+    if (this.engineLight) this.engineLight.intensity = 1.2 + Math.sin(this._time * 12) * 0.25;
 
     // Engine trail particles
     this._thrusterTick++;

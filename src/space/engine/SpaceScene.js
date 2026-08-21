@@ -41,7 +41,7 @@ export class SpaceScene {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.5;
+    this.renderer.toneMappingExposure = 1.05;
 
     this.renderer.domElement.style.position = 'absolute';
     this.renderer.domElement.style.top = '0';
@@ -109,18 +109,18 @@ export class SpaceScene {
   }
 
   setupLighting() {
-    const ambient = new THREE.AmbientLight(0x4a6fa5, 2.5);
+    const ambient = new THREE.AmbientLight(0x1e2c44, 0.75);
     this.scene.add(ambient);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 3.5);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
     sunLight.position.set(30, 50, 40);
     this.scene.add(sunLight);
 
-    const cyanLight = new THREE.PointLight(0x00f3ff, 4.0, 100);
+    const cyanLight = new THREE.PointLight(0x00f3ff, 1.2, 80);
     cyanLight.position.set(-15, 20, 0);
     this.scene.add(cyanLight);
 
-    const magentaLight = new THREE.PointLight(0xff0077, 3.5, 100);
+    const magentaLight = new THREE.PointLight(0xff0077, 0.9, 80);
     magentaLight.position.set(15, 15, -30);
     this.scene.add(magentaLight);
   }
