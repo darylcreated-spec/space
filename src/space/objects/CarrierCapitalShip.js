@@ -1,6 +1,47 @@
 import * as THREE from 'three';
 import { HomingMissile } from './HomingMissile.js';
 
+function generateCarrierNormalMap() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'rgb(128, 128, 255)';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Armor Plate Seams
+  ctx.strokeStyle = 'rgb(80, 110, 255)';
+  ctx.lineWidth = 3;
+  for (let x = 0; x < 512; x += 32) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 512); ctx.stroke();
+  }
+  for (let y = 0; y < 512; y += 32) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(512, y); ctx.stroke();
+  }
+
+  // Heavy Bolt Studs
+  ctx.fillStyle = 'rgb(190, 190, 255)';
+  for (let x = 4; x < 512; x += 32) {
+    for (let y = 4; y < 512; y += 32) {
+      ctx.fillRect(x, y, 4, 4);
+    }
+  }
+
+  // Ventilation Louvers
+  ctx.fillStyle = 'rgb(60, 80, 220)';
+  for (let i = 0; i < 6; i++) {
+    const vx = 64 + i * 64;
+    for (let l = 0; l < 4; l++) {
+      ctx.fillRect(vx, 96 + l * 8, 36, 4);
+      ctx.fillRect(vx, 350 + l * 8, 36, 4);
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(4, 4);
+  return texture;
+}
+
 export class CarrierCapitalShip {
   constructor(scene, particleManager) {
     this.scene = scene;
@@ -53,18 +94,22 @@ export class CarrierCapitalShip {
     this.thrusterPositions = [];
     this.siegeCannons = [];
     this.reticleMeshes = [];
+    this.navStrobes = [];
 
     this._build();
     this.scene.add(this.meshGroup);
   }
 
   _build() {
+    const carrierNormal = generateCarrierNormalMap();
+
     // ── 1. Heavy Carrier Hull (Multi-Tier Armored Flight Superstructure) ──
     const hullGeo = new THREE.BoxGeometry(22.0, 6.5, 38.0);
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x0c1626,
-      roughness: 0.35,
-      metalness: 0.92,
+      color: 0x0f1828,
+      roughness: 0.28,
+      metalness: 0.94,
+      normalMap: carrierNormal,
       emissive: 0x000c1c,
       emissiveIntensity: 0.4
     });
@@ -73,7 +118,12 @@ export class CarrierCapitalShip {
 
     // Armored Lower Keel Citadel
     const keelGeo = new THREE.BoxGeometry(16.0, 4.0, 32.0);
-    const keelMat = new THREE.MeshStandardMaterial({ color: 0x080e1a, metalness: 0.95, roughness: 0.3 });
+    const keelMat = new THREE.MeshStandardMaterial({
+      color: 0x080e1a,
+      metalness: 0.96,
+      roughness: 0.25,
+      normalMap: carrierNormal
+    });
     const keel = new THREE.Mesh(keelGeo, keelMat);
     keel.position.set(0, -3.8, 0);
     this.meshGroup.add(keel);
@@ -95,10 +145,18 @@ export class CarrierCapitalShip {
     [-4.5, 4.5].forEach(x => {
       const trackGeo = new THREE.PlaneGeometry(1.2, 30.0);
       trackGeo.rotateX(-Math.PI / 2);
-      const trackMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, transparent: true, opacity: 0.45 });
+      const trackMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.65 });
       const track = new THREE.Mesh(trackGeo, trackMat);
       track.position.set(x, 3.32, 0);
       this.meshGroup.add(track);
+
+      // Hydraulic Angled Blast Deflector Shields (Behind Catapult Start)
+      const deflectorGeo = new THREE.BoxGeometry(2.4, 1.4, 0.4);
+      deflectorGeo.rotateX(Math.PI / 6);
+      const deflectorMat = new THREE.MeshStandardMaterial({ color: 0x223044, metalness: 0.9, roughness: 0.3 });
+      const deflector = new THREE.Mesh(deflectorGeo, deflectorMat);
+      deflector.position.set(x, 3.8, 14.5);
+      this.meshGroup.add(deflector);
     });
 
     // Animated Runway Guide Lights (Left & Right Flight Deck Edges)
@@ -113,9 +171,26 @@ export class CarrierCapitalShip {
       });
     }
 
+    // Navigation Strobes (Red Port / Green Starboard / White Mast)
+    [
+      { pos: new THREE.Vector3(-11.5, 3.5, -18.0), color: 0xff0044 },
+      { pos: new THREE.Vector3(11.5, 3.5, -18.0), color: 0x00ff66 },
+      { pos: new THREE.Vector3(-11.5, 3.5, 18.0), color: 0xff0044 },
+      { pos: new THREE.Vector3(11.5, 3.5, 18.0), color: 0x00ff66 },
+      { pos: new THREE.Vector3(6.5, 13.5, -6.0), color: 0xffffff }
+    ].forEach(st => {
+      const sMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.35, 8, 8),
+        new THREE.MeshBasicMaterial({ color: st.color })
+      );
+      sMesh.position.copy(st.pos);
+      this.meshGroup.add(sMesh);
+      this.navStrobes.push({ mesh: sMesh, color: st.color });
+    });
+
     // ── 2. Detailed Port & Starboard Hangar Bay Entrances ──
     const bayFrameGeo = new THREE.BoxGeometry(2.0, 3.6, 12.0);
-    const bayFrameMat = new THREE.MeshStandardMaterial({ color: 0x141e2e, metalness: 0.9, roughness: 0.25 });
+    const bayFrameMat = new THREE.MeshStandardMaterial({ color: 0x141e2e, metalness: 0.9, roughness: 0.25, normalMap: carrierNormal });
     const bayCavityGeo = new THREE.BoxGeometry(1.6, 2.8, 10.0);
     const bayCavityMat = new THREE.MeshBasicMaterial({ color: 0x040810 });
     const forcefieldGeo = new THREE.PlaneGeometry(10.0, 2.8);
@@ -171,7 +246,7 @@ export class CarrierCapitalShip {
 
     // ── 3. Targetable Missile Pod Batteries ──
     const podBaseGeo = new THREE.BoxGeometry(3.0, 2.0, 4.5);
-    const podBaseMat = new THREE.MeshStandardMaterial({ color: 0x182436, metalness: 0.9 });
+    const podBaseMat = new THREE.MeshStandardMaterial({ color: 0x182436, metalness: 0.9, normalMap: carrierNormal });
     const tubeGeo = new THREE.CylinderGeometry(0.3, 0.3, 2.0, 8);
     tubeGeo.rotateX(Math.PI / 2);
     const tubeMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
@@ -209,7 +284,7 @@ export class CarrierCapitalShip {
 
     // ── 4. Starboard Island Command Spire & Radar Radome ──
     const bridgeGeo = new THREE.BoxGeometry(5.5, 6.0, 9.0);
-    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x070d18, metalness: 0.95, roughness: 0.2 });
+    const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x070d18, metalness: 0.95, roughness: 0.2, normalMap: carrierNormal });
     const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
     bridge.position.set(6.5, 6.5, -6.0);
     this.meshGroup.add(bridge);
@@ -232,9 +307,10 @@ export class CarrierCapitalShip {
     this.radarDish.position.set(6.5, 12.0, -6.0);
     this.meshGroup.add(this.radarDish);
 
-    // ── 5. Quadruple Heavy Rear Ion Thrusters ──
+    // ── 5. Quadruple Heavy Rear Ion Thrusters with Shock Cones ──
     const engineMat = new THREE.MeshStandardMaterial({ color: 0x050812, metalness: 0.95 });
-    const engineGlowMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+    const engineGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const shockCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     [-7.5, -2.5, 2.5, 7.5].forEach(x => {
       const eGeo = new THREE.CylinderGeometry(1.8, 2.2, 4.5, 12);
       eGeo.rotateX(Math.PI / 2);
@@ -242,10 +318,17 @@ export class CarrierCapitalShip {
       e.position.set(x, 0, 19.0);
       this.meshGroup.add(e);
 
-      const flare = new THREE.Mesh(new THREE.ConeGeometry(1.5, 4.5, 12), engineGlowMat);
+      // Glowing Ion Afterburner Cone
+      const flare = new THREE.Mesh(new THREE.ConeGeometry(1.5, 5.0, 12), engineGlowMat);
       flare.rotation.x = -Math.PI / 2;
-      flare.position.set(0, 0, 2.4);
+      flare.position.set(0, 0, 2.6);
       e.add(flare);
+
+      // Inner Shock Diamond Core
+      const shock = new THREE.Mesh(new THREE.ConeGeometry(0.6, 2.8, 8), shockCoreMat);
+      shock.rotation.x = -Math.PI / 2;
+      shock.position.set(0, 0, 1.4);
+      e.add(shock);
 
       this.thrusterPositions.push(new THREE.Vector3(x, 0, 21.0));
     });
@@ -538,6 +621,14 @@ export class CarrierCapitalShip {
     this.reticleMeshes.forEach(r => {
       if (r && r.visible) {
         r.rotation.z += 1.8 * dt;
+      }
+    });
+
+    // Blink navigation strobes (Red / Green / White)
+    const strobeOn = (Math.floor(this._time * 3.5) % 2 === 0);
+    this.navStrobes.forEach(st => {
+      if (st.mesh && st.mesh.material) {
+        st.mesh.material.color.setHex(strobeOn ? st.color : 0x050505);
       }
     });
 

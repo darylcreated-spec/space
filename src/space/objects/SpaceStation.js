@@ -156,7 +156,7 @@ export class MoonBase {
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 3. Geodesic Bio-Dome Habitation Colonies (Surface Domes) ──
+    // ── 3. Geodesic Bio-Dome Habitation Colonies with Internal Glowing Spire Cities ──
     const domePositions = [
       new THREE.Vector3(-10, 14, 11),
       new THREE.Vector3(10, 14, 11),
@@ -164,19 +164,63 @@ export class MoonBase {
       new THREE.Vector3(8, -14, 13)
     ];
     domePositions.forEach(dPos => {
-      const dGeo = new THREE.SphereGeometry(2.8, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.5);
+      const domeGroup = new THREE.Group();
+      domeGroup.position.copy(dPos);
+      domeGroup.lookAt(dPos.clone().multiplyScalar(2));
+
+      // Outer Crystalline Protective Dome
+      const dGeo = new THREE.SphereGeometry(3.2, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
       const dMat = new THREE.MeshStandardMaterial({
         color: 0x002844,
         emissive: 0x00f3ff,
-        emissiveIntensity: 0.6,
-        roughness: 0.2,
-        metalness: 0.9,
-        wireframe: true
+        emissiveIntensity: 0.25,
+        roughness: 0.1,
+        metalness: 0.95,
+        transparent: true,
+        opacity: 0.55
       });
       const dome = new THREE.Mesh(dGeo, dMat);
-      dome.position.copy(dPos);
-      dome.lookAt(dPos.clone().multiplyScalar(2));
-      this.meshGroup.add(dome);
+      domeGroup.add(dome);
+
+      // Inner Geodesic Structural Lattice
+      const wireMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true });
+      const wireDome = new THREE.Mesh(dGeo, wireMat);
+      domeGroup.add(wireDome);
+
+      // Interior Glowing Miniature Megacity Spires
+      const cityPillars = [
+        { x: -0.8, y: 0.8, h: 2.2, col: 0x00f3ff },
+        { x: 0.8, y: 0.8, h: 2.5, col: 0x00ff88 },
+        { x: -0.6, y: -0.6, h: 1.8, col: 0xffea00 },
+        { x: 0.6, y: -0.6, h: 2.0, col: 0x00f3ff },
+        { x: 0.0, y: 0.0, h: 2.8, col: 0xffffff }
+      ];
+      cityPillars.forEach(cp => {
+        const pGeo = new THREE.BoxGeometry(0.4, 0.4, cp.h);
+        const pMat = new THREE.MeshBasicMaterial({ color: cp.col });
+        const p = new THREE.Mesh(pGeo, pMat);
+        p.position.set(cp.x, cp.y, cp.h * 0.5);
+        domeGroup.add(p);
+      });
+
+      this.meshGroup.add(domeGroup);
+    });
+
+    // ── 3B. 3D Procedural Lunar Craters on Surface ──
+    const craterCoords = [
+      new THREE.Vector3(-14, 2, 16),
+      new THREE.Vector3(12, -4, 17),
+      new THREE.Vector3(-6, -16, 12),
+      new THREE.Vector3(14, 12, 10),
+      new THREE.Vector3(-16, -10, 10)
+    ];
+    craterCoords.forEach((cPos, idx) => {
+      const cGeo = new THREE.TorusGeometry(1.8 + (idx % 3) * 0.6, 0.45, 8, 20);
+      const cMat = new THREE.MeshStandardMaterial({ color: 0x0a101a, roughness: 0.85, metalness: 0.8 });
+      const crater = new THREE.Mesh(cGeo, cMat);
+      crater.position.copy(cPos);
+      crater.lookAt(cPos.clone().multiplyScalar(2));
+      this.meshGroup.add(crater);
     });
 
     // ── 4. Equatorial Industrial Trench & Power Conduit ──
@@ -195,6 +239,16 @@ export class MoonBase {
     });
     this.shaderMaterials.push(this.conduitMat);
     this.meshGroup.add(new THREE.Mesh(conduitGeo, this.conduitMat));
+
+    // Orbiting Superconducting Mag-Lev Energy Nodes
+    this.magLevNodes = [];
+    for (let i = 0; i < 6; i++) {
+      const nodeGeo = new THREE.SphereGeometry(0.75, 12, 12);
+      const nodeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const node = new THREE.Mesh(nodeGeo, nodeMat);
+      this.meshGroup.add(node);
+      this.magLevNodes.push({ mesh: node, baseAngle: (i / 6) * Math.PI * 2, radius: R + 1.2 });
+    }
 
     // ── 5. Northern Superlaser Megastructure Cannon ──
     const dishGroup = new THREE.Group();
@@ -663,6 +717,18 @@ export class MoonBase {
     if (this.generators) {
       this.generators.forEach(gen => {
         if (gen.coil && !gen.isDead) gen.coil.rotation.z += 3.2 * dt;
+      });
+    }
+
+    // Orbiting Mag-Lev Energy Nodes Animation
+    if (this.magLevNodes) {
+      this.magLevNodes.forEach(node => {
+        const curAng = node.baseAngle + time * 1.6;
+        node.mesh.position.set(
+          Math.cos(curAng) * node.radius,
+          Math.sin(curAng) * node.radius,
+          0
+        );
       });
     }
 
