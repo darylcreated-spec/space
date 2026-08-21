@@ -166,22 +166,46 @@ export class PlayerShip {
     this.flameR_outer.position.set(0, 0, 0.5);
     this.engineRight.add(this.flameR_outer);
 
-    this.flameL_outer = new THREE.Mesh(new THREE.ConeGeometry(0.44, 1.0, 10), this.flameOuterMat);
-    this.flameL_outer.rotation.x = -Math.PI / 2;
-    this.flameL_outer.position.set(0, 0, 0.5);
-    this.engineLeft.add(this.flameL_outer);
+    // ── 8. Cant-Angled Vertical Stabilizers / Tail Fins ──
+    const finGeo = new THREE.BoxGeometry(0.08, 0.95, 1.4);
+    const finMat = new THREE.MeshStandardMaterial({ color: 0x0c1626, metalness: 0.9, roughness: 0.2 });
+    const finR = new THREE.Mesh(finGeo, finMat);
+    finR.position.set(0.72, 0.45, 1.3);
+    finR.rotation.z = -0.25;
+    this.meshGroup.add(finR);
 
-    // ── 8. Engine Point Lights — illuminate the ship from behind ──
+    const finL = new THREE.Mesh(finGeo, finMat);
+    finL.position.set(-0.72, 0.45, 1.3);
+    finL.rotation.z = 0.25;
+    this.meshGroup.add(finL);
+
+    // ── 9. Wingtip Navigation Strobe Beacons (Green Starboard / Red Port) ──
+    this.strobeR = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ff44 }));
+    this.strobeR.position.set(3.4, 0.05, -1.6);
+    this.meshGroup.add(this.strobeR);
+
+    this.strobeL = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0044 }));
+    this.strobeL.position.set(-3.4, 0.05, -1.6);
+    this.meshGroup.add(this.strobeL);
+
+    // ── 10. Internal Cockpit Pilot Holographic Reticle ──
+    const hudReticleGeo = new THREE.RingGeometry(0.10, 0.13, 16);
+    const hudReticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide });
+    this.cockpitHud = new THREE.Mesh(hudReticleGeo, hudReticleMat);
+    this.cockpitHud.position.set(0, 0.35, -0.65);
+    this.meshGroup.add(this.cockpitHud);
+
+    // ── 11. Engine Point Lights ──
     this.engineLight = new THREE.PointLight(0x00aaff, 4.5, 14);
     this.engineLight.position.set(0, 0, 2.5);
     this.meshGroup.add(this.engineLight);
 
-    // ── 9. Nose glow light ──
+    // ── 12. Nose glow light ──
     this.noseLight = new THREE.PointLight(0x00f3ff, 1.5, 8);
     this.noseLight.position.set(0, 0, -2.5);
     this.meshGroup.add(this.noseLight);
 
-    // ── 10. Shield Icosahedron ──
+    // ── 13. Shield Icosahedron ──
     const shieldGeo = new THREE.IcosahedronGeometry(3.2, 2);
     this.shieldMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
@@ -425,6 +449,17 @@ export class PlayerShip {
     if (this.flameL_inner) this.flameL_inner.scale.setScalar(flicker * thrustBoost);
     if (this.flameR_outer) this.flameR_outer.scale.setScalar(flicker * 0.9 * thrustBoost);
     if (this.flameL_outer) this.flameL_outer.scale.setScalar(flicker * 0.9 * thrustBoost);
+
+    // Strobe lights pulsing
+    if (this.strobeR && this.strobeL) {
+      const flash = Math.sin(this._time * 12.0) > 0.2;
+      this.strobeR.visible = flash;
+      this.strobeL.visible = !flash;
+    }
+
+    if (this.cockpitHud) {
+      this.cockpitHud.rotation.z += 1.6 * dt;
+    }
 
     // Engine light intensity
     if (this.engineLight) this.engineLight.intensity = 4.0 + Math.sin(this._time * 12) * 0.8;

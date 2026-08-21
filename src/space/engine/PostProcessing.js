@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 export class PostProcessing {
   constructor(renderer, scene, camera) {
@@ -9,39 +10,31 @@ export class PostProcessing {
     this.scene = scene;
     this.camera = camera;
 
-    // Detect mobile device (phones, tablets, touch devices)
-    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 1024 || ('ontouchstart' in window && window.innerWidth < 1024);
-
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    // NEVER enable bloom on mobile devices by default — UnrealBloomPass causes black canvas on mobile WebGL GPUs
-    const useBloom = !this.isMobile && (savedQuality ? savedQuality === 'high' : true);
+    this.quality = savedQuality || 'high';
 
-    if (useBloom) {
-      this._initComposer();
-    } else {
-      this.composer = null;
-    }
-
+    this._initComposer();
     window.addEventListener('resize', this.onResize.bind(this));
   }
 
   _initComposer() {
-    if (this.isMobile) {
-      this.composer = null;
-      return;
-    }
     try {
       this.composer = new EffectComposer(this.renderer);
       const renderPass = new RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
+      // UnrealBloomPass: Creates glowing radiant lasers, ion plumes, and explosive shockwaves
+      const res = new THREE.Vector2(window.innerWidth, window.innerHeight);
       this.bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(window.innerWidth, window.innerHeight),
-        0.7,  // bloom strength
-        0.4,  // radius
-        0.05  // threshold
+        res,
+        1.15, // Bloom strength
+        0.55, // Bloom radius
+        0.20  // Luminance threshold
       );
       this.composer.addPass(this.bloomPass);
+
+      const outputPass = new OutputPass();
+      this.composer.addPass(outputPass);
     } catch (e) {
       console.warn('EffectComposer init fallback to direct WebGL render:', e);
       this.composer = null;
@@ -49,7 +42,8 @@ export class PostProcessing {
   }
 
   setGraphicsQuality(level) {
-    if (level === 'low' || this.isMobile) {
+    this.quality = level;
+    if (level === 'low') {
       this.composer = null;
     } else {
       if (!this.composer) {
@@ -61,11 +55,14 @@ export class PostProcessing {
   onResize() {
     if (this.composer) {
       this.composer.setSize(window.innerWidth, window.innerHeight);
+      if (this.bloomPass) {
+        this.bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+      }
     }
   }
 
   render() {
-    if (this.composer && !this.isMobile) {
+    if (this.composer && this.quality !== 'low') {
       try {
         this.composer.render();
       } catch (e) {

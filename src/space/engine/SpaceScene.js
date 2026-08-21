@@ -201,49 +201,97 @@ export class SpaceScene {
 
   createProceduralPlanetTexture() {
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
+    canvas.width = 1024;
+    canvas.height = 512;
     const ctx = canvas.getContext('2d');
 
-    // Deep Ocean Surface
-    const gradient = ctx.createLinearGradient(0, 0, 0, 256);
-    gradient.addColorStop(0, '#0d2b52');
-    gradient.addColorStop(0.5, '#165296');
-    gradient.addColorStop(1, '#0d2b52');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 512, 256);
+    // 1. Deep Ocean Surface with Bi-directional Continental Shelves
+    const oceanGrad = ctx.createLinearGradient(0, 0, 0, 512);
+    oceanGrad.addColorStop(0.0, '#040d1a');
+    oceanGrad.addColorStop(0.2, '#0a2244');
+    oceanGrad.addColorStop(0.5, '#0e3a70');
+    oceanGrad.addColorStop(0.8, '#0a2244');
+    oceanGrad.addColorStop(1.0, '#040d1a');
+    ctx.fillStyle = oceanGrad;
+    ctx.fillRect(0, 0, 1024, 512);
 
-    // Green/Brown Landmass Continents
-    ctx.fillStyle = '#248f52';
-    const drawContinent = (x, y, r) => {
+    // Coastal Shallow Waters
+    ctx.fillStyle = 'rgba(0, 200, 255, 0.25)';
+    const continents = [
+      { x: 240, y: 180, r: 120 },
+      { x: 310, y: 240, r: 90 },
+      { x: 680, y: 280, r: 140 },
+      { x: 760, y: 230, r: 110 },
+      { x: 880, y: 170, r: 85 },
+      { x: 120, y: 340, r: 80 },
+      { x: 520, y: 150, r: 95 }
+    ];
+    continents.forEach(c => {
       ctx.beginPath();
-      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.arc(c.x, c.y, c.r * 1.25, 0, Math.PI * 2);
       ctx.fill();
-    };
-    drawContinent(120, 90, 48);
-    drawContinent(155, 115, 38);
-    drawContinent(320, 140, 52);
-    drawContinent(355, 120, 42);
-    drawContinent(420, 80, 32);
+    });
 
-    // Highlands & Mountains
-    ctx.fillStyle = '#3eb56f';
-    drawContinent(125, 95, 28);
-    drawContinent(325, 145, 32);
+    // 2. High-Definition Landmass Continents with Fractal Coastlines
+    ctx.fillStyle = '#1e7a48';
+    continents.forEach(c => {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.fill();
+      // Sub-islands and peninsulas
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        const dist = c.r * (0.7 + Math.sin(i * 3.5) * 0.35);
+        ctx.beginPath();
+        ctx.arc(c.x + Math.cos(ang) * dist, c.y + Math.sin(ang) * dist, c.r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    });
 
-    // Swirling Cloud Atmosphere Layers
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.beginPath();
-    ctx.ellipse(200, 70, 90, 12, Math.PI / 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(380, 180, 110, 14, -Math.PI / 10, 0, Math.PI * 2);
-    ctx.fill();
+    // 3. Mountain Ranges & High Elevation Ridges
+    ctx.fillStyle = '#6b9c56';
+    continents.forEach(c => {
+      ctx.beginPath();
+      ctx.arc(c.x + 10, c.y - 10, c.r * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = '#c49a6c';
+    continents.forEach(c => {
+      ctx.beginPath();
+      ctx.arc(c.x + 15, c.y - 12, c.r * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
-    // Polar Ice Caps
-    ctx.fillStyle = '#edf6ff';
-    ctx.fillRect(0, 0, 512, 18);
-    ctx.fillRect(0, 238, 512, 18);
+    // 4. Glowing Night-Side Urban Megacity Matrices (Gold/Cyan)
+    ctx.fillStyle = 'rgba(255, 230, 100, 0.75)';
+    for (let n = 0; n < 400; n++) {
+      const rx = Math.random() * 1024;
+      const ry = Math.random() * 512;
+      ctx.fillRect(rx, ry, Math.random() > 0.8 ? 2 : 1, Math.random() > 0.8 ? 2 : 1);
+    }
+
+    // 5. Swirling Dynamic Storm Cloud Belts & Fronts
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+    for (let cl = 0; cl < 12; cl++) {
+      const cx = (cl * 90) % 1024;
+      const cy = 100 + Math.sin(cl * 1.5) * 160;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 140, 24, Math.sin(cl) * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 6. Polar Glaciers & Ice Caps
+    const iceGrad = ctx.createLinearGradient(0, 0, 0, 45);
+    iceGrad.addColorStop(0, '#ffffff');
+    iceGrad.addColorStop(1, 'rgba(230, 245, 255, 0.0)');
+    ctx.fillStyle = iceGrad;
+    ctx.fillRect(0, 0, 1024, 45);
+
+    const southIceGrad = ctx.createLinearGradient(0, 512, 0, 467);
+    southIceGrad.addColorStop(0, '#ffffff');
+    southIceGrad.addColorStop(1, 'rgba(230, 245, 255, 0.0)');
+    ctx.fillStyle = southIceGrad;
+    ctx.fillRect(0, 467, 1024, 45);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
@@ -252,23 +300,25 @@ export class SpaceScene {
   }
 
   buildTargetPlanet() {
-    const planetGeo = new THREE.SphereGeometry(32, 32, 32);
+    const planetGeo = new THREE.SphereGeometry(32, 48, 48);
     const planetTex = this.createProceduralPlanetTexture();
-    const planetMat = new THREE.MeshPhongMaterial({
+    const planetMat = new THREE.MeshStandardMaterial({
       map: planetTex,
       color: 0xffffff,
-      emissive: 0x051833,
-      specular: 0x00f3ff,
-      shininess: 30
+      roughness: 0.45,
+      metalness: 0.15,
+      emissive: 0x041224,
+      emissiveIntensity: 0.3
     });
     this.targetPlanet = new THREE.Mesh(planetGeo, planetMat);
     this.targetPlanet.position.set(50, 30, -320);
 
-    const atmosGeo = new THREE.SphereGeometry(34, 32, 32);
+    // Glowing Atmospheric Rim Halo
+    const atmosGeo = new THREE.SphereGeometry(34.5, 48, 48);
     const atmosMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.35,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending
     });
