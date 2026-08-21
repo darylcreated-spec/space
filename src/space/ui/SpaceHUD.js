@@ -435,7 +435,7 @@ export class SpaceHUD {
     }
   }
 
-  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 4.5) {
+  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 2.2) {
     if (!this.commsBox) {
       this.commsBox = document.getElementById('space-comms-box');
       this.commsSender = document.getElementById('comms-sender');
@@ -461,9 +461,14 @@ export class SpaceHUD {
     }
     if (!this.lockonBox) return;
 
+    if (this.lockonTimer) clearTimeout(this.lockonTimer);
+
     if (active) {
       if (this.lockonTitle) this.lockonTitle.textContent = text;
       this.lockonBox.classList.remove('hidden');
+      this.lockonTimer = setTimeout(() => {
+        if (this.lockonBox) this.lockonBox.classList.add('hidden');
+      }, 2500);
     } else {
       this.lockonBox.classList.add('hidden');
     }
@@ -543,9 +548,10 @@ export class SpaceHUD {
         if (this.achDesc) this.achDesc.textContent = ach.desc || '';
 
         this.toastElem.classList.remove('hidden');
-        setTimeout(() => {
+        if (this.toastTimer) clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => {
           if (this.toastElem) this.toastElem.classList.add('hidden');
-        }, 4000);
+        }, 2200);
       }
     } catch (err) {
       console.error("Error in showAchievementToast:", err);
@@ -564,15 +570,16 @@ export class SpaceHUD {
     }
   }
 
-  showWaveBanner(waveNum, subtitle) {
+  showWaveBanner(waveNum, subtitle, duration = 2.0) {
     if (this.waveBanner) {
       this.waveTitle.textContent = typeof waveNum === 'number' ? `WAVE ${waveNum}` : waveNum;
       this.waveSubtitle.textContent = subtitle;
       this.waveBanner.classList.remove('hidden');
 
-      this.waveBanner.style.animation = 'none';
-      this.waveBanner.offsetHeight;
-      this.waveBanner.style.animation = 'bannerFade 3s ease forwards';
+      if (this.waveBannerTimer) clearTimeout(this.waveBannerTimer);
+      this.waveBannerTimer = setTimeout(() => {
+        if (this.waveBanner) this.waveBanner.classList.add('hidden');
+      }, duration * 1000);
     }
   }
 
