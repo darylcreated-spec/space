@@ -4,19 +4,25 @@ export class ParticleManager {
   constructor(scene) {
     this.scene = scene;
     this.shockwaves = [];
+    this.sonicDiscs = [];
+    this.lightningArcs = [];
 
-    // 1. PRE-ALLOCATE Reusable Engine Thruster Particle Pool (150 particles)
-    this.enginePool = this._buildParticlePool(150, 0.4);
+    // 1. Reusable Engine Thruster Particle Pool (200 particles)
+    this.enginePool = this._buildParticlePool(200, 0.45);
     this.engineIndex = 0;
 
-    // 2. PRE-ALLOCATE Reusable Explosion Particle Pool (400 particles)
-    this.explosionPool = this._buildParticlePool(400, 0.6);
+    // 2. Reusable Explosion Particle Pool (400 particles)
+    this.explosionPool = this._buildParticlePool(400, 0.65);
     this.explosionIndex = 0;
-    // Cached Color object for explosion pool assignment
+
+    // 3. Reusable RCS Micro-Jet Pool (120 particles)
+    this.rcsPool = this._buildParticlePool(120, 0.28);
+    this.rcsIndex = 0;
+
     this._tempColor = new THREE.Color();
 
     // Shared Geometry and Material for EMP Shockwaves
-    this._shockwaveGeo = new THREE.RingGeometry(0.1, 0.5, 20);
+    this._shockwaveGeo = new THREE.RingGeometry(0.1, 0.5, 24);
     this._shockwaveMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       side: THREE.DoubleSide,
@@ -25,11 +31,14 @@ export class ParticleManager {
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
+
+    // Sonic Boom Disc Geometry
+    this._sonicDiscGeo = new THREE.RingGeometry(0.5, 1.8, 32);
   }
 
   _buildParticlePool(count, defaultSize) {
     const geo = new THREE.BufferGeometry();
-    const positions = new Float32Array(count * 3).fill(9999); // Hide offscreen
+    const positions = new Float32Array(count * 3).fill(9999);
     const colors = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
@@ -45,7 +54,7 @@ export class ParticleManager {
       size: defaultSize,
       vertexColors: true,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -66,29 +75,54 @@ export class ParticleManager {
     };
   }
 
-  spawnEngineParticle(pos, _colorHex = 0x00f3ff) {
+  spawnEngineParticle(pos, colorHex = 0x00f3ff) {
     const pool = this.enginePool;
     const idx = this.engineIndex % pool.count;
     this.engineIndex++;
 
-    pool.positions[idx * 3] = pos.x + (Math.random() - 0.5) * 0.4;
-    pool.positions[idx * 3 + 1] = pos.y + (Math.random() - 0.5) * 0.4;
+    pool.positions[idx * 3] = pos.x + (Math.random() - 0.5) * 0.3;
+    pool.positions[idx * 3 + 1] = pos.y + (Math.random() - 0.5) * 0.3;
     pool.positions[idx * 3 + 2] = pos.z;
 
-    pool.colors[idx * 3] = 0.0;
-    pool.colors[idx * 3 + 1] = 0.95;
-    pool.colors[idx * 3 + 2] = 1.0;
+    this._tempColor.setHex(colorHex);
+    pool.colors[idx * 3] = this._tempColor.r;
+    pool.colors[idx * 3 + 1] = this._tempColor.g;
+    pool.colors[idx * 3 + 2] = this._tempColor.b;
 
-    pool.velX[idx] = (Math.random() - 0.5) * 0.05;
-    pool.velY[idx] = (Math.random() - 0.5) * 0.05;
-    pool.velZ[idx] = 0.25 + Math.random() * 0.3;
+    pool.velX[idx] = (Math.random() - 0.5) * 0.08;
+    pool.velY[idx] = (Math.random() - 0.5) * 0.08;
+    pool.velZ[idx] = 0.35 + Math.random() * 0.35;
     pool.lives[idx] = 1.0;
-    pool.decays[idx] = 0.07;
+    pool.decays[idx] = 0.06;
+  }
+
+  spawnRcsJet(pos, dir, colorHex = 0x00f3ff) {
+    const pool = this.rcsPool;
+    for (let i = 0; i < 3; i++) {
+      const idx = this.rcsIndex % pool.count;
+      this.rcsIndex++;
+
+      pool.positions[idx * 3] = pos.x;
+      pool.positions[idx * 3 + 1] = pos.y;
+      pool.positions[idx * 3 + 2] = pos.z;
+
+      this._tempColor.setHex(colorHex);
+      pool.colors[idx * 3] = this._tempColor.r;
+      pool.colors[idx * 3 + 1] = this._tempColor.g;
+      pool.colors[idx * 3 + 2] = this._tempColor.b;
+
+      const spread = 0.15;
+      pool.velX[idx] = (dir.x + (Math.random() - 0.5) * spread) * 0.8;
+      pool.velY[idx] = (dir.y + (Math.random() - 0.5) * spread) * 0.8;
+      pool.velZ[idx] = (dir.z + (Math.random() - 0.5) * spread) * 0.8;
+      pool.lives[idx] = 1.0;
+      pool.decays[idx] = 0.12; // Fast puff dissipation
+    }
   }
 
   createExplosion(pos, colorHex = 0xff0077, count = 20, scale = 1.0) {
     const pool = this.explosionPool;
-    const safeCount = Math.min(count, 15);
+    const safeCount = Math.min(count, 22);
 
     this._tempColor.setHex(colorHex);
 
@@ -106,7 +140,7 @@ export class ParticleManager {
 
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.random() * Math.PI;
-      const speed = (0.3 + Math.random() * 0.7) * scale * 0.6;
+      const speed = (0.35 + Math.random() * 0.75) * scale * 0.65;
 
       pool.velX[idx] = Math.sin(phi) * Math.cos(theta) * speed;
       pool.velY[idx] = Math.cos(phi) * speed;
@@ -115,6 +149,22 @@ export class ParticleManager {
       pool.lives[idx] = 1.0;
       pool.decays[idx] = 0.04 + Math.random() * 0.03;
     }
+  }
+
+  spawnSonicBoomDisc(pos, colorHex = 0x00f3ff) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const disc = new THREE.Mesh(this._sonicDiscGeo, mat);
+    disc.position.copy(pos);
+    this.scene.add(disc);
+
+    this.sonicDiscs.push({ mesh: disc, scale: 0.6, maxScale: 8.5, speed: 18.0 });
   }
 
   createEmpShockwave(pos, maxRadius = 25) {
@@ -127,13 +177,11 @@ export class ParticleManager {
   }
 
   update() {
-    // 1. Update Engine Thruster Particle Pool
     this._updatePool(this.enginePool);
-
-    // 2. Update Explosion Particle Pool
     this._updatePool(this.explosionPool);
+    this._updatePool(this.rcsPool);
 
-    // 3. Update EMP Shockwaves
+    // Update EMP Shockwaves
     for (let i = this.shockwaves.length - 1; i >= 0; i--) {
       const sw = this.shockwaves[i];
       sw.currentRadius += sw.speed;
@@ -149,6 +197,23 @@ export class ParticleManager {
       sw.mesh.scale.set(sw.currentRadius, sw.currentRadius, 1);
       sw.mesh.material.opacity = 1.0 - progress;
     }
+
+    // Update Sonic Boom Discs
+    for (let i = this.sonicDiscs.length - 1; i >= 0; i--) {
+      const sd = this.sonicDiscs[i];
+      sd.scale += sd.speed * 0.016;
+
+      if (sd.scale >= sd.maxScale) {
+        this.scene.remove(sd.mesh);
+        if (sd.mesh.material) sd.mesh.material.dispose();
+        this.sonicDiscs.splice(i, 1);
+        continue;
+      }
+
+      const prog = sd.scale / sd.maxScale;
+      sd.mesh.scale.set(sd.scale, sd.scale, 1);
+      sd.mesh.material.opacity = Math.max(0, 0.85 * (1.0 - prog));
+    }
   }
 
   _updatePool(pool) {
@@ -161,16 +226,18 @@ export class ParticleManager {
         pool.positions[i * 3] = 9999;
         pool.positions[i * 3 + 1] = 9999;
         pool.positions[i * 3 + 2] = 9999;
+        dirty = true;
       } else {
         pool.positions[i * 3] += pool.velX[i];
         pool.positions[i * 3 + 1] += pool.velY[i];
         pool.positions[i * 3 + 2] += pool.velZ[i];
+        dirty = true;
       }
-      dirty = true;
     }
 
     if (dirty) {
       pool.points.geometry.attributes.position.needsUpdate = true;
+      pool.points.geometry.attributes.color.needsUpdate = true;
     }
   }
 }

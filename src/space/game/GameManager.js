@@ -418,6 +418,7 @@ export class GameManager {
     if (shipClass === 'DREADNOUGHT') {
       projectileType = 'FLAK';
       color = 0xff3300;
+      this.playerShip.triggerBarrelRecoil();
       this.spaceScene.addScreenShake(0.35);
     } else if (shipClass === 'TACTICIAN') {
       projectileType = 'HOMING';
@@ -510,6 +511,10 @@ export class GameManager {
       this.playerShip.isBoosting = !this.playerShip.isBoosting;
       if (this.playerShip.isBoosting) {
         this.spaceScene.addScreenShake(0.8);
+        if (this.particleManager) {
+          const boomColor = this.playerShip.shipClass === 'REAPER' ? 0xaa00ff : (this.playerShip.shipClass === 'DREADNOUGHT' ? 0xff0044 : (this.playerShip.shipClass === 'TACTICIAN' ? 0x00ff88 : 0x00f3ff));
+          this.particleManager.spawnSonicBoomDisc(this.playerShip.meshGroup.position, boomColor);
+        }
         if (navigator.vibrate) navigator.vibrate(80);
       }
     }

@@ -1,5 +1,69 @@
 import * as THREE from 'three';
 
+// ── Procedural PBR Hull Texture Generator ──
+let cachedHullTexture = null;
+function getProceduralHullTexture() {
+  if (!cachedHullTexture) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Dark titanium base
+    ctx.fillStyle = '#101726';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Carbon weave micro-pattern
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+    for (let x = 0; x < 512; x += 8) {
+      for (let y = 0; y < 512; y += 8) {
+        if ((x + y) % 16 === 0) {
+          ctx.fillRect(x, y, 4, 4);
+        }
+      }
+    }
+
+    // Panel lines
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(32, 32, 216, 216);
+    ctx.strokeRect(264, 32, 216, 216);
+    ctx.strokeRect(32, 264, 216, 216);
+    ctx.strokeRect(264, 264, 216, 216);
+
+    // Panel edge highlights
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(34, 34, 212, 212);
+    ctx.strokeRect(266, 34, 212, 212);
+    ctx.strokeRect(34, 266, 212, 212);
+    ctx.strokeRect(266, 266, 212, 212);
+
+    // Rivet dots
+    ctx.fillStyle = 'rgba(200, 220, 255, 0.4)';
+    const drawRivets = (rx, ry, rw, rh) => {
+      for (let i = rx + 8; i < rx + rw; i += 24) {
+        ctx.beginPath(); ctx.arc(i, ry + 4, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(i, ry + rh - 4, 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+      for (let j = ry + 8; j < ry + rh; j += 24) {
+        ctx.beginPath(); ctx.arc(rx + 4, j, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(rx + rw - 4, j, 1.5, 0, Math.PI * 2); ctx.fill();
+      }
+    };
+    drawRivets(32, 32, 216, 216);
+    drawRivets(264, 32, 216, 216);
+    drawRivets(32, 264, 216, 216);
+    drawRivets(264, 264, 216, 216);
+
+    cachedHullTexture = new THREE.CanvasTexture(canvas);
+    cachedHullTexture.wrapS = THREE.RepeatWrapping;
+    cachedHullTexture.wrapT = THREE.RepeatWrapping;
+    cachedHullTexture.repeat.set(2, 2);
+  }
+  return cachedHullTexture;
+}
+
 export class PlayerShip {
   constructor(scene, particleManager) {
     this.scene = scene;
@@ -21,6 +85,7 @@ export class PlayerShip {
     this.currentRoll = 0;
     this.targetPitch = 0;
     this.currentPitch = 0;
+    this.prevInput = { x: 0, y: 0 };
 
     this.bounds = { minX: -14.0, maxX: 14.0, minY: -7.0, maxY: 8.0 };
 
@@ -50,11 +115,28 @@ export class PlayerShip {
     // Premium Add-On Feature
     this.hasMiningAddon = false;
 
-    // Archetype Specifics
+    // Mechanical Articulation & Visual FX Arrays
     this.flameMeshes = [];
+    this.shockDiamonds = [];
     this.muzzleOffsets = [];
     this.wingtipOffsets = [];
     this.engineTrailOffsets = [];
+    this.rcsPorts = [];
+
+    // Articulated Sub-Meshes
+    this.canardL = null;
+    this.canardR = null;
+    this.aileronL = null;
+    this.aileronR = null;
+    this.flakBarrels = [];
+    this.flakRecoil = 0;
+    this.coolingFlaps = [];
+    this.moltenHeat = 0;
+    this.tacticianGimbalInner = null;
+    this.tacticianGimbalOuter = null;
+    this.reaperWingL = null;
+    this.reaperWingR = null;
+    this.reaperWingSweep = 0;
 
     this.rebuildShipMesh(this.shipClass);
     this.meshGroup.position.set(0, 0, 0);
@@ -66,27 +148,76 @@ export class PlayerShip {
       this.meshGroup.remove(this.meshGroup.children[0]);
     }
     this.flameMeshes = [];
+    this.shockDiamonds = [];
     this.muzzleOffsets = [];
     this.wingtipOffsets = [];
     this.engineTrailOffsets = [];
+    this.rcsPorts = [];
+    this.canardL = null;
+    this.canardR = null;
+    this.aileronL = null;
+    this.aileronR = null;
+    this.flakBarrels = [];
+    this.coolingFlaps = [];
+    this.tacticianGimbalInner = null;
+    this.tacticianGimbalOuter = null;
+    this.reaperWingL = null;
+    this.reaperWingR = null;
+  }
+
+  buildCockpitInterior(parentGroup, canopyColorHex = 0x00f3ff) {
+    // 1. Pilot Helmet Mesh
+    const helmetGeo = new THREE.SphereGeometry(0.18, 12, 12);
+    helmetGeo.scale(0.85, 1.0, 0.95);
+    const helmetMat = new THREE.MeshStandardMaterial({
+      color: 0x182436,
+      metalness: 0.9,
+      roughness: 0.2
+    });
+    const helmet = new THREE.Mesh(helmetGeo, helmetMat);
+    helmet.position.set(0, 0.24, -0.25);
+    parentGroup.add(helmet);
+
+    // Visor Gold Gloss
+    const visorGeo = new THREE.SphereGeometry(0.12, 10, 10);
+    visorGeo.scale(0.8, 0.5, 0.5);
+    const visorMat = new THREE.MeshStandardMaterial({
+      color: 0xffb700,
+      metalness: 0.98,
+      roughness: 0.05,
+      emissive: 0xffaa00,
+      emissiveIntensity: 0.4
+    });
+    const visor = new THREE.Mesh(visorGeo, visorMat);
+    visor.position.set(0, 0.26, -0.36);
+    parentGroup.add(visor);
+
+    // 2. Holographic Flight MFD Console
+    const consoleGeo = new THREE.BoxGeometry(0.28, 0.06, 0.16);
+    const consoleMat = new THREE.MeshBasicMaterial({ color: canopyColorHex });
+    const mfd = new THREE.Mesh(consoleGeo, consoleMat);
+    mfd.position.set(0, 0.18, -0.55);
+    mfd.rotation.x = -0.35;
+    parentGroup.add(mfd);
   }
 
   rebuildShipMesh(className) {
     this.clearShipMesh();
     this.shipClass = className;
 
-    // Common Shield Dome
-    const shieldGeo = new THREE.IcosahedronGeometry(3.2, 2);
+    // Hexagonal Shield Dome
+    const shieldGeo = new THREE.IcosahedronGeometry(3.3, 2);
     let shieldColor = 0x00f3ff;
     if (className === 'DREADNOUGHT') shieldColor = 0xff0044;
-    else if (className === 'TACTICIAN') shieldColor = 0x00ff66;
+    else if (className === 'TACTICIAN') shieldColor = 0x00ff88;
     else if (className === 'REAPER') shieldColor = 0xaa00ff;
 
     this.shieldMat = new THREE.MeshBasicMaterial({
       color: shieldColor,
       wireframe: true,
       transparent: true,
-      opacity: 0.0
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending
     });
     this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
     this.meshGroup.add(this.shieldMesh);
@@ -103,43 +234,50 @@ export class PlayerShip {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 1. ⚡ INTERCEPTOR: "Vanguard Alpha" (Supersonic Delta Fighter)
+  // 1. ⚡ INTERCEPTOR: "Vanguard Alpha" (Dynamic Canards & Ailerons)
   // ─────────────────────────────────────────────────────────────
   buildInterceptorMesh() {
     this.maxShield = 90;
-    this.shield = Math.min(this.shield, 90);
+    this.shield = 90;
     this.speed = 36;
     this.laserFireDelay = 0.06;
     this.dodgeMaxCooldown = 1.2;
     this.maxSwarmCD = 3.0;
 
+    const hullTex = getProceduralHullTexture();
+
     // Main needle fuselage
     const bodyGeo = new THREE.ConeGeometry(0.85, 5.8, 8);
     bodyGeo.rotateX(Math.PI / 2);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x0a1424,
+      map: hullTex,
+      color: 0x0e1b30,
       metalness: 0.95,
       roughness: 0.15,
-      emissive: 0x001a33,
-      emissiveIntensity: 0.2,
+      emissive: 0x002244,
+      emissiveIntensity: 0.25,
     });
-    this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    this.meshGroup.add(body);
 
-    // Canopy
-    const canopyGeo = new THREE.SphereGeometry(0.55, 14, 14);
+    // Transparent Glass Canopy with Interior
+    const canopyGeo = new THREE.SphereGeometry(0.56, 16, 16);
     canopyGeo.scale(0.8, 0.6, 1.5);
     const canopyMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
       emissive: 0x00aaff,
       emissiveIntensity: 0.5,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.75,
+      roughness: 0.05,
+      metalness: 0.1
     });
     const canopy = new THREE.Mesh(canopyGeo, canopyMat);
     canopy.position.set(0, 0.3, -0.4);
     this.meshGroup.add(canopy);
+    this.buildCockpitInterior(this.meshGroup, 0x00f3ff);
 
-    // Delta Wings
+    // Delta Wings with Articulated Ailerons
     const wingShape = new THREE.Shape();
     wingShape.moveTo(0, 0);
     wingShape.lineTo(3.4, -1.8);
@@ -150,7 +288,7 @@ export class PlayerShip {
     const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.1, bevelEnabled: true, bevelSize: 0.03 });
     wingGeo.center();
     wingGeo.rotateX(Math.PI / 2);
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x142036, metalness: 0.88, roughness: 0.2 });
+    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x162640, metalness: 0.9, roughness: 0.2 });
 
     const rightWing = new THREE.Mesh(wingGeo, wingMat);
     rightWing.position.set(1.4, 0, 0.3);
@@ -162,17 +300,27 @@ export class PlayerShip {
     leftWing.position.set(-1.4, 0, 0.3);
     this.meshGroup.add(leftWing);
 
-    // Forward Canards
+    // Articulated Wing Ailerons
+    const aileronGeo = new THREE.BoxGeometry(1.2, 0.06, 0.3);
+    this.aileronR = new THREE.Mesh(aileronGeo, wingMat);
+    this.aileronR.position.set(2.4, 0, 1.4);
+    this.meshGroup.add(this.aileronR);
+
+    this.aileronL = new THREE.Mesh(aileronGeo, wingMat);
+    this.aileronL.position.set(-2.4, 0, 1.4);
+    this.meshGroup.add(this.aileronL);
+
+    // Articulated Forward Canards
     const canardGeo = new THREE.BoxGeometry(1.2, 0.05, 0.5);
     canardGeo.rotateY(0.2);
-    const canardR = new THREE.Mesh(canardGeo, wingMat);
-    canardR.position.set(0.9, 0.08, -1.2);
-    this.meshGroup.add(canardR);
+    this.canardR = new THREE.Mesh(canardGeo, wingMat);
+    this.canardR.position.set(0.9, 0.08, -1.2);
+    this.meshGroup.add(this.canardR);
 
-    const canardL = canardR.clone();
-    canardL.position.x = -0.9;
-    canardL.rotation.y = -0.2;
-    this.meshGroup.add(canardL);
+    this.canardL = this.canardR.clone();
+    this.canardL.position.x = -0.9;
+    this.canardL.rotation.y = -0.2;
+    this.meshGroup.add(this.canardL);
 
     // Neon Edge Glow Strips
     const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
@@ -182,7 +330,7 @@ export class PlayerShip {
       this.meshGroup.add(e);
     });
 
-    // Triple Laser Muzzles (Left, Center, Right)
+    // Triple Laser Muzzles
     this.muzzleOffsets = [
       new THREE.Vector3(-2.6, 0, -0.6),
       new THREE.Vector3(0, -0.15, -2.8),
@@ -194,30 +342,47 @@ export class PlayerShip {
       this.meshGroup.add(tip);
     });
 
-    // Twin High-Thrust Engines
+    // Twin High-Thrust Engines with Mach Shock Diamonds
     [-0.65, 0.65].forEach(x => {
-      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.42, 1.1, 10), new THREE.MeshStandardMaterial({ color: 0x060b14, metalness: 0.9 }));
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.44, 1.1, 12), new THREE.MeshStandardMaterial({ color: 0x08101c, metalness: 0.95 }));
       eng.rotateX(Math.PI / 2);
       eng.position.set(x, -0.08, 2.3);
       this.meshGroup.add(eng);
 
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.24, 1.4, 10), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
+      // Multi-Stage Flame
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.26, 1.5, 10), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
       flame.rotation.x = -Math.PI / 2;
       flame.position.set(0, 0, 0.65);
       eng.add(flame);
       this.flameMeshes.push(flame);
+
+      // Mach Shock Diamond Disks
+      for (let d = 0; d < 3; d++) {
+        const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.18 - d * 0.03, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+        dia.position.set(0, 0, 0.35 + d * 0.35);
+        eng.add(dia);
+        this.shockDiamonds.push(dia);
+      }
     });
 
     this.wingtipOffsets = [new THREE.Vector3(-3.2, 0, 0.3), new THREE.Vector3(3.2, 0, 0.3)];
     this.engineTrailOffsets = [new THREE.Vector3(-0.65, -0.08, 3.0), new THREE.Vector3(0.65, -0.08, 3.0)];
 
-    this.engineLight = new THREE.PointLight(0x00f3ff, 1.5, 9);
+    // RCS Quad Ports (Nose and Wingtips)
+    this.rcsPorts = [
+      { pos: new THREE.Vector3(0, 0.3, -2.6), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.3, -2.6), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-3.0, 0, 0.2), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(3.0, 0, 0.2), dirY: 0, dirX: 1 }
+    ];
+
+    this.engineLight = new THREE.PointLight(0x00f3ff, 1.6, 9);
     this.engineLight.position.set(0, 0, 2.5);
     this.meshGroup.add(this.engineLight);
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 2. 🛡️ DREADNOUGHT: "Titan Colossus" (Armored Brawler Fortress)
+  // 2. 🛡️ DREADNOUGHT: "Titan Colossus" (Recoil Physics & Radiator Vents)
   // ─────────────────────────────────────────────────────────────
   buildDreadnoughtMesh() {
     this.maxShield = 220;
@@ -227,29 +392,38 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 2.4;
     this.maxSwarmCD = 6.0;
 
+    const hullTex = getProceduralHullTexture();
+
     // Heavy Faceted Chassis
     const hullGeo = new THREE.BoxGeometry(2.4, 1.3, 5.2);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1e1215,
+      map: hullTex,
+      color: 0x221418,
       metalness: 0.95,
       roughness: 0.3,
-      emissive: 0x220508,
+      emissive: 0x2a060b,
       emissiveIntensity: 0.3
     });
     this.meshGroup.add(new THREE.Mesh(hullGeo, hullMat));
 
-    // Reinforced Prow Ramming Wedge
+    // Reinforced Prow Ramming Wedge (with Molten Heat Material)
     const ramGeo = new THREE.ConeGeometry(1.6, 2.0, 4);
     ramGeo.rotateX(Math.PI / 2);
     ramGeo.rotateY(Math.PI / 4);
-    const ramMat = new THREE.MeshStandardMaterial({ color: 0x3a0d14, metalness: 0.9, roughness: 0.2 });
-    const ram = new THREE.Mesh(ramGeo, ramMat);
+    this.ramMat = new THREE.MeshStandardMaterial({
+      color: 0x440e16,
+      metalness: 0.92,
+      roughness: 0.2,
+      emissive: 0xff3300,
+      emissiveIntensity: 0.1
+    });
+    const ram = new THREE.Mesh(ramGeo, this.ramMat);
     ram.position.set(0, 0, -3.2);
     this.meshGroup.add(ram);
 
-    // Heavy Sloped Armored Wings
+    // Heavy Armored Sloped Wings
     const armGeo = new THREE.BoxGeometry(2.2, 0.3, 3.4);
-    const armMat = new THREE.MeshStandardMaterial({ color: 0x140a0e, metalness: 0.9, roughness: 0.35 });
+    const armMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x1a0c10, metalness: 0.9, roughness: 0.35 });
 
     const armR = new THREE.Mesh(armGeo, armMat);
     armR.position.set(2.0, 0, 0.4);
@@ -261,22 +435,30 @@ export class PlayerShip {
     armL.rotation.z = 0.15;
     this.meshGroup.add(armL);
 
-    // Crimson Hazard Chevrons & Reactor Glow Core
-    const coreGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.2, 12);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
-    const core = new THREE.Mesh(coreGeo, coreMat);
-    core.position.set(0, 0.7, 0);
-    this.meshGroup.add(core);
+    // Radiator Cooling Flaps
+    [-1.3, 1.3].forEach(x => {
+      const flapGeo = new THREE.BoxGeometry(0.08, 0.4, 1.8);
+      const flapMat = new THREE.MeshStandardMaterial({ color: 0xff3300, emissive: 0xff2200, emissiveIntensity: 0.3 });
+      const flap = new THREE.Mesh(flapGeo, flapMat);
+      flap.position.set(x, 0.5, 0.2);
+      this.meshGroup.add(flap);
+      this.coolingFlaps.push(flap);
+    });
 
-    // Heavy Artillery Cannons (Dual Flak Barrels)
-    const barrelGeo = new THREE.CylinderGeometry(0.22, 0.22, 3.2, 8);
+    // Pilot armored viewport
+    this.buildCockpitInterior(this.meshGroup, 0xff0044);
+
+    // Heavy Artillery Cannons with Spring Recoil Rigging
+    const barrelGeo = new THREE.CylinderGeometry(0.24, 0.24, 3.2, 8);
     barrelGeo.rotateX(Math.PI / 2);
-    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x0a0508, metalness: 0.95 });
+    const barrelMat = new THREE.MeshStandardMaterial({ color: 0x0c0608, metalness: 0.95 });
 
+    this.flakBarrels = [];
     [-1.6, 1.6].forEach(x => {
       const b = new THREE.Mesh(barrelGeo, barrelMat);
       b.position.set(x, -0.1, -1.6);
       this.meshGroup.add(b);
+      this.flakBarrels.push(b);
     });
 
     this.muzzleOffsets = [
@@ -284,7 +466,7 @@ export class PlayerShip {
       new THREE.Vector3(1.6, -0.1, -3.2)
     ];
 
-    // Quad Heavy Rocket Thrusters
+    // Quad Heavy Rocket Thrusters with Mach Shock Diamonds
     const thrusterPositions = [
       [-0.8, 0.35, 2.6],
       [0.8, 0.35, 2.6],
@@ -292,7 +474,7 @@ export class PlayerShip {
       [0.8, -0.35, 2.6]
     ];
     thrusterPositions.forEach(([x, y, z]) => {
-      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.38, 1.0, 8), new THREE.MeshStandardMaterial({ color: 0x080406, metalness: 0.9 }));
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.38, 1.0, 8), new THREE.MeshStandardMaterial({ color: 0x0a0406, metalness: 0.9 }));
       eng.rotateX(Math.PI / 2);
       eng.position.set(x, y, z);
       this.meshGroup.add(eng);
@@ -302,18 +484,30 @@ export class PlayerShip {
       flame.position.set(0, 0, 0.6);
       eng.add(flame);
       this.flameMeshes.push(flame);
+
+      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 8), new THREE.MeshBasicMaterial({ color: 0xffea00, side: THREE.DoubleSide }));
+      dia.position.set(0, 0, 0.45);
+      eng.add(dia);
+      this.shockDiamonds.push(dia);
     });
 
     this.wingtipOffsets = [new THREE.Vector3(-3.1, 0, 0.4), new THREE.Vector3(3.1, 0, 0.4)];
     this.engineTrailOffsets = [new THREE.Vector3(-0.8, 0, 3.4), new THREE.Vector3(0.8, 0, 3.4)];
 
-    this.engineLight = new THREE.PointLight(0xff0044, 2.0, 10);
+    this.rcsPorts = [
+      { pos: new THREE.Vector3(0, 0.6, -2.8), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.6, -2.8), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-2.2, 0, 0.4), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(2.2, 0, 0.4), dirY: 0, dirX: 1 }
+    ];
+
+    this.engineLight = new THREE.PointLight(0xff0044, 2.2, 10);
     this.engineLight.position.set(0, 0, 2.8);
     this.meshGroup.add(this.engineLight);
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 3. 🌀 TACTICIAN: "Chronos Spec-Ops" (EMP & Homing Arc Beam)
+  // 3. 🌀 TACTICIAN: "Chronos Spec-Ops" (Dual Gyroscopic Gimbal Rings)
   // ─────────────────────────────────────────────────────────────
   buildTacticianMesh() {
     this.maxShield = 110;
@@ -323,21 +517,25 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 1.6;
     this.maxSwarmCD = 4.5;
 
+    const hullTex = getProceduralHullTexture();
+
     // Aerodynamic forward cockpit
     const bodyGeo = new THREE.CylinderGeometry(0.5, 0.9, 5.2, 8);
     bodyGeo.rotateX(Math.PI / 2);
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x081a14,
+      map: hullTex,
+      color: 0x0a221a,
       metalness: 0.92,
       roughness: 0.2,
-      emissive: 0x002211,
-      emissiveIntensity: 0.3
+      emissive: 0x003318,
+      emissiveIntensity: 0.35
     });
     this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+    this.buildCockpitInterior(this.meshGroup, 0x00ff88);
 
     // Forward-Swept Gull Wings
     const wingGeo = new THREE.BoxGeometry(2.4, 0.1, 1.6);
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x0d281e, metalness: 0.88, roughness: 0.25 });
+    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x103628, metalness: 0.88, roughness: 0.25 });
 
     const rightWing = new THREE.Mesh(wingGeo, wingMat);
     rightWing.position.set(1.8, 0, -0.6);
@@ -349,16 +547,21 @@ export class PlayerShip {
     leftWing.rotation.y = 0.35;
     this.meshGroup.add(leftWing);
 
-    // Rotating Electromagnetic Rings
-    const ringGeo = new THREE.TorusGeometry(0.85, 0.08, 8, 24);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
-    this.empRing = new THREE.Mesh(ringGeo, ringMat);
-    this.empRing.position.set(0, 0.3, 0.5);
-    this.meshGroup.add(this.empRing);
+    // Dual Concentric Gyroscopic Electromagnetic Gimbal Rings
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: false });
+
+    // Outer Ring
+    this.tacticianGimbalOuter = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.06, 8, 24), ringMat);
+    this.tacticianGimbalOuter.position.set(0, 0.3, 0.5);
+    this.meshGroup.add(this.tacticianGimbalOuter);
+
+    // Inner Ring
+    this.tacticianGimbalInner = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.05, 8, 20), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
+    this.tacticianGimbalOuter.add(this.tacticianGimbalInner);
 
     // Sensor Radome
     const radomeGeo = new THREE.SphereGeometry(0.4, 12, 12);
-    const radomeMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00aa55, emissiveIntensity: 0.6 });
+    const radomeMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00aa55, emissiveIntensity: 0.7 });
     const radome = new THREE.Mesh(radomeGeo, radomeMat);
     radome.position.set(0, 0.55, -0.8);
     this.meshGroup.add(radome);
@@ -374,9 +577,9 @@ export class PlayerShip {
       this.meshGroup.add(tip);
     });
 
-    // Twin Vector Thrusters
+    // Twin Vector Thrusters with Mach Shock Diamonds
     [-0.7, 0.7].forEach(x => {
-      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x040e0a, metalness: 0.9 }));
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x06140e, metalness: 0.9 }));
       eng.rotateX(Math.PI / 2);
       eng.position.set(x, -0.05, 2.4);
       this.meshGroup.add(eng);
@@ -386,18 +589,30 @@ export class PlayerShip {
       flame.position.set(0, 0, 0.6);
       eng.add(flame);
       this.flameMeshes.push(flame);
+
+      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 8), new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide }));
+      dia.position.set(0, 0, 0.4);
+      eng.add(dia);
+      this.shockDiamonds.push(dia);
     });
 
     this.wingtipOffsets = [new THREE.Vector3(-2.8, 0, -1.4), new THREE.Vector3(2.8, 0, -1.4)];
     this.engineTrailOffsets = [new THREE.Vector3(-0.7, 0, 3.0), new THREE.Vector3(0.7, 0, 3.0)];
 
-    this.engineLight = new THREE.PointLight(0x00ff88, 1.6, 9);
+    this.rcsPorts = [
+      { pos: new THREE.Vector3(0, 0.4, -2.4), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.4, -2.4), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-2.6, 0, -1.2), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(2.6, 0, -1.2), dirY: 0, dirX: 1 }
+    ];
+
+    this.engineLight = new THREE.PointLight(0x00ff88, 1.8, 9);
     this.engineLight.position.set(0, 0, 2.6);
     this.meshGroup.add(this.engineLight);
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 4. 💀 REAPER: "Void Phantom" (Stealth Diamond Crit Assassin)
+  // 4. 💀 REAPER: "Void Phantom" (Variable-Geometry Wing Sweeping)
   // ─────────────────────────────────────────────────────────────
   buildReaperMesh() {
     this.maxShield = 85;
@@ -407,26 +622,36 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 1.4;
     this.maxSwarmCD = 4.0;
 
+    const hullTex = getProceduralHullTexture();
+
     // Stealth Diamond Faceted Fuselage
     const bodyGeo = new THREE.ConeGeometry(1.0, 5.4, 4);
     bodyGeo.rotateX(Math.PI / 2);
     bodyGeo.rotateZ(Math.PI / 4);
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x0c0614,
+    this.reaperBodyMat = new THREE.MeshStandardMaterial({
+      map: hullTex,
+      color: 0x10081c,
       metalness: 0.98,
       roughness: 0.12,
-      emissive: 0x180028,
-      emissiveIntensity: 0.4
+      emissive: 0x220038,
+      emissiveIntensity: 0.45,
+      transparent: true,
+      opacity: 1.0
     });
-    this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+    this.meshGroup.add(new THREE.Mesh(bodyGeo, this.reaperBodyMat));
+    this.buildCockpitInterior(this.meshGroup, 0xaa00ff);
 
-    // Serrated Dagger Razor Wings
-    const wingGeo = new THREE.BoxGeometry(3.6, 0.08, 1.8);
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x140a22, metalness: 0.95, roughness: 0.1 });
+    // Variable-Geometry Dagger Wings (Pivot Rigging)
+    const wingGeo = new THREE.BoxGeometry(1.8, 0.08, 1.6);
+    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x180c2a, metalness: 0.95, roughness: 0.1 });
 
-    const wing = new THREE.Mesh(wingGeo, wingMat);
-    wing.position.set(0, 0, 0.4);
-    this.meshGroup.add(wing);
+    this.reaperWingR = new THREE.Mesh(wingGeo, wingMat);
+    this.reaperWingR.position.set(1.0, 0, 0.4);
+    this.meshGroup.add(this.reaperWingR);
+
+    this.reaperWingL = new THREE.Mesh(wingGeo, wingMat);
+    this.reaperWingL.position.set(-1.0, 0, 0.4);
+    this.meshGroup.add(this.reaperWingL);
 
     // Glowing Ultraviolet Plasma Blade Edges
     const bladeMat = new THREE.MeshBasicMaterial({ color: 0xaa00ff });
@@ -449,10 +674,10 @@ export class PlayerShip {
       this.meshGroup.add(tip);
     });
 
-    // Central High-Density Plasma Core Thruster
+    // Central High-Density Plasma Thruster
     const engGeo = new THREE.CylinderGeometry(0.42, 0.52, 1.2, 6);
     engGeo.rotateX(Math.PI / 2);
-    const eng = new THREE.Mesh(engGeo, new THREE.MeshStandardMaterial({ color: 0x05020a, metalness: 0.95 }));
+    const eng = new THREE.Mesh(engGeo, new THREE.MeshStandardMaterial({ color: 0x080310, metalness: 0.95 }));
     eng.position.set(0, 0, 2.4);
     this.meshGroup.add(eng);
 
@@ -462,32 +687,48 @@ export class PlayerShip {
     eng.add(flame);
     this.flameMeshes.push(flame);
 
+    const dia = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.22, 6), new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.DoubleSide }));
+    dia.position.set(0, 0, 0.5);
+    eng.add(dia);
+    this.shockDiamonds.push(dia);
+
     this.wingtipOffsets = [new THREE.Vector3(-1.8, 0, 0.4), new THREE.Vector3(1.8, 0, 0.4)];
     this.engineTrailOffsets = [new THREE.Vector3(0, 0, 3.2)];
 
-    this.engineLight = new THREE.PointLight(0xaa00ff, 1.8, 9);
+    this.rcsPorts = [
+      { pos: new THREE.Vector3(0, 0.3, -2.4), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.3, -2.4), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-1.6, 0, 0.4), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(1.6, 0, 0.4), dirY: 0, dirX: 1 }
+    ];
+
+    this.engineLight = new THREE.PointLight(0xaa00ff, 2.0, 9);
     this.engineLight.position.set(0, 0, 2.6);
     this.meshGroup.add(this.engineLight);
   }
 
+  triggerBarrelRecoil() {
+    this.flakRecoil = 0.35;
+    this.moltenHeat = Math.min(1.0, this.moltenHeat + 0.25);
+  }
+
   takeDamage(amount) {
     if (this.dodgeTimer > 0 || this.isInvulnerable) {
-      return false; // Immune during dodge roll!
+      return false;
     }
 
-    // Reaper Phasing Boost Invulnerability
     if (this.shipClass === 'REAPER' && this.isBoosting) {
-      return false;
+      return false; // Phasing quantum cloak
     }
 
     let finalAmount = amount;
     if (this.shipClass === 'DREADNOUGHT') {
-      finalAmount *= 0.65; // Dreadnought takes 35% less damage!
+      finalAmount *= 0.65;
     }
 
     this.shield = Math.max(0, this.shield - finalAmount);
-    this.shieldRippleTimer = 0.45;
-    if (this.shieldMat) this.shieldMat.opacity = 0.95;
+    this.shieldRippleTimer = 0.55;
+    if (this.shieldMat) this.shieldMat.opacity = 1.0;
 
     const canvasContainer = document.getElementById('canvas-container');
     if (canvasContainer) {
@@ -506,8 +747,8 @@ export class PlayerShip {
 
   healShield(amount) {
     this.shield = Math.min(this.maxShield, this.shield + amount);
-    this.shieldRippleTimer = 0.3;
-    if (this.shieldMat) this.shieldMat.opacity = 0.6;
+    this.shieldRippleTimer = 0.35;
+    if (this.shieldMat) this.shieldMat.opacity = 0.7;
   }
 
   dodgeRoll(direction = 'left') {
@@ -515,6 +756,11 @@ export class PlayerShip {
     this.dodgeDirection = direction;
     this.dodgeTimer = 0.5;
     this.dodgeCooldown = this.dodgeMaxCooldown;
+
+    // Interceptor Sonic Boom shockwave ring
+    if (this.shipClass === 'INTERCEPTOR' && this.particleManager) {
+      this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0x00f3ff);
+    }
     return true;
   }
 
@@ -556,24 +802,70 @@ export class PlayerShip {
 
     const currentSpeed = this.speed * (this.isBoosting ? 2.0 : 1.0);
 
-    // Shield ripple decay
+    // Shield Hexagonal Lattice decay
     if (this.shieldRippleTimer > 0) {
       this.shieldRippleTimer -= dt;
       if (this.shieldMat) {
-        this.shieldMat.opacity = Math.max(0, this.shieldRippleTimer / 0.45 * 0.95);
+        this.shieldMat.opacity = Math.max(0, this.shieldRippleTimer / 0.55);
       }
       if (this.shieldMesh) {
-        this.shieldMesh.rotation.z += 4.0 * dt;
-        this.shieldMesh.rotation.y += 2.5 * dt;
+        this.shieldMesh.rotation.z += 3.5 * dt;
+        this.shieldMesh.rotation.y += 2.0 * dt;
       }
     }
 
-    // Tactician EMP Ring Rotation
-    if (this.empRing) {
-      this.empRing.rotation.z += 5.0 * dt;
-      this.empRing.rotation.y += 3.0 * dt;
+    // ── Mechanical Articulation Updates ──
+    // Interceptor Canards & Ailerons
+    if (this.canardR && this.canardL) {
+      const targetCanardPitch = inputDir.y * 0.45 + (this.isBoosting ? -0.2 : 0);
+      this.canardR.rotation.x = targetCanardPitch;
+      this.canardL.rotation.x = targetCanardPitch;
+    }
+    if (this.aileronR && this.aileronL) {
+      this.aileronR.rotation.x = -inputDir.x * 0.4;
+      this.aileronL.rotation.x = inputDir.x * 0.4;
     }
 
+    // Dreadnought Barrel Recoil Spring Oscillator
+    if (this.flakRecoil > 0) {
+      this.flakRecoil = Math.max(0, this.flakRecoil - dt * 2.2);
+      this.flakBarrels.forEach(b => {
+        b.position.z = -1.6 + this.flakRecoil;
+      });
+    }
+    // Dreadnought Radiator Flaps
+    if (this.moltenHeat > 0) {
+      this.moltenHeat = Math.max(0, this.moltenHeat - dt * 0.35);
+      this.coolingFlaps.forEach((f, idx) => {
+        f.rotation.z = (idx === 0 ? -1 : 1) * this.moltenHeat * 0.45;
+      });
+      if (this.ramMat) {
+        this.ramMat.emissiveIntensity = 0.1 + this.moltenHeat * 1.5;
+      }
+    }
+
+    // Tactician Concentric Gyroscopic Gimbal Rings Precession
+    if (this.tacticianGimbalOuter && this.tacticianGimbalInner) {
+      this.tacticianGimbalOuter.rotation.z += 4.5 * dt;
+      this.tacticianGimbalOuter.rotation.x = Math.sin(this._time * 3.0) * 0.35;
+      this.tacticianGimbalInner.rotation.y += 6.5 * dt;
+      this.tacticianGimbalInner.rotation.x += 3.0 * dt;
+    }
+
+    // Reaper Variable-Geometry Dagger Wings Sweeping
+    if (this.reaperWingR && this.reaperWingL) {
+      const targetSweep = this.isBoosting ? -0.45 : (Math.abs(inputDir.x) > 0.3 ? 0.25 : 0);
+      this.reaperWingSweep += (targetSweep - this.reaperWingSweep) * 0.15;
+      this.reaperWingR.rotation.y = -this.reaperWingSweep;
+      this.reaperWingL.rotation.y = this.reaperWingSweep;
+
+      // Quantum Phasing Cloak Opacity
+      if (this.reaperBodyMat) {
+        this.reaperBodyMat.opacity = (this.isBoosting ? 0.35 : 1.0) + Math.sin(this._time * 25.0) * 0.05;
+      }
+    }
+
+    // ── Movement & Bounds ──
     const bossActive = this.gameManager && this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead;
     const minX = bossActive ? -36 : this.bounds.minX;
     const maxX = bossActive ? 36 : this.bounds.maxX;
@@ -589,14 +881,6 @@ export class PlayerShip {
       const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
       this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
       this.meshGroup.rotation.x = 0;
-
-      if (Math.random() < 0.4) {
-        let pColor = 0x00f3ff;
-        if (this.shipClass === 'DREADNOUGHT') pColor = 0xff0044;
-        else if (this.shipClass === 'TACTICIAN') pColor = 0x00ff88;
-        else if (this.shipClass === 'REAPER') pColor = 0xaa00ff;
-        this.particleManager.spawnEngineParticle(this.meshGroup.position, pColor);
-      }
     } else {
       this.velocity.x += (inputDir.x * currentSpeed - this.velocity.x) * 0.18;
       this.velocity.y += (inputDir.y * currentSpeed - this.velocity.y) * 0.18;
@@ -615,15 +899,42 @@ export class PlayerShip {
       this.meshGroup.rotation.x = this.currentPitch;
     }
 
-    // Flame scaling
-    const flicker = 1.0 + Math.sin(this._time * 20) * 0.15;
-    const thrustBoost = (this.isBoosting ? 2.4 : 1.0) * (1.0 + Math.abs(inputDir.x) * 0.3 + Math.abs(inputDir.y) * 0.3);
+    // ── Active RCS Micro-Thruster Bursts ──
+    const dX = inputDir.x - this.prevInput.x;
+    const dY = inputDir.y - this.prevInput.y;
+    this.prevInput.x = inputDir.x;
+    this.prevInput.y = inputDir.y;
+
+    if (Math.abs(dX) > 0.15 || Math.abs(dY) > 0.15) {
+      let rcsColor = 0x00f3ff;
+      if (this.shipClass === 'DREADNOUGHT') rcsColor = 0xff3300;
+      else if (this.shipClass === 'TACTICIAN') rcsColor = 0x00ff88;
+      else if (this.shipClass === 'REAPER') rcsColor = 0xaa00ff;
+
+      this.rcsPorts.forEach(port => {
+        if ((dY > 0.15 && port.dirY > 0) || (dY < -0.15 && port.dirY < 0) ||
+            (dX > 0.15 && port.dirX > 0) || (dX < -0.15 && port.dirX < 0)) {
+          const worldPos = this.meshGroup.localToWorld(port.pos.clone());
+          const worldDir = new THREE.Vector3(port.dirX, port.dirY, 0).applyEuler(this.meshGroup.rotation);
+          this.particleManager.spawnRcsJet(worldPos, worldDir, rcsColor);
+        }
+      });
+    }
+
+    // ── Flame & Shock Diamond Dynamics ──
+    const flicker = 1.0 + Math.sin(this._time * 24) * 0.15;
+    const thrustBoost = (this.isBoosting ? 2.5 : 1.0) * (1.0 + Math.abs(inputDir.x) * 0.3 + Math.abs(inputDir.y) * 0.3);
     this.flameMeshes.forEach(f => {
       f.scale.setScalar(flicker * thrustBoost);
     });
 
+    this.shockDiamonds.forEach((dia, idx) => {
+      const s = (1.0 + Math.sin(this._time * 30 + idx) * 0.2) * (this.isBoosting ? 1.4 : 1.0);
+      dia.scale.setScalar(s);
+    });
+
     if (this.engineLight) {
-      this.engineLight.intensity = (this.isBoosting ? 2.8 : 1.2) + Math.sin(this._time * 12) * 0.25;
+      this.engineLight.intensity = (this.isBoosting ? 3.0 : 1.4) + Math.sin(this._time * 14) * 0.25;
     }
 
     // Wingtip Vapor Contrails
