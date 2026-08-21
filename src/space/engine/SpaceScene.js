@@ -347,21 +347,20 @@ export class SpaceScene {
     const endPos = this.targetPlanet.position.clone();
     const distance = startPos.distanceTo(endPos);
 
-    // Initial Superlaser charging beam
-    const beamGeo = new THREE.CylinderGeometry(3.5, 5.0, distance, 16);
+    // Initial Superlaser charging beam (sleek, high-intensity laser line)
+    const beamGeo = new THREE.CylinderGeometry(0.8, 1.2, distance, 12);
     beamGeo.rotateX(Math.PI / 2);
     const beamMat = new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending
+      opacity: 0.85
     });
     const superBeam = new THREE.Mesh(beamGeo, beamMat);
     superBeam.position.copy(startPos).lerp(endPos, 0.5);
     superBeam.lookAt(endPos);
     this.scene.add(superBeam);
 
-    this.addScreenShake(1.8);
+    this.addScreenShake(1.5);
 
     // Planet impact & mantle rupture phase (at 1.4s)
     setTimeout(() => {
@@ -374,14 +373,14 @@ export class SpaceScene {
         // Red glowing magma rupture across continents
         if (this.targetPlanet.material) {
           this.targetPlanet.material.emissive.setHex(0xff3300);
-          this.targetPlanet.material.emissiveIntensity = 3.0;
+          this.targetPlanet.material.emissiveIntensity = 0.8;
         }
-        this.addScreenShake(4.5);
+        this.addScreenShake(3.5);
         if (particleManager) {
-          particleManager.createExplosion(endPos, 0x00ff66, 250, 5.0);
-          particleManager.createExplosion(endPos, 0xff0044, 220, 4.0);
-          particleManager.createExplosion(endPos, 0xffea00, 180, 3.5);
-          particleManager.createEmpShockwave(endPos, 160);
+          particleManager.createExplosion(endPos, 0x00ff66, 180, 4.0);
+          particleManager.createExplosion(endPos, 0xff0044, 150, 3.5);
+          particleManager.createExplosion(endPos, 0xffea00, 120, 3.0);
+          particleManager.createEmpShockwave(endPos, 120);
         }
       }
     }, 1400);

@@ -41,10 +41,10 @@ const PlasmaOrbShader = {
     void main() {
       float n = noise(vPosition * 1.8);
       float turb = sin(vUv.y * 28.0 + uTime * 8.0 + n * 5.0) * 0.5 + 0.5;
-      vec3 col = mix(uColor, vec3(1.0), turb * 0.7);
+      vec3 col = mix(uColor, vec3(0.9), turb * 0.5);
       float rim = 1.0 - max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0)));
-      col += vec3(0.1, 1.0, 0.3) * pow(rim, 2.5);
-      gl_FragColor = vec4(col * 4.5, 1.0); }`
+      col += vec3(0.1, 0.9, 0.3) * pow(rim, 2.5);
+      gl_FragColor = vec4(col * 1.15, 1.0); }`
 };
 
 const TrenchShader = {
@@ -53,9 +53,9 @@ const TrenchShader = {
   fragmentShader: `uniform float uTime; uniform vec3 uColor; varying vec2 vUv;
     void main() {
       float pulse = sin(vUv.x * 100.0 - uTime * 12.0) * 0.5 + 0.5;
-      pulse = pow(pulse, 4.0);
+      pulse = pow(pulse, 3.0);
       float secondary = sin(vUv.x * 40.0 + uTime * 5.0) * 0.3 + 0.7;
-      gl_FragColor = vec4(uColor * (2.0 + pulse * 6.0) * secondary, 1.0); }`
+      gl_FragColor = vec4(uColor * (0.85 + pulse * 0.9) * secondary, 1.0); }`
 };
 
 const ShieldShader = {
@@ -68,12 +68,12 @@ const ShieldShader = {
     varying vec3 vNormal; varying vec3 vViewPosition;
     void main() {
       vec3 n = normalize(vNormal); vec3 v = normalize(vViewPosition);
-      float fresnel = pow(1.0 - abs(dot(n, v)), 3.2);
-      float pulse = sin(uTime * 4.0) * 0.12 + 0.88;
+      float fresnel = pow(1.0 - abs(dot(n, v)), 3.0);
+      float pulse = sin(uTime * 4.0) * 0.10 + 0.90;
       float hexPattern = step(0.5, fract(dot(n, vec3(8.0, 12.0, 6.0)) + uTime * 0.5));
-      vec3 edgeCol = mix(uColor, vec3(1.0), uHitTime + hexPattern * 0.15);
-      float alpha = (fresnel * 0.65 + uHitTime * 0.6) * pulse;
-      gl_FragColor = vec4(edgeCol * (2.5 + uHitTime * 4.0 + hexPattern * 0.5), alpha); }`
+      vec3 edgeCol = mix(uColor, vec3(0.9), uHitTime * 0.5 + hexPattern * 0.1);
+      float alpha = (fresnel * 0.35 + uHitTime * 0.35) * pulse;
+      gl_FragColor = vec4(edgeCol * (0.9 + uHitTime * 1.1 + hexPattern * 0.2), alpha); }`
 };
 
 export class MoonBase {
@@ -274,19 +274,19 @@ export class MoonBase {
     this.meshGroup.add(dishGroup);
 
     // Superlaser Point Light
-    this.superlightBoss = new THREE.PointLight(0x00ff44, 8.0, 100);
+    this.superlightBoss = new THREE.PointLight(0x00ff44, 1.2, 40);
     this.superlightBoss.position.set(-5.25, 7.5, R + 1.5);
     this.meshGroup.add(this.superlightBoss);
 
     // Superlaser Main Discharge Beams
-    const laserBeamGeo = new THREE.CylinderGeometry(0.5, 0.5, 60, 10);
+    const laserBeamGeo = new THREE.CylinderGeometry(0.35, 0.35, 60, 10);
     laserBeamGeo.rotateX(Math.PI / 2);
     this.laserBeamMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, transparent: true, opacity: 0.0 });
     this.laserBeam = new THREE.Mesh(laserBeamGeo, this.laserBeamMat);
     this.laserBeam.position.set(-5.25, 7.5, R + 28.5);
     this.meshGroup.add(this.laserBeam);
 
-    const outerBeamGeo = new THREE.CylinderGeometry(1.2, 1.2, 60, 10);
+    const outerBeamGeo = new THREE.CylinderGeometry(0.8, 0.8, 60, 10);
     outerBeamGeo.rotateX(Math.PI / 2);
     this.outerBeamMat = new THREE.MeshBasicMaterial({ color: 0x88ffaa, transparent: true, opacity: 0.0 });
     this.outerBeam = new THREE.Mesh(outerBeamGeo, this.outerBeamMat);
@@ -736,9 +736,9 @@ export class MoonBase {
       this.particleManager.spawnEngineParticle(sparkPos, Math.random() < 0.5 ? 0xff3300 : 0x00ff66);
     }
 
-    // Plasma orb intensity ramps up with phase
+    // Plasma orb intensity ramps up gently with phase
     if (this.superlightBoss) {
-      this.superlightBoss.intensity = 6.0 + Math.sin(time * 4) * 2.0 + this.phase * 2.5;
+      this.superlightBoss.intensity = 1.0 + Math.sin(time * 4) * 0.25 + this.phase * 0.2;
     }
 
     // ── Superlaser beam attack (every 8s in phase 1, 5s in phase 2, 3.2s in phase 3) ──
@@ -764,7 +764,7 @@ export class MoonBase {
     this.fireTimer -= dt;
     const chargeRatio = Math.max(0, 1.0 - this.fireTimer / (0.6 / this.phase));
     if (this.barrelMat) {
-      this.barrelMat.emissiveIntensity = 2.0 + chargeRatio * 12.0;
+      this.barrelMat.emissiveIntensity = 0.2 + chargeRatio * 0.6;
     }
 
     const out = [];
