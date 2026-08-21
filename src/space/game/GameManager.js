@@ -368,18 +368,19 @@ export class GameManager {
     }
   }
 
-  spawnLaser(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, isCrit = false) {
+  spawnLaser(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, isCrit = false, projectileType = 'STANDARD') {
     let bolt = this.laserPool.find(l => l.isDead);
     if (!bolt) {
       if (this.laserPool.length < 200) {
-        bolt = new LaserBolt(this.spaceScene.scene, startPos, colorHex, isEnemy, targetDir);
+        bolt = new LaserBolt(this.spaceScene.scene, startPos, colorHex, isEnemy, targetDir, projectileType, this);
         this.laserPool.push(bolt);
       } else {
         bolt = this.laserPool[0];
         this.laserPool.push(this.laserPool.shift());
       }
     }
-    bolt.reset(startPos, colorHex, isEnemy, targetDir);
+    bolt.gameManager = this;
+    bolt.reset(startPos, colorHex, isEnemy, targetDir, projectileType);
     if (isCrit) bolt.isCritical = true;
     if (!this.lasers.includes(bolt)) this.lasers.push(bolt);
     return bolt;
@@ -404,27 +405,40 @@ export class GameManager {
   fireRapidLaser() {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0 || this.specialWeaponActive) return;
 
-    let delay = this.playerShip.laserFireDelay || 0.12;
+    let delay = this.playerShip.laserFireDelay || 0.10;
     if (this.playerShip._dodgeBoostTimer > 0) {
       delay *= 0.8;
     }
     this.playerShip.laserCooldown = delay;
 
-    const pPos = this.playerShip.meshGroup.position;
-    const isCrit = this.activePerks.has('crit') && Math.random() < 0.20;
-    const color = isCrit ? 0xff0044 : (this.overchargeTimer > 0 ? 0xffea00 : 0x00f3ff);
+    const shipClass = this.playerShip.shipClass || 'INTERCEPTOR';
+    let projectileType = 'STANDARD';
+    let color = 0x00f3ff;
 
-    if (this.overchargeTimer > 0) {
-      this.spawnLaser(new THREE.Vector3(3.0, 0, -0.4).add(pPos), color, false, null, isCrit);
-      this.spawnLaser(new THREE.Vector3(1.0, 0, -0.4).add(pPos), color, false, null, isCrit);
-      this.spawnLaser(new THREE.Vector3(-1.0, 0, -0.4).add(pPos), color, false, null, isCrit);
-      this.spawnLaser(new THREE.Vector3(-3.0, 0, -0.4).add(pPos), color, false, null, isCrit);
-    } else {
-      this.spawnLaser(new THREE.Vector3(2.0, 0, -0.4).add(pPos), color, false, null, isCrit);
-      this.spawnLaser(new THREE.Vector3(-2.0, 0, -0.4).add(pPos), color, false, null, isCrit);
+    if (shipClass === 'DREADNOUGHT') {
+      projectileType = 'FLAK';
+      color = 0xff3300;
+      this.spaceScene.addScreenShake(0.35);
+    } else if (shipClass === 'TACTICIAN') {
+      projectileType = 'HOMING';
+      color = 0x00ff88;
+    } else if (shipClass === 'REAPER') {
+      projectileType = 'CRIT_DART';
+      color = 0xaa00ff;
     }
 
-    this.spaceAudio.playLaserPew(pPos.x);
+    if (this.overchargeTimer > 0) color = 0xffea00;
+
+    const muzzles = this.playerShip.muzzleOffsets && this.playerShip.muzzleOffsets.length > 0
+      ? this.playerShip.muzzleOffsets
+      : [new THREE.Vector3(-2, 0, -1), new THREE.Vector3(2, 0, -1)];
+
+    muzzles.forEach(offset => {
+      const worldMuzzle = this.playerShip.meshGroup.localToWorld(offset.clone());
+      this.spawnLaser(worldMuzzle, color, false, null, false, projectileType);
+    });
+
+    this.spaceAudio.playLaserPew(this.playerShip.meshGroup.position.x);
   }
 
   fireEmpPulse() {

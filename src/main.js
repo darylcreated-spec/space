@@ -35,6 +35,7 @@ class OrbitalVanguardApp {
     this.spaceHUD = new SpaceHUD(this.spaceGameManager);
     this.spaceGameManager.setHUD(this.spaceHUD);
     window.spaceGameManager = this.spaceGameManager;
+    window.gameManager = this.spaceGameManager;
 
     // 3. Robust Animation Loop with timestamp fallback
     this.lastTime = performance.now();

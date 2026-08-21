@@ -117,10 +117,12 @@ export class CollisionSystem {
           const rockPhysicalRadius = (rock.radius || 3.0) * 0.75 + 0.3;
           if (dist < rockPhysicalRadius) {
             laser.hitEntities.add(rock.meshGroup.uuid);
-            let dmg = 25;
+            let dmg = laser.damage || 25;
             if (laser.isCritical) {
-              dmg *= 3;
               this.particleManager.createExplosion(lPos, 0xff0044, 25);
+            } else if (laser.isAoe) {
+              this.particleManager.createExplosion(lPos, 0xff5500, 30, 1.8);
+              this.spaceScene.addScreenShake(0.4);
             } else {
               this.particleManager.createExplosion(lPos, 0x00f3ff, 12);
             }
@@ -132,6 +134,12 @@ export class CollisionSystem {
             if (dead) {
               gameManager.addScore(rock.scoreValue);
               gameManager.addScrap(15);
+              if (player.shipClass === 'REAPER' || laser.isSiphon) {
+                player.healShield(8);
+              }
+              if (player.shipClass === 'TACTICIAN') {
+                player.pulseCooldown = Math.max(0, player.pulseCooldown - 0.4);
+              }
               const frags = rock.getSplitFragments(player.hasMiningAddon);
               if (frags && frags.length > 0) {
                 gameManager.spawnAsteroidFragments(frags);
@@ -140,7 +148,7 @@ export class CollisionSystem {
               }
             }
 
-            if (!gameManager.activePerks.has('piercing')) {
+            if (!gameManager.activePerks.has('piercing') && !laser.isAoe) {
               hit = true;
               laser.destroy();
               gameManager.lasers.splice(i, 1);
@@ -163,14 +171,22 @@ export class CollisionSystem {
           const dronePhysicalRadius = 1.3;
           if (dist < dronePhysicalRadius) {
             laser.hitEntities.add(drone.meshGroup.uuid);
-            let dmg = 20;
+            let dmg = laser.damage || 20;
             if (laser.isCritical) {
-              dmg *= 3;
               this.particleManager.createExplosion(lPos, 0xff0044, 28);
+            } else if (laser.isAoe) {
+              this.particleManager.createExplosion(lPos, 0xff5500, 30, 1.8);
+              this.spaceScene.addScreenShake(0.4);
             } else {
               this.particleManager.createExplosion(lPos, 0xff0055, 18);
             }
             if (laser.hitEntities.size > 1) dmg *= 0.5;
+
+            // Tactician EMP stun on hit
+            if (laser.appliesEmp || player.shipClass === 'TACTICIAN') {
+              drone.stunTimer = 2.5;
+              this.particleManager.createEmpShockwave(drone.meshGroup.position, 6.0);
+            }
 
             const dead = drone.takeDamage(dmg);
             this.spaceAudio.playExplosion();
@@ -179,10 +195,15 @@ export class CollisionSystem {
               gameManager.addScore(drone.scoreValue);
               gameManager.addScrap(30);
               gameManager.achievementSystem.recordDroneKill();
-              player.onKillHeal();
+              if (player.shipClass === 'REAPER' || laser.isSiphon) {
+                player.healShield(8);
+              }
+              if (player.shipClass === 'TACTICIAN') {
+                player.pulseCooldown = Math.max(0, player.pulseCooldown - 0.6);
+              }
             }
 
-            if (!gameManager.activePerks.has('piercing')) {
+            if (!gameManager.activePerks.has('piercing') && !laser.isAoe) {
               hit = true;
               laser.destroy();
               gameManager.lasers.splice(i, 1);
@@ -584,10 +605,12 @@ export class CollisionSystem {
     gameManager.asteroids.forEach(rock => {
       if (rock && !rock.isDead && rock.meshGroup && pPos.distanceTo(rock.meshGroup.position) < player.radius + rock.radius) {
         rock.isDead = true;
-        const dead = player.takeDamage(25);
-        this.particleManager.createExplosion(pPos, 0xff0055, 30);
+        const isDread = player.shipClass === 'DREADNOUGHT';
+        const dmgTaken = isDread ? 6 : 25;
+        const dead = player.takeDamage(dmgTaken);
+        this.particleManager.createExplosion(pPos, isDread ? 0xff5500 : 0xff0055, isDread ? 45 : 30, isDread ? 2.0 : 1.0);
         this.spaceAudio.playExplosion();
-        this.spaceScene.addScreenShake(1.2);
+        this.spaceScene.addScreenShake(isDread ? 0.7 : 1.2);
         if (dead) gameManager.onGameOver('Collision with Asteroid');
       }
     });
@@ -595,10 +618,12 @@ export class CollisionSystem {
     gameManager.drones.forEach(drone => {
       if (drone && !drone.isDead && drone.meshGroup && pPos.distanceTo(drone.meshGroup.position) < player.radius + drone.radius) {
         drone.isDead = true;
-        const dead = player.takeDamage(35);
-        this.particleManager.createExplosion(pPos, 0xff0055, 35);
+        const isDread = player.shipClass === 'DREADNOUGHT';
+        const dmgTaken = isDread ? 8 : 35;
+        const dead = player.takeDamage(dmgTaken);
+        this.particleManager.createExplosion(pPos, isDread ? 0xff3300 : 0xff0055, isDread ? 45 : 35, isDread ? 2.0 : 1.0);
         this.spaceAudio.playExplosion();
-        this.spaceScene.addScreenShake(1.5);
+        this.spaceScene.addScreenShake(isDread ? 0.8 : 1.5);
         if (dead) gameManager.onGameOver('Collision with Enemy Drone');
       }
     });
@@ -606,7 +631,9 @@ export class CollisionSystem {
     gameManager.capitalShips.forEach(ship => {
       if (ship && !ship.isDead && ship.meshGroup && pPos.distanceTo(ship.meshGroup.position) < player.radius + ship.radius) {
         ship.isDead = true;
-        const dead = player.takeDamage(50);
+        const isDread = player.shipClass === 'DREADNOUGHT';
+        const dmgTaken = isDread ? 15 : 50;
+        const dead = player.takeDamage(dmgTaken);
         this.particleManager.createExplosion(pPos, 0x00aaff, 45);
         this.spaceAudio.playExplosion();
         this.spaceScene.addScreenShake(2.0);
