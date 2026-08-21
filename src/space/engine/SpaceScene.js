@@ -25,6 +25,8 @@ export class SpaceScene {
     this.killCamTimer = 0;
     this.killCamDuration = 2.4;
     this.killCamTarget = new THREE.Vector3();
+    this.planetCinematicTimer = 0;
+    this.planetCinematicDuration = 5.4;
     this.setCameraMode('isometric');
     this.camera.position.copy(this.targetCameraPos);
     this.camera.lookAt(this.targetLookAt);
@@ -278,7 +280,13 @@ export class SpaceScene {
 
   triggerPlanetVaporization(moonBasePos, particleManager) {
     if (!this.targetPlanet) return;
-    this.bossIntroTimer = 3.5;
+    this.planetCinematicTimer = 5.2;
+    this.planetCinematicDuration = 5.2;
+
+    // Trigger HUD Cinematic Banner & Letterbox
+    if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+      window.spaceGameManager.spaceHUD.showKillCam("CATACLYSM: PLANET ANNIHILATION", "ALPHA IV OBLITERATED BY SUPERLASER", 5.0);
+    }
 
     // Trigger mobile haptic vibration charge pattern
     if (window.spaceGameManager && window.spaceGameManager.spaceAudio) {
@@ -289,12 +297,13 @@ export class SpaceScene {
     const endPos = this.targetPlanet.position.clone();
     const distance = startPos.distanceTo(endPos);
 
-    const beamGeo = new THREE.CylinderGeometry(2.5, 4.0, distance, 16);
+    // Initial Superlaser charging beam
+    const beamGeo = new THREE.CylinderGeometry(3.5, 5.0, distance, 16);
     beamGeo.rotateX(Math.PI / 2);
     const beamMat = new THREE.MeshBasicMaterial({
       color: 0x00ff66,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
     const superBeam = new THREE.Mesh(beamGeo, beamMat);
@@ -302,25 +311,32 @@ export class SpaceScene {
     superBeam.lookAt(endPos);
     this.scene.add(superBeam);
 
-    this.addScreenShake(1.5);
+    this.addScreenShake(1.8);
 
+    // Planet impact & mantle rupture phase (at 1.4s)
     setTimeout(() => {
-      // Trigger heavy mobile haptic vibration impact
       if (window.spaceGameManager && window.spaceGameManager.spaceAudio) {
         window.spaceGameManager.spaceAudio.vibrateSuperlaserImpact();
+        window.spaceGameManager.spaceAudio.playExplosion();
       }
 
       if (this.targetPlanet) {
+        // Red glowing magma rupture across continents
+        if (this.targetPlanet.material) {
+          this.targetPlanet.material.emissive.setHex(0xff3300);
+          this.targetPlanet.material.emissiveIntensity = 3.0;
+        }
         this.addScreenShake(4.5);
         if (particleManager) {
-          particleManager.createExplosion(endPos, 0x00f3ff, 250, 4.5);
-          particleManager.createExplosion(endPos, 0xff0055, 200, 3.5);
-          particleManager.createExplosion(endPos, 0xffea00, 150, 3.0);
-          particleManager.createEmpShockwave(endPos, 140);
+          particleManager.createExplosion(endPos, 0x00ff66, 250, 5.0);
+          particleManager.createExplosion(endPos, 0xff0044, 220, 4.0);
+          particleManager.createExplosion(endPos, 0xffea00, 180, 3.5);
+          particleManager.createEmpShockwave(endPos, 160);
         }
       }
-    }, 900);
+    }, 1400);
 
+    // Planet disintegration into burning asteroid shrapnel (at 2.2s)
     setTimeout(() => {
       if (superBeam) this.scene.remove(superBeam);
 
@@ -328,21 +344,23 @@ export class SpaceScene {
         this.targetPlanet.visible = false;
 
         const debrisGroup = new THREE.Group();
-        const debrisGeo = new THREE.DodecahedronGeometry(4, 1);
+        const debrisGeo = new THREE.DodecahedronGeometry(4.5, 1);
         const debrisMat = new THREE.MeshStandardMaterial({
-          color: 0xff4400,
+          color: 0xff3300,
           emissive: 0xff2200,
-          roughness: 0.8
+          emissiveIntensity: 0.8,
+          roughness: 0.7,
+          metalness: 0.5
         });
 
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 28; i++) {
           const chunk = new THREE.Mesh(debrisGeo, debrisMat);
           chunk.position.copy(endPos).add(new THREE.Vector3(
-            (Math.random() - 0.5) * 80,
-            (Math.random() - 0.5) * 60,
-            (Math.random() - 0.5) * 80
+            (Math.random() - 0.5) * 100,
+            (Math.random() - 0.5) * 70,
+            (Math.random() - 0.5) * 100
           ));
-          chunk.scale.setScalar(0.5 + Math.random() * 1.5);
+          chunk.scale.setScalar(0.6 + Math.random() * 1.8);
           debrisGroup.add(chunk);
         }
         this.scene.add(debrisGroup);
@@ -350,15 +368,15 @@ export class SpaceScene {
         let t = 0;
         const interval = setInterval(() => {
           t += 0.05;
-          debrisGroup.position.z += 1.8;
-          debrisGroup.rotation.y += 0.02;
-          if (t >= 5.0) {
+          debrisGroup.position.z += 2.4;
+          debrisGroup.rotation.y += 0.025;
+          if (t >= 6.0) {
             clearInterval(interval);
             this.scene.remove(debrisGroup);
           }
         }, 30);
       }
-    }, 1400);
+    }, 2200);
   }
 
   triggerBossIntroCamera() {
@@ -432,7 +450,47 @@ export class SpaceScene {
       this.bossIntroTimer -= dt;
     }
 
-    if (this.killCamTimer > 0) {
+    if (this.planetCinematicTimer > 0) {
+      this.planetCinematicTimer -= dt;
+      const progress = Math.max(0, 1.0 - (this.planetCinematicTimer / this.planetCinematicDuration));
+
+      if (progress < 0.28) {
+        // Stage 1: Extreme dramatic close-up on the Moon Base Superlaser Dish as energy charges
+        const p1 = progress / 0.28;
+        this.targetCameraPos.set(-18 + p1 * 3, 14, -30 + p1 * 5);
+        this.targetLookAt.set(-5.25, 7.5, -55);
+      } else if (progress < 0.60) {
+        // Stage 2: Lateral tracking shot along the cosmic emerald beam path
+        const p2 = (progress - 0.28) / 0.32;
+        this.targetCameraPos.set(
+          THREE.MathUtils.lerp(-15, 28, p2),
+          THREE.MathUtils.lerp(14, 38, p2),
+          THREE.MathUtils.lerp(-25, -180, p2)
+        );
+        this.targetLookAt.set(
+          THREE.MathUtils.lerp(-5.25, 50, p2),
+          THREE.MathUtils.lerp(7.5, 30, p2),
+          THREE.MathUtils.lerp(-55, -320, p2)
+        );
+      } else if (progress < 0.88) {
+        // Stage 3: Direct framing of Planet Alpha IV cracking and detonating into burning shrapnel
+        const p3 = (progress - 0.60) / 0.28;
+        const camAngle = p3 * Math.PI * 0.25;
+        this.targetCameraPos.set(
+          50 + Math.sin(camAngle) * 65,
+          30 + 15 + Math.cos(camAngle) * 10,
+          -320 + 85
+        );
+        this.targetLookAt.set(50, 30, -320);
+      } else {
+        // Stage 4: Smooth swoop back to behind player craft
+        const p4 = (progress - 0.88) / 0.12;
+        const targetP = pPos ? new THREE.Vector3(pPos.x * 0.65, 13.0 + pPos.y * 0.45, pPos.z + 24.0) : new THREE.Vector3(0, 14, 24);
+        const targetL = pPos ? new THREE.Vector3(pPos.x * 0.55, -1.0 + pPos.y * 0.35, -15.0) : new THREE.Vector3(0, -1, -15);
+        this.targetCameraPos.lerp(targetP, p4);
+        this.targetLookAt.lerp(targetL, p4);
+      }
+    } else if (this.killCamTimer > 0) {
       this.killCamTimer -= dt;
       // Cinematic Kill-Cam: Slow orbital sweep around the exploding boss wreck
       const progress = Math.max(0, 1.0 - (this.killCamTimer / this.killCamDuration));
@@ -492,7 +550,7 @@ export class SpaceScene {
     }
 
     // Smooth camera position lerp
-    const lerpSpeed = (this.killCamTimer > 0) ? 0.14 : (bossActive ? 0.12 : 0.08);
+    const lerpSpeed = (this.planetCinematicTimer > 0) ? 0.16 : ((this.killCamTimer > 0) ? 0.14 : (bossActive ? 0.12 : 0.08));
     this.camera.position.lerp(this.targetCameraPos, lerpSpeed);
 
     // Smooth lookAt target lerp
@@ -500,9 +558,12 @@ export class SpaceScene {
     this.camera.lookAt(this.currentCamLookAt);
 
     // Dynamic camera roll/tilt when banking during dogfights
-    if (this.cameraMode !== 'topdown' && this.killCamTimer <= 0) {
+    if (this.cameraMode !== 'topdown' && this.killCamTimer <= 0 && this.planetCinematicTimer <= 0) {
       const targetRoll = -pVel.x * (bossActive ? 0.035 : 0.02);
       this.camera.rotation.z += (targetRoll - this.camera.rotation.z) * 0.12;
+    } else if (this.planetCinematicTimer > 0) {
+      const progress = 1.0 - (this.planetCinematicTimer / this.planetCinematicDuration);
+      this.camera.rotation.z = Math.sin(progress * Math.PI * 2.0) * 0.05;
     } else if (this.killCamTimer > 0) {
       const progress = 1.0 - (this.killCamTimer / this.killCamDuration);
       this.camera.rotation.z = Math.sin(progress * Math.PI) * 0.08;
