@@ -336,7 +336,7 @@ html, body {
 /* Achievement Toast Notification */
 .achievement-toast {
   position: absolute;
-  top: 90px;
+  bottom: 74px;
   right: 20px;
   background: rgba(15, 20, 32, 0.9);
   border: 1px solid var(--accent-yellow);
@@ -407,72 +407,6 @@ html, body {
   font-weight: 700;
   letter-spacing: 3px;
   color: var(--accent-yellow);
-}
-
-/* Cinematic Kill-Cam Letterbox & FX */
-.killcam-bar {
-  position: fixed;
-  left: 0;
-  width: 100vw;
-  height: 11vh;
-  background: rgba(3, 7, 14, 0.96);
-  z-index: 999;
-  pointer-events: none;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-}
-.killcam-top {
-  top: 0;
-  border-bottom: 2px solid rgba(0, 243, 255, 0.5);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.85);
-}
-.killcam-bottom {
-  bottom: 0;
-  border-top: 2px solid rgba(0, 243, 255, 0.5);
-  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.85);
-}
-.killcam-banner {
-  position: fixed;
-  top: 14%;
-  left: 50%;
-  transform: translateX(-50%);
-  text-align: center;
-  z-index: 1000;
-  pointer-events: none;
-  animation: killcamBannerPulse 2.4s ease forwards;
-}
-@keyframes killcamBannerPulse {
-  0% { opacity: 0; transform: translateX(-50%) scale(0.85); filter: blur(4px); }
-  15% { opacity: 1; transform: translateX(-50%) scale(1.04); filter: blur(0px); }
-  80% { opacity: 1; transform: translateX(-50%) scale(1.0); }
-  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
-}
-.killcam-badge {
-  display: inline-block;
-  padding: 0.3rem 0.8rem;
-  background: rgba(255, 0, 85, 0.25);
-  border: 1px solid #ff0055;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 3px;
-  color: #ff0055;
-  text-shadow: 0 0 10px rgba(255, 0, 85, 0.8);
-  margin-bottom: 0.4rem;
-}
-.killcam-title {
-  font-size: 2.2rem;
-  font-weight: 900;
-  letter-spacing: 5px;
-  background: linear-gradient(90deg, #ffea00, #ff0055, #00f3ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 30px rgba(255, 234, 0, 0.6);
-}
-.killcam-sub {
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: #00f3ff;
 }
 
 /* Mobile Controls Layer - Pinned to bottom of play area */
@@ -1188,10 +1122,10 @@ html, body {
   }
 }
 
-/* Radio Transmission Comms Box */
+/* Radio Transmission Comms Box - Docked at Bottom Left */
 .comms-panel {
   position: absolute;
-  top: 90px;
+  bottom: 74px;
   left: 20px;
   max-width: 380px;
   padding: 12px 16px;
@@ -1230,10 +1164,10 @@ html, body {
   font-weight: 500;
 }
 
-/* Homing Missile Lock-On Warning Banner - Sleek Top Docked Alert */
+/* Homing Missile Lock-On Warning Banner - Docked Above Bottom HUD */
 .lockon-warning-banner {
   position: absolute;
-  top: 54px;
+  bottom: 74px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1275,10 +1209,10 @@ html, body {
   to { transform: translateX(0); opacity: 1; }
 }
 
-/* ==================== ULTRA-COMPACT SINGLE-LINE HUD TOP BAR ==================== */
-.hud-top-bar {
+/* ==================== ULTRA-COMPACT SINGLE-LINE HUD BOTTOM COMMAND BAR ==================== */
+.hud-bottom-bar {
   position: absolute;
-  top: 10px;
+  bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
   width: 96%;
@@ -1288,9 +1222,10 @@ html, body {
   justify-content: space-between;
   gap: 8px;
   z-index: 30;
+  padding-bottom: max(0px, env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
-.hud-top-bar > * {
+.hud-bottom-bar > * {
   pointer-events: auto;
 }
 
@@ -1331,7 +1266,7 @@ html, body {
 
 .boss-hp-panel {
   position: absolute;
-  top: 55px;
+  bottom: 66px;
   left: 50%;
   transform: translateX(-50%);
   max-width: 480px;
@@ -1380,16 +1315,16 @@ html, body {
   color: var(--text-muted);
 }
 
-.hud-top-actions {
+.hud-bottom-actions {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-/* Mobile Screens Ultra-Compact Single-Line Header (max-width: 640px) */
+/* Mobile Screens Ultra-Compact Bottom Layout (max-width: 640px) */
 @media (max-width: 640px) {
-  .hud-top-bar {
-    top: 6px;
+  .hud-bottom-bar {
+    bottom: 6px;
     padding: 0 4px;
     gap: 4px;
   }
@@ -1424,7 +1359,7 @@ html, body {
   .scrap-display {
     font-size: 0.7rem;
   }
-  .hud-top-actions .icon-btn {
+  .hud-bottom-actions .icon-btn {
     width: 32px;
     height: 32px;
     font-size: 0.8rem;
@@ -1433,6 +1368,18 @@ html, body {
     font-size: 0.6rem;
     bottom: 80px;
     opacity: 0.5;
+  }
+  .lockon-warning-banner {
+    bottom: 62px;
+  }
+  .comms-panel {
+    bottom: 62px;
+    left: 8px;
+    max-width: 270px;
+    padding: 8px 12px;
+  }
+  .boss-hp-panel {
+    bottom: 58px;
   }
 }
 

@@ -539,19 +539,6 @@ export class SpaceScene {
         this.targetCameraPos.lerp(targetP, p4);
         this.targetLookAt.lerp(targetL, p4);
       }
-    } else if (this.killCamTimer > 0) {
-      this.killCamTimer -= dt;
-      // Cinematic Kill-Cam: Slow orbital sweep around the exploding boss wreck
-      const progress = Math.max(0, 1.0 - (this.killCamTimer / this.killCamDuration));
-      const orbitAngle = progress * Math.PI * 0.45;
-      const orbitDist = 26.0 - progress * 5.0;
-
-      this.targetCameraPos.set(
-        this.killCamTarget.x + Math.sin(orbitAngle) * orbitDist,
-        this.killCamTarget.y + 6.0 + Math.sin(progress * Math.PI) * 4.0,
-        this.killCamTarget.z + Math.cos(orbitAngle) * orbitDist + 8.0
-      );
-      this.targetLookAt.copy(this.killCamTarget);
     } else if (bossActive && pPos) {
       const bPos = activeBoss.meshGroup.position;
 
@@ -599,7 +586,7 @@ export class SpaceScene {
     }
 
     // Smooth camera position lerp
-    const lerpSpeed = (this.planetCinematicTimer > 0) ? 0.16 : ((this.killCamTimer > 0) ? 0.14 : (bossActive ? 0.12 : 0.08));
+    const lerpSpeed = (this.planetCinematicTimer > 0) ? 0.16 : (bossActive ? 0.12 : 0.08);
     this.camera.position.lerp(this.targetCameraPos, lerpSpeed);
 
     // Smooth lookAt target lerp
@@ -607,15 +594,12 @@ export class SpaceScene {
     this.camera.lookAt(this.currentCamLookAt);
 
     // Dynamic camera roll/tilt when banking during dogfights
-    if (this.cameraMode !== 'topdown' && this.killCamTimer <= 0 && this.planetCinematicTimer <= 0) {
+    if (this.cameraMode !== 'topdown' && this.planetCinematicTimer <= 0) {
       const targetRoll = -pVel.x * (bossActive ? 0.035 : 0.02);
       this.camera.rotation.z += (targetRoll - this.camera.rotation.z) * 0.12;
     } else if (this.planetCinematicTimer > 0) {
       const progress = 1.0 - (this.planetCinematicTimer / this.planetCinematicDuration);
       this.camera.rotation.z = Math.sin(progress * Math.PI * 2.0) * 0.05;
-    } else if (this.killCamTimer > 0) {
-      const progress = 1.0 - (this.killCamTimer / this.killCamDuration);
-      this.camera.rotation.z = Math.sin(progress * Math.PI) * 0.08;
     }
 
     // Screen Shake processing
