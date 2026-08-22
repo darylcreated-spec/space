@@ -544,10 +544,10 @@ export class CarrierCapitalShip {
         this.shieldMat.opacity = 0.85;
       }
       if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
-        window.spaceGameManager.spaceHUD.showRadioTransmission("WARNING: Mega Carrier Energy Shield Overcharged! Concentrate fire on flight decks!", "STARBOUND COMMAND", 5.5);
+        window.spaceGameManager.spaceHUD.showRadioTransmission("WARNING: Mega Spacecraft Carrier Energy Shield Overcharged! Concentrate fire on flight decks!", "STARBOUND COMMAND", 5.5);
       }
       if (window.spaceGameManager && window.spaceGameManager.voiceAnnouncer) {
-        window.spaceGameManager.voiceAnnouncer.speak("Warning! Heavy Carrier Shield Overcharged!", true);
+        window.spaceGameManager.voiceAnnouncer.speak("Warning! Heavy Spacecraft Carrier Shield Overcharged!", true);
       }
       if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
     }

@@ -298,9 +298,9 @@ export class GameManager {
 
   spawnCarrierBoss() {
     this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Alert! Heavy Enemy Aircraft Carrier Detected! Interceptors Launching!", true);
+    this.voiceAnnouncer.speak("Alert! Heavy Enemy Spacecraft Carrier Detected! Interceptors Launching!", true);
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("ALERT: Heavy Enemy Aircraft Carrier detected! Target its flight decks & missile pods!", "STARBOUND COMMAND", 5.5);
+      this.spaceHUD.showRadioTransmission("ALERT: Heavy Enemy Spacecraft Carrier detected! Target its flight decks & missile pods!", "STARBOUND COMMAND", 5.5);
     }
     if (this.spaceScene) {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
@@ -909,7 +909,7 @@ export class GameManager {
         waveNum: this.waveSpawner.currentWave,
         pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD,
         bossHpRatio: (this.activeBoss && !this.activeBoss.isDead) ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) : ((this.carrierBoss && !this.carrierBoss.isDead) ? Math.max(0, this.carrierBoss.coreHp / this.carrierBoss.maxCoreHp) : null),
-        bossTitle: (this.activeBoss && !this.activeBoss.isDead) ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : ((this.carrierBoss && !this.carrierBoss.isDead) ? "⚠️ ENEMY FIGHTER CARRIER CAPITAL SHIP ⚠️" : "⚠️ ENEMY TARGET ⚠️"),
+        bossTitle: (this.activeBoss && !this.activeBoss.isDead) ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : ((this.carrierBoss && !this.carrierBoss.isDead) ? "⚠️ ENEMY SPACECRAFT CARRIER CAPITAL SHIP ⚠️" : "⚠️ ENEMY TARGET ⚠️"),
         overchargeActive: this.overchargeTimer > 0,
         stasisActive: this.stasisTimer > 0
       });
