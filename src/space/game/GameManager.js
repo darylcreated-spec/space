@@ -292,6 +292,17 @@ export class GameManager {
 
   spawnAsteroid(options = {}) {
     options.particleManager = this.particleManager;
+
+    // When a capital ship or boss is active, divert asteroid spawn trajectories to the outer flanks
+    const capitalActive = (this.carrierBoss && !this.carrierBoss.isDead) || 
+                          (this.activeBoss && !this.activeBoss.isDead) || 
+                          (this.heavyBattleships && this.heavyBattleships.some(b => !b.isDead));
+    if (capitalActive && options.x === undefined) {
+      const side = Math.random() > 0.5 ? 1 : -1;
+      options.x = side * (30.0 + Math.random() * 16.0); // Outer corridor [-46, -30] or [30, 46]
+      options.vx = -side * (2.5 + Math.random() * 3.0); // Inward trajectory
+    }
+
     const rock = new Asteroid(this.spaceScene.scene, options);
     this.asteroids.push(rock);
   }

@@ -5,7 +5,7 @@ import { HomingMissile } from './HomingMissile.js';
  * High-Resolution 1024x1024 Procedural PBR Diffuse, Normal & Emissive Map Generator
  */
 function generateCarrierTextures() {
-  // 1. Diffuse / Albedo Map (Steel-Blue Alloy Armor with White Ceramic Insets & Hazard Markings)
+  // 1. Diffuse / Albedo Map (Steel-Blue Titanium Composite with White Ceramic Insets & Hazard Markings)
   const diffCanvas = document.createElement('canvas');
   diffCanvas.width = 1024; diffCanvas.height = 1024;
   const dCtx = diffCanvas.getContext('2d');
@@ -14,7 +14,7 @@ function generateCarrierTextures() {
   dCtx.fillStyle = '#223854';
   dCtx.fillRect(0, 0, 1024, 1024);
 
-  // Armored Plating Modular Tiles (Varied lightness for high visual fidelity)
+  // Armored Plating Modular Tiles
   for (let x = 0; x < 1024; x += 128) {
     for (let y = 0; y < 1024; y += 128) {
       const shade = ((x / 128 + y / 128) % 2 === 0) ? '#2b4466' : '#1e324a';
@@ -35,7 +35,7 @@ function generateCarrierTextures() {
     dCtx.fillRect(800, y, 160, 80);
   }
 
-  // Flight Deck Runway & Catapult Markings (Yellow & White Striping)
+  // Flight Deck Runway Markings
   dCtx.fillStyle = '#162233';
   dCtx.fillRect(360, 0, 304, 1024); // Central flight strip
 
@@ -58,7 +58,7 @@ function generateCarrierTextures() {
     dCtx.fill();
   }
 
-  // Gold Fleet Insignia & Registry Stencils
+  // Gold Fleet Registry Stencils
   dCtx.fillStyle = '#ffd700';
   dCtx.font = 'bold 36px monospace';
   dCtx.fillText('CV-99 HYPERION', 410, 480);
@@ -95,7 +95,7 @@ function generateCarrierTextures() {
   const normalMap = new THREE.CanvasTexture(normCanvas);
   normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
 
-  // 3. Emissive Map (Runway Lights, Core Conduits, Bridge Glow)
+  // 3. Emissive Map
   const emissCanvas = document.createElement('canvas');
   emissCanvas.width = 1024; emissCanvas.height = 1024;
   const eCtx = emissCanvas.getContext('2d');
@@ -137,7 +137,7 @@ export class CarrierCapitalShip {
     this.hasShieldTriggered = false;
     this.scoreValue = 95000;
     this.isDead = false;
-    this.hitRadius = 26.0;
+    this.hitRadius = 28.0;
 
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 8, -180);
@@ -158,26 +158,27 @@ export class CarrierCapitalShip {
     this.damagedEmitters = [];
     this.catapultDrones = [];
 
-    // ── 6 Articulated Heavy Dual-Railgun Turrets ──
+    // ── 6 Articulated Heavy Dual-Railgun Turrets (Arranged Port & Starboard) ──
     this.turrets = [
-      { id: 0, name: 'FWD PORT BATTERY', relPos: new THREE.Vector3(-14.0, 5.8, -18.0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 1, name: 'FWD STBD BATTERY', relPos: new THREE.Vector3(14.0, 5.8, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 2, name: 'MID PORT BATTERY', relPos: new THREE.Vector3(-16.5, 5.8, 0.0),    hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 3, name: 'MID STBD BATTERY', relPos: new THREE.Vector3(16.5, 5.8, 0.0),    hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 4, name: 'AFT PORT BATTERY', relPos: new THREE.Vector3(-14.0, 5.8, 18.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 5, name: 'AFT STBD BATTERY', relPos: new THREE.Vector3(14.0, 5.8, 18.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null }
+      { id: 0, name: 'FWD PORT BATTERY', relPos: new THREE.Vector3(-13.5, 5.8, 12.0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'FWD STBD BATTERY', relPos: new THREE.Vector3(13.5, 5.8, 12.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'MID PORT BATTERY', relPos: new THREE.Vector3(-15.5, 5.8, -4.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'MID STBD BATTERY', relPos: new THREE.Vector3(15.5, 5.8, -4.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'AFT PORT BATTERY', relPos: new THREE.Vector3(-13.5, 5.8, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'AFT STBD BATTERY', relPos: new THREE.Vector3(13.5, 5.8, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null }
     ];
 
     // ── Targetable Subsystems (Hangars & Missile Pods) ──
     this.subsystems = [
-      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-19.0, 0, 4.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
-      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(19.0, 0, 4.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
-      { id: 'missilePodLeft', name: 'PORT MISSILE POD', relPos: new THREE.Vector3(-13.5, 7.5, -6.0), hp: 950, maxHp: 950, isDead: false, mesh: null, reticle: null },
-      { id: 'missilePodRight', name: 'STARBOARD MISSILE POD', relPos: new THREE.Vector3(13.5, 7.5, -6.0), hp: 950, maxHp: 950, isDead: false, mesh: null, reticle: null }
+      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-18.5, 0, 2.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
+      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(18.5, 0, 2.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
+      { id: 'missilePodLeft', name: 'PORT MISSILE POD', relPos: new THREE.Vector3(-8.0, 7.5, 20.0), hp: 950, maxHp: 950, isDead: false, mesh: null, reticle: null },
+      { id: 'missilePodRight', name: 'STARBOARD MISSILE POD', relPos: new THREE.Vector3(8.0, 7.5, 20.0), hp: 950, maxHp: 950, isDead: false, mesh: null, reticle: null }
     ];
 
     this.runwayLights = [];
     this.thrusterPositions = [];
+    this.engineFlares = [];
     this.siegeCannons = [];
     this.reticleMeshes = [];
     this.navStrobes = [];
@@ -197,7 +198,7 @@ export class CarrierCapitalShip {
       metalness: 0.85,
       normalMap: normalMap,
       emissive: 0x0f2238,
-      emissiveIntensity: 0.4
+      emissiveIntensity: 0.45
     });
 
     this.armorPlateMat = new THREE.MeshStandardMaterial({
@@ -238,20 +239,16 @@ export class CarrierCapitalShip {
     keyLight.position.set(0, 18.0, 20.0);
     this.meshGroup.add(keyLight);
 
-    const deckLight = new THREE.PointLight(0x00f3ff, 3.0, 50);
-    deckLight.position.set(0, 10.0, 0);
+    const deckLight = new THREE.PointLight(0x00f3ff, 3.5, 60);
+    deckLight.position.set(0, 12.0, 0);
     this.meshGroup.add(deckLight);
 
-    const bridgeLight = new THREE.PointLight(0x00f3ff, 2.2, 35);
-    bridgeLight.position.set(9.5, 9.0, -6.0);
+    const bridgeLight = new THREE.PointLight(0x00f3ff, 2.8, 40);
+    bridgeLight.position.set(0, 14.0, -4.0);
     this.meshGroup.add(bridgeLight);
 
-    const prowLight = new THREE.PointLight(0xffbb00, 3.0, 40);
-    prowLight.position.set(0, 4.0, 28.0);
-    this.meshGroup.add(prowLight);
-
-    const engineLight = new THREE.PointLight(0x00f3ff, 4.0, 45);
-    engineLight.position.set(0, 0, -36.0);
+    const engineLight = new THREE.PointLight(0x00f3ff, 5.0, 60);
+    engineLight.position.set(0, 6.0, -38.0);
     this.meshGroup.add(engineLight);
 
     // ── 1. Sculpted Multi-Chine Hull (Aerodynamic Angular Supercarrier) ──
@@ -318,80 +315,146 @@ export class CarrierCapitalShip {
       }
     });
 
-    // ── 4. Stepped Command Island & Phased Radar Citadel ──
-    const islandGroup = new THREE.Group();
-    islandGroup.position.set(9.5, 6.4, -6.0); // Offset to starboard
+    // ── 4. RAISED CENTERLINE COMMAND BRIDGE (Between Gun Turrets) ──
+    const bridgeSpine = new THREE.Group();
+    bridgeSpine.position.set(0, 6.2, -4.0); // Exactly along the centerline spine
 
-    const islandBaseGeo = new THREE.BoxGeometry(5.2, 4.8, 16.0);
-    const islandBase = new THREE.Mesh(islandBaseGeo, this.armorPlateMat);
-    islandGroup.add(islandBase);
+    // Stepped Armored Citadel Base
+    const bridgeBaseGeo = new THREE.BoxGeometry(7.0, 5.5, 22.0);
+    const bridgeBase = new THREE.Mesh(bridgeBaseGeo, this.armorPlateMat);
+    bridgeBase.position.set(0, 1.5, 0);
+    bridgeSpine.add(bridgeBase);
 
-    // Multi-tier Observation Bridge Cupola
-    const bridgeGeo = new THREE.BoxGeometry(6.4, 2.4, 8.0);
-    const bridgeMat = new THREE.MeshStandardMaterial({
+    // Elevated Observation Bridge Tower & Panoramic Cupola Windows
+    const cupolaGeo = new THREE.BoxGeometry(9.0, 3.2, 10.0);
+    const cupolaMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
       emissive: 0x00f3ff,
-      emissiveIntensity: 2.2,
+      emissiveIntensity: 2.5,
       roughness: 0.1,
-      metalness: 0.9
+      metalness: 0.95
     });
-    const bridgeMesh = new THREE.Mesh(bridgeGeo, bridgeMat);
-    bridgeMesh.position.set(0, 2.8, 2.0);
-    islandGroup.add(bridgeMesh);
+    const cupola = new THREE.Mesh(cupolaGeo, cupolaMat);
+    cupola.position.set(0, 5.2, 2.0);
+    bridgeSpine.add(cupola);
 
-    // Rotating 3D Phased-Array Radome
-    const radomeGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.7, 16);
-    const radomeMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95, roughness: 0.15, emissive: 0x442c00 });
+    // Upper Commander Deck Glass
+    const upperDeckGeo = new THREE.BoxGeometry(6.5, 2.0, 6.0);
+    const upperDeck = new THREE.Mesh(upperDeckGeo, this.trimGoldMat);
+    upperDeck.position.set(0, 7.4, 1.0);
+    bridgeSpine.add(upperDeck);
+
+    // Rotating 3D Phased-Array Radome Dish
+    const radomeGeo = new THREE.CylinderGeometry(2.4, 2.4, 0.8, 16);
+    const radomeMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95, roughness: 0.15, emissive: 0x553e00 });
     this.radarDish = new THREE.Mesh(radomeGeo, radomeMat);
-    this.radarDish.position.set(0, 5.0, -4.0);
-    islandGroup.add(this.radarDish);
+    this.radarDish.position.set(0, 9.2, -3.0);
+    bridgeSpine.add(this.radarDish);
 
-    // Communications Spire Mast
-    const mastGeo = new THREE.CylinderGeometry(0.14, 0.28, 6.5, 6);
+    // Tactical High-Gain Communications Spire Mast
+    const mastGeo = new THREE.CylinderGeometry(0.18, 0.35, 9.0, 6);
     const mast = new THREE.Mesh(mastGeo, this.keelMat);
-    mast.position.set(0, 7.0, -4.0);
-    islandGroup.add(mast);
+    mast.position.set(0, 13.0, -3.0);
+    bridgeSpine.add(mast);
 
-    this.meshGroup.add(islandGroup);
+    this.meshGroup.add(bridgeSpine);
 
-    // ── 5. Armored Ventral Keel Spine & Heat Radiators ──
-    const keelGeo = new THREE.BoxGeometry(16.5, 6.8, 54.0);
-    const keelMesh = new THREE.Mesh(keelGeo, this.keelMat);
-    keelMesh.position.set(0, -6.5, -2.0);
-    this.meshGroup.add(keelMesh);
+    // ── 5. SWEPT DORSAL VERTICAL TAIL FIN ──
+    const tailGroup = new THREE.Group();
+    tailGroup.position.set(0, 7.0, -22.0);
 
-    // Ventral Trench Conduits (Molten Orange Heat Glow)
-    const conduitGeo = new THREE.BoxGeometry(2.2, 1.2, 38.0);
-    const conduitMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
-    [-5.5, 5.5].forEach(cx => {
-      const cond = new THREE.Mesh(conduitGeo, conduitMat);
-      cond.position.set(cx, -9.6, -2.0);
-      this.meshGroup.add(cond);
-    });
+    const tailShape = new THREE.Shape();
+    tailShape.moveTo(0, -12);      // Aft base
+    tailShape.lineTo(0, 8);        // Forward dorsal root
+    tailShape.lineTo(-6, 16);      // Swept top trailing edge
+    tailShape.lineTo(-12, 16);     // Top tip
+    tailShape.lineTo(-14, -12);    // Aft trailing root
+    tailShape.closePath();
 
-    // ── 6. Quad Ion Fusion Thruster Array ──
-    const engineBlockPositions = [
-      new THREE.Vector3(-9.0, 1.5, -34.5),
-      new THREE.Vector3(9.0, 1.5, -34.5),
-      new THREE.Vector3(-9.0, -3.5, -34.5),
-      new THREE.Vector3(9.0, -3.5, -34.5)
+    const tailExtrude = { depth: 1.6, bevelEnabled: true, bevelSize: 0.4, bevelThickness: 0.4 };
+    const tailGeo = new THREE.ExtrudeGeometry(tailShape, tailExtrude);
+    tailGeo.rotateY(Math.PI / 2);
+    tailGeo.center();
+
+    const tailMesh = new THREE.Mesh(tailGeo, this.armorPlateMat);
+    tailMesh.position.set(0, 7.0, 0);
+    tailGroup.add(tailMesh);
+
+    // Tail Fin Cyan Leading-Edge Neon Stencil
+    const tailEdgeGeo = new THREE.BoxGeometry(0.6, 14.0, 1.2);
+    tailEdgeGeo.rotateX(-0.4);
+    const tailEdgeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const tailEdge = new THREE.Mesh(tailEdgeGeo, tailEdgeMat);
+    tailEdge.position.set(0, 8.0, 4.5);
+    tailGroup.add(tailEdge);
+
+    // Top Tail Warning Strobe
+    const tailStrobeGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    const tailStrobeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const tailStrobe = new THREE.Mesh(tailStrobeGeo, tailStrobeMat);
+    tailStrobe.position.set(0, 15.0, -2.0);
+    tailGroup.add(tailStrobe);
+    this.navStrobes.push({ mesh: tailStrobe, color: 0xffffff });
+
+    this.meshGroup.add(tailGroup);
+
+    // ── 6. PROMINENT RAISED OUTBOARD ENGINE NACELLES (High Visibility) ──
+    const enginePylonPositions = [
+      { x: -14.5, y: 5.0, z: -30.0, angle: 0.25 },   // Port Upper Pylon
+      { x: 14.5,  y: 5.0, z: -30.0, angle: -0.25 },  // Starboard Upper Pylon
+      { x: -12.5, y: -2.0, z: -30.0, angle: 0.15 },  // Port Lower Pylon
+      { x: 12.5,  y: -2.0, z: -30.0, angle: -0.15 }  // Starboard Lower Pylon
     ];
 
-    engineBlockPositions.forEach(ep => {
-      const nacelleGeo = new THREE.CylinderGeometry(2.6, 3.0, 7.0, 12);
+    enginePylonPositions.forEach(ep => {
+      const nacelleGroup = new THREE.Group();
+      nacelleGroup.position.set(ep.x, ep.y, ep.z);
+
+      // Angled Aerodynamic Wing Pylon Mount
+      const pylonGeo = new THREE.BoxGeometry(5.0, 1.8, 14.0);
+      const pylon = new THREE.Mesh(pylonGeo, this.armorPlateMat);
+      pylon.rotation.z = ep.angle;
+      nacelleGroup.add(pylon);
+
+      // Massive Heavy Cowling Cylinder
+      const nacelleGeo = new THREE.CylinderGeometry(3.6, 4.4, 12.0, 16);
       nacelleGeo.rotateX(Math.PI / 2);
       const nacelle = new THREE.Mesh(nacelleGeo, this.keelMat);
-      nacelle.position.copy(ep);
-      this.meshGroup.add(nacelle);
+      nacelle.position.set(0, 0, -2.0);
+      nacelleGroup.add(nacelle);
 
-      // Glowing Turbine Core Ring
-      const ringGeo = new THREE.TorusGeometry(2.2, 0.45, 8, 16);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.set(ep.x, ep.y, ep.z - 3.4);
-      this.meshGroup.add(ring);
+      // Glowing Turbine Core Nozzle Bell
+      const bellGeo = new THREE.CylinderGeometry(3.2, 4.0, 3.0, 16, 1, true);
+      bellGeo.rotateX(Math.PI / 2);
+      const bellMat = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        emissive: 0x00f3ff,
+        emissiveIntensity: 3.5,
+        roughness: 0.1,
+        metalness: 0.95
+      });
+      const bell = new THREE.Mesh(bellGeo, bellMat);
+      bell.position.set(0, 0, -7.5);
+      nacelleGroup.add(bell);
 
-      this.thrusterPositions.push(new THREE.Vector3(ep.x, ep.y, ep.z - 4.0));
+      // Internal Intense Plasma Flame Cone
+      const flareGeo = new THREE.ConeGeometry(2.8, 8.0, 16);
+      flareGeo.rotateX(-Math.PI / 2);
+      const flareMat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending
+      });
+      const flare = new THREE.Mesh(flareGeo, flareMat);
+      flare.position.set(0, 0, -11.0);
+      nacelleGroup.add(flare);
+      this.engineFlares.push(flare);
+
+      this.meshGroup.add(nacelleGroup);
+
+      // Particle emitter world coordinate tracker
+      this.thrusterPositions.push(new THREE.Vector3(ep.x, ep.y, ep.z - 11.0));
     });
 
     // ── 7. Build 6 Articulated Dual-Railgun Turrets ──
@@ -559,6 +622,12 @@ export class CarrierCapitalShip {
     // Reticle Rotations
     this.reticleMeshes.forEach(r => {
       if (r && r.visible) r.rotation.z += 1.8 * dt;
+    });
+
+    // Engine Flame Pulse Animation
+    this.engineFlares.forEach((fl, idx) => {
+      const pulse = 1.0 + Math.sin(this._time * 18.0 + idx * 1.5) * 0.35;
+      fl.scale.set(pulse, pulse, 1.0 + pulse * 0.5);
     });
 
     // Sequenced Runway Approach Lights Animation (Wave flow along deck)

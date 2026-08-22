@@ -89,6 +89,24 @@ export class CollisionSystem {
       const lPos = laser.meshGroup.position;
 
       if (laser.isEnemy) {
+        // Enemy plasma vs Asteroids (Crossfire destructible environment)
+        let hitAsteroid = false;
+        for (let j = gameManager.asteroids.length - 1; j >= 0; j--) {
+          const rock = gameManager.asteroids[j];
+          if (!rock || !rock.meshGroup || rock.isDead) continue;
+          const rDist = lPos.distanceTo(rock.meshGroup.position);
+          if (rDist < (rock.radius || 3.0) + laser.radius) {
+            laser.destroy();
+            gameManager.lasers.splice(i, 1);
+            hitAsteroid = true;
+            const dead = rock.takeDamage(laser.damage || 25);
+            this.particleManager.createExplosion(lPos, 0xff5500, 18, 1.4);
+            this.spaceAudio.playExplosion();
+            break;
+          }
+        }
+        if (hitAsteroid) continue;
+
         // Enemy plasma vs Player
         const distP = lPos.distanceTo(pPos);
         if (distP < player.radius + laser.radius) {
@@ -785,7 +803,7 @@ export class CollisionSystem {
       }
     });
 
-    // Asteroids vs Enemy Drones & Capital Ships (Kinetic Debris Physics)
+    // Asteroids vs Enemy Drones, Capital Ships & Carrier (Kinetic Debris & Ricochet Bounce Physics)
     for (let i = gameManager.asteroids.length - 1; i >= 0; i--) {
       const rock = gameManager.asteroids[i];
       if (!rock || !rock.meshGroup || rock.isDead) continue;
@@ -813,22 +831,53 @@ export class CollisionSystem {
 
       if (rock.isDead) continue;
 
-      // Check vs Capital Ships
-      for (let j = gameManager.capitalShips.length - 1; j >= 0; j--) {
-        const ship = gameManager.capitalShips[j];
-        if (!ship || !ship.meshGroup || ship.isDead) continue;
+      // Check Asteroid vs Carrier / Megaboss / Heavy Battleships (Realistic Hull Bounce & Ricochet Physics)
+      const bigCapitals = [
+        gameManager.carrierBoss,
+        gameManager.activeBoss,
+        ...(gameManager.heavyBattleships || []),
+        ...(gameManager.capitalShips || [])
+      ].filter(c => c && !c.isDead && c.meshGroup);
 
-        const dist = rock.meshGroup.position.distanceTo(ship.meshGroup.position);
-        if (dist < rock.radius + ship.radius) {
-          rock.isDead = true;
-          const dead = ship.takeDamage(100);
-          this.particleManager.createExplosion(rock.meshGroup.position, 0xffaa00, 25);
+      for (const cap of bigCapitals) {
+        const cPos = cap.meshGroup.position;
+        const hitR = cap.hitRadius || cap.radius || 28.0;
+        const dist = rock.meshGroup.position.distanceTo(cPos);
+
+        if (dist < rock.radius + hitR) {
+          // Calculate surface collision normal vector
+          const norm = new THREE.Vector3().subVectors(rock.meshGroup.position, cPos);
+          if (norm.lengthSq() > 0.001) norm.normalize();
+          else norm.set(0, 1, 0);
+
+          // Push asteroid outside hull penetration boundary immediately
+          const overlap = (rock.radius + hitR) - dist;
+          rock.meshGroup.position.addScaledVector(norm, overlap + 1.2);
+
+          // Realistic Elastic Ricochet Reflection
+          if (rock.velocity) {
+            rock.velocity.reflect(norm);
+            const bounceSpeed = Math.max(16.0, rock.velocity.length() * 1.35);
+            rock.velocity.normalize().multiplyScalar(bounceSpeed);
+          }
+
+          // Add heavy rotational tumbling spin impulse
+          if (rock.rotVelocity) {
+            rock.rotVelocity.set(
+              (Math.random() - 0.5) * 8.0,
+              (Math.random() - 0.5) * 8.0,
+              (Math.random() - 0.5) * 8.0
+            );
+          }
+
+          // Asteroid takes kinetic impact damage
+          const dead = rock.takeDamage(25);
+          this.particleManager.createLaserImpact(rock.meshGroup.position, norm, 0xffbb00, 20);
           this.spaceAudio.playExplosion();
+          this.spaceScene.addScreenShake(0.5);
+
           if (dead) {
-            gameManager.addScore(ship.scoreValue);
-            gameManager.addScrap(80);
-            gameManager.achievementSystem.recordDroneKill();
-            if (player && player.onKillHeal) player.onKillHeal();
+            this.particleManager.createExplosion(rock.meshGroup.position, 0xff6600, 40, 2.0);
           }
           break;
         }
