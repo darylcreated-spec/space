@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class EnemyDrone {
   constructor(scene, options = {}) {
@@ -28,7 +28,7 @@ export class EnemyDrone {
   }
 
   buildDroneMesh() {
-    // ── 1. Main body — aggressive saucer/crescent shape ──
+    // â”€â”€ 1. Main body â€” aggressive saucer/crescent shape â”€â”€
     const bodyGeo = new THREE.CylinderGeometry(1.2, 0.6, 0.6, 8, 1);
     bodyGeo.rotateX(Math.PI / 2);
     const bodyMat = new THREE.MeshStandardMaterial({
@@ -41,7 +41,7 @@ export class EnemyDrone {
     this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
     this.meshGroup.add(this.bodyMesh);
 
-    // ── 2. Forward nose spike ──
+    // â”€â”€ 2. Forward nose spike â”€â”€
     const noseGeo = new THREE.ConeGeometry(0.32, 2.5, 7);
     noseGeo.rotateX(-Math.PI / 2);
     const noseMat = new THREE.MeshStandardMaterial({ color: 0x0e0014, metalness: 0.99, roughness: 0.05 });
@@ -49,7 +49,7 @@ export class EnemyDrone {
     nose.position.z = -1.5;
     this.meshGroup.add(nose);
 
-    // ── 3. Glowing Red Eye Sensor Array ──
+    // â”€â”€ 3. Glowing Red Eye Sensor Array â”€â”€
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
     const eyeGlow = new THREE.MeshBasicMaterial({ color: 0xff0066, transparent: true, opacity: 0.4 });
 
@@ -75,7 +75,7 @@ export class EnemyDrone {
     this.eyeLight.position.set(0, 0.1, -1.8);
     this.meshGroup.add(this.eyeLight);
 
-    // ── 4. Swept crescent wings — sharp and aggressive ──
+    // â”€â”€ 4. Swept crescent wings â€” sharp and aggressive â”€â”€
     const wingMat = new THREE.MeshStandardMaterial({ color: 0x280836, metalness: 0.88, roughness: 0.15 });
     const accentMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
 
@@ -107,7 +107,7 @@ export class EnemyDrone {
       this.meshGroup.add(muzzle);
     });
 
-    // ── 5. Rear thrusters ──
+    // â”€â”€ 5. Rear thrusters â”€â”€
     const thrusterMat = new THREE.MeshBasicMaterial({ color: 0x8800ff });
     [-0.55, 0.55].forEach(x => {
       const tGeo = new THREE.ConeGeometry(0.2, 0.8, 8);
@@ -145,12 +145,12 @@ export class EnemyDrone {
   update(dt, playerPos) {
     this._time += dt;
 
-    // Dogfighting AI — steer toward player with a sinusoidal weave
+    // Dogfighting AI â€” steer toward player with a sinusoidal weave
     const steer = new THREE.Vector3().subVectors(playerPos, this.meshGroup.position);
     steer.z = 0;
     steer.normalize().multiplyScalar(6);
 
-    // Weaving maneuver — makes them harder to hit
+    // Weaving maneuver â€” makes them harder to hit
     const weave = Math.sin(this._time * 3.5 + this._wobbleOffset) * 3.0;
     steer.x += weave;
 

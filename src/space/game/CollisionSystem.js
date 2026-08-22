@@ -257,7 +257,89 @@ export class CollisionSystem {
 
         if (hit) continue;
 
-        // Player Lasers vs Boss (SpaceStation / HaloRingBoss / Babylon5Boss / BossDreadnought)
+        // Player Lasers vs Shadow-Wraith Stealth Fighters
+        if (gameManager.stealthFighters && gameManager.stealthFighters.length > 0) {
+          for (let sIdx = gameManager.stealthFighters.length - 1; sIdx >= 0; sIdx--) {
+            const fighter = gameManager.stealthFighters[sIdx];
+            if (!fighter || fighter.isDead || !fighter.meshGroup) continue;
+
+            if (lPos.distanceTo(fighter.meshGroup.position) < fighter.radius + laser.radius) {
+              const dead = fighter.takeDamage(laser.isCritical ? 75 : 25);
+              this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0xbf00ff);
+              if (dead) {
+                gameManager.addScore(fighter.scoreValue);
+                gameManager.addScrap(35);
+                gameManager.achievementSystem.recordDroneKill();
+                player.onKillHeal();
+              }
+              if (!gameManager.activePerks.has('piercing')) {
+                hit = true;
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                break;
+              }
+            }
+          }
+        }
+
+        if (hit) continue;
+
+        // Player Lasers vs Goliath Heavy Battleships
+        if (gameManager.heavyBattleships && gameManager.heavyBattleships.length > 0) {
+          for (const battleship of gameManager.heavyBattleships) {
+            if (battleship.isDead || !battleship.meshGroup) continue;
+
+            const distB = lPos.distanceTo(battleship.meshGroup.position);
+            if (distB < battleship.hitRadius) {
+              let dmg = laser.isCritical ? 75 : 25;
+              let hitSub = false;
+
+              // Check Triple-Railgun Turrets
+              if (battleship.turrets) {
+                for (const t of battleship.turrets) {
+                  if (!t.isDead && t.mesh && lPos.distanceTo(t.mesh.getWorldPosition(this._tempVec1)) < 4.5) {
+                    battleship.takeTurretDamage(t.id, dmg);
+                    hitSub = true;
+                    break;
+                  }
+                }
+              }
+
+              // Check Engine Nacelles
+              if (!hitSub && battleship.subsystems) {
+                for (const sub of battleship.subsystems) {
+                  if (!sub.isDead && sub.mesh && lPos.distanceTo(sub.mesh.getWorldPosition(this._tempVec1)) < 5.0) {
+                    battleship.takeSubsystemDamage(sub.id, dmg);
+                    hitSub = true;
+                    break;
+                  }
+                }
+              }
+
+              // Main Hull
+              if (!hitSub) {
+                const dead = battleship.takeDamage(dmg);
+                if (dead) {
+                  gameManager.addScore(battleship.scoreValue);
+                  gameManager.addScrap(450);
+                  gameManager.achievementSystem.recordBossKilled();
+                  player.onKillHeal();
+                }
+              }
+
+              if (!gameManager.activePerks.has('piercing')) {
+                hit = true;
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                break;
+              }
+            }
+          }
+        }
+
+        if (hit) continue;
+
+        // Player Lasers vs Boss (SpaceStation / CommandMothership / HaloRingBoss / Babylon5Boss / BossDreadnought)
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
           if (boss.isDead) continue;
@@ -267,7 +349,7 @@ export class CollisionSystem {
             if (!bPos) continue;
 
             const distB = lPos.distanceTo(bPos);
-            const bossHitRadius = boss.hitRadius || 32.0;
+            const bossHitRadius = boss.hitRadius || 42.0;
 
             laser.hitEntities = laser.hitEntities || new Set();
 
@@ -284,12 +366,40 @@ export class CollisionSystem {
               let hitRegistered = false;
               let dead = false;
 
-              // 1. Check Shield Generators (MoonBase)
-              if (boss.generators && Array.isArray(boss.generators)) {
+              // 1. Check Aegis Escort Frigates (CommandMothership)
+              if (boss.aegisFrigates && Array.isArray(boss.aegisFrigates)) {
+                for (const f of boss.aegisFrigates) {
+                  if (!f.isDead && f.mesh) {
+                    const fPos = f.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(fPos) < 5.0) {
+                      boss.takeAegisFrigateDamage(f.id, dmg);
+                      hitRegistered = true;
+                      break;
+                    }
+                  }
+                }
+              }
+
+              // 2. Check CIWS Point-Defense Turrets (CommandMothership)
+              if (!hitRegistered && boss.ciwsTurrets && Array.isArray(boss.ciwsTurrets)) {
+                for (const t of boss.ciwsTurrets) {
+                  if (!t.isDead && t.mesh) {
+                    const tPos = t.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(tPos) < 3.8) {
+                      boss.takeCiwsDamage(t.id, dmg);
+                      hitRegistered = true;
+                      break;
+                    }
+                  }
+                }
+              }
+
+              // 3. Check Shield Generators (MoonBase)
+              if (!hitRegistered && boss.generators && Array.isArray(boss.generators)) {
                 for (const g of boss.generators) {
                   if (!g.isDead && g.mesh) {
                     const gPos = g.mesh.getWorldPosition(this._tempVec1);
-                    if (lPos.distanceTo(gPos) < 4.5) {
+                    if (lPos.distanceTo(gPos) < 6.5) {
                       if (!laser.hitEntities.has(`gen_${g.id}`)) {
                         laser.hitEntities.add(`gen_${g.id}`);
                         boss.takeGeneratorDamage(g.id, dmg);
@@ -301,7 +411,7 @@ export class CollisionSystem {
                 }
               }
 
-              // 2. Check Turrets
+              // 4. Check Turrets (MoonBase)
               if (!hitRegistered && boss.turrets && Array.isArray(boss.turrets)) {
                 const livingTurrets = boss.turrets.filter(t => t && !t.isDead && t.mesh);
                 let hitTurret = null;
@@ -313,7 +423,7 @@ export class CollisionSystem {
                     if (td < closestDist) { closestDist = td; hitTurret = t; }
                   }
                 }
-                if (hitTurret && closestDist < 4.0) {
+                if (hitTurret && closestDist < 5.5) {
                   if (!laser.hitEntities.has(hitTurret.id)) {
                     laser.hitEntities.add(hitTurret.id);
                     boss.takeTurretDamage(hitTurret.id, dmg);
@@ -322,10 +432,10 @@ export class CollisionSystem {
                 }
               }
 
-              // 3. Check Thermal Exhaust Port Vulnerability (MoonBase)
+              // 5. Check Thermal Exhaust Port Vulnerability (MoonBase)
               if (!hitRegistered && boss.vulnMesh && !boss.hasShield) {
                 const vulnPos = boss.vulnMesh.getWorldPosition(this._tempVec1);
-                if (lPos.distanceTo(vulnPos) < 4.2) {
+                if (lPos.distanceTo(vulnPos) < 6.5) {
                   if (!laser.hitEntities.has('boss_exhaust_core')) {
                     laser.hitEntities.add('boss_exhaust_core');
                     dead = boss.takeCoreDamage(dmg, true); // 2.5x Critical damage!
@@ -335,7 +445,7 @@ export class CollisionSystem {
                 }
               }
 
-              // 4. Default Core Hit
+              // 6. Default Core Hit
               if (!hitRegistered) {
                 if (!laser.hitEntities.has('boss_core')) {
                   laser.hitEntities.add('boss_core');

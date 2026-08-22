@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
 // ============================================================
-// WAVE 1 BOSS — Star Wars Death Star Imperial Superweapon
+// WAVE 1 BOSS â€” Star Wars Death Star Imperial Superweapon
 // Full AAA overhaul: 30m sphere, superlaser beam, dramatic lighting,
 // animated trench glow, multi-phase attack patterns
 // ============================================================
 
-// ── Canvas Texture Generators ──
+// â”€â”€ Canvas Texture Generators â”€â”€
 function generateHullNormalMap() {
   const canvas = document.createElement('canvas');
   canvas.width = 512; canvas.height = 512;
@@ -29,7 +29,7 @@ function generateHullNormalMap() {
   return t;
 }
 
-// ── Shader definitions ──
+// â”€â”€ Shader definitions â”€â”€
 const PlasmaOrbShader = {
   uniforms: { uTime: { value: 0 }, uColor: { value: new THREE.Color(0x00ff44) } },
   vertexShader: `varying vec3 vNormal; varying vec2 vUv; varying vec3 vPosition;
@@ -94,7 +94,7 @@ export class MoonBase {
     this.isDead = false;
     this.hitRadius = 48.0;
 
-    // Phase system — changes attack pattern as HP drops
+    // Phase system â€” changes attack pattern as HP drops
     this.phase = 1;
     this.fireTimer = 0.55;
     this.superlasertimer = 0;
@@ -106,13 +106,13 @@ export class MoonBase {
     // Deflector shield state & generator configuration
     this.hasShield = true;
 
-    // ── Targetable Equatorial Shield Generator Hubs (Must destroy both to drop shields) ──
+    // â”€â”€ Targetable Equatorial Shield Generator Hubs (Must destroy both to drop shields) â”€â”€
     this.generators = [
       { id: 0, name: 'PORT SHIELD HUB', relPos: new THREE.Vector3(-30.0, 0, 16.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, coil: null, reticle: null },
       { id: 1, name: 'STBD SHIELD HUB', relPos: new THREE.Vector3(30.0, 0, 16.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, coil: null, reticle: null }
     ];
 
-    // ── 6 Targetable Heavy Defense CIWS Batteries ──
+    // â”€â”€ 6 Targetable Heavy Defense CIWS Batteries â”€â”€
     this.turrets = [
       { id: 0, name: 'NORTH-WEST BATTERY', relPos: new THREE.Vector3(-24.0, 14.0, 18.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
       { id: 1, name: 'NORTH-EAST BATTERY', relPos: new THREE.Vector3(24.0, 14.0, 18.0),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
@@ -134,7 +134,7 @@ export class MoonBase {
     const R = 36.0;
     const normalMap = generateHullNormalMap();
 
-    // ── 1. Dramatic 3-point lighting ──
+    // â”€â”€ 1. Dramatic 3-point lighting â”€â”€
     this.rimLight = new THREE.DirectionalLight(0xd0e8ff, 2.4);
     this.rimLight.position.set(60, 37.5, -45);
     this.scene.add(this.rimLight);
@@ -146,7 +146,7 @@ export class MoonBase {
     this.ambLight = new THREE.AmbientLight(0x050d14, 0.5);
     this.scene.add(this.ambLight);
 
-    // ── 2. Main PBR Cratered Lunar Sphere Hull ──
+    // â”€â”€ 2. Main PBR Cratered Lunar Sphere Hull â”€â”€
     const hullGeo = new THREE.SphereGeometry(R, 48, 40);
     const hullMat = new THREE.MeshStandardMaterial({
       color: 0x141e2c,
@@ -159,7 +159,7 @@ export class MoonBase {
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 3. Geodesic Bio-Dome Habitation Colonies with Internal Glowing Spire Cities ──
+    // â”€â”€ 3. Geodesic Bio-Dome Habitation Colonies with Internal Glowing Spire Cities â”€â”€
     const domePositions = [
       new THREE.Vector3(-10, 14, 11),
       new THREE.Vector3(10, 14, 11),
@@ -209,7 +209,7 @@ export class MoonBase {
       this.meshGroup.add(domeGroup);
     });
 
-    // ── 3B. 3D Procedural Lunar Craters on Surface ──
+    // â”€â”€ 3B. 3D Procedural Lunar Craters on Surface â”€â”€
     const craterCoords = [
       new THREE.Vector3(-14, 2, 16),
       new THREE.Vector3(12, -4, 17),
@@ -226,7 +226,7 @@ export class MoonBase {
       this.meshGroup.add(crater);
     });
 
-    // ── 4. Equatorial Industrial Trench & Power Conduit ──
+    // â”€â”€ 4. Equatorial Industrial Trench & Power Conduit â”€â”€
     const trenchGeo = new THREE.TorusGeometry(R + 0.3, 2.25, 12, 100);
     const trenchMat = new THREE.MeshStandardMaterial({
       color: 0x060c14, roughness: 0.9, metalness: 1.0, normalMap,
@@ -253,7 +253,7 @@ export class MoonBase {
       this.magLevNodes.push({ mesh: node, baseAngle: (i / 6) * Math.PI * 2, radius: R + 1.2 });
     }
 
-    // ── 5. Northern Superlaser Megastructure Cannon ──
+    // â”€â”€ 5. Northern Superlaser Megastructure Cannon â”€â”€
     const dishGroup = new THREE.Group();
     dishGroup.position.set(-8.5, 12.0, R - 2.5);
     dishGroup.rotation.y = -Math.PI / 10;
@@ -366,7 +366,7 @@ export class MoonBase {
     this.outerBeam.position.copy(this.laserBeam.position);
     this.meshGroup.add(this.outerBeam);
 
-    // ── 6. Outer Rotating Habitat Ring with Solar Pylons & Docking Struts ──
+    // â”€â”€ 6. Outer Rotating Habitat Ring with Solar Pylons & Docking Struts â”€â”€
     const habRingGroup = new THREE.Group();
     const habRingGeo = new THREE.TorusGeometry(R + 12.0, 1.3, 14, 80);
     const habRingMat = new THREE.MeshStandardMaterial({ color: 0x0c1626, roughness: 0.4, metalness: 0.95 });
@@ -423,7 +423,7 @@ export class MoonBase {
     this.habRingGroup = habRingGroup;
     this.meshGroup.add(habRingGroup);
 
-    // ── 7. Targetable Equatorial Shield Generator Hubs (Port & Starboard) ──
+    // â”€â”€ 7. Targetable Equatorial Shield Generator Hubs (Port & Starboard) â”€â”€
     const genBaseGeo = new THREE.BoxGeometry(3.5, 3.0, 4.0);
     const genBaseMat = new THREE.MeshStandardMaterial({ color: 0x0e1828, metalness: 0.95 });
     const coilGeo = new THREE.TorusGeometry(1.6, 0.35, 10, 24);
@@ -454,7 +454,7 @@ export class MoonBase {
       this.reticleMeshes.push(reticle);
     });
 
-    // ── 8. Hexagonal Deflector Shield Sphere ──
+    // â”€â”€ 8. Hexagonal Deflector Shield Sphere â”€â”€
     const shieldGeo = new THREE.IcosahedronGeometry(R + 4.5, 4);
     this.shieldShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
@@ -468,7 +468,7 @@ export class MoonBase {
     this.shieldRing = new THREE.Mesh(shieldGeo, this.shieldShaderMat);
     this.meshGroup.add(this.shieldRing);
 
-    // ── 9. Thermal Exhaust Reactor Core (Exposed on shield collapse) ──
+    // â”€â”€ 9. Thermal Exhaust Reactor Core (Exposed on shield collapse) â”€â”€
     const vulnGeo = new THREE.SphereGeometry(2.2, 16, 16);
     this.vulnMat = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.9 });
     this.vulnMesh = new THREE.Mesh(vulnGeo, this.vulnMat);
@@ -483,7 +483,7 @@ export class MoonBase {
     this.vulnRing.lookAt(new THREE.Vector3(0, 0, 1).add(this.vulnRelPos));
     this.meshGroup.add(this.vulnRing);
 
-    // ── 10. 4 Heavy Quad-Barrel Defense Batteries ──
+    // â”€â”€ 10. 4 Heavy Quad-Barrel Defense Batteries â”€â”€
     const tBaseGeo = new THREE.BoxGeometry(3.2, 1.5, 3.2);
     const tBaseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
     const tBarrelGeo = new THREE.CylinderGeometry(0.28, 0.38, 3.6, 9);
@@ -689,6 +689,7 @@ export class MoonBase {
 
   destroy() {
     this.isDead = true; // Ensure isDead is set before clearing timers
+    this.superlaserfiring = false;
     this.clearAllTimers();
     if (this.rimLight) this.scene.remove(this.rimLight);
     if (this.backLight) this.scene.remove(this.backLight);
@@ -709,7 +710,7 @@ export class MoonBase {
   }
 
   update(dt, playerPos) {
-    // If already dead, don't update anything — materials may be disposed
+    // If already dead, don't update anything â€” materials may be disposed
     if (this.isDead) return [];
 
     const arrived = this.meshGroup.position.z >= this.targetZ;
@@ -860,7 +861,7 @@ export class MoonBase {
       this.superlightBoss.intensity = 1.0 + Math.sin(time * 4) * 0.25 + this.phase * 0.2;
     }
 
-    // ── Superlaser beam attack (every 8s in phase 1, 5s in phase 2, 3.2s in phase 3) ──
+    // â”€â”€ Superlaser beam attack (every 8s in phase 1, 5s in phase 2, 3.2s in phase 3) â”€â”€
     const laserInterval = this.phase === 1 ? 8 : this.phase === 2 ? 5 : 3.2;
     this.superlasertimer += dt;
     if (this.superlasertimer >= laserInterval && arrived && !this.superlaserfiring) {
@@ -904,7 +905,7 @@ export class MoonBase {
     
     // Trigger HUD warning, audio alarm & ramping mobile haptics for incoming superlaser beam
     if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
-      window.spaceGameManager.spaceHUD.showLockOnWarning(true, '⚠️ SUPERLASER TARGETING YOU! DODGE NOW!');
+      window.spaceGameManager.spaceHUD.showLockOnWarning(true, 'âš ï¸ SUPERLASER TARGETING YOU! DODGE NOW!');
       if (window.spaceGameManager.spaceAudio) window.spaceGameManager.spaceAudio.playLockOnAlarm();
     }
     if (navigator.vibrate) {

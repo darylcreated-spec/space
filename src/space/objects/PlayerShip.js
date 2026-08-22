@@ -1,6 +1,6 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
-// ── Procedural PBR Hull Texture Generator ──
+// â”€â”€ Procedural PBR Hull Texture Generator â”€â”€
 let cachedHullTexture = null;
 function getProceduralHullTexture() {
   if (!cachedHullTexture) {
@@ -233,9 +233,9 @@ export class PlayerShip {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // 1. ⚡ INTERCEPTOR: "Vanguard Alpha" (Dynamic Canards & Ailerons)
-  // ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 1. âš¡ INTERCEPTOR: "Vanguard Alpha" (Dynamic Canards & Ailerons)
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   buildInterceptorMesh() {
     this.maxShield = 90;
     this.shield = 90;
@@ -381,9 +381,9 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLight);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // 2. 🛡️ DREADNOUGHT: "Titan Colossus" (Recoil Physics & Radiator Vents)
-  // ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 2. ðŸ›¡ï¸ DREADNOUGHT: "Titan Colossus" (Recoil Physics & Radiator Vents)
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   buildDreadnoughtMesh() {
     this.maxShield = 220;
     this.shield = 220;
@@ -506,9 +506,9 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLight);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // 3. 🌀 TACTICIAN: "Chronos Spec-Ops" (Dual Gyroscopic Gimbal Rings)
-  // ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 3. ðŸŒ€ TACTICIAN: "Chronos Spec-Ops" (Dual Gyroscopic Gimbal Rings)
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   buildTacticianMesh() {
     this.maxShield = 110;
     this.shield = 110;
@@ -611,9 +611,9 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLight);
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // 4. 💀 REAPER: "Void Phantom" (Variable-Geometry Wing Sweeping)
-  // ─────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 4. ðŸ’€ REAPER: "Void Phantom" (Variable-Geometry Wing Sweeping)
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   buildReaperMesh() {
     this.maxShield = 85;
     this.shield = 85;
@@ -825,7 +825,7 @@ export class PlayerShip {
       if (this.shieldMesh) this.shieldMesh.visible = false;
     }
 
-    // ── Mechanical Articulation Updates ──
+    // â”€â”€ Mechanical Articulation Updates â”€â”€
     // Interceptor Canards & Ailerons
     if (this.canardR && this.canardL) {
       const targetCanardPitch = inputDir.y * 0.45 + (this.isBoosting ? -0.2 : 0);
@@ -876,7 +876,7 @@ export class PlayerShip {
       }
     }
 
-    // ── Movement & Bounds ──
+    // â”€â”€ Movement & Bounds â”€â”€
     const bossActive = this.gameManager && this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead;
     const minX = bossActive ? -36 : this.bounds.minX;
     const maxX = bossActive ? 36 : this.bounds.maxX;
@@ -910,7 +910,7 @@ export class PlayerShip {
       this.meshGroup.rotation.x = this.currentPitch;
     }
 
-    // ── Active RCS Micro-Thruster Bursts ──
+    // â”€â”€ Active RCS Micro-Thruster Bursts â”€â”€
     const dX = inputDir.x - this.prevInput.x;
     const dY = inputDir.y - this.prevInput.y;
     this.prevInput.x = inputDir.x;
@@ -932,7 +932,7 @@ export class PlayerShip {
       });
     }
 
-    // ── Flame & Shock Diamond Dynamics ──
+    // â”€â”€ Flame & Shock Diamond Dynamics â”€â”€
     const flicker = 1.0 + Math.sin(this._time * 24) * 0.15;
     const thrustBoost = (this.isBoosting ? 2.5 : 1.0) * (1.0 + Math.abs(inputDir.x) * 0.3 + Math.abs(inputDir.y) * 0.3);
     this.flameMeshes.forEach(f => {

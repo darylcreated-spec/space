@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class PowerUp {
   constructor(scene, pos, type = 'OVERCHARGE') {

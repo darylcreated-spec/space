@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class HomingMissile {
   constructor(scene, startPos, targetPos) {
@@ -48,7 +48,7 @@ export class HomingMissile {
       return;
     }
 
-    // Check if player is dodging — if dodging, missile loses lock!
+    // Check if player is dodging â€” if dodging, missile loses lock!
     if (playerShip && playerShip.isDodging) {
       this.lockLost = true;
     }

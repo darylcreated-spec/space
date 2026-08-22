@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class CapitalShip {
   constructor(scene, particleManager) {
@@ -34,7 +34,7 @@ export class CapitalShip {
   }
 
   buildMesh() {
-    // ── 1. Arrowhead Cruiser Fuselage ──
+    // â”€â”€ 1. Arrowhead Cruiser Fuselage â”€â”€
     const hullGeo = new THREE.ConeGeometry(2.2, 7.0, 5);
     hullGeo.rotateX(Math.PI / 2);
     hullGeo.scale(1.2, 0.6, 1.0); // flat cruiser design
@@ -48,7 +48,7 @@ export class CapitalShip {
     const hull = new THREE.Mesh(hullGeo, this.hullMat);
     this.meshGroup.add(hull);
 
-    // ── 2. Top Bridge Citadel ──
+    // â”€â”€ 2. Top Bridge Citadel â”€â”€
     const bridgeGeo = new THREE.BoxGeometry(1.6, 0.8, 2.2);
     const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x0a0c16, metalness: 0.9, roughness: 0.3 });
     const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
@@ -62,7 +62,7 @@ export class CapitalShip {
     win.position.set(0, 0.7, -0.3);
     this.meshGroup.add(win);
 
-    // ── 3. Twin Glowing Engines ──
+    // â”€â”€ 3. Twin Glowing Engines â”€â”€
     const engineMat = new THREE.MeshStandardMaterial({ color: 0x05070e, metalness: 0.95 });
     const flareMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
     [-0.8, 0.8].forEach(x => {
@@ -84,7 +84,7 @@ export class CapitalShip {
     this.engineLight.position.set(0, 0, 4.0);
     this.meshGroup.add(this.engineLight);
 
-    // ── 4. Flank Turrets ──
+    // â”€â”€ 4. Flank Turrets â”€â”€
     const turretBaseGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.3, 8);
     const turretBaseMat = new THREE.MeshStandardMaterial({ color: 0x090b12, metalness: 0.9 });
     const barrelGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.4, 6);

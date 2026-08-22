@@ -12,6 +12,9 @@ import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
 import { PlayerSwarmMissile } from '../objects/PlayerSwarmMissile.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
 import { CarrierCapitalShip } from '../objects/CarrierCapitalShip.js';
+import { StealthFighter } from '../objects/StealthFighter.js';
+import { HeavyBattleship } from '../objects/HeavyBattleship.js';
+import { CommandMothership } from '../objects/CommandMothership.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -59,7 +62,9 @@ export class GameManager {
     this.playerShip.gameManager = this;
     this.asteroids = [];
     this.drones = [];
+    this.stealthFighters = [];
     this.capitalShips = [];
+    this.heavyBattleships = [];
     this.powerUps = [];
     this.lasers = [];
     this.plasmaPulses = [];
@@ -184,8 +189,14 @@ export class GameManager {
     this.drones.forEach(d => d.destroy());
     this.drones = [];
 
+    this.stealthFighters.forEach(s => s.destroy());
+    this.stealthFighters = [];
+
     this.capitalShips.forEach(c => c.destroy());
     this.capitalShips = [];
+
+    this.heavyBattleships.forEach(b => b.destroy());
+    this.heavyBattleships = [];
 
     this.powerUps.forEach(p => p.destroy());
     this.powerUps = [];
@@ -199,6 +210,11 @@ export class GameManager {
     if (this.activeBoss) {
       this.activeBoss.destroy();
       this.activeBoss = null;
+    }
+
+    if (this.carrierBoss) {
+      this.carrierBoss.destroy();
+      this.carrierBoss = null;
     }
 
     this.activeEmpPulse = null;
@@ -218,11 +234,23 @@ export class GameManager {
     });
     this.drones = [];
 
+    this.stealthFighters.forEach(s => {
+      if (s && s.meshGroup) this.particleManager.createExplosion(s.meshGroup.position, 0xaa00ff, 15);
+      try { s.destroy(); } catch(e) {}
+    });
+    this.stealthFighters = [];
+
     this.capitalShips.forEach(c => {
       if (c && c.meshGroup) this.particleManager.createExplosion(c.meshGroup.position, 0x00aaff, 20);
       try { c.destroy(); } catch(e) { /* already disposed */ }
     });
     this.capitalShips = [];
+
+    this.heavyBattleships.forEach(b => {
+      if (b && b.meshGroup) this.particleManager.createExplosion(b.meshGroup.position, 0xff0044, 30);
+      try { b.destroy(); } catch(e) {}
+    });
+    this.heavyBattleships = [];
 
     // Clear ALL in-flight projectiles (enemy lasers, plasma pulses) to prevent
     // stale references after boss death / wave transition
@@ -331,6 +359,41 @@ export class GameManager {
     this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Babylon 5 Industrial Rotating Citadel Approaching!", true);
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+  }
+
+  spawnStealthFighter(spawnPos = null) {
+    const fighter = new StealthFighter(this.spaceScene.scene, this.particleManager, spawnPos);
+    this.stealthFighters.push(fighter);
+    return fighter;
+  }
+
+  spawnHeavyBattleship() {
+    const battleship = new HeavyBattleship(this.spaceScene.scene, this.particleManager);
+    this.heavyBattleships.push(battleship);
+    this.voiceAnnouncer.speak("Warning! Goliath Heavy Dreadnought Battleship Entering Sector!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("WARNING: Goliath Heavy Battleship detected! Target its triple railgun turrets and engine nacelles!", "STARBOUND COMMAND", 5.5);
+      this.spaceHUD.showWaveBanner("BATTLEFLEET SIEGE", "GOLIATH HEAVY BATTLESHIP");
+    }
+    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+    return battleship;
+  }
+
+  spawnCommandMothership() {
+    this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Critical Threat! Leviathan Command Mothership Approaching! Destroy Aegis Escort Frigates!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("CRITICAL: Leviathan Extreme Command Mothership detected! Destroy the 4 tethered Aegis Shield-Frigates to breach its core barrier!", "STARBOUND COMMAND", 6.0);
+      this.spaceHUD.showWaveBanner("APEX COMMAND SIEGE", "LEVIATHAN COMMAND MOTHERSHIP");
+    }
+    if (this.spaceScene) {
+      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
+      this.spaceScene.triggerBossIntroCamera();
+    }
+  }
+
+  spawnEnemyLaser(origin, dir, color = 0xff0044, speed = 40) {
+    this.spawnLaser(origin, color, true, dir, speed);
   }
 
   spawnPowerUp(pos) {
@@ -724,6 +787,21 @@ export class GameManager {
       }
     }
 
+    // Update Shadow-Wraith Stealth Fighters
+    for (let i = 0; i < this.stealthFighters.length; i++) {
+      const fighter = this.stealthFighters[i];
+      if (!fighter || fighter.isDead || !fighter.meshGroup) continue;
+      fighter.update(effectiveDt, this.playerShip, this);
+    }
+
+    for (let i = this.stealthFighters.length - 1; i >= 0; i--) {
+      const fighter = this.stealthFighters[i];
+      if (fighter.isDead) {
+        fighter.destroy();
+        this.stealthFighters.splice(i, 1);
+      }
+    }
+
     // Update Capital Ships
     for (let i = 0; i < this.capitalShips.length; i++) {
       const ship = this.capitalShips[i];
@@ -744,6 +822,21 @@ export class GameManager {
       if (ship.isDead) {
         ship.destroy();
         this.capitalShips.splice(i, 1);
+      }
+    }
+
+    // Update Goliath Heavy Battleships
+    for (let i = 0; i < this.heavyBattleships.length; i++) {
+      const battleship = this.heavyBattleships[i];
+      if (!battleship || battleship.isDead || !battleship.meshGroup) continue;
+      battleship.update(effectiveDt, this.playerShip, this);
+    }
+
+    for (let i = this.heavyBattleships.length - 1; i >= 0; i--) {
+      const battleship = this.heavyBattleships[i];
+      if (battleship.isDead) {
+        battleship.destroy();
+        this.heavyBattleships.splice(i, 1);
       }
     }
 
@@ -910,8 +1003,20 @@ export class GameManager {
         scrap: this.upgradeSystem.scrap,
         waveNum: this.waveSpawner.currentWave,
         pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD,
-        bossHpRatio: (this.activeBoss && !this.activeBoss.isDead) ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) : ((this.carrierBoss && !this.carrierBoss.isDead) ? Math.max(0, this.carrierBoss.coreHp / this.carrierBoss.maxCoreHp) : null),
-        bossTitle: (this.activeBoss && !this.activeBoss.isDead) ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : ((this.carrierBoss && !this.carrierBoss.isDead) ? "⚠️ ENEMY SPACECRAFT CARRIER CAPITAL SHIP ⚠️" : "⚠️ ENEMY TARGET ⚠️"),
+        bossHpRatio: (this.activeBoss && !this.activeBoss.isDead) 
+          ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) 
+          : ((this.heavyBattleships && this.heavyBattleships.length > 0 && !this.heavyBattleships[0].isDead)
+            ? Math.max(0, this.heavyBattleships[0].coreHp / this.heavyBattleships[0].maxCoreHp)
+            : ((this.carrierBoss && !this.carrierBoss.isDead) 
+              ? Math.max(0, this.carrierBoss.coreHp / this.carrierBoss.maxCoreHp) 
+              : null)),
+        bossTitle: (this.activeBoss && !this.activeBoss.isDead) 
+          ? (this.activeBoss.aegisFrigates ? "⚠️ LEVIATHAN COMMAND MOTHERSHIP ⚠️" : (this.activeBoss.generators ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : "⚠️ ENEMY MEGASTRUCTURE ⚠️"))
+          : ((this.heavyBattleships && this.heavyBattleships.length > 0 && !this.heavyBattleships[0].isDead)
+            ? "⚠️ GOLIATH HEAVY BATTLESHIP DREADNOUGHT ⚠️"
+            : ((this.carrierBoss && !this.carrierBoss.isDead) 
+              ? "⚠️ ENEMY SPACECRAFT CARRIER CAPITAL SHIP ⚠️" 
+              : "⚠️ ENEMY TARGET ⚠️")),
         overchargeActive: this.overchargeTimer > 0,
         stasisActive: this.stasisTimer > 0
       });

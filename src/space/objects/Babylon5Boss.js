@@ -1,7 +1,7 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 // ============================================================
-// WAVE 3 FINAL BOSS — Babylon 5 Industrial Rotating Cylinder Citadel
+// WAVE 3 FINAL BOSS â€” Babylon 5 Industrial Rotating Cylinder Citadel
 // AAA Overhaul: 80m long cylinder, 3 massive contra-rotating rings,
 // forward plasma cannon, 8 turrets, 3-phase enrage system
 // ============================================================
@@ -48,7 +48,7 @@ export class Babylon5Boss {
     const len = 72.0;
     const cR  = 12.0;
 
-    // ── 1. Main Hull Cylinder — deep space black, faceted ──
+    // â”€â”€ 1. Main Hull Cylinder â€” deep space black, faceted â”€â”€
     const hullGeo = new THREE.CylinderGeometry(cR, cR + 2.5, len, 14, 1);
     hullGeo.rotateX(Math.PI / 2);
     const hullMat = new THREE.MeshStandardMaterial({
@@ -60,7 +60,7 @@ export class Babylon5Boss {
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 2. Orange hull accent bands ──
+    // â”€â”€ 2. Orange hull accent bands â”€â”€
     const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
     [-28, -12, 4, 20].forEach(zOff => {
       const sGeo = new THREE.TorusGeometry(cR + 3.0, 0.7, 8, 50);
@@ -70,7 +70,7 @@ export class Babylon5Boss {
       this.meshGroup.add(s);
     });
 
-    // ── 3. 3 MASSIVE Contra-rotating Habitat Rings ──
+    // â”€â”€ 3. 3 MASSIVE Contra-rotating Habitat Rings â”€â”€
     this.habitatRings = [];
     const ringPositions = [-20, 0, 20];
     const ringColors    = [0xff3300, 0xff6600, 0xff9900];
@@ -105,7 +105,7 @@ export class Babylon5Boss {
       }
     });
 
-    // ── 4. Forward Reactor Bay — the face of the station ──
+    // â”€â”€ 4. Forward Reactor Bay â€” the face of the station â”€â”€
     const bayGeo = new THREE.CylinderGeometry(11.0, 8.5, 7.0, 20);
     bayGeo.rotateX(Math.PI / 2);
     this.coreMat = new THREE.MeshStandardMaterial({
@@ -125,7 +125,7 @@ export class Babylon5Boss {
     bayRim.position.z = len / 2 + 0.5;
     this.meshGroup.add(bayRim);
 
-    // Reactor glow light — intense red
+    // Reactor glow light â€” intense red
     this.coreLight = new THREE.PointLight(0xff3300, 14.0, 120);
     this.coreLight.position.z = len / 2 + 6;
     this.meshGroup.add(this.coreLight);
@@ -137,14 +137,14 @@ export class Babylon5Boss {
     orb.position.z = len / 2 + 1;
     this.meshGroup.add(orb);
 
-    // ── 5. Plasma Cannon Ring around reactor (fires a beam) ──
+    // â”€â”€ 5. Plasma Cannon Ring around reactor (fires a beam) â”€â”€
     const cannonRingGeo = new THREE.TorusGeometry(9, 0.9, 10, 28);
     this.cannonRingMat = new THREE.MeshStandardMaterial({ color: 0x1a0a00, emissive: 0xff6600, emissiveIntensity: 1.5 });
     const cannonRing = new THREE.Mesh(cannonRingGeo, this.cannonRingMat);
     cannonRing.position.z = len / 2 + 1.5;
     this.meshGroup.add(cannonRing);
 
-    // ── 6. Rear Engine Cluster ──
+    // â”€â”€ 6. Rear Engine Cluster â”€â”€
     const rearEngMat = new THREE.MeshBasicMaterial({ color: 0xff8800 });
     const darkMat = new THREE.MeshStandardMaterial({ color: 0x050810, metalness: 0.98 });
     [[-8,8],[-8,-8],[8,8],[8,-8],[0,0]].forEach(([x,y], i) => {
@@ -166,7 +166,7 @@ export class Babylon5Boss {
     rearLight.position.z = -len / 2 - 8;
     this.meshGroup.add(rearLight);
 
-    // ── 7. 8 Triple-barrel Heavy Turrets ──
+    // â”€â”€ 7. 8 Triple-barrel Heavy Turrets â”€â”€
     const tBaseMat   = new THREE.MeshStandardMaterial({ color: 0x0a0e14, metalness: 0.99, roughness: 0.22 });
     this.tBarrelMat = new THREE.MeshStandardMaterial({
       color: 0x1f0c00,
@@ -268,14 +268,14 @@ export class Babylon5Boss {
     // Hull slow roll
     this.spireMesh.rotation.z += (0.1 + this.phase * 0.04) * dt;
 
-    // Habitat rings spin on X-axis — rolling wheel effect
+    // Habitat rings spin on X-axis â€” rolling wheel effect
     this.habitatRings.forEach((r, idx) => {
       r.mesh.rotation.x += r.speedX * (1.0 + this.phase * 0.25) * dt;
       // Ring emissive pulse
       r.mat.emissiveIntensity = 0.7 + Math.sin(this._time * 4 + idx * 2) * 0.3;
     });
 
-    // Reactor bay pulse — more frantic in higher phases
+    // Reactor bay pulse â€” more frantic in higher phases
     if (this.phaseShieldTimer > 0) {
       this.phaseShieldTimer -= dt;
       if (this.coreMat) this.coreMat.emissiveIntensity = 25.0 + Math.sin(this._time * 35) * 10.0;

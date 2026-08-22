@@ -1,6 +1,6 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
-// ── Shared Cache for LaserBolt Geometries & Materials ──
+// â”€â”€ Shared Cache for LaserBolt Geometries & Materials â”€â”€
 const laserGeoCache = {};
 const laserMatCache = {};
 
@@ -202,7 +202,7 @@ export class LaserBolt {
   }
 }
 
-// ── Shared Cache for PlasmaPulse ──
+// â”€â”€ Shared Cache for PlasmaPulse â”€â”€
 let plasmaGeoCache = null;
 let plasmaMatCache = null;
 

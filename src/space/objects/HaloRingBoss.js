@@ -1,7 +1,7 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 // ============================================================
-// WAVE 2 BOSS — Halo Megastructure Ring
+// WAVE 2 BOSS â€” Halo Megastructure Ring
 // AAA Overhaul: 50m diameter open ring, dramatic spoke struts,
 // inner terrain glow, 2-phase attack, gravity shockwave ability
 // ============================================================
@@ -47,7 +47,7 @@ export class HaloRingBoss {
     const ringR  = 46.0;  // large outer ring radius
     const tubeR  = 3.8;   // tube cross-section
 
-    // ── 1. Outer Bronze Structural Ring — thick and imposing ──
+    // â”€â”€ 1. Outer Bronze Structural Ring â€” thick and imposing â”€â”€
     const outerGeo = new THREE.TorusGeometry(ringR, tubeR, 22, 100);
     const bronzeMat = new THREE.MeshStandardMaterial({
       color: 0x8c5a12,
@@ -59,7 +59,7 @@ export class HaloRingBoss {
     this.ringMesh = new THREE.Mesh(outerGeo, bronzeMat);
     this.meshGroup.add(this.ringMesh);
 
-    // ── 2. Inner Terrain Habitat Band — glowing ice blue ──
+    // â”€â”€ 2. Inner Terrain Habitat Band â€” glowing ice blue â”€â”€
     const innerGeo = new THREE.TorusGeometry(ringR - 1.0, tubeR - 1.4, 18, 100);
     const terrainMat = new THREE.MeshStandardMaterial({
       color: 0xb87a22,
@@ -70,12 +70,12 @@ export class HaloRingBoss {
     });
     this.meshGroup.add(new THREE.Mesh(innerGeo, terrainMat));
 
-    // ── 3. Secondary inner ring — accent band ──
+    // â”€â”€ 3. Secondary inner ring â€” accent band â”€â”€
     const accent = new THREE.TorusGeometry(ringR - 5.0, 0.9, 8, 80);
     const accentMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
     this.meshGroup.add(new THREE.Mesh(accent, accentMat));
 
-    // ── 4. 12 Structural Spoke Struts — the iconic Halo silhouette ──
+    // â”€â”€ 4. 12 Structural Spoke Struts â€” the iconic Halo silhouette â”€â”€
     const spokeMat = new THREE.MeshStandardMaterial({
       color: 0x5c3608,
       emissive: 0x001a33,
@@ -103,7 +103,7 @@ export class HaloRingBoss {
       this.meshGroup.add(cond);
     }
 
-    // ── 5. Central Control Hub — large glowing dodecahedron ──
+    // â”€â”€ 5. Central Control Hub â€” large glowing dodecahedron â”€â”€
     const hubGeo = new THREE.DodecahedronGeometry(10.0, 1);
     this.coreMat = new THREE.MeshStandardMaterial({
       color: 0x001a33,
@@ -126,7 +126,7 @@ export class HaloRingBoss {
     this.ringLight.position.set(ringR * 0.6, 0, 0);
     this.meshGroup.add(this.ringLight);
 
-    // ── 6. 3 Gyro Shield Rings at hub ──
+    // â”€â”€ 6. 3 Gyro Shield Rings at hub â”€â”€
     const ringAngles = [0, Math.PI / 3, Math.PI * 2 / 3];
     this.shieldRings = [];
     ringAngles.forEach((ra, idx) => {
@@ -141,7 +141,7 @@ export class HaloRingBoss {
       this.shieldRings.push({ mesh: sRing, dir: idx % 2 === 0 ? 1 : -1 });
     });
 
-    // ── 7. Rail-cannon turrets — long single barrel + coil ──
+    // â”€â”€ 7. Rail-cannon turrets â€” long single barrel + coil â”€â”€
     const baseMat   = new THREE.MeshStandardMaterial({ color: 0x3d1f00, metalness: 0.99, roughness: 0.18 });
     const railMat   = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
     this.chargeMat = new THREE.MeshStandardMaterial({ color: 0x001833, emissive: 0x00e5ff, emissiveIntensity: 2.0 });
@@ -225,7 +225,7 @@ export class HaloRingBoss {
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) this.meshGroup.position.z += this.speed * dt;
 
-    // Ring spins on Z — clearly a spinning ring
+    // Ring spins on Z â€” clearly a spinning ring
     const spinSpeed = 0.25 + this.phase * 0.12;
     this.meshGroup.rotation.z += spinSpeed * dt;
 

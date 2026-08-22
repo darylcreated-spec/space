@@ -21,47 +21,61 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 75; // Extended Wave 1: deep asteroid corridor + drone squadrons
+      this.totalToSpawnInWave = 75; // Extended Wave 1: deep asteroid corridor + carrier + moon base
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 45; // Wave 2: heavier assault
+      this.totalToSpawnInWave = 50; // Wave 2: stealth fighter incursions + halo ring
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 60; // Wave 3: final siege
+      this.totalToSpawnInWave = 60; // Wave 3: heavy battleship battlefleet + babylon 5
+    } else if (this.currentWave === 4) {
+      this.totalToSpawnInWave = 70; // Wave 4: Apex command siege + Leviathan Mothership
     } else {
-      this.totalToSpawnInWave = 60 + (this.currentWave - 3) * 10;
+      this.totalToSpawnInWave = 65 + (this.currentWave - 4) * 10;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
   }
 
   getWaveSubtitle() {
-    if (this.currentWave === 1) return 'MISSION 1: NAVIGATE ASTEROID FIELD & DESTROY MOON BASE SUPERWEAPON';
-    if (this.currentWave === 2) return 'MISSION 2: HALO MEGASTRUCTURE SIEGE';
-    if (this.currentWave === 3) return 'FINAL MISSION: BABYLON 5 CYLINDER CITADEL';
-    return `ENDLESS ASSAULT - PHASE ${this.currentWave}`;
+    if (this.currentWave === 1) return 'MISSION 1: ASTEROID CORRIDOR & MOON BASE SUPERWEAPON';
+    if (this.currentWave === 2) return 'MISSION 2: SHADOW-WRAITH STEALTH INCURSION & HALO MEGASTRUCTURE';
+    if (this.currentWave === 3) return 'MISSION 3: GOLIATH BATTLEFLEET SIEGE & BABYLON 5 CITADEL';
+    if (this.currentWave === 4) return 'FINAL APEX MISSION: LEVIATHAN EXTREME COMMAND MOTHERSHIP';
+    return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
 
   update(dt) {
     if (this.waveState !== 'SPAWNING') return;
 
     this.spawnTimer += dt;
-    const spawnInterval = Math.max(0.35, 0.85 - this.currentWave * 0.06);
+    const spawnInterval = Math.max(0.35, 0.85 - this.currentWave * 0.05);
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
-      // Milestone Capital Ship spawning
+      // Milestone Capital / Heavy Battleship spawning
       if (this.currentWave === 1) {
         if (this.spawnedCount === 35) {
           this.gameManager.spawnCarrierBoss();
         }
       } else if (this.currentWave === 2) {
-        if (this.spawnedCount === 20 || this.spawnedCount === 35) {
-          this.gameManager.spawnCapitalShip();
+        // Wave 2: Shadow-Wraith Stealth Fighter wolfpacks
+        if (this.spawnedCount === 15 || this.spawnedCount === 30 || this.spawnedCount === 42) {
+          this.gameManager.spawnStealthFighter();
         }
       } else if (this.currentWave === 3) {
-        if (this.spawnedCount === 15 || this.spawnedCount === 30 || this.spawnedCount === 45) {
+        // Wave 3: Goliath Heavy Battleship arrival
+        if (this.spawnedCount === 25) {
+          this.gameManager.spawnHeavyBattleship();
+        } else if (this.spawnedCount === 45) {
           this.gameManager.spawnCapitalShip();
+        }
+      } else if (this.currentWave === 4) {
+        // Wave 4: Combined arms elite assault
+        if (this.spawnedCount === 20) {
+          this.gameManager.spawnHeavyBattleship();
+        } else if (this.spawnedCount === 35 || this.spawnedCount === 50) {
+          this.gameManager.spawnStealthFighter();
         }
       }
 
@@ -69,7 +83,6 @@ export class WaveSpawner {
       const cometChance = this.currentWave === 1 ? 0.10 : this.currentWave === 2 ? 0.18 : 0.25;
 
       if (this.currentWave === 1) {
-        // Wave 1: Dense asteroid corridor with increasing drone attacks
         const roll = Math.random();
         if (roll < 0.55) {
           if (Math.random() < cometChance) {
@@ -78,31 +91,38 @@ export class WaveSpawner {
             this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
           }
         } else if (roll < 0.75) {
-          // Double asteroid cluster
           this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
           this.gameManager.spawnAsteroid({ sizeCategory: 'small' });
         } else {
           this.gameManager.spawnDrone();
         }
       } else if (this.currentWave === 2) {
-        if (Math.random() > 0.35) {
+        const roll = Math.random();
+        if (roll < 0.35) {
+          this.gameManager.spawnStealthFighter();
+        } else if (roll < 0.70) {
           this.gameManager.spawnDrone();
         } else {
-          if (Math.random() < cometChance) {
-            this.gameManager.spawnAsteroid({ isComet: true });
-          } else {
-            this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
-          }
+          this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
+        }
+      } else if (this.currentWave === 3) {
+        const roll = Math.random();
+        if (roll < 0.45) {
+          this.gameManager.spawnDrone();
+        } else if (roll < 0.70) {
+          this.gameManager.spawnStealthFighter();
+        } else {
+          this.gameManager.spawnAsteroid({ sizeCategory: 'large' });
         }
       } else {
-        if (Math.random() > 0.35) {
+        // Wave 4+ Elite mix
+        const roll = Math.random();
+        if (roll < 0.40) {
           this.gameManager.spawnDrone();
+        } else if (roll < 0.70) {
+          this.gameManager.spawnStealthFighter();
         } else {
-          if (Math.random() < cometChance) {
-            this.gameManager.spawnAsteroid({ isComet: true });
-          } else {
-            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.5 ? 'large' : 'medium' });
-          }
+          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.5 ? 'large' : 'medium' });
         }
       }
     }
@@ -118,14 +138,20 @@ export class WaveSpawner {
       } else if (this.currentWave === 2) {
         // Wave 2: Halo Megastructure Ring Boss
         this.gameManager.spawnHaloBoss();
-      } else {
-        // Wave 3 / Final Boss: Babylon 5 Industrial Rotating Cylinder Citadel
+      } else if (this.currentWave === 3) {
+        // Wave 3: Babylon 5 Cylinder Citadel Boss
         this.gameManager.spawnBabylon5Boss();
+      } else {
+        // Wave 4 / Final Apex: Leviathan Extreme Command Mothership
+        this.gameManager.spawnCommandMothership();
       }
     }
   }
 
   checkWaveComplete(activeAsteroidsCount, activeDronesCount, bossActive) {
+    const stealthActive = this.gameManager.stealthFighters ? this.gameManager.stealthFighters.some(s => !s.isDead) : false;
+    const battleshipActive = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.some(b => !b.isDead) : false;
+
     if (
       this.totalToSpawnInWave > 0 &&
       this.spawnedCount >= this.totalToSpawnInWave &&
@@ -133,6 +159,8 @@ export class WaveSpawner {
       this.waveState === 'WAITING_CLEAR' &&
       activeAsteroidsCount === 0 &&
       activeDronesCount === 0 &&
+      !stealthActive &&
+      !battleshipActive &&
       !bossActive
     ) {
       this.waveState = 'COMPLETED';

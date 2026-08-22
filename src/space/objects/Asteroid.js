@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class Asteroid {
   constructor(scene, options = {}) {
@@ -78,7 +78,7 @@ export class Asteroid {
   buildRockMesh() {
     const R = this.radius;
 
-    // ── Base geometry — more distorted for a jagged look ──
+    // â”€â”€ Base geometry â€” more distorted for a jagged look â”€â”€
     const geo = new THREE.IcosahedronGeometry(R, 2);
     const posAttr = geo.attributes.position;
     for (let i = 0; i < posAttr.count; i++) {
@@ -90,25 +90,25 @@ export class Asteroid {
     // Visual type variants
     let baseColor, emissiveColor, emissiveIntensity, wireColor;
     if (this._type === 0) {
-      // Rocky slate — dark metallic
+      // Rocky slate â€” dark metallic
       baseColor = 0x4a5568;
       emissiveColor = 0x000000;
       emissiveIntensity = 0.0;
       wireColor = 0xff2244;
     } else if (this._type === 1) {
-      // Crystalline blue — alien mineral
+      // Crystalline blue â€” alien mineral
       baseColor = 0x1a2a4a;
       emissiveColor = 0x0044aa;
       emissiveIntensity = 0.35;
       wireColor = 0x00aaff;
     } else if (this._type === 2) {
-      // Molten orange — volcanic/unstable
+      // Molten orange â€” volcanic/unstable
       baseColor = 0x2a1008;
       emissiveColor = 0xff3300;
       emissiveIntensity = 0.5;
       wireColor = 0xff6600;
     } else {
-      // Comet — frost white / cyan trail
+      // Comet â€” frost white / cyan trail
       baseColor = 0xd0f5ff;
       emissiveColor = 0x0088ff;
       emissiveIntensity = 1.5;
@@ -127,7 +127,7 @@ export class Asteroid {
     this.rockMesh = new THREE.Mesh(geo, this.rockMat);
     this.meshGroup.add(this.rockMesh);
 
-    // ── Edge glow lines — ore veins ──
+    // â”€â”€ Edge glow lines â€” ore veins â”€â”€
     const wireGeo = new THREE.EdgesGeometry(geo);
     this.wireMat = new THREE.LineBasicMaterial({
       color: wireColor,
@@ -137,7 +137,7 @@ export class Asteroid {
     this.wire = new THREE.LineSegments(wireGeo, this.wireMat);
     this.meshGroup.add(this.wire);
 
-    // ── Glow point light for emissive asteroids ──
+    // â”€â”€ Glow point light for emissive asteroids â”€â”€
     if (this._type === 2) {
       this.glowLight = new THREE.PointLight(0xff4400, 1.5 * R, R * 6);
       this.meshGroup.add(this.glowLight);
@@ -149,7 +149,7 @@ export class Asteroid {
       this.meshGroup.add(this.glowLight);
     }
 
-    // ── Small surface detail bumps for large asteroids ──
+    // â”€â”€ Small surface detail bumps for large asteroids â”€â”€
     if (this.sizeCategory === 'large') {
       const craterMat = new THREE.MeshStandardMaterial({ color: 0x1a1f28, roughness: 0.99, flatShading: true });
       for (let i = 0; i < 5; i++) {
