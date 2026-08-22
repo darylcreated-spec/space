@@ -126,7 +126,7 @@ export class CarrierCapitalShip {
 
     this.fireTimer = 0.85;
     this.missileTimer = 2.8;
-    this.droneLaunchTimer = 3.8;
+    this.droneLaunchTimer = 3.5;
     this.siegeCannonTimer = 5.5;
     this.siegeCharging = false;
 
@@ -166,6 +166,7 @@ export class CarrierCapitalShip {
   _build() {
     const { diffuseMap, normalMap, emissiveMap } = generateCarrierTextures();
 
+    // ── Primary Steel-Blue Titanium Composite Hull Material ──
     this.hullMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       map: diffuseMap,
@@ -239,9 +240,9 @@ export class CarrierCapitalShip {
     engineLight.position.set(0, 6.0, -38.0);
     this.meshGroup.add(engineLight);
 
-    // ── 1. MAIN HULL AFT & AMIDSHIPS STRUCTURE (z = -36 to +12) ──
+    // ── 1. MAIN HULL AFT & AMIDSHIPS (Same Body Hull Material) ──
     const mainHullShape = new THREE.Shape();
-    mainHullShape.moveTo(0, 12);          // Front of main armored section
+    mainHullShape.moveTo(0, 12);
     mainHullShape.lineTo(16, 12);
     mainHullShape.lineTo(19, -12);
     mainHullShape.lineTo(17, -34);
@@ -268,40 +269,40 @@ export class CarrierCapitalShip {
     mainHullMesh.position.set(0, 0, -12.0);
     this.meshGroup.add(mainHullMesh);
 
-    // Lateral Armor Sponsons
+    // Lateral Armor Sponsons (Same Body Material)
     [-18.0, 18.0].forEach(sideX => {
       const sponsonGeo = new THREE.BoxGeometry(4.8, 6.8, 44.0);
-      const sponson = new THREE.Mesh(sponsonGeo, this.armorPlateMat);
+      const sponson = new THREE.Mesh(sponsonGeo, this.hullMat);
       sponson.position.set(sideX, 0.2, -10.0);
       sponson.rotation.z = sideX > 0 ? -0.12 : 0.12;
       this.meshGroup.add(sponson);
     });
 
-    // ── 2. 🪟 HOLLOW FORWARD PROW WITH FRONT-FACING PANORAMIC WINDOW & DOCKED CRAFT ──
+    // ── 2. 🪟 NOSE OF CARRIER ADJUSTED TO MATCH SAME COLOR AS BODY ──
     const prowGroup = new THREE.Group();
     prowGroup.position.set(0, 0, 24.0);
 
-    // A. Lower Armored Keel Floor (Underneath the hangar deck)
+    // A. Lower Keel Floor (Now matches body hullMat!)
     const keelFloorGeo = new THREE.BoxGeometry(22.0, 2.0, 24.0);
-    const keelFloor = new THREE.Mesh(keelFloorGeo, this.keelMat);
+    const keelFloor = new THREE.Mesh(keelFloorGeo, this.hullMat);
     keelFloor.position.set(0, -3.8, 0);
     prowGroup.add(keelFloor);
 
-    // Chamfered Ram Bow Keel Wedge
+    // Chamfered Ram Bow Keel Wedge (Matches body hullMat!)
     const ramBowGeo = new THREE.ConeGeometry(11.0, 12.0, 4);
     ramBowGeo.rotateX(Math.PI / 2);
     ramBowGeo.scale(1.0, 0.35, 1.0);
-    const ramBow = new THREE.Mesh(ramBowGeo, this.armorPlateMat);
+    const ramBow = new THREE.Mesh(ramBowGeo, this.hullMat);
     ramBow.position.set(0, -3.8, 12.0);
     prowGroup.add(ramBow);
 
-    // B. Upper Armored Roof Canopy
+    // B. Upper Armored Roof Canopy (Matches body hullMat!)
     const roofGeo = new THREE.BoxGeometry(20.0, 1.8, 20.0);
-    const roofMesh = new THREE.Mesh(roofGeo, this.armorPlateMat);
+    const roofMesh = new THREE.Mesh(roofGeo, this.hullMat);
     roofMesh.position.set(0, 4.8, -2.0);
     prowGroup.add(roofMesh);
 
-    // Left & Right Armored Flank Walls
+    // Left & Right Armored Flank Walls (Matches body hullMat!)
     [-10.0, 10.0].forEach(sideX => {
       const wallGeo = new THREE.BoxGeometry(2.0, 7.5, 22.0);
       const wall = new THREE.Mesh(wallGeo, this.hullMat);
@@ -309,9 +310,9 @@ export class CarrierCapitalShip {
       prowGroup.add(wall);
     });
 
-    // Interior Back Bulkhead (Behind docked craft)
+    // Interior Back Bulkhead
     const backBulkheadGeo = new THREE.BoxGeometry(18.0, 7.0, 1.5);
-    const backBulkhead = new THREE.Mesh(backBulkheadGeo, this.armorPlateMat);
+    const backBulkhead = new THREE.Mesh(backBulkheadGeo, this.hullMat);
     backBulkhead.position.set(0, 0.5, -11.0);
     prowGroup.add(backBulkhead);
 
@@ -328,7 +329,7 @@ export class CarrierCapitalShip {
     intFloor.position.set(0, -2.5, 0);
     prowGroup.add(intFloor);
 
-    // C. Bright Interior Floodlights (Directly illuminating the docked spacecraft)
+    // C. Bright Interior Floodlights
     const intCyanLight = new THREE.PointLight(0x00f3ff, 8.0, 35);
     intCyanLight.position.set(0, 3.2, 2.0);
     prowGroup.add(intCyanLight);
@@ -337,11 +338,11 @@ export class CarrierCapitalShip {
     intAmberLight.position.set(0, 1.5, -5.0);
     prowGroup.add(intAmberLight);
 
-    // D. 3 Detailed Docked Interceptor Fighters Parked Inside, Facing Forward Towards the Front Window
+    // D. 3 Detailed Docked Interceptors Inside Forward Deck
     const dockedConfigs = [
-      { pos: new THREE.Vector3(0, -1.6, 4.0), scale: 1.35, rotY: 0 },         // Lead flagship interceptor
-      { pos: new THREE.Vector3(-5.0, -1.6, -2.5), scale: 1.1, rotY: 0.12 },  // Port escort fighter
-      { pos: new THREE.Vector3(5.0, -1.6, -2.5), scale: 1.1, rotY: -0.12 }   // Starboard escort fighter
+      { pos: new THREE.Vector3(0, -1.6, 4.0), scale: 1.35, rotY: 0 },
+      { pos: new THREE.Vector3(-5.0, -1.6, -2.5), scale: 1.1, rotY: 0.12 },
+      { pos: new THREE.Vector3(5.0, -1.6, -2.5), scale: 1.1, rotY: -0.12 }
     ];
 
     dockedConfigs.forEach(dc => {
@@ -350,7 +351,6 @@ export class CarrierCapitalShip {
       craftGroup.scale.setScalar(dc.scale);
       craftGroup.rotation.y = dc.rotY;
 
-      // 1. Magnetic Landing Pad Cradle
       const padGeo = new THREE.CylinderGeometry(2.5, 2.8, 0.35, 16);
       const padMat = new THREE.MeshStandardMaterial({
         color: 0x142438,
@@ -363,7 +363,6 @@ export class CarrierCapitalShip {
       pad.position.set(0, -0.15, 0);
       craftGroup.add(pad);
 
-      // Glowing Pad Guide Ring
       const ringGeo = new THREE.TorusGeometry(2.3, 0.14, 8, 24);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
       const padRing = new THREE.Mesh(ringGeo, ringMat);
@@ -371,7 +370,6 @@ export class CarrierCapitalShip {
       padRing.position.set(0, 0.05, 0);
       craftGroup.add(padRing);
 
-      // 2. Miniature Interceptor Fuselage (Facing forward towards +Z window!)
       const fuseGeo = new THREE.ConeGeometry(0.9, 4.2, 6);
       fuseGeo.rotateX(Math.PI / 2);
       fuseGeo.scale(1.25, 0.7, 1.0);
@@ -385,21 +383,18 @@ export class CarrierCapitalShip {
       fuse.position.set(0, 0.7, 0);
       craftGroup.add(fuse);
 
-      // Swept Delta Wings
       const wingGeo = new THREE.BoxGeometry(4.8, 0.15, 2.4);
       const wingMat = new THREE.MeshStandardMaterial({ color: 0x182c44, metalness: 0.92, roughness: 0.2 });
       const wing = new THREE.Mesh(wingGeo, wingMat);
       wing.position.set(0, 0.65, -0.5);
       craftGroup.add(wing);
 
-      // Glowing Cyan Cockpit Canopy (Brightly glowing inside the forward window)
       const canopyGeo = new THREE.BoxGeometry(0.65, 0.5, 1.4);
       const canopyMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
       const canopy = new THREE.Mesh(canopyGeo, canopyMat);
       canopy.position.set(0, 1.05, 0.5);
       craftGroup.add(canopy);
 
-      // Twin Micro Engine Thrusters
       [-0.52, 0.52].forEach(ex => {
         const engGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.7, 8);
         engGeo.rotateX(Math.PI / 2);
@@ -409,7 +404,6 @@ export class CarrierCapitalShip {
         craftGroup.add(eng);
       });
 
-      // Refueling Gantry
       const gantryGeo = new THREE.BoxGeometry(0.25, 2.2, 0.25);
       const gantryMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95 });
       const gantry = new THREE.Mesh(gantryGeo, gantryMat);
@@ -420,15 +414,15 @@ export class CarrierCapitalShip {
       this.dockedShips.push(craftGroup);
     });
 
-    // E. MASSIVE FORWARD-FACING PANORAMIC GLASS WINDOW (Spans the entire front of the bow)
+    // E. MASSIVE FORWARD-FACING PANORAMIC GLASS WINDOW
     const winWidth = 19.0;
     const winHeight = 6.8;
     const frontGlassGeo = new THREE.PlaneGeometry(winWidth, winHeight);
     const frontGlassMesh = new THREE.Mesh(frontGlassGeo, this.frontGlassMat);
-    frontGlassMesh.position.set(0, 0.8, 10.0); // Exactly at the front face facing +Z
+    frontGlassMesh.position.set(0, 0.8, 10.0);
     prowGroup.add(frontGlassMesh);
 
-    // F. STRUCTURAL HEAVY TITANIUM WINDOW MULLIONS (Dividing front window into 6 panoramic sections)
+    // F. STRUCTURAL HEAVY TITANIUM WINDOW MULLIONS (Matching body hullMat trim!)
     const frameMat = new THREE.MeshStandardMaterial({
       color: 0x06111e,
       metalness: 0.98,
@@ -437,19 +431,16 @@ export class CarrierCapitalShip {
       emissiveIntensity: 0.45
     });
 
-    // Top Frame Bar
     const topBarGeo = new THREE.BoxGeometry(winWidth + 0.8, 0.65, 0.65);
     const topBar = new THREE.Mesh(topBarGeo, frameMat);
     topBar.position.set(0, 4.2, 10.0);
     prowGroup.add(topBar);
 
-    // Bottom Sill Bar
     const bottomBarGeo = new THREE.BoxGeometry(winWidth + 0.8, 0.8, 0.8);
     const bottomBar = new THREE.Mesh(bottomBarGeo, frameMat);
     bottomBar.position.set(0, -2.6, 10.0);
     prowGroup.add(bottomBar);
 
-    // Left & Right Outer Jambs
     [-winWidth / 2, winWidth / 2].forEach(px => {
       const postGeo = new THREE.BoxGeometry(0.8, winHeight + 0.6, 0.8);
       const post = new THREE.Mesh(postGeo, frameMat);
@@ -457,7 +448,6 @@ export class CarrierCapitalShip {
       prowGroup.add(post);
     });
 
-    // Vertical Divider Window Mullions (3 columns)
     [-5.5, 5.5].forEach(vx => {
       const vMullGeo = new THREE.BoxGeometry(0.5, winHeight, 0.5);
       const vMull = new THREE.Mesh(vMullGeo, frameMat);
@@ -465,7 +455,6 @@ export class CarrierCapitalShip {
       prowGroup.add(vMull);
     });
 
-    // Horizontal Centerline Window Mullion (2 rows)
     const hMullGeo = new THREE.BoxGeometry(winWidth, 0.5, 0.5);
     const hMull = new THREE.Mesh(hMullGeo, frameMat);
     hMull.position.set(0, 0.8, 10.05);
@@ -473,7 +462,7 @@ export class CarrierCapitalShip {
 
     this.meshGroup.add(prowGroup);
 
-    // ── 3. Dual Recessed Catapult Flight Decks (Top Surface) ──
+    // ── 3. Dual Recessed Catapult Flight Decks ──
     const flightDeckGeo = new THREE.BoxGeometry(26.0, 1.2, 44.0);
     const flightDeckMesh = new THREE.Mesh(flightDeckGeo, this.runwayMat);
     flightDeckMesh.position.set(0, 5.4, -10.0);
@@ -491,12 +480,12 @@ export class CarrierCapitalShip {
       }
     });
 
-    // ── 4. RAISED CENTERLINE COMMAND BRIDGE (Between Gun Turrets) ──
+    // ── 4. RAISED CENTERLINE COMMAND BRIDGE ──
     const bridgeSpine = new THREE.Group();
     bridgeSpine.position.set(0, 6.2, -6.0);
 
     const bridgeBaseGeo = new THREE.BoxGeometry(7.0, 5.5, 22.0);
-    const bridgeBase = new THREE.Mesh(bridgeBaseGeo, this.armorPlateMat);
+    const bridgeBase = new THREE.Mesh(bridgeBaseGeo, this.hullMat);
     bridgeBase.position.set(0, 1.5, 0);
     bridgeSpine.add(bridgeBase);
 
@@ -547,7 +536,7 @@ export class CarrierCapitalShip {
     tailGeo.rotateY(Math.PI / 2);
     tailGeo.center();
 
-    const tailMesh = new THREE.Mesh(tailGeo, this.armorPlateMat);
+    const tailMesh = new THREE.Mesh(tailGeo, this.hullMat);
     tailMesh.position.set(0, 7.0, 0);
     tailGroup.add(tailMesh);
 
@@ -580,7 +569,7 @@ export class CarrierCapitalShip {
       nacelleGroup.position.set(ep.x, ep.y, ep.z);
 
       const pylonGeo = new THREE.BoxGeometry(5.0, 1.8, 14.0);
-      const pylon = new THREE.Mesh(pylonGeo, this.armorPlateMat);
+      const pylon = new THREE.Mesh(pylonGeo, this.hullMat);
       pylon.rotation.z = ep.angle;
       nacelleGroup.add(pylon);
 
@@ -673,7 +662,7 @@ export class CarrierCapitalShip {
       this.reticleMeshes.push(reticle);
     });
 
-    // ── 8. Build Subsystems ──
+    // ── 8. Build Subsystems (Side Hangar Tunnels with Launch Gates) ──
     this.subsystems.forEach(sub => {
       const subGroup = new THREE.Group();
       subGroup.position.copy(sub.relPos);
@@ -749,7 +738,7 @@ export class CarrierCapitalShip {
   }
 
   update(dt, playerShip) {
-    if (this.isDead) return { lasers: false, missiles: false, droneSpawns: 0, siegeLasers: false };
+    if (this.isDead) return { lasers: false, missiles: false, droneSpawns: 0, droneLaunches: null, siegeLasers: false };
 
     this._time += dt;
     const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3();
@@ -823,6 +812,7 @@ export class CarrierCapitalShip {
       lasers: false,
       missiles: false,
       droneSpawns: 0,
+      droneLaunches: null,
       siegeLasers: false
     };
 
@@ -844,18 +834,29 @@ export class CarrierCapitalShip {
       }
     }
 
+    // ── 2. Interceptor Launches Out of the Side Hangar Bays (Port & Starboard Outward Catapult) ──
     const livingHangars = this.subsystems.filter(s => s.id.includes('hangar') && !s.isDead);
     if (livingHangars.length > 0) {
       this.droneLaunchTimer -= dt;
       if (this.droneLaunchTimer <= 0) {
-        this.droneLaunchTimer = 4.0;
-        result.droneSpawns = livingHangars.length * 2;
+        this.droneLaunchTimer = 3.8;
+        const launches = [];
         livingHangars.forEach(h => {
           const wp = this.meshGroup.localToWorld(h.relPos.clone());
+          const isRight = h.relPos.x > 0;
+          // Spawn at the outer side portal
+          wp.x += isRight ? 3.5 : -3.5;
+          launches.push({
+            pos: wp,
+            vx: isRight ? (16.0 + Math.random() * 4.0) : (-16.0 - Math.random() * 4.0), // Eject out the sides
+            vy: (Math.random() - 0.5) * 3.0,
+            vz: 11.0 + Math.random() * 4.0
+          });
           if (this.particleManager) {
             this.particleManager.spawnSonicBoomDisc(wp, 0x00f3ff);
           }
         });
+        result.droneLaunches = launches;
       }
     }
 

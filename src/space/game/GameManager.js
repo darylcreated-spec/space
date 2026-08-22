@@ -888,7 +888,18 @@ export class GameManager {
             this.spaceAudio.playHeavyCannonSound();
           }
         }
-        if (carrierStatus && carrierStatus.droneSpawns > 0) {
+        if (carrierStatus && carrierStatus.droneLaunches && carrierStatus.droneLaunches.length > 0) {
+          carrierStatus.droneLaunches.forEach(launch => {
+            this.spawnDrone({
+              x: launch.pos.x,
+              y: launch.pos.y,
+              z: launch.pos.z,
+              vx: launch.vx,
+              vy: launch.vy,
+              vz: launch.vz
+            });
+          });
+        } else if (carrierStatus && carrierStatus.droneSpawns > 0) {
           for (let d = 0; d < carrierStatus.droneSpawns; d++) {
             this.spawnDrone();
           }

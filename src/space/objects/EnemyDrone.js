@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 export class EnemyDrone {
   constructor(scene, options = {}) {
@@ -17,7 +17,11 @@ export class EnemyDrone {
 
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
     this.targetPos = new THREE.Vector3(spawnX, spawnY, 0);
-    this.velocity = new THREE.Vector3(0, 0, 13 + Math.random() * 7);
+    this.velocity = new THREE.Vector3(
+      options.vx !== undefined ? options.vx : 0,
+      options.vy !== undefined ? options.vy : 0,
+      options.vz !== undefined ? options.vz : (13 + Math.random() * 7)
+    );
     this.fireTimer = 0.5 + Math.random() * 0.8;
     this.isDead = false;
     this._time = Math.random() * 10;
