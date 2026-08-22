@@ -607,7 +607,8 @@ export class SpaceHUD {
     }
 
     if (this.playerHpFill) {
-      const sPct = Math.max(0, data.playerShield);
+      const maxS = data.playerMaxShield || 90;
+      const sPct = Math.max(0, Math.min(100, (data.playerShield / maxS) * 100));
       this.playerHpFill.style.width = `${sPct}%`;
       this.playerHpText.textContent = `${Math.round(sPct)}%`;
     }
@@ -638,6 +639,26 @@ export class SpaceHUD {
       } else {
         this.btnHyperBoost.classList.remove('active-boost');
       }
+    }
+  }
+
+  hideAllModals() {
+    if (this.modalStart) this.modalStart.classList.add('hidden');
+    if (this.modalGameOver) this.modalGameOver.classList.add('hidden');
+    if (this.modalHangar) this.modalHangar.classList.add('hidden');
+    if (this.modalSettings) this.modalSettings.classList.add('hidden');
+    if (this.modalPerks) this.modalPerks.classList.add('hidden');
+  }
+
+  flashShieldImpact() {
+    const shieldPanel = document.querySelector('.player-panel');
+    if (shieldPanel) {
+      shieldPanel.classList.remove('shield-impact-flash');
+      void shieldPanel.offsetWidth; // Trigger reflow for instantaneous re-trigger
+      shieldPanel.classList.add('shield-impact-flash');
+      setTimeout(() => {
+        if (shieldPanel) shieldPanel.classList.remove('shield-impact-flash');
+      }, 1000);
     }
   }
 

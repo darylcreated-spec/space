@@ -727,8 +727,13 @@ export class PlayerShip {
     }
 
     this.shield = Math.max(0, this.shield - finalAmount);
-    this.shieldRippleTimer = 0.55;
+    this.shieldRippleTimer = 1.0; // Bring up shield display for 1.0 second
     if (this.shieldMat) this.shieldMat.opacity = 1.0;
+    if (this.shieldMesh) this.shieldMesh.visible = true;
+
+    if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+      window.spaceGameManager.spaceHUD.flashShieldImpact();
+    }
 
     const canvasContainer = document.getElementById('canvas-container');
     if (canvasContainer) {
@@ -805,16 +810,19 @@ export class PlayerShip {
 
     const currentSpeed = this.speed * (this.isBoosting ? 2.0 : 1.0);
 
-    // Shield Hexagonal Lattice decay
+    // Shield Hexagonal Lattice decay (1.0 second display on collision)
     if (this.shieldRippleTimer > 0) {
       this.shieldRippleTimer -= dt;
       if (this.shieldMat) {
-        this.shieldMat.opacity = Math.max(0, this.shieldRippleTimer / 0.55);
+        this.shieldMat.opacity = Math.min(1.0, this.shieldRippleTimer / 0.8);
       }
       if (this.shieldMesh) {
-        this.shieldMesh.rotation.z += 3.5 * dt;
-        this.shieldMesh.rotation.y += 2.0 * dt;
+        this.shieldMesh.visible = true;
+        this.shieldMesh.rotation.z += 4.5 * dt;
+        this.shieldMesh.rotation.y += 3.0 * dt;
       }
+    } else {
+      if (this.shieldMesh) this.shieldMesh.visible = false;
     }
 
     // ── Mechanical Articulation Updates ──

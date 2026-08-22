@@ -130,6 +130,7 @@ export class GameManager {
 
   startGame() {
     this.resetState();
+    if (this.spaceHUD) this.spaceHUD.hideAllModals();
     if (this.selectedShipClass) {
       this.playerShip.setShipClass(this.selectedShipClass);
     } else {
@@ -904,6 +905,7 @@ export class GameManager {
       this.spaceHUD.updateStatus({
         planetHp: this.planetHp,
         playerShield: this.playerShip.shield,
+        playerMaxShield: this.playerShip.maxShield,
         score: this.score,
         scrap: this.upgradeSystem.scrap,
         waveNum: this.waveSpawner.currentWave,

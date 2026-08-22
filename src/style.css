@@ -308,6 +308,32 @@ html, body {
   pointer-events: none;
 }
 
+/* Visceral Shield Impact Display Pulse */
+.player-panel.shield-impact-flash {
+  animation: shieldImpactAnim 1.0s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes shieldImpactAnim {
+  0% {
+    border-color: #ff0055 !important;
+    background: rgba(255, 0, 85, 0.35) !important;
+    box-shadow: 0 0 35px rgba(255, 0, 85, 0.9), inset 0 0 20px rgba(0, 243, 255, 0.8) !important;
+    transform: scale(1.06);
+  }
+  30% {
+    border-color: #00f3ff !important;
+    background: rgba(0, 243, 255, 0.25) !important;
+    box-shadow: 0 0 30px rgba(0, 243, 255, 0.8), inset 0 0 15px rgba(255, 0, 85, 0.5) !important;
+    transform: scale(1.03);
+  }
+  100% {
+    border-color: rgba(0, 243, 255, 0.35);
+    background: rgba(4, 9, 20, 0.88);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 243, 255, 0.15);
+    transform: scale(1.0);
+  }
+}
+
 /* Center Cluster: Mission Score & Wave Badge */
 .center-score-panel {
   display: flex;
