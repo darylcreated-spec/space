@@ -884,12 +884,16 @@ export class PlayerShip {
       }
     }
 
-    // â”€â”€ Movement & Bounds â”€â”€
-    const bossActive = this.gameManager && this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead;
-    const minX = bossActive ? -36 : this.bounds.minX;
-    const maxX = bossActive ? 36 : this.bounds.maxX;
-    const minY = bossActive ? -20 : this.bounds.minY;
-    const maxY = bossActive ? 20 : this.bounds.maxY;
+    // ── Movement & Bounds ──
+    const bossActive = this.gameManager && (
+      (this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead) ||
+      (this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead) ||
+      (this.gameManager.heavyBattleships && this.gameManager.heavyBattleships.some(b => !b.isDead))
+    );
+    const minX = bossActive ? -44 : this.bounds.minX;
+    const maxX = bossActive ? 44 : this.bounds.maxX;
+    const minY = bossActive ? -25 : this.bounds.minY;
+    const maxY = bossActive ? 25 : this.bounds.maxY;
 
     if (this.dodgeTimer > 0) {
       this.dodgeTimer -= dt;

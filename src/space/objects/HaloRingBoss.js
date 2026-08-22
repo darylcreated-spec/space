@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 // ============================================================
 // WAVE 2 BOSS â€” Halo Megastructure Ring
@@ -14,8 +14,8 @@ export class HaloRingBoss {
     this.meshGroup.position.set(0, 0, -130);
     this.meshGroup.rotation.x = Math.PI / 5.5; // tilt to show ring face
 
-    this.targetZ = -46;
-    this.speed = 6.5;
+    this.targetZ = -88;
+    this.speed = 7.5;
 
     this.coreHp = 3500;
     this.maxCoreHp = 3500;

@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 // ============================================================
 // WAVE 3 FINAL BOSS â€” Babylon 5 Industrial Rotating Cylinder Citadel
@@ -13,8 +13,8 @@ export class Babylon5Boss {
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 0, -135);
 
-    this.targetZ = -50;
-    this.speed = 5.5;
+    this.targetZ = -92;
+    this.speed = 6.5;
 
     this.coreHp = 6000;
     this.maxCoreHp = 6000;

@@ -84,8 +84,8 @@ export class MoonBase {
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 0, -160);
 
-    this.targetZ = -50;
-    this.speed = 7.0;
+    this.targetZ = -92;
+    this.speed = 8.5;
 
     // Colossal scale & doubled health
     this.coreHp = 9000;
@@ -930,8 +930,10 @@ export class MoonBase {
         clearInterval(chargeUp);
         const idx = this.activeIntervals.indexOf(chargeUp);
         if (idx > -1) this.activeIntervals.splice(idx, 1);
+        this.superlaserActive = true;
 
         const timeoutId = setTimeout(() => {
+          this.superlaserActive = false;
           // Guard: stop if boss was destroyed during the hold phase
           if (this.isDead || !this.laserBeamMat || !this.outerBeamMat) {
             this.superlaserfiring = false;
@@ -945,6 +947,7 @@ export class MoonBase {
             if (this.isDead || !this.laserBeamMat || !this.outerBeamMat) {
               clearInterval(fadeOut);
               this.superlaserfiring = false;
+              this.superlaserActive = false;
               return;
             }
             alpha -= 0.04;
@@ -955,13 +958,14 @@ export class MoonBase {
               const fIdx = this.activeIntervals.indexOf(fadeOut);
               if (fIdx > -1) this.activeIntervals.splice(fIdx, 1);
               this.superlaserfiring = false;
+              this.superlaserActive = false;
               if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
                 window.spaceGameManager.spaceHUD.showLockOnWarning(false);
               }
             }
           }, 30);
           this.activeIntervals.push(fadeOut);
-        }, 600);
+        }, 700);
         this.activeTimeouts.push(timeoutId);
       }
     }, 40);

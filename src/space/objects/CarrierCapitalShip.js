@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { HomingMissile } from './HomingMissile.js';
 
 function generateCarrierNormalMap() {
@@ -61,8 +61,9 @@ export class CarrierCapitalShip {
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 8, -180);
 
-    this.targetZ = -45;
-    this.speed = 10.0;
+    this.targetZ = -78;
+    this.speed = 12.0;
+    this.hitRadius = 24.0;
     this._time = Math.random() * 100;
 
     this.fireTimer = 0.85;

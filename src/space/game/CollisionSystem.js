@@ -671,19 +671,50 @@ export class CollisionSystem {
       }
     }
 
-    // Direct Carrier Collision with Player Ship
-    if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
-      const carrier = gameManager.carrierBoss;
-      if (pPos.distanceTo(carrier.meshGroup.position) < player.radius + carrier.hitRadius) {
-        player.takeDamage(40);
-        this.particleManager.createExplosion(pPos, 0x00f3ff, 35);
-        this.spaceAudio.playExplosion();
+    // ── Smooth Deflector Shield Repulsion Physics vs Capital Megastructures & Carrier ──
+    const capitalTargets = [
+      gameManager.carrierBoss,
+      gameManager.activeBoss,
+      ...(gameManager.heavyBattleships || [])
+    ].filter(b => b && !b.isDead && b.meshGroup);
+
+    for (const cap of capitalTargets) {
+      const cPos = cap.meshGroup.position;
+      const hitR = cap.hitRadius || 26.0;
+      const dist = pPos.distanceTo(cPos);
+
+      // Forcefield proximity buffer zone
+      if (dist < hitR + player.radius + 8.0) {
+        // Calculate outward radial deflection vector
+        const pushDir = new THREE.Vector3().subVectors(pPos, cPos);
+        pushDir.z = 0; // Maintain standoff depth
+        const len = pushDir.lengthSq();
+        if (len > 0.001) {
+          pushDir.normalize();
+        } else {
+          pushDir.set(0, 1, 0);
+        }
+
+        // Smooth magnetic forcefield deflection (glides craft naturally around perimeter)
+        const penetration = Math.max(0.1, (hitR + player.radius + 8.0) - dist);
+        const deflectionStrength = Math.min(42.0, penetration * 22.0);
+        player.meshGroup.position.x += pushDir.x * deflectionStrength * 0.016;
+        player.meshGroup.position.y += pushDir.y * deflectionStrength * 0.016;
+
+        // Minor shield friction ripple & visual spark
+        if (!player._lastShieldBump || Date.now() - player._lastShieldBump > 600) {
+          player._lastShieldBump = Date.now();
+          player.takeDamage(8);
+          this.particleManager.createLaserImpact(pPos, pushDir, 0x00f3ff, 12);
+          this.spaceAudio.playLaserPew();
+          this.spaceScene.addScreenShake(0.6);
+        }
       }
     }
 
-    // Superlaser Insta-Kill Collision Check
+    // Superlaser Collision Check
     const boss = gameManager.activeBoss;
-    if (boss && !boss.isDead && boss.meshGroup && boss.superlaserfiring) {
+    if (boss && !boss.isDead && boss.meshGroup && boss.superlaserActive) {
       const bPos = boss.meshGroup.position;
       
       // Calculate perpendicular distance from player to beam center line (Z-axis corridor)
@@ -691,24 +722,25 @@ export class CollisionSystem {
       const dy = pPos.y - bPos.y;
       const distFromBeamCenter = Math.sqrt(dx * dx + dy * dy);
 
-      // Superlaser beam radius is 9.5 units
-      if (distFromBeamCenter < 9.5) {
+      // Superlaser beam radius is 8.5 units
+      if (distFromBeamCenter < 8.5) {
         if (player.isDodging) {
           // Player executed tactical dodge roll to clear the superlaser beam path!
           if (gameManager.spaceHUD) {
             gameManager.spaceHUD.showLockOnWarning(false);
           }
         } else {
-          // Direct hit! Player craft is vaporized immediately!
-          player.takeDamage(9999);
-          this.particleManager.createExplosion(pPos, 0x00f3ff, 200, 5.0);
-          this.particleManager.createExplosion(pPos, 0xff0055, 150, 4.0);
-          this.particleManager.createExplosion(pPos, 0xffea00, 100, 3.5);
-          this.particleManager.createEmpShockwave(pPos, 120);
-          this.spaceAudio.playExplosion();
-          this.spaceScene.addScreenShake(5.0);
-          gameManager.onGameOver('VAPORIZED BY MOON BASE SUPERLASER');
-          return;
+          // Heavy continuous superlaser burn damage
+          const dead = player.takeDamage(45);
+          this.particleManager.createLaserImpact(pPos, new THREE.Vector3(0, 0, 1), 0x00f3ff, 15);
+          this.spaceScene.addScreenShake(2.5);
+          if (dead) {
+            this.particleManager.createExplosion(pPos, 0x00f3ff, 200, 5.0);
+            this.particleManager.createEmpShockwave(pPos, 120);
+            this.spaceAudio.playExplosion();
+            gameManager.onGameOver('VAPORIZED BY MOON BASE SUPERLASER');
+            return;
+          }
         }
       }
     }

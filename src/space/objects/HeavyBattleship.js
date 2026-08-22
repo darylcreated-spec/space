@@ -39,7 +39,7 @@ export class HeavyBattleship {
     this.scoreValue = 2800;
 
     // Movement & Combat
-    this.targetZ = -55;
+    this.targetZ = -82;
     this.speed = 12.0;
     this.strafeTimer = 0;
 

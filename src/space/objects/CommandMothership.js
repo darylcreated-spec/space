@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 /**
  * Procedural Normal Map for Leviathan Command Citadel
@@ -45,7 +45,7 @@ export class CommandMothership {
     this.ciwsTurrets = [];
 
     // Launch Catapults & Combat Cycles
-    this.targetZ = -60;
+    this.targetZ = -105;
     this.speed = 10.0;
     this.droneLaunchTimer = 5.0;
     this.stealthLaunchTimer = 12.0;

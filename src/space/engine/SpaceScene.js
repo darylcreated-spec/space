@@ -347,28 +347,28 @@ export class SpaceScene {
         const progress = 1.0 - (this.bossIntroTimer / 2.2);
         this.targetCameraPos.set(
           pPos.x * 0.4,
-          8.0 + (1.0 - progress) * 6.0,
-          pPos.z + 18.0 - (1.0 - progress) * 8.0
+          10.0 + (1.0 - progress) * 8.0,
+          pPos.z + 24.0 - (1.0 - progress) * 10.0
         );
         this.targetLookAt.set(
-          bPos.x * 0.8,
-          bPos.y * 0.8,
-          bPos.z * 0.9
+          bPos.x * 0.6,
+          bPos.y * 0.6,
+          bPos.z * 0.8
         );
       } else {
         // Dynamic Cinematic Boss Duel Tracking Mode:
-        // Camera smoothly follows player craft X/Y/Z while framing the boss core
+        // Wide-angle majestic third-person framing that keeps both the capital boss and dogfight sector in full view
         this.targetCameraPos.set(
-          pPos.x * 0.65,
-          13.0 + pPos.y * 0.45,
-          pPos.z + 24.0
+          pPos.x * 0.48,
+          18.0 + pPos.y * 0.35,
+          pPos.z + 32.0
         );
 
-        // Weighted lookAt target (55% player craft, 45% boss core)
+        // Weighted lookAt target (40% player craft, 60% boss core)
         this.targetLookAt.set(
-          pPos.x * 0.55 + bPos.x * 0.45,
-          pPos.y * 0.45 + bPos.y * 0.55,
-          pPos.z * 0.25 + bPos.z * 0.75
+          pPos.x * 0.4 + bPos.x * 0.35,
+          pPos.y * 0.35 + bPos.y * 0.3,
+          bPos.z * 0.45
         );
       }
     } else if (pPos) {
