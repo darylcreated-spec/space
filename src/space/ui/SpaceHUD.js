@@ -101,15 +101,24 @@ export class SpaceHUD {
   }
 
   configurePlatformUI() {
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || 
+                           ('ontouchstart' in window) || 
+                           (navigator.maxTouchPoints > 0) || 
+                           (window.innerWidth <= 768);
+    this.isMobile = isMobileDevice;
     this.isNativeApp = window.Capacitor || window.cordova || navigator.userAgent.includes('WV') || window.location.search.includes('platform=android');
     
+    if (this.isMobile || this.isNativeApp) {
+      document.body.classList.add('is-mobile-browser');
+    }
+
     // Show native exit button in settings only for Android App
     if (this.isNativeApp && this.btnExitGame) {
       this.btnExitGame.classList.remove('hidden');
     }
 
-    // Hide desktop keyboard indicators completely if running natively as an app
-    if (this.isNativeApp) {
+    // Hide desktop keyboard indicators completely if running on mobile browser or native app
+    if (this.isMobile || this.isNativeApp) {
       const keyboardLegend = document.querySelector('.desktop-controls-hint');
       if (keyboardLegend) {
         keyboardLegend.style.display = 'none';
