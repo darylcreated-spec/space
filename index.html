@@ -287,55 +287,175 @@
 
         <div class="ship-select-grid">
           <!-- 1. INTERCEPTOR -->
-          <div class="ship-select-card active" id="btn-select-interceptor">
-            <div class="ship-icon-svg-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00f3ff" stroke-width="2">
-                <polygon points="12 2 19 21 12 17 5 21 12 2"/>
-              </svg>
+          <div class="ship-select-card active" id="btn-select-interceptor" title="Click to view Vanguard Interceptor">
+            <div class="ship-card-inner">
+              <!-- Front -->
+              <div class="ship-card-front">
+                <div class="ship-icon-svg-wrap">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00f3ff" stroke-width="2">
+                    <polygon points="12 2 19 21 12 17 5 21 12 2"/>
+                  </svg>
+                </div>
+                <strong class="ship-title">INTERCEPTOR</strong>
+                <span class="ship-role" style="color: #00f3ff; font-size: 0.62rem;">SPEED DOGFIGHTER</span>
+                <span class="ship-sub">Triple Rapid Lasers</span>
+                <span class="ship-flip-hint">⟲ CLICK TO INSPECT</span>
+              </div>
+              <!-- Back (Image & Schematic) -->
+              <div class="ship-card-back">
+                <div class="ship-blueprint-wrap">
+                  <svg viewBox="0 0 80 80" width="48" height="48" fill="none">
+                    <!-- Twin Afterburners -->
+                    <rect x="28" y="60" width="8" height="12" rx="2" fill="#00f3ff" opacity="0.8"/>
+                    <rect x="44" y="60" width="8" height="12" rx="2" fill="#00f3ff" opacity="0.8"/>
+                    <polygon points="32 72 28 80 36 80" fill="#ffea00"/>
+                    <polygon points="48 72 44 80 52 80" fill="#ffea00"/>
+                    <!-- Delta Wings -->
+                    <polygon points="40 10 74 54 58 58 40 52 22 58 6 54" fill="#0e1b30" stroke="#00f3ff" stroke-width="1.8"/>
+                    <!-- Canards -->
+                    <polygon points="40 24 62 38 40 34 18 38" fill="#162640" stroke="#00f3ff" stroke-width="1.2"/>
+                    <!-- Fuselage Needle -->
+                    <polygon points="40 6 46 54 34 54" fill="#1a3052" stroke="#00f3ff" stroke-width="1.5"/>
+                    <!-- Canopy -->
+                    <ellipse cx="40" cy="28" rx="4" ry="9" fill="#00f3ff" opacity="0.9"/>
+                    <!-- Laser Hardpoints -->
+                    <circle cx="10" cy="54" r="2.5" fill="#00f3ff"/>
+                    <circle cx="40" cy="8" r="2.5" fill="#00f3ff"/>
+                    <circle cx="70" cy="54" r="2.5" fill="#00f3ff"/>
+                  </svg>
+                </div>
+                <strong class="ship-back-title" style="color: #00f3ff;">VANGUARD ALPHA</strong>
+                <span class="ship-back-spec">VEL: 360 MPS // 0.06s PEW</span>
+                <span class="ship-back-badge" style="border-color: #00f3ff; color: #00f3ff;">✓ SELECTED</span>
+              </div>
             </div>
-            <strong class="ship-title">INTERCEPTOR</strong>
-            <span class="ship-role" style="color: #00f3ff; font-size: 0.62rem;">SPEED DOGFIGHTER</span>
-            <span class="ship-sub">Triple Rapid Lasers</span>
-            <span class="ship-sub" style="color: #ffb700; font-size: 0.52rem; margin-top: 2px;">⚡ 3s Swarms // Fast Roll</span>
           </div>
 
           <!-- 2. DREADNOUGHT -->
-          <div class="ship-select-card" id="btn-select-dreadnought">
-            <div class="ship-icon-svg-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ff0055" stroke-width="2">
-                <path d="M12 2L3 7v9l9 6 9-6V7l-9-5z"/><circle cx="12" cy="12" r="3"/>
-              </svg>
+          <div class="ship-select-card" id="btn-select-dreadnought" title="Click to view Titan Dreadnought">
+            <div class="ship-card-inner">
+              <!-- Front -->
+              <div class="ship-card-front">
+                <div class="ship-icon-svg-wrap">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ff0055" stroke-width="2">
+                    <path d="M12 2L3 7v9l9 6 9-6V7l-9-5z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </div>
+                <strong class="ship-title">DREADNOUGHT</strong>
+                <span class="ship-role" style="color: #ff0055; font-size: 0.62rem;">ARMORED BRAWLER</span>
+                <span class="ship-sub">Heavy Flak Cannons</span>
+                <span class="ship-flip-hint">⟲ CLICK TO INSPECT</span>
+              </div>
+              <!-- Back (Image & Schematic) -->
+              <div class="ship-card-back">
+                <div class="ship-blueprint-wrap">
+                  <svg viewBox="0 0 80 80" width="48" height="48" fill="none">
+                    <!-- Quad Rocket Thrusters -->
+                    <rect x="22" y="62" width="6" height="10" fill="#ff0044"/>
+                    <rect x="32" y="62" width="6" height="10" fill="#ff0044"/>
+                    <rect x="42" y="62" width="6" height="10" fill="#ff0044"/>
+                    <rect x="52" y="62" width="6" height="10" fill="#ff0044"/>
+                    <polygon points="25 72 22 78 28 78" fill="#ffaa00"/>
+                    <polygon points="35 72 32 78 38 78" fill="#ffaa00"/>
+                    <polygon points="45 72 42 78 48 78" fill="#ffaa00"/>
+                    <polygon points="55 72 52 78 58 78" fill="#ffaa00"/>
+                    <!-- Heavy Sloped Wings & Hull -->
+                    <polygon points="40 16 72 42 66 60 40 54 14 60 8 42" fill="#221418" stroke="#ff0055" stroke-width="1.8"/>
+                    <!-- Ramming Prow Wedge -->
+                    <polygon points="40 8 52 24 28 24" fill="#440e16" stroke="#ff5500" stroke-width="2"/>
+                    <!-- Flak Artillery Barrels -->
+                    <rect x="18" y="24" width="4.5" height="26" rx="1.5" fill="#0c0608" stroke="#ff0055" stroke-width="1.2"/>
+                    <rect x="57.5" y="24" width="4.5" height="26" rx="1.5" fill="#0c0608" stroke="#ff0055" stroke-width="1.2"/>
+                    <circle cx="20.25" cy="24" r="2.5" fill="#ff5500"/>
+                    <circle cx="59.75" cy="24" r="2.5" fill="#ff5500"/>
+                  </svg>
+                </div>
+                <strong class="ship-back-title" style="color: #ff0055;">TITAN COLOSSUS</strong>
+                <span class="ship-back-spec">220 HP // 130 FLAK AOE</span>
+                <span class="ship-back-badge" style="border-color: #ff0055; color: #ff0055;">✓ SELECTED</span>
+              </div>
             </div>
-            <strong class="ship-title">DREADNOUGHT</strong>
-            <span class="ship-role" style="color: #ff0055; font-size: 0.62rem;">ARMORED BRAWLER</span>
-            <span class="ship-sub">Heavy Flak Cannons</span>
-            <span class="ship-sub" style="color: #ffea00; font-size: 0.52rem; margin-top: 2px;">🛡️ 220 Shield // Ram Armor</span>
           </div>
 
           <!-- 3. TACTICIAN -->
-          <div class="ship-select-card" id="btn-select-tactician">
-            <div class="ship-icon-svg-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00ff66" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/><polygon points="12 6 15 11 9 11 12 6"/><polygon points="12 18 9 13 15 13 12 18"/>
-              </svg>
+          <div class="ship-select-card" id="btn-select-tactician" title="Click to view Chronos Tactician">
+            <div class="ship-card-inner">
+              <!-- Front -->
+              <div class="ship-card-front">
+                <div class="ship-icon-svg-wrap">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#00ff66" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polygon points="12 6 15 11 9 11 12 6"/><polygon points="12 18 9 13 15 13 12 18"/>
+                  </svg>
+                </div>
+                <strong class="ship-title">TACTICIAN</strong>
+                <span class="ship-role" style="color: #00ff66; font-size: 0.62rem;">EMP CONTROLLER</span>
+                <span class="ship-sub">Homing Plasma Arcs</span>
+                <span class="ship-flip-hint">⟲ CLICK TO INSPECT</span>
+              </div>
+              <!-- Back (Image & Schematic) -->
+              <div class="ship-card-back">
+                <div class="ship-blueprint-wrap">
+                  <svg viewBox="0 0 80 80" width="48" height="48" fill="none">
+                    <!-- Vector Thrusters -->
+                    <rect x="28" y="58" width="7" height="12" rx="2" fill="#00ff88"/>
+                    <rect x="45" y="58" width="7" height="12" rx="2" fill="#00ff88"/>
+                    <!-- Forward-Swept Gull Wings -->
+                    <polygon points="40 18 70 12 62 48 40 52 18 48 10 12" fill="#0a221a" stroke="#00ff66" stroke-width="1.8"/>
+                    <!-- Concentric Gyro Rings -->
+                    <ellipse cx="40" cy="38" rx="16" ry="6" stroke="#00ff66" stroke-width="1.6" stroke-dasharray="2 2"/>
+                    <ellipse cx="40" cy="38" rx="10" ry="4" stroke="#00f3ff" stroke-width="1.4"/>
+                    <!-- Sensory Core -->
+                    <circle cx="40" cy="38" r="4.5" fill="#00ff88"/>
+                    <!-- Homing Emitters -->
+                    <circle cx="70" cy="12" r="3" fill="#00ff88"/>
+                    <circle cx="10" cy="12" r="3" fill="#00ff88"/>
+                  </svg>
+                </div>
+                <strong class="ship-back-title" style="color: #00ff66;">CHRONOS SPEC-OPS</strong>
+                <span class="ship-back-spec">HOMING ARCS // EMP STUN</span>
+                <span class="ship-back-badge" style="border-color: #00ff66; color: #00ff66;">✓ SELECTED</span>
+              </div>
             </div>
-            <strong class="ship-title">TACTICIAN</strong>
-            <span class="ship-role" style="color: #00ff66; font-size: 0.62rem;">EMP CONTROLLER</span>
-            <span class="ship-sub">Homing Plasma Arcs</span>
-            <span class="ship-sub" style="color: #00f3ff; font-size: 0.52rem; margin-top: 2px;">🌀 EMP Stun // 2x Magnet</span>
           </div>
 
           <!-- 4. REAPER -->
-          <div class="ship-select-card" id="btn-select-reaper">
-            <div class="ship-icon-svg-wrap">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#aa00ff" stroke-width="2">
-                <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
-              </svg>
+          <div class="ship-select-card" id="btn-select-reaper" title="Click to view Void Reaper">
+            <div class="ship-card-inner">
+              <!-- Front -->
+              <div class="ship-card-front">
+                <div class="ship-icon-svg-wrap">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#aa00ff" stroke-width="2">
+                    <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+                  </svg>
+                </div>
+                <strong class="ship-title">REAPER</strong>
+                <span class="ship-role" style="color: #aa00ff; font-size: 0.62rem;">CRIT ASSASSIN</span>
+                <span class="ship-sub">Quad Siphon Darts</span>
+                <span class="ship-flip-hint">⟲ CLICK TO INSPECT</span>
+              </div>
+              <!-- Back (Image & Schematic) -->
+              <div class="ship-card-back">
+                <div class="ship-blueprint-wrap">
+                  <svg viewBox="0 0 80 80" width="48" height="48" fill="none">
+                    <!-- Central Plasma Thruster -->
+                    <polygon points="36 60 44 60 40 76" fill="#ff00bb"/>
+                    <!-- Faceted Diamond Hull -->
+                    <polygon points="40 6 56 42 40 56 24 42" fill="#10081c" stroke="#aa00ff" stroke-width="1.8"/>
+                    <!-- Ultraviolet Dagger Wings -->
+                    <polygon points="56 36 76 52 52 48" fill="#180c2a" stroke="#aa00ff" stroke-width="1.5"/>
+                    <polygon points="24 36 4 52 28 48" fill="#180c2a" stroke="#aa00ff" stroke-width="1.5"/>
+                    <!-- Quad Needle Hardpoints -->
+                    <line x1="16" y1="50" x2="16" y2="34" stroke="#ff00ff" stroke-width="2"/>
+                    <line x1="28" y1="36" x2="28" y2="20" stroke="#ff00ff" stroke-width="2"/>
+                    <line x1="52" y1="36" x2="52" y2="20" stroke="#ff00ff" stroke-width="2"/>
+                    <line x1="64" y1="50" x2="64" y2="34" stroke="#ff00ff" stroke-width="2"/>
+                  </svg>
+                </div>
+                <strong class="ship-back-title" style="color: #aa00ff;">VOID PHANTOM</strong>
+                <span class="ship-back-spec">3X CRIT // +8 HP SIPHON</span>
+                <span class="ship-back-badge" style="border-color: #aa00ff; color: #aa00ff;">✓ SELECTED</span>
+              </div>
             </div>
-            <strong class="ship-title">REAPER</strong>
-            <span class="ship-role" style="color: #aa00ff; font-size: 0.62rem;">CRIT ASSASSIN</span>
-            <span class="ship-sub">Quad Siphon Darts</span>
-            <span class="ship-sub" style="color: #ff00bb; font-size: 0.52rem; margin-top: 2px;">💀 +8 HP Kill // Phase Boost</span>
           </div>
         </div>
       </div>

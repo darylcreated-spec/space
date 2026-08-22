@@ -130,23 +130,15 @@ export class SpaceHUD {
         this.btnSelectInterceptor,
         this.btnSelectDreadnought,
         this.btnSelectTactician,
-        this.btnSelectReaper,
-        this.btnSelectSentinel
+        this.btnSelectReaper
       ].forEach(btn => {
         if (btn) {
           btn.classList.remove('active');
-          btn.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-          btn.style.background = 'rgba(255, 255, 255, 0.02)';
-          const str = btn.querySelector('strong');
-          if (str) str.style.color = '#fff';
         }
       });
       if (selectedBtn) {
         selectedBtn.classList.add('active');
-        selectedBtn.style.borderColor = 'var(--accent-cyan)';
-        selectedBtn.style.background = 'rgba(0, 243, 255, 0.12)';
-        const str = selectedBtn.querySelector('strong');
-        if (str) str.style.color = 'var(--accent-cyan)';
+        this.gameManager.spaceAudio.vibrate(12);
       }
       this.gameManager.setSelectedShipClass(className);
     };

@@ -648,27 +648,150 @@ html, body {
   width: 100%;
 }
 
+/* 3D Tile Flip Architecture */
 .ship-select-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 10px 4px;
+  perspective: 900px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  height: 158px;
+  position: relative;
+  transition: transform 0.25s ease;
 }
 
 .ship-select-card:hover {
-  border-color: rgba(0, 243, 255, 0.5);
-  background: rgba(0, 243, 255, 0.06);
+  transform: translateY(-2px);
 }
 
-.ship-select-card.active {
-  border-color: var(--accent-cyan);
-  background: rgba(0, 243, 255, 0.14);
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+.ship-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.65s cubic-bezier(0.34, 1.45, 0.64, 1);
+  transform-style: preserve-3d;
+}
+
+/* Active card flips over to show the craft image & specs */
+.ship-select-card.active .ship-card-inner {
+  transform: rotateY(180deg);
+}
+
+.ship-card-front,
+.ship-card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+/* Front Face */
+.ship-card-front {
+  background: rgba(16, 24, 38, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s ease;
+}
+
+.ship-select-card:hover .ship-card-front {
+  border-color: rgba(0, 243, 255, 0.6);
+  background: rgba(0, 243, 255, 0.08);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.25);
+}
+
+.ship-flip-hint {
+  font-family: var(--font-header);
+  font-size: 0.52rem;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+  margin-top: 4px;
+  opacity: 0.8;
+  animation: pulseHint 2s infinite ease-in-out;
+}
+
+@keyframes pulseHint {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; color: var(--accent-cyan); }
+}
+
+/* Back Face (Rendered Craft Image & Specifications) */
+.ship-card-back {
+  transform: rotateY(180deg);
+  background: radial-gradient(circle at center, rgba(0, 243, 255, 0.2) 0%, rgba(10, 22, 38, 0.96) 100%);
+  border: 1.5px solid var(--accent-cyan);
+  box-shadow: 0 0 25px rgba(0, 243, 255, 0.4), inset 0 0 15px rgba(0, 243, 255, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.ship-blueprint-wrap {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  margin-bottom: 2px;
+}
+
+.ship-back-title {
+  font-family: var(--font-header);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.ship-back-spec {
+  font-family: var(--font-code);
+  font-size: 0.5rem;
+  color: #c0d4ea;
+  letter-spacing: 0.5px;
+}
+
+.ship-back-badge {
+  font-family: var(--font-header);
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  letter-spacing: 1px;
+  margin-top: 2px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Archetype-Specific Themes for Back Cards */
+.ship-select-card#btn-select-dreadnought .ship-card-back {
+  background: radial-gradient(circle at center, rgba(255, 0, 85, 0.22) 0%, rgba(35, 10, 20, 0.96) 100%);
+  border-color: #ff0055;
+  box-shadow: 0 0 25px rgba(255, 0, 85, 0.45), inset 0 0 15px rgba(255, 0, 85, 0.2);
+}
+
+.ship-select-card#btn-select-tactician .ship-card-back {
+  background: radial-gradient(circle at center, rgba(0, 255, 102, 0.22) 0%, rgba(10, 35, 20, 0.96) 100%);
+  border-color: #00ff66;
+  box-shadow: 0 0 25px rgba(0, 255, 102, 0.45), inset 0 0 15px rgba(0, 255, 102, 0.2);
+}
+
+.ship-select-card#btn-select-reaper .ship-card-back {
+  background: radial-gradient(circle at center, rgba(170, 0, 255, 0.25) 0%, rgba(28, 10, 42, 0.96) 100%);
+  border-color: #aa00ff;
+  box-shadow: 0 0 25px rgba(170, 0, 255, 0.45), inset 0 0 15px rgba(170, 0, 255, 0.2);
 }
 
 .ship-title {
