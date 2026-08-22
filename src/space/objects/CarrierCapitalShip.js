@@ -135,18 +135,20 @@ export class CarrierCapitalShip {
     this.damagedEmitters = [];
     this.catapultDrones = [];
 
+    // ── 🛡️ Raised Outboard Sponson Superfiring Turret Mounts ──
+    // Placed outboard on sponsons with stepped heights so line-of-fire is completely clear of the nose
     this.turrets = [
-      { id: 0, name: 'FWD PORT BATTERY', relPos: new THREE.Vector3(-13.5, 5.8, 12.0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 1, name: 'FWD STBD BATTERY', relPos: new THREE.Vector3(13.5, 5.8, 12.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 2, name: 'MID PORT BATTERY', relPos: new THREE.Vector3(-15.5, 5.8, -4.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 3, name: 'MID STBD BATTERY', relPos: new THREE.Vector3(15.5, 5.8, -4.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 4, name: 'AFT PORT BATTERY', relPos: new THREE.Vector3(-13.5, 5.8, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 5, name: 'AFT STBD BATTERY', relPos: new THREE.Vector3(13.5, 5.8, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null }
+      { id: 0, name: 'FWD PORT BATTERY', relPos: new THREE.Vector3(-17.5, 6.8, 14.0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
+      { id: 1, name: 'FWD STBD BATTERY', relPos: new THREE.Vector3(17.5, 6.8, 14.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
+      { id: 2, name: 'MID PORT BATTERY', relPos: new THREE.Vector3(-19.0, 7.6, -4.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
+      { id: 3, name: 'MID STBD BATTERY', relPos: new THREE.Vector3(19.0, 7.6, -4.0),   hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
+      { id: 4, name: 'AFT PORT BATTERY', relPos: new THREE.Vector3(-17.5, 8.5, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
+      { id: 5, name: 'AFT STBD BATTERY', relPos: new THREE.Vector3(17.5, 8.5, -18.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null }
     ];
 
     this.subsystems = [
-      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-18.5, 0, 2.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
-      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(18.5, 0, 2.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
+      { id: 'hangarLeft', name: 'PORT HANGAR BAY', relPos: new THREE.Vector3(-19.5, 0, 2.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
+      { id: 'hangarRight', name: 'STARBOARD HANGAR BAY', relPos: new THREE.Vector3(19.5, 0, 2.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, forcefield: null, reticle: null },
       { id: 'missilePodLeft', name: 'PORT MISSILE POD', relPos: new THREE.Vector3(-8.0, 7.5, 20.0), hp: 950, maxHp: 950, isDead: false, mesh: null, reticle: null },
       { id: 'missilePodRight', name: 'STARBOARD MISSILE POD', relPos: new THREE.Vector3(8.0, 7.5, 20.0), hp: 950, maxHp: 950, isDead: false, mesh: null, reticle: null }
     ];
@@ -233,8 +235,8 @@ export class CarrierCapitalShip {
     });
 
     // ── Dedicated Carrier Key & Deck Lights ──
-    const keyLight = new THREE.PointLight(0xffffff, 4.5, 90);
-    keyLight.position.set(0, 18.0, 20.0);
+    const keyLight = new THREE.PointLight(0xffffff, 1.8, 90);
+    keyLight.position.set(0, 28.0, 5.0);
     this.meshGroup.add(keyLight);
 
     const deckLight = new THREE.PointLight(0x00f3ff, 3.5, 60);
@@ -306,7 +308,7 @@ export class CarrierCapitalShip {
     const noseGroup = new THREE.Group();
     noseGroup.position.set(0, 0, 24.0);
 
-    // A. Sweeping Armored Roof Canopy Over the Nose (Flush with upper deck)
+    // A. Sweeping Armored Roof Canopy Over the Nose
     const noseRoofShape = new THREE.Shape();
     noseRoofShape.moveTo(0, 11);          // Prow apex roof tip
     noseRoofShape.lineTo(6, 7);           // Tapered roof brow
@@ -440,19 +442,16 @@ export class CarrierCapitalShip {
     noseGroup.add(frontGlassMesh);
 
     // G. BOLD TITANIUM BEAMS OUTLINING THE NOSE WINDOW DISPLAY
-    // 1. Top Brow Beam Outline
     const topBrowBeamGeo = new THREE.BoxGeometry(winWidth + 1.2, 0.8, 0.8);
     const topBrowBeam = new THREE.Mesh(topBrowBeamGeo, this.titaniumBeamMat);
     topBrowBeam.position.set(0, 4.8, 10.0);
     noseGroup.add(topBrowBeam);
 
-    // 2. Bottom Keel Sill Beam Outline
     const botSillBeamGeo = new THREE.BoxGeometry(winWidth + 1.2, 0.9, 0.9);
     const botSillBeam = new THREE.Mesh(botSillBeamGeo, this.titaniumBeamMat);
     botSillBeam.position.set(0, -1.2, 10.9);
     noseGroup.add(botSillBeam);
 
-    // 3. Port & Starboard Swept Corner Posts
     [-winWidth / 2, winWidth / 2].forEach(px => {
       const postGeo = new THREE.BoxGeometry(0.85, winHeight + 0.6, 0.85);
       const post = new THREE.Mesh(postGeo, this.titaniumBeamMat);
@@ -462,7 +461,6 @@ export class CarrierCapitalShip {
       noseGroup.add(post);
     });
 
-    // 4. Vertical Titanium Divider Beams (Dividing into 3 panoramic columns)
     [-5.8, 5.8].forEach(vx => {
       const vMullGeo = new THREE.BoxGeometry(0.55, winHeight, 0.55);
       const vMull = new THREE.Mesh(vMullGeo, this.titaniumBeamMat);
@@ -471,7 +469,6 @@ export class CarrierCapitalShip {
       noseGroup.add(vMull);
     });
 
-    // 5. Horizontal Titanium Centerline Beam (Dividing into 2 rows)
     const hMullGeo = new THREE.BoxGeometry(winWidth, 0.55, 0.55);
     const hMull = new THREE.Mesh(hMullGeo, this.titaniumBeamMat);
     hMull.position.set(0, 1.8, 10.55);
@@ -627,36 +624,46 @@ export class CarrierCapitalShip {
       this.thrusterPositions.push(new THREE.Vector3(ep.x, ep.y, ep.z - 11.0));
     });
 
-    // ── 8. Build 6 Articulated Dual-Railgun Turrets ──
+    // ── 8. Build 6 Articulated Dual-Railgun Turrets with Sponson Pedestals & Exact Muzzle Tips ──
     this.turrets.forEach(turretData => {
       const turretGroup = new THREE.Group();
       turretGroup.position.copy(turretData.relPos);
 
-      const barbetteGeo = new THREE.CylinderGeometry(2.4, 2.7, 1.3, 16);
+      // Raised Sponson Barbette Pedestal
+      const barbettePedGeo = new THREE.CylinderGeometry(2.7, 3.2, 2.2, 16);
+      const barbettePed = new THREE.Mesh(barbettePedGeo, this.hullMat);
+      barbettePed.position.set(0, -0.6, 0);
+      turretGroup.add(barbettePed);
+
+      // Golden Turret Ring Barbette
+      const barbetteGeo = new THREE.CylinderGeometry(2.4, 2.7, 0.8, 16);
       const barbette = new THREE.Mesh(barbetteGeo, this.trimGoldMat);
+      barbette.position.set(0, 0.6, 0);
       turretGroup.add(barbette);
 
       const housingGeo = new THREE.BoxGeometry(2.8, 1.8, 3.4);
       const housing = new THREE.Mesh(housingGeo, this.armorPlateMat);
-      housing.position.set(0, 1.1, 0);
+      housing.position.set(0, 1.6, 0);
       turretGroup.add(housing);
 
       const barrelGroup = new THREE.Group();
-      barrelGroup.position.set(0, 1.3, 1.2);
+      barrelGroup.position.set(0, 1.8, 1.4);
 
+      const tips = [];
       [-0.8, 0.8].forEach(bx => {
-        const barrelGeo = new THREE.CylinderGeometry(0.26, 0.30, 5.5, 8);
+        const barrelGeo = new THREE.CylinderGeometry(0.26, 0.30, 6.5, 8);
         barrelGeo.rotateX(Math.PI / 2);
         const barrel = new THREE.Mesh(barrelGeo, this.keelMat);
-        barrel.position.set(bx, 0, 2.4);
+        barrel.position.set(bx, 0, 3.2);
         barrelGroup.add(barrel);
 
-        const tipGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.6, 8);
+        const tipGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.8, 8);
         tipGeo.rotateX(Math.PI / 2);
         const tipMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
         const tip = new THREE.Mesh(tipGeo, tipMat);
-        tip.position.set(bx, 0, 5.0);
+        tip.position.set(bx, 0, 6.6);
         barrelGroup.add(tip);
+        tips.push(tip);
       });
 
       turretGroup.add(barrelGroup);
@@ -664,6 +671,7 @@ export class CarrierCapitalShip {
 
       turretData.mesh = turretGroup;
       turretData.barrelGroup = barrelGroup;
+      turretData.barrelTips = tips;
 
       const reticleGeo = new THREE.RingGeometry(3.0, 3.5, 16);
       const reticleMat = new THREE.MeshBasicMaterial({
@@ -673,7 +681,7 @@ export class CarrierCapitalShip {
         opacity: 0.85
       });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 2.2, 0);
+      reticle.position.set(0, 2.8, 0);
       reticle.rotation.x = -Math.PI / 2;
       turretGroup.add(reticle);
       turretData.reticle = reticle;
@@ -812,14 +820,25 @@ export class CarrierCapitalShip {
       }
     });
 
+    // ── 🎯 Smart Aiming with Clear Firing Arcs (Never Shoot Through the Ship) ──
     if (arrived) {
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh && t.barrelGroup) {
           const localPlayer = this.meshGroup.worldToLocal(playerPos.clone());
-          const targetAngleY = Math.atan2(localPlayer.x - t.relPos.x, localPlayer.z - t.relPos.z);
+          
+          // Constrain aiming angles to outward arcs so turrets never aim across/through the carrier's forward hull
+          let targetX = localPlayer.x;
+          const isLeftTurret = t.relPos.x < 0;
+          if (isLeftTurret && targetX > -2.0) {
+            targetX = -2.0; // Left turrets don't cross into right hull
+          } else if (!isLeftTurret && targetX < 2.0) {
+            targetX = 2.0;  // Right turrets don't cross into left hull
+          }
+
+          const targetAngleY = Math.atan2(targetX - t.relPos.x, localPlayer.z - t.relPos.z);
           t.mesh.rotation.y = THREE.MathUtils.lerp(t.mesh.rotation.y, targetAngleY, dt * 3.5);
 
-          const distHoriz = Math.hypot(localPlayer.x - t.relPos.x, localPlayer.z - t.relPos.z);
+          const distHoriz = Math.hypot(targetX - t.relPos.x, localPlayer.z - t.relPos.z);
           const targetPitch = Math.atan2(localPlayer.y - t.relPos.y, distHoriz);
           t.barrelGroup.rotation.x = THREE.MathUtils.lerp(t.barrelGroup.rotation.x, targetPitch, dt * 3.5);
         }
@@ -836,15 +855,18 @@ export class CarrierCapitalShip {
 
     if (!arrived) return result;
 
+    // ── 🔫 Firing From Actual Physical Gun Muzzle Tips ──
     this.fireTimer -= dt;
     if (this.fireTimer <= 0) {
       this.fireTimer = 0.85;
       const fireOrigins = [];
       this.turrets.forEach(t => {
-        if (!t.isDead && t.mesh) {
-          const origin = t.mesh.getWorldPosition(new THREE.Vector3());
-          origin.y += 1.5;
-          fireOrigins.push(origin);
+        if (!t.isDead && t.barrelTips && t.barrelTips.length > 0) {
+          // Fire from each physical barrel tip extended outside the hull
+          t.barrelTips.forEach(tip => {
+            const muzzleWorldPos = tip.getWorldPosition(new THREE.Vector3());
+            fireOrigins.push(muzzleWorldPos);
+          });
         }
       });
       if (fireOrigins.length > 0) {
