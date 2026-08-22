@@ -532,9 +532,20 @@ export class GameManager {
     if (this.state !== 'PLAYING' || this.playerShip.swarmMissileCooldown > 0) return;
     this.playerShip.swarmMissileCooldown = this.playerShip.maxSwarmCD;
 
-    // Collect candidate targets (drones, carrier parts, boss parts, asteroids)
+    // Collect candidate targets (drones, stealth fighters, heavy battleships, carrier parts, boss parts, asteroids)
     const targets = [];
     this.drones.forEach(d => { if (!d.isDead) targets.push(d); });
+    if (this.stealthFighters) {
+      this.stealthFighters.forEach(s => { if (!s.isDead) targets.push(s); });
+    }
+    if (this.heavyBattleships) {
+      this.heavyBattleships.forEach(b => {
+        if (!b.isDead) {
+          if (b.turrets) b.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
+          targets.push(b);
+        }
+      });
+    }
     if (this.carrierBoss && !this.carrierBoss.isDead) {
       this.carrierBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
       this.carrierBoss.subsystems.forEach(s => { if (!s.isDead) targets.push(s); });
@@ -549,7 +560,7 @@ export class GameManager {
       }
       targets.push(this.activeBoss);
     }
-    this.asteroids.forEach(a => { if (!a.isDead && a.meshGroup.position.z < 0) targets.push(a); });
+    this.asteroids.forEach(a => { if (!a.isDead && a.meshGroup && a.meshGroup.position && a.meshGroup.position.z < 0) targets.push(a); });
 
     const numMissiles = 6;
     const pPos = this.playerShip.meshGroup.position;

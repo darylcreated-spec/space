@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 // â”€â”€ Procedural PBR Hull Texture Generator â”€â”€
 let cachedHullTexture = null;
@@ -754,6 +754,14 @@ export class PlayerShip {
     this.shield = Math.min(this.maxShield, this.shield + amount);
     this.shieldRippleTimer = 0.35;
     if (this.shieldMat) this.shieldMat.opacity = 0.7;
+  }
+
+  onKillHeal() {
+    if (this.activePerks && this.activePerks.has('siphon')) {
+      this.healShield(5);
+    } else if (this.shipClass === 'REAPER') {
+      this.healShield(3);
+    }
   }
 
   dodgeRoll(direction = 'left') {

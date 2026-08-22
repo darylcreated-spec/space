@@ -151,6 +151,34 @@ export class ParticleManager {
     }
   }
 
+  createLaserImpact(pos, normal = new THREE.Vector3(0, 0, 1), colorHex = 0x00f3ff, count = 8) {
+    const pool = this.explosionPool;
+    const safeCount = Math.min(count, 12);
+    this._tempColor.setHex(colorHex);
+
+    for (let i = 0; i < safeCount; i++) {
+      const idx = this.explosionIndex % pool.count;
+      this.explosionIndex++;
+
+      pool.positions[idx * 3] = pos.x;
+      pool.positions[idx * 3 + 1] = pos.y;
+      pool.positions[idx * 3 + 2] = pos.z;
+
+      pool.colors[idx * 3] = this._tempColor.r;
+      pool.colors[idx * 3 + 1] = this._tempColor.g;
+      pool.colors[idx * 3 + 2] = this._tempColor.b;
+
+      const spread = 0.45;
+      const speed = 0.4 + Math.random() * 0.6;
+      pool.velX[idx] = (normal.x + (Math.random() - 0.5) * spread) * speed;
+      pool.velY[idx] = (normal.y + (Math.random() - 0.5) * spread) * speed;
+      pool.velZ[idx] = (normal.z + (Math.random() - 0.5) * spread) * speed;
+
+      pool.lives[idx] = 0.8;
+      pool.decays[idx] = 0.08 + Math.random() * 0.04;
+    }
+  }
+
   spawnSonicBoomDisc(pos, colorHex = 0x00f3ff) {
     const mat = new THREE.MeshBasicMaterial({
       color: colorHex,

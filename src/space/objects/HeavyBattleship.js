@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 /**
  * Procedural Normal Map for Heavy Titanium Battleship Armor
@@ -309,7 +309,7 @@ export class HeavyBattleship {
         gameManager.spawnEnemyLaser(origin, dir, 0xff7700, 48);
       }
     });
-    if (gameManager.spaceAudio) {
+    if (gameManager.spaceAudio && gameManager.spaceAudio.playEnemyLaser) {
       gameManager.spaceAudio.playEnemyLaser();
     }
   }

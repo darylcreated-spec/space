@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 /**
  * Procedural Normal Map for Stealth Composite Armor Plating
@@ -289,7 +289,7 @@ export class StealthFighter {
       }
     });
 
-    if (gameManager.spaceAudio) {
+    if (gameManager.spaceAudio && gameManager.spaceAudio.playEnemyLaser) {
       gameManager.spaceAudio.playEnemyLaser();
     }
   }

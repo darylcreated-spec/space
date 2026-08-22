@@ -242,7 +242,7 @@ export class CollisionSystem {
                 gameManager.addScore(ship.scoreValue);
                 gameManager.addScrap(80);
                 gameManager.achievementSystem.recordDroneKill();
-                player.onKillHeal();
+                if (player && player.onKillHeal) player.onKillHeal();
               }
 
               if (!gameManager.activePerks.has('piercing')) {
@@ -270,7 +270,7 @@ export class CollisionSystem {
                 gameManager.addScore(fighter.scoreValue);
                 gameManager.addScrap(35);
                 gameManager.achievementSystem.recordDroneKill();
-                player.onKillHeal();
+                if (player && player.onKillHeal) player.onKillHeal();
               }
               if (!gameManager.activePerks.has('piercing')) {
                 hit = true;
@@ -323,7 +323,7 @@ export class CollisionSystem {
                   gameManager.addScore(battleship.scoreValue);
                   gameManager.addScrap(450);
                   gameManager.achievementSystem.recordBossKilled();
-                  player.onKillHeal();
+                  if (player && player.onKillHeal) player.onKillHeal();
                 }
               }
 
@@ -459,7 +459,7 @@ export class CollisionSystem {
                   gameManager.addScore(boss.scoreValue);
                   gameManager.addScrap(500);
                   gameManager.achievementSystem.recordBossKilled();
-                  player.onKillHeal();
+                  if (player && player.onKillHeal) player.onKillHeal();
                 }
 
                 if (!gameManager.activePerks.has('piercing')) {
@@ -520,7 +520,7 @@ export class CollisionSystem {
                 gameManager.addScore(carrier.scoreValue);
                 gameManager.addScrap(600);
                 gameManager.achievementSystem.recordBossKilled();
-                player.onKillHeal();
+                if (player && player.onKillHeal) player.onKillHeal();
               }
             }
 
@@ -773,7 +773,7 @@ export class CollisionSystem {
             gameManager.addScore(drone.scoreValue);
             gameManager.addScrap(30);
             gameManager.achievementSystem.recordDroneKill();
-            player.onKillHeal();
+            if (player && player.onKillHeal) player.onKillHeal();
           }
           break;
         }
@@ -796,7 +796,7 @@ export class CollisionSystem {
             gameManager.addScore(ship.scoreValue);
             gameManager.addScrap(80);
             gameManager.achievementSystem.recordDroneKill();
-            player.onKillHeal();
+            if (player && player.onKillHeal) player.onKillHeal();
           }
           break;
         }
@@ -824,7 +824,7 @@ export class CollisionSystem {
               gameManager.addScore(drone.scoreValue);
               gameManager.addScrap(20);
               gameManager.achievementSystem.recordDroneKill();
-              player.onKillHeal();
+              if (player && player.onKillHeal) player.onKillHeal();
             }
             detonated = true;
             break;
@@ -841,7 +841,7 @@ export class CollisionSystem {
                 gameManager.addScore(rock.scoreValue);
                 gameManager.addScrap(15);
                 gameManager.achievementSystem.recordAsteroidDestroyed();
-                player.onKillHeal();
+                if (player && player.onKillHeal) player.onKillHeal();
                 const frags = rock.getSplitFragments(player.hasMiningAddon);
                 if (frags && frags.length > 0) {
                   gameManager.spawnAsteroidFragments(frags);
