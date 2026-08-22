@@ -137,7 +137,7 @@ export class CarrierCapitalShip {
     this.hasShieldTriggered = false;
     this.scoreValue = 95000;
     this.isDead = false;
-    this.hitRadius = 28.0;
+    this.hitRadius = 30.0;
 
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 8, -180);
@@ -235,15 +235,15 @@ export class CarrierCapitalShip {
       normalMap: normalMap
     });
 
-    // ── 🪟 Sectional Transparent Armored Glass Material ──
+    // ── 🪟 High-Clarity Framed Sectional Armored Glass Material ──
     this.glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x88eeff,
+      color: 0x90f0ff,
       transparent: true,
-      opacity: 0.42,
-      roughness: 0.05,
-      metalness: 0.95,
-      transmission: 0.75,
-      ior: 1.52,
+      opacity: 0.38,
+      roughness: 0.04,
+      metalness: 0.92,
+      transmission: 0.80,
+      ior: 1.5,
       side: THREE.DoubleSide,
       depthWrite: false
     });
@@ -265,17 +265,17 @@ export class CarrierCapitalShip {
     engineLight.position.set(0, 6.0, -38.0);
     this.meshGroup.add(engineLight);
 
-    // ── 1. Sculpted Multi-Chine Main Hull with Hollow Forward Bay ──
+    // ── 1. FULL MONOLITHIC SUPERCARRIER MAIN HULL (Continuous from Aft to Bow) ──
     const mainHullShape = new THREE.Shape();
-    mainHullShape.moveTo(0, 14);          // Recessed forward bulkhead behind glass bay
-    mainHullShape.lineTo(15, 14);         // Forward chine
+    mainHullShape.moveTo(0, 38);          // Prow apex tip (facing forward)
+    mainHullShape.lineTo(16, 26);         // Forward chine
     mainHullShape.lineTo(19, -12);        // Amidships flight deck sponson
     mainHullShape.lineTo(17, -34);        // Aft quarter
     mainHullShape.lineTo(13, -36);        // Engine cowl corner
     mainHullShape.lineTo(-13, -36);
     mainHullShape.lineTo(-17, -34);
     mainHullShape.lineTo(-19, -12);
-    mainHullShape.lineTo(-15, 14);
+    mainHullShape.lineTo(-16, 26);
     mainHullShape.closePath();
 
     const extrudeSettings = {
@@ -290,59 +290,51 @@ export class CarrierCapitalShip {
     const mainHullGeo = new THREE.ExtrudeGeometry(mainHullShape, extrudeSettings);
     mainHullGeo.rotateX(-Math.PI / 2);
     mainHullGeo.center();
-    // Re-align main hull so z-axis coordinates are consistent
+
     const mainHullMesh = new THREE.Mesh(mainHullGeo, this.hullMat);
-    mainHullMesh.position.set(0, 0, -11.0);
     this.meshGroup.add(mainHullMesh);
 
     // Lateral Armor Sponsons (Port & Starboard Chamfered Wings)
     [-18.0, 18.0].forEach(sideX => {
-      const sponsonGeo = new THREE.BoxGeometry(4.8, 6.8, 44.0);
+      const sponsonGeo = new THREE.BoxGeometry(4.8, 6.8, 52.0);
       const sponson = new THREE.Mesh(sponsonGeo, this.armorPlateMat);
-      sponson.position.set(sideX, 0.2, -10.0);
+      sponson.position.set(sideX, 0.2, -2.0);
       sponson.rotation.z = sideX > 0 ? -0.12 : 0.12;
       this.meshGroup.add(sponson);
     });
 
-    // ── 2. 🪟 SECTIONAL TRANSPARENT GLASS PROW & INTERIOR DOCKED SPACECRAFT ──
-    const prowGroup = new THREE.Group();
-    prowGroup.position.set(0, 0.5, 16.0);
+    // ── 2. 🪟 FRAMED SECTIONAL GLASS PROW & DOCKED SPACECRAFT BAY ──
+    // Framed armored bow window enclosure seamlessly nested in the forward prow
+    const prowEnclosure = new THREE.Group();
+    prowEnclosure.position.set(0, 5.0, 24.0);
 
-    // A. Lower Keel Armor Hull Under Glass Bay
-    const prowKeelGeo = new THREE.ConeGeometry(9.0, 22.0, 4);
-    prowKeelGeo.rotateX(Math.PI / 2);
-    prowKeelGeo.scale(1.6, 0.45, 1.0);
-    const prowKeelMesh = new THREE.Mesh(prowKeelGeo, this.keelMat);
-    prowKeelMesh.position.set(0, -3.2, 8.0);
-    prowGroup.add(prowKeelMesh);
-
-    // B. Interior Staging Hangar Floor Deck
-    const interiorFloorGeo = new THREE.BoxGeometry(16.0, 0.8, 20.0);
+    // A. Recessed Interior Staging Deck Floor
+    const interiorFloorGeo = new THREE.BoxGeometry(14.0, 0.6, 16.0);
     const interiorFloorMat = new THREE.MeshStandardMaterial({
-      color: 0x081524,
+      color: 0x071524,
       metalness: 0.95,
-      roughness: 0.25,
-      emissive: 0x002244,
-      emissiveIntensity: 0.8
+      roughness: 0.2,
+      emissive: 0x00223b,
+      emissiveIntensity: 0.9
     });
     const interiorFloor = new THREE.Mesh(interiorFloorGeo, interiorFloorMat);
-    interiorFloor.position.set(0, -1.2, 8.0);
-    prowGroup.add(interiorFloor);
+    interiorFloor.position.set(0, -0.4, 0);
+    prowEnclosure.add(interiorFloor);
 
-    // Bright Interior Deck Floodlights (Illuminating through glass)
-    const interiorCyanLight = new THREE.PointLight(0x00f3ff, 5.5, 30);
-    interiorCyanLight.position.set(0, 4.2, 9.0);
-    prowGroup.add(interiorCyanLight);
+    // B. Bright Interior Deck Floodlights (Casting light through the framed glass)
+    const interiorCyanLight = new THREE.PointLight(0x00f3ff, 5.0, 26);
+    interiorCyanLight.position.set(0, 3.8, 2.0);
+    prowEnclosure.add(interiorCyanLight);
 
-    const interiorGoldLight = new THREE.PointLight(0xffaa00, 3.5, 24);
-    interiorGoldLight.position.set(0, 2.8, 3.0);
-    prowGroup.add(interiorGoldLight);
+    const interiorAmberLight = new THREE.PointLight(0xffaa00, 3.2, 20);
+    interiorAmberLight.position.set(0, 2.2, -4.0);
+    prowEnclosure.add(interiorAmberLight);
 
-    // C. Build 3 Detailed Docked Interceptor Spacecraft Inside Forward Deck
+    // C. 3 Detailed Docked Interceptor Spacecraft Inside the Bay
     const dockedConfigs = [
-      { pos: new THREE.Vector3(0, 0.2, 13.5), scale: 1.25, rotY: 0 },         // Lead flagship interceptor
-      { pos: new THREE.Vector3(-4.8, 0.2, 5.5), scale: 1.05, rotY: 0.18 },   // Port escort fighter
-      { pos: new THREE.Vector3(4.8, 0.2, 5.5), scale: 1.05, rotY: -0.18 }    // Starboard escort fighter
+      { pos: new THREE.Vector3(0, 0.4, 3.5), scale: 1.15, rotY: 0 },         // Lead flagship interceptor
+      { pos: new THREE.Vector3(-4.0, 0.4, -2.5), scale: 0.95, rotY: 0.18 },  // Port escort fighter
+      { pos: new THREE.Vector3(4.0, 0.4, -2.5), scale: 0.95, rotY: -0.18 }   // Starboard escort fighter
     ];
 
     dockedConfigs.forEach(dc => {
@@ -352,139 +344,147 @@ export class CarrierCapitalShip {
       craftGroup.rotation.y = dc.rotY;
 
       // 1. Magnetic Landing Pad Cradle
-      const padGeo = new THREE.CylinderGeometry(2.6, 2.9, 0.45, 16);
+      const padGeo = new THREE.CylinderGeometry(2.3, 2.6, 0.35, 16);
       const padMat = new THREE.MeshStandardMaterial({
-        color: 0x162538,
+        color: 0x142233,
         metalness: 0.92,
         roughness: 0.25,
         emissive: 0xffaa00,
-        emissiveIntensity: 0.6
+        emissiveIntensity: 0.5
       });
       const pad = new THREE.Mesh(padGeo, padMat);
-      pad.position.set(0, -0.6, 0);
+      pad.position.set(0, -0.25, 0);
       craftGroup.add(pad);
 
       // Glowing Pad Guide Ring
-      const ringGeo = new THREE.TorusGeometry(2.4, 0.16, 8, 24);
+      const ringGeo = new THREE.TorusGeometry(2.1, 0.12, 8, 24);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
       const padRing = new THREE.Mesh(ringGeo, ringMat);
       padRing.rotation.x = Math.PI / 2;
-      padRing.position.set(0, -0.35, 0);
+      padRing.position.set(0, -0.05, 0);
       craftGroup.add(padRing);
 
       // 2. Miniature Interceptor Fuselage
-      const fuseGeo = new THREE.ConeGeometry(0.9, 4.2, 6);
+      const fuseGeo = new THREE.ConeGeometry(0.85, 3.8, 6);
       fuseGeo.rotateX(Math.PI / 2);
-      fuseGeo.scale(1.25, 0.7, 1.0);
+      fuseGeo.scale(1.2, 0.68, 1.0);
       const fuseMat = new THREE.MeshStandardMaterial({
-        color: 0x2b466b,
+        color: 0x274366,
         metalness: 0.95,
-        roughness: 0.15,
-        emissive: 0x0a1e36
+        roughness: 0.16,
+        emissive: 0x08182b
       });
       const fuse = new THREE.Mesh(fuseGeo, fuseMat);
-      fuse.position.set(0, 0.4, 0);
+      fuse.position.set(0, 0.55, 0);
       craftGroup.add(fuse);
 
       // Swept Delta Wings
-      const wingGeo = new THREE.BoxGeometry(4.8, 0.15, 2.4);
-      const wingMat = new THREE.MeshStandardMaterial({ color: 0x1b304c, metalness: 0.92, roughness: 0.2 });
+      const wingGeo = new THREE.BoxGeometry(4.4, 0.14, 2.0);
+      const wingMat = new THREE.MeshStandardMaterial({ color: 0x182c44, metalness: 0.92, roughness: 0.2 });
       const wing = new THREE.Mesh(wingGeo, wingMat);
-      wing.position.set(0, 0.35, -0.5);
+      wing.position.set(0, 0.5, -0.4);
       craftGroup.add(wing);
 
-      // Glowing Cyan Cockpit Canopy (Brightly visible through prow glass)
-      const canopyGeo = new THREE.BoxGeometry(0.65, 0.5, 1.4);
+      // Glowing Cyan Cockpit Canopy
+      const canopyGeo = new THREE.BoxGeometry(0.58, 0.45, 1.3);
       const canopyMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
       const canopy = new THREE.Mesh(canopyGeo, canopyMat);
-      canopy.position.set(0, 0.75, 0.5);
+      canopy.position.set(0, 0.85, 0.4);
       craftGroup.add(canopy);
 
       // Twin Micro Engine Thrusters
-      [-0.55, 0.55].forEach(ex => {
-        const engGeo = new THREE.CylinderGeometry(0.24, 0.30, 0.7, 8);
+      [-0.48, 0.48].forEach(ex => {
+        const engGeo = new THREE.CylinderGeometry(0.22, 0.26, 0.65, 8);
         engGeo.rotateX(Math.PI / 2);
         const engMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
         const eng = new THREE.Mesh(engGeo, engMat);
-        eng.position.set(ex, 0.4, -2.1);
+        eng.position.set(ex, 0.55, -1.9);
         craftGroup.add(eng);
       });
 
       // Refueling Gantry / Maintenance Clamp
-      const gantryGeo = new THREE.BoxGeometry(0.25, 2.2, 0.25);
+      const gantryGeo = new THREE.BoxGeometry(0.22, 1.9, 0.22);
       const gantryMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95 });
       const gantry = new THREE.Mesh(gantryGeo, gantryMat);
-      gantry.position.set(2.1, 0.5, -0.7);
+      gantry.position.set(1.9, 0.7, -0.6);
       craftGroup.add(gantry);
 
-      prowGroup.add(craftGroup);
+      prowEnclosure.add(craftGroup);
       this.dockedShips.push(craftGroup);
     });
 
-    // D. Sectional Faceted Transparent Glass Canopy
-    const glassCanopyGeo = new THREE.ConeGeometry(9.5, 23.0, 4);
+    // D. Sectional Faceted Transparent Glass Canopy Covering the Bay
+    const glassCanopyGeo = new THREE.ConeGeometry(7.8, 17.5, 4);
     glassCanopyGeo.rotateX(Math.PI / 2);
-    glassCanopyGeo.scale(1.68, 0.78, 1.0);
+    glassCanopyGeo.scale(1.7, 0.75, 1.0);
     const glassCanopyMesh = new THREE.Mesh(glassCanopyGeo, this.glassMat);
-    glassCanopyMesh.position.set(0, 1.2, 8.0);
-    prowGroup.add(glassCanopyMesh);
+    glassCanopyMesh.position.set(0, 1.2, 0.5);
+    prowEnclosure.add(glassCanopyMesh);
 
-    // E. Structural Titanium Mullion Ribs / Window Grid Dividing the Glass
+    // E. Structural Heavy Titanium Window Mullion Frames & Surrounding Chamfer Border
     const frameMat = new THREE.MeshStandardMaterial({
-      color: 0x07111c,
+      color: 0x081320,
       metalness: 0.98,
       roughness: 0.2,
       emissive: 0x00f3ff,
       emissiveIntensity: 0.4
     });
 
-    // Centerline Spine Mullion
-    const spineMullionGeo = new THREE.BoxGeometry(0.45, 0.45, 22.0);
+    // Surrounding Armored Border Sill
+    const borderSillGeo = new THREE.BoxGeometry(15.0, 1.0, 17.5);
+    const borderSill = new THREE.Mesh(borderSillGeo, this.armorPlateMat);
+    borderSill.position.set(0, 0.1, 0.5);
+    borderSill.scale.set(1.02, 1.0, 1.02);
+    // Add border rim
+    prowEnclosure.add(borderSill);
+
+    // Centerline Spine Window Mullion
+    const spineMullionGeo = new THREE.BoxGeometry(0.4, 0.4, 17.0);
     const spineMullion = new THREE.Mesh(spineMullionGeo, frameMat);
-    spineMullion.position.set(0, 4.4, 8.0);
-    spineMullion.rotation.x = -0.12;
-    prowGroup.add(spineMullion);
+    spineMullion.position.set(0, 3.4, 0.5);
+    spineMullion.rotation.x = -0.14;
+    prowEnclosure.add(spineMullion);
 
-    // Transversal Rib Window Frames (Dividing glass into multi-section panes)
-    [0.0, 6.0, 12.0].forEach(rz => {
-      const ribWidth = 15.0 - Math.abs(rz - 6.0) * 0.45;
-      const ribGeo = new THREE.BoxGeometry(ribWidth, 0.4, 0.4);
+    // Transversal Rib Window Frames (Dividing into clean geometric sections)
+    [-5.0, 0.0, 5.0].forEach(rz => {
+      const ribWidth = 13.0 - Math.abs(rz) * 0.45;
+      const ribGeo = new THREE.BoxGeometry(ribWidth, 0.35, 0.35);
       const rib = new THREE.Mesh(ribGeo, frameMat);
-      rib.position.set(0, 3.8 - (rz * 0.12), rz);
-      prowGroup.add(rib);
+      rib.position.set(0, 2.9 - (rz * 0.12), rz);
+      prowEnclosure.add(rib);
     });
 
-    // Lateral Boundary Window Framing
-    [-7.8, 7.8].forEach(lx => {
-      const latGeo = new THREE.BoxGeometry(0.45, 0.45, 20.0);
+    // Lateral Chamfered Framing Struts
+    [-6.5, 6.5].forEach(lx => {
+      const latGeo = new THREE.BoxGeometry(0.4, 0.4, 16.0);
       const latMesh = new THREE.Mesh(latGeo, frameMat);
-      latMesh.position.set(lx, 1.8, 8.0);
-      prowGroup.add(latMesh);
+      latMesh.position.set(lx, 1.5, 0.5);
+      prowEnclosure.add(latMesh);
     });
 
-    this.meshGroup.add(prowGroup);
+    this.meshGroup.add(prowEnclosure);
 
     // ── 3. Dual Recessed Catapult Flight Decks (Top Surface) ──
-    const flightDeckGeo = new THREE.BoxGeometry(26.0, 1.2, 44.0);
+    const flightDeckGeo = new THREE.BoxGeometry(26.0, 1.2, 48.0);
     const flightDeckMesh = new THREE.Mesh(flightDeckGeo, this.runwayMat);
-    flightDeckMesh.position.set(0, 5.4, -9.0);
+    flightDeckMesh.position.set(0, 5.4, -6.0);
     this.meshGroup.add(flightDeckMesh);
 
     // Sequenced LED Runway Approach Beacons (Port & Starboard Track)
     [-8.0, 8.0].forEach(laneX => {
-      for (let z = -28; z <= 10; z += 4.8) {
+      for (let z = -26; z <= 12; z += 4.8) {
         const lightGeo = new THREE.SphereGeometry(0.28, 8, 8);
         const lightMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
         const light = new THREE.Mesh(lightGeo, lightMat);
         light.position.set(laneX, 6.2, z);
         this.meshGroup.add(light);
-        this.runwayLights.push({ mesh: light, baseZ: z, offset: (z + 28) * 0.15 });
+        this.runwayLights.push({ mesh: light, baseZ: z, offset: (z + 26) * 0.15 });
       }
     });
 
     // ── 4. RAISED CENTERLINE COMMAND BRIDGE (Between Gun Turrets) ──
     const bridgeSpine = new THREE.Group();
-    bridgeSpine.position.set(0, 6.2, -6.0); // Exactly along the centerline spine
+    bridgeSpine.position.set(0, 6.2, -4.0); // Exactly along the centerline spine
 
     // Stepped Armored Citadel Base
     const bridgeBaseGeo = new THREE.BoxGeometry(7.0, 5.5, 22.0);
@@ -528,7 +528,7 @@ export class CarrierCapitalShip {
 
     // ── 5. SWEPT DORSAL VERTICAL TAIL FIN ──
     const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 7.0, -26.0);
+    tailGroup.position.set(0, 7.0, -24.0);
 
     const tailShape = new THREE.Shape();
     tailShape.moveTo(0, -12);      // Aft base
@@ -567,10 +567,10 @@ export class CarrierCapitalShip {
 
     // ── 6. PROMINENT RAISED OUTBOARD ENGINE NACELLES (High Visibility) ──
     const enginePylonPositions = [
-      { x: -14.5, y: 5.0, z: -34.0, angle: 0.25 },   // Port Upper Pylon
-      { x: 14.5,  y: 5.0, z: -34.0, angle: -0.25 },  // Starboard Upper Pylon
-      { x: -12.5, y: -2.0, z: -34.0, angle: 0.15 },  // Port Lower Pylon
-      { x: 12.5,  y: -2.0, z: -34.0, angle: -0.15 }  // Starboard Lower Pylon
+      { x: -14.5, y: 5.0, z: -32.0, angle: 0.25 },   // Port Upper Pylon
+      { x: 14.5,  y: 5.0, z: -32.0, angle: -0.25 },  // Starboard Upper Pylon
+      { x: -12.5, y: -2.0, z: -32.0, angle: 0.15 },  // Port Lower Pylon
+      { x: 12.5,  y: -2.0, z: -32.0, angle: -0.15 }  // Starboard Lower Pylon
     ];
 
     enginePylonPositions.forEach(ep => {
@@ -748,7 +748,7 @@ export class CarrierCapitalShip {
 
     // ── 9. Flashing Navigation Strobe Lights ──
     const strobeConfigs = [
-      { pos: new THREE.Vector3(0, 3.0, 27.0), color: 0xffffff },    // Prow White Strobe
+      { pos: new THREE.Vector3(0, 3.0, 38.0), color: 0xffffff },    // Prow White Strobe
       { pos: new THREE.Vector3(-19.0, 2.2, -32.0), color: 0xff0000 }, // Port Red Strobe
       { pos: new THREE.Vector3(19.0, 2.2, -32.0), color: 0x00ff00 }   // Starboard Green Strobe
     ];
