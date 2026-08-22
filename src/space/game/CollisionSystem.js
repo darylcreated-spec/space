@@ -802,6 +802,7 @@ export class CollisionSystem {
     // 6. Planet Impacts
     gameManager.asteroids.forEach(rock => {
       if (rock && rock.impactedPlanet && rock.meshGroup) {
+        rock.impactedPlanet = false;
         gameManager.damagePlanet(10);
         this.particleManager.createExplosion(rock.meshGroup.position, 0xffea00, 20);
         this.spaceAudio.playExplosion();
@@ -810,6 +811,7 @@ export class CollisionSystem {
 
     gameManager.drones.forEach(drone => {
       if (drone && drone.impactedPlanet && drone.meshGroup) {
+        drone.impactedPlanet = false;
         gameManager.damagePlanet(15);
         this.particleManager.createExplosion(drone.meshGroup.position, 0xff0055, 25);
         this.spaceAudio.playExplosion();
@@ -818,6 +820,7 @@ export class CollisionSystem {
 
     gameManager.capitalShips.forEach(ship => {
       if (ship && ship.impactedPlanet && ship.meshGroup) {
+        ship.impactedPlanet = false;
         gameManager.damagePlanet(25);
         this.particleManager.createExplosion(ship.meshGroup.position, 0x00aaff, 35);
         this.spaceAudio.playExplosion();

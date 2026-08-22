@@ -161,9 +161,9 @@ export class LaserBolt {
         let minDist = 75;
         
         // Check drones
-        if (this.gameManager.enemyDrones) {
-          for (let d of this.gameManager.enemyDrones) {
-            if (!d.isDead && d.meshGroup.position.z < this.meshGroup.position.z) {
+        if (this.gameManager.drones) {
+          for (let d of this.gameManager.drones) {
+            if (!d.isDead && d.meshGroup && d.meshGroup.position.z < this.meshGroup.position.z) {
               const dist = this.meshGroup.position.distanceTo(d.meshGroup.position);
               if (dist < minDist) { minDist = dist; nearest = d; }
             }
@@ -172,8 +172,8 @@ export class LaserBolt {
         // Check asteroids
         if (!nearest && this.gameManager.asteroids) {
           for (let a of this.gameManager.asteroids) {
-            if (!a.isDead && a.mesh.position.z < this.meshGroup.position.z) {
-              const dist = this.meshGroup.position.distanceTo(a.mesh.position);
+            if (!a.isDead && a.meshGroup && a.meshGroup.position.z < this.meshGroup.position.z) {
+              const dist = this.meshGroup.position.distanceTo(a.meshGroup.position);
               if (dist < minDist) { minDist = dist; nearest = a; }
             }
           }
@@ -181,8 +181,8 @@ export class LaserBolt {
         this.homingTarget = nearest;
       }
 
-      if (this.homingTarget && !this.homingTarget.isDead) {
-        const targetPos = this.homingTarget.meshGroup ? this.homingTarget.meshGroup.position : this.homingTarget.mesh.position;
+      if (this.homingTarget && !this.homingTarget.isDead && this.homingTarget.meshGroup) {
+        const targetPos = this.homingTarget.meshGroup.position;
         const desiredDir = new THREE.Vector3().subVectors(targetPos, this.meshGroup.position).normalize();
         this.direction.lerp(desiredDir, 6.0 * dt).normalize();
         this.meshGroup.lookAt(new THREE.Vector3().addVectors(this.meshGroup.position, this.direction));

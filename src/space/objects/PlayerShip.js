@@ -789,8 +789,11 @@ export class PlayerShip {
   update(dt, inputDir = { x: 0, y: 0 }) {
     this._time += dt;
 
+    if (this.laserCooldown > 0) this.laserCooldown -= dt;
+    if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
     if (this.dodgeCooldown > 0) this.dodgeCooldown -= dt;
     if (this.swarmMissileCooldown > 0) this.swarmMissileCooldown -= dt;
+    if (this._dodgeBoostTimer > 0) this._dodgeBoostTimer -= dt;
 
     // Hyper-Boost Energy Management
     if (this.isBoosting && this.boostEnergy > 0) {
