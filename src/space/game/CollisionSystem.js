@@ -368,8 +368,8 @@ export class CollisionSystem {
         if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
           const carrier = gameManager.carrierBoss;
           const carrierLocalPos = carrier.meshGroup.worldToLocal(lPos.clone());
-          // Broad check within carrier bounding zone
-          if (Math.abs(carrierLocalPos.x) < 14.0 && Math.abs(carrierLocalPos.y) < 6.5 && Math.abs(carrierLocalPos.z) < 22.0) {
+          // Broad check within enlarged carrier bounding zone (65m length)
+          if (Math.abs(carrierLocalPos.x) < 22.0 && Math.abs(carrierLocalPos.y) < 12.0 && Math.abs(carrierLocalPos.z) < 36.0) {
             this.particleManager.createExplosion(lPos, 0x00f3ff, 15);
             let dmg = laser.isCritical ? 75 : 25;
             let hitRegistered = false;
@@ -379,7 +379,7 @@ export class CollisionSystem {
               for (const t of carrier.turrets) {
                 if (!t.isDead && t.mesh) {
                   const tPos = t.mesh.getWorldPosition(this._tempVec1);
-                  if (lPos.distanceTo(tPos) < 3.2) {
+                  if (lPos.distanceTo(tPos) < 5.0) {
                     carrier.takeTurretDamage(t.id, dmg);
                     hitRegistered = true;
                     break;
@@ -393,7 +393,7 @@ export class CollisionSystem {
               for (const sub of carrier.subsystems) {
                 if (!sub.isDead && sub.mesh) {
                   const subPos = sub.mesh.getWorldPosition(this._tempVec1);
-                  const hitRadius = sub.id.includes('hangar') ? 4.2 : 3.0;
+                  const hitRadius = sub.id.includes('hangar') ? 6.5 : 5.0;
                   if (lPos.distanceTo(subPos) < hitRadius) {
                     carrier.takeSubsystemDamage(sub.id, dmg);
                     hitRegistered = true;
@@ -408,7 +408,9 @@ export class CollisionSystem {
               const dead = carrier.takeDamage(dmg);
               if (dead) {
                 gameManager.addScore(carrier.scoreValue);
-                gameManager.addScrap(300);
+                gameManager.addScrap(600);
+                gameManager.achievementSystem.recordBossKilled();
+                player.onKillHeal();
               }
             }
 

@@ -82,41 +82,44 @@ export class MoonBase {
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    this.meshGroup.position.set(0, 0, -140);
+    this.meshGroup.position.set(0, 0, -160);
 
-    this.targetZ = -55;
+    this.targetZ = -50;
     this.speed = 7.0;
 
-    this.coreHp = 4500;
-    this.maxCoreHp = 4500;
-    this.scoreValue = 60000;
+    // Colossal scale & doubled health
+    this.coreHp = 9000;
+    this.maxCoreHp = 9000;
+    this.scoreValue = 120000;
     this.isDead = false;
-    this.hitRadius = 32;
+    this.hitRadius = 48.0;
 
     // Phase system — changes attack pattern as HP drops
     this.phase = 1;
-    this.fireTimer = 0.6;
+    this.fireTimer = 0.55;
     this.superlasertimer = 0;
     this.superlaserfiring = false;
     this.phaseShieldTimer = 0;
     this.justPhaseTransitioned = false;
-    this.droneSpawnTimer = 6.0;
+    this.droneSpawnTimer = 5.0;
 
     // Deflector shield state & generator configuration
     this.hasShield = true;
 
     // ── Targetable Equatorial Shield Generator Hubs (Must destroy both to drop shields) ──
     this.generators = [
-      { id: 0, name: 'PORT SHIELD HUB', relPos: new THREE.Vector3(-18.5, 0, 10), hp: 750, maxHp: 750, isDead: false, mesh: null, coil: null, reticle: null },
-      { id: 1, name: 'STBD SHIELD HUB', relPos: new THREE.Vector3(18.5, 0, 10), hp: 750, maxHp: 750, isDead: false, mesh: null, coil: null, reticle: null }
+      { id: 0, name: 'PORT SHIELD HUB', relPos: new THREE.Vector3(-30.0, 0, 16.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, coil: null, reticle: null },
+      { id: 1, name: 'STBD SHIELD HUB', relPos: new THREE.Vector3(30.0, 0, 16.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, coil: null, reticle: null }
     ];
 
-    // ── 4 Targetable Heavy Defense Batteries ──
+    // ── 6 Targetable Heavy Defense CIWS Batteries ──
     this.turrets = [
-      { id: 0, name: 'NORTH-WEST BATTERY', relPos: new THREE.Vector3(-15, 8.5, 12), hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 1, name: 'NORTH-EAST BATTERY', relPos: new THREE.Vector3(15, 8.5, 12),  hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 2, name: 'SOUTH-WEST BATTERY', relPos: new THREE.Vector3(-15, -8.5, 12), hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 3, name: 'SOUTH-EAST BATTERY', relPos: new THREE.Vector3(15, -8.5, 12),  hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null }
+      { id: 0, name: 'NORTH-WEST BATTERY', relPos: new THREE.Vector3(-24.0, 14.0, 18.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'NORTH-EAST BATTERY', relPos: new THREE.Vector3(24.0, 14.0, 18.0),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'EQUATORIAL PORT BATTERY', relPos: new THREE.Vector3(-32.0, -4.0, 14.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'EQUATORIAL STBD BATTERY', relPos: new THREE.Vector3(32.0, -4.0, 14.0),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'SOUTH-WEST BATTERY', relPos: new THREE.Vector3(-18.0, -18.0, 16.0), hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'SOUTH-EAST BATTERY', relPos: new THREE.Vector3(18.0, -18.0, 16.0),  hp: 1200, maxHp: 1200, isDead: false, mesh: null, barrelGroup: null, reticle: null }
     ];
 
     this.reticleMeshes = [];
@@ -128,7 +131,7 @@ export class MoonBase {
   }
 
   _build() {
-    const R = 22.5;
+    const R = 36.0;
     const normalMap = generateHullNormalMap();
 
     // ── 1. Dramatic 3-point lighting ──
@@ -252,32 +255,48 @@ export class MoonBase {
 
     // ── 5. Northern Superlaser Megastructure Cannon ──
     const dishGroup = new THREE.Group();
-    dishGroup.position.set(-5.25, 7.5, R - 1.5);
+    dishGroup.position.set(-8.5, 12.0, R - 2.5);
     dishGroup.rotation.y = -Math.PI / 10;
     dishGroup.rotation.x = Math.PI / 12;
     this.dishGroup = dishGroup;
 
     // Heavy Dish Rim & Armor Mantlet
-    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(6.5, 1.2, 16, 36), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
+    this.meshGroup.add(new THREE.Mesh(new THREE.TorusGeometry(10.5, 1.8, 16, 40), new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.3, metalness: 1.0 })));
 
     // Dish Face
-    const dishFaceGeo = new THREE.CylinderGeometry(6.2, 4.6, 1.6, 28);
+    const dishFaceGeo = new THREE.CylinderGeometry(9.8, 7.2, 2.5, 32);
     dishFaceGeo.rotateX(Math.PI / 2);
     dishGroup.add(new THREE.Mesh(dishFaceGeo, new THREE.MeshStandardMaterial({ color: 0x08101a, roughness: 0.2, metalness: 0.98 })));
 
-    // 8 Converging Superlaser Emitter Pylons
+    // 8 Converging Superlaser Emitter Pylons & Energy Needles
+    this.convergeBeams = [];
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, 5.5, 8);
-      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 }));
-      beam.position.set(Math.cos(a) * 4.4, Math.sin(a) * 4.4, 0.4);
+      const pylonGeo = new THREE.BoxGeometry(0.8, 0.8, 3.5);
+      const pylonMat = new THREE.MeshStandardMaterial({ color: 0x142233, metalness: 0.95 });
+      const pylon = new THREE.Mesh(pylonGeo, pylonMat);
+      pylon.position.set(Math.cos(a) * 7.5, Math.sin(a) * 7.5, 0.8);
+      pylon.rotation.z = a;
+      dishGroup.add(pylon);
+
+      // Focus Convergence Beam Line
+      const beamGeo = new THREE.CylinderGeometry(0.18, 0.18, 7.2, 8);
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff66,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending
+      });
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.set(Math.cos(a) * 3.8, Math.sin(a) * 3.8, 0.6);
       beam.rotation.z = a + Math.PI / 2;
-      beam.rotation.x = Math.PI / 5;
+      beam.rotation.x = Math.PI / 4.5;
       dishGroup.add(beam);
+      this.convergeBeams.push({ mesh: beam, mat: beamMat, baseAngle: a });
     }
 
     // Central Churning Plasma Fusion Orb
-    const orbGeo = new THREE.SphereGeometry(2.0, 28, 28);
+    const orbGeo = new THREE.SphereGeometry(3.2, 32, 32);
     this.plasmaShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(PlasmaOrbShader.uniforms),
       vertexShader: PlasmaOrbShader.vertexShader,
@@ -290,10 +309,10 @@ export class MoonBase {
 
     // 3 Concentric Superlaser Energy Focusing Rings
     this.focusRings = [];
-    const ringRadii = [4.5, 3.2, 2.0];
-    const ringDistances = [2.5, 5.0, 7.5];
+    const ringRadii = [7.2, 5.0, 3.2];
+    const ringDistances = [3.5, 7.0, 10.5];
     for (let i = 0; i < 3; i++) {
-      const rGeo = new THREE.TorusGeometry(ringRadii[i], 0.2, 10, 32);
+      const rGeo = new THREE.TorusGeometry(ringRadii[i], 0.3, 10, 36);
       const rMat = new THREE.MeshBasicMaterial({
         color: 0x00ff66,
         transparent: true,
@@ -313,7 +332,7 @@ export class MoonBase {
     }
 
     // Direct Targeting Red Aiming Sight Beam
-    const aimGeo = new THREE.CylinderGeometry(0.08, 0.08, 120, 6);
+    const aimGeo = new THREE.CylinderGeometry(0.12, 0.12, 160, 6);
     aimGeo.rotateX(Math.PI / 2);
     this.aimSightMat = new THREE.MeshBasicMaterial({
       color: 0xff0044,
@@ -322,25 +341,25 @@ export class MoonBase {
       blending: THREE.AdditiveBlending
     });
     this.aimSightBeam = new THREE.Mesh(aimGeo, this.aimSightMat);
-    this.aimSightBeam.position.set(0, 0, 60);
+    this.aimSightBeam.position.set(0, 0, 80);
     dishGroup.add(this.aimSightBeam);
 
     this.meshGroup.add(dishGroup);
 
     // Superlaser Point Light
-    this.superlightBoss = new THREE.PointLight(0x00ff44, 1.2, 40);
-    this.superlightBoss.position.set(-5.25, 7.5, R + 1.5);
+    this.superlightBoss = new THREE.PointLight(0x00ff44, 2.0, 60);
+    this.superlightBoss.position.set(-8.5, 12.0, R + 2.0);
     this.meshGroup.add(this.superlightBoss);
 
     // Superlaser Main Discharge Beams
-    const laserBeamGeo = new THREE.CylinderGeometry(0.35, 0.35, 60, 10);
+    const laserBeamGeo = new THREE.CylinderGeometry(0.7, 0.7, 90, 12);
     laserBeamGeo.rotateX(Math.PI / 2);
     this.laserBeamMat = new THREE.MeshBasicMaterial({ color: 0x00ff66, transparent: true, opacity: 0.0 });
     this.laserBeam = new THREE.Mesh(laserBeamGeo, this.laserBeamMat);
-    this.laserBeam.position.set(-5.25, 7.5, R + 28.5);
+    this.laserBeam.position.set(-8.5, 12.0, R + 42.5);
     this.meshGroup.add(this.laserBeam);
 
-    const outerBeamGeo = new THREE.CylinderGeometry(0.8, 0.8, 60, 10);
+    const outerBeamGeo = new THREE.CylinderGeometry(1.6, 1.6, 90, 12);
     outerBeamGeo.rotateX(Math.PI / 2);
     this.outerBeamMat = new THREE.MeshBasicMaterial({ color: 0x88ffaa, transparent: true, opacity: 0.0 });
     this.outerBeam = new THREE.Mesh(outerBeamGeo, this.outerBeamMat);
@@ -349,7 +368,7 @@ export class MoonBase {
 
     // ── 6. Outer Rotating Habitat Ring with Solar Pylons & Docking Struts ──
     const habRingGroup = new THREE.Group();
-    const habRingGeo = new THREE.TorusGeometry(R + 8.0, 0.85, 12, 64);
+    const habRingGeo = new THREE.TorusGeometry(R + 12.0, 1.3, 14, 80);
     const habRingMat = new THREE.MeshStandardMaterial({ color: 0x0c1626, roughness: 0.4, metalness: 0.95 });
     const habRingMesh = new THREE.Mesh(habRingGeo, habRingMat);
     habRingGroup.add(habRingMesh);
@@ -357,27 +376,27 @@ export class MoonBase {
     // 8 Industrial Docking Struts connecting Sphere to Habitat Ring
     for (let i = 0; i < 8; i++) {
       const ang = (i / 8) * Math.PI * 2;
-      const strutGeo = new THREE.CylinderGeometry(0.3, 0.3, 8.0, 8);
+      const strutGeo = new THREE.CylinderGeometry(0.45, 0.45, 12.0, 8);
       const strutMat = new THREE.MeshStandardMaterial({ color: 0x08101a, metalness: 0.9 });
       const strut = new THREE.Mesh(strutGeo, strutMat);
-      strut.position.set(Math.cos(ang) * (R + 4.0), Math.sin(ang) * (R + 4.0), 0);
+      strut.position.set(Math.cos(ang) * (R + 6.0), Math.sin(ang) * (R + 6.0), 0);
       strut.rotation.z = ang + Math.PI / 2;
       this.meshGroup.add(strut);
     }
 
-    // 4 Photovoltaic Solar Array Wings (Gold Metallic Panels)
-    for (let s = 0; s < 4; s++) {
-      const sAng = (s / 4) * Math.PI * 2 + Math.PI / 4;
-      const wingGeo = new THREE.BoxGeometry(7.0, 0.15, 3.5);
+    // 6 Photovoltaic Solar Array Wings (Gold Metallic Panels)
+    for (let s = 0; s < 6; s++) {
+      const sAng = (s / 6) * Math.PI * 2;
+      const wingGeo = new THREE.BoxGeometry(11.0, 0.25, 5.0);
       const wingMat = new THREE.MeshStandardMaterial({
         color: 0x0a1c36,
         roughness: 0.15,
         metalness: 0.95,
         emissive: 0x004488,
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.35
       });
       const wing = new THREE.Mesh(wingGeo, wingMat);
-      wing.position.set(Math.cos(sAng) * (R + 11.5), Math.sin(sAng) * (R + 11.5), 0);
+      wing.position.set(Math.cos(sAng) * (R + 17.5), Math.sin(sAng) * (R + 17.5), 0);
       wing.rotation.z = sAng;
       habRingGroup.add(wing);
     }
@@ -644,10 +663,21 @@ export class MoonBase {
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00ff44, 350, 6.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 200, 5.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0x111822, 150, 4.0);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 130);
+    // Multi-phase planetary supernova chain reactions
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00ff44, 500, 8.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 350, 7.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 300, 6.5);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 200);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 280);
+
+    // Cascading surface secondary detonations
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        if (!this.meshGroup) return;
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 40);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff3300, 200, 4.5);
+      }, i * 180);
+    }
   }
 
   clearAllTimers() {
@@ -766,6 +796,29 @@ export class MoonBase {
         this.shieldRing.rotation.z += 0.55 * dt;
         this.shieldRing.rotation.x += 0.32 * dt;
       }
+    }
+
+    // 4B. Dynamic CIWS Defense Batteries Swivel Tracking towards Player
+    if (this.turrets && arrived && playerPos) {
+      this.turrets.forEach(t => {
+        if (t.barrelGroup && !t.isDead) {
+          const worldPos = this.meshGroup.localToWorld(t.relPos.clone());
+          t.barrelGroup.lookAt(playerPos);
+        }
+      });
+    }
+
+    // 4C. 8 Superlaser Converging Focus Beams Animation
+    if (this.convergeBeams) {
+      this.convergeBeams.forEach((beam, idx) => {
+        if (this.superlaserfiring) {
+          beam.mat.opacity = 0.85 + Math.sin(time * 25.0 + idx) * 0.15;
+          beam.mesh.scale.set(1.5, 1.0, 1.5);
+        } else {
+          beam.mat.opacity = 0.25 + Math.sin(time * 4.0 + idx) * 0.15;
+          beam.mesh.scale.set(1.0, 1.0, 1.0);
+        }
+      });
     }
 
     if (this.vulnRing && this.vulnMesh && this.vulnMesh.visible) {
