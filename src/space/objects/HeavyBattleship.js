@@ -1,24 +1,60 @@
 import * as THREE from 'three';
 
 /**
- * Procedural Normal Map for Heavy Titanium Battleship Armor
+ * Procedural Normal/Bump Texture for Goliath Heavy Battleship Armor Plating
  */
-function generateBattleshipNormalMap() {
+function generateBattleshipArmorTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgb(128, 128, 255)';
-  ctx.fillRect(0, 0, 256, 256);
 
-  ctx.strokeStyle = 'rgb(70, 70, 200)';
-  ctx.lineWidth = 3;
-  for (let x = 0; x < 256; x += 32) {
-    ctx.strokeRect(x, 0, 32, 256);
+  // Base deep military slate-gunmetal
+  ctx.fillStyle = '#222b3a';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Heavy steel armor plate seams
+  ctx.strokeStyle = '#4a5b75';
+  ctx.lineWidth = 3.0;
+  for (let x = 0; x < 512; x += 64) {
+    ctx.strokeRect(x, 0, 64, 512);
   }
-  for (let y = 0; y < 256; y += 32) {
-    ctx.strokeRect(0, y, 256, 32);
+  for (let y = 0; y < 512; y += 64) {
+    ctx.strokeRect(0, y, 512, 64);
   }
+
+  // Micro-rivets along armor boundaries
+  ctx.fillStyle = '#94a7c4';
+  for (let y = 8; y < 512; y += 32) {
+    for (let x = 8; x < 512; x += 64) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Hazard warning chevron stripes for missile/hangar zones
+  ctx.fillStyle = '#ff8800';
+  ctx.strokeStyle = '#222b3a';
+  ctx.lineWidth = 4;
+  for (let i = 0; i < 4; i++) {
+    const xOff = 384 + i * 28;
+    ctx.beginPath();
+    ctx.moveTo(xOff, 0);
+    ctx.lineTo(xOff + 16, 0);
+    ctx.lineTo(xOff - 10, 64);
+    ctx.lineTo(xOff - 26, 64);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Neon crimson power conduits
+  ctx.strokeStyle = '#ff0044';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, 256); ctx.lineTo(128, 256); ctx.lineTo(192, 192); ctx.lineTo(512, 192);
+  ctx.stroke();
+
   return new THREE.CanvasTexture(canvas);
 }
 
@@ -31,21 +67,22 @@ export class HeavyBattleship {
     this.meshGroup.position.set(0, 3, spawnZ);
 
     // -- Boss Telemetry & Stats --
-    this.coreHp = 4200;
-    this.maxCoreHp = 4200;
-    this.hitRadius = 26.0;
-    this.radius = 26.0;
+    this.coreHp = 4600;
+    this.maxCoreHp = 4600;
+    this.hitRadius = 28.0;
+    this.radius = 28.0;
     this.isDead = false;
-    this.scoreValue = 2800;
+    this.scoreValue = 3000;
 
     // Movement & Combat
     this.targetZ = -82;
     this.speed = 12.0;
     this.strafeTimer = 0;
 
-    // Subsystems: 3 Heavy Triple-Railgun Turrets & 2 Engine Nacelles
+    // Subsystems: 3 Heavy Triple-Railgun Turrets & 2 Engine Outriggers
     this.turrets = [];
     this.subsystems = [];
+    this.thrusters = [];
 
     // Weapon Timers
     this.railgunTimer = 3.5;
@@ -63,111 +100,156 @@ export class HeavyBattleship {
   }
 
   buildShip() {
-    const normalMap = generateBattleshipNormalMap();
+    this.armorTexture = generateBattleshipArmorTexture();
 
-    // Heavy Plating Materials
+    // ── High-Definition High-Contrast Heavy Armor Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1a2230,
-      metalness: 0.9,
-      roughness: 0.3,
-      normalMap: normalMap
+      color: 0x5a6d88,
+      bumpMap: this.armorTexture,
+      bumpScale: 0.15,
+      metalness: 0.88,
+      roughness: 0.22,
+      emissive: 0x141c28,
+      emissiveIntensity: 0.35
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0x2b384e,
-      metalness: 0.95,
-      roughness: 0.25,
-      normalMap: normalMap
+      color: 0x9fb5d1,
+      metalness: 0.94,
+      roughness: 0.16,
+      bumpMap: this.armorTexture,
+      bumpScale: 0.08
+    });
+
+    this.darkAlloyMat = new THREE.MeshStandardMaterial({
+      color: 0x242d3d,
+      metalness: 0.9,
+      roughness: 0.3
     });
 
     this.glowRedMat = new THREE.MeshBasicMaterial({
       color: 0xff0044,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
 
     this.glowOrangeMat = new THREE.MeshBasicMaterial({
       color: 0xff7700,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending
     });
 
-    // 1. Angular Wedge-Shaped Battleship Hull (48m Length)
+    // 1. Angular Wedge Dreadnought Prow & Fuselage (48m Length)
     const hullGeo = new THREE.BufferGeometry();
     const hullVerts = new Float32Array([
       // Prow wedge top
-      0, 2.5, 24,   -9, 2.5, -12,   9, 2.5, -12,
+      0, 2.8, 26,     10, 2.8, -12,   -10, 2.8, -12,
       // Prow wedge bottom
-      0, -2.5, 24,   9, -2.5, -12,  -9, -2.5, -12,
+      0, -2.8, 26,   -10, -2.8, -12,   10, -2.8, -12,
       // Stern block top
-      -9, 2.5, -12,  -9, 2.5, -24,   9, 2.5, -24,
-      -9, 2.5, -12,   9, 2.5, -24,   9, 2.5, -12,
+      -10, 2.8, -12,  10, 2.8, -26,   -10, 2.8, -26,
+      -10, 2.8, -12,  10, 2.8, -12,    10, 2.8, -26,
       // Stern block bottom
-      -9, -2.5, -12,  9, -2.5, -24, -9, -2.5, -24,
-      -9, -2.5, -12,  9, -2.5, -12,  9, -2.5, -24,
+      -10, -2.8, -12, -10, -2.8, -26,  10, -2.8, -26,
+      -10, -2.8, -12,  10, -2.8, -26,  10, -2.8, -12,
       // Left Flank
-      0, 2.5, 24,   0, -2.5, 24,   -9, -2.5, -12,
-      0, 2.5, 24,  -9, -2.5, -12,  -9, 2.5, -12,
-      -9, 2.5, -12, -9, -2.5, -12,  -9, -2.5, -24,
-      -9, 2.5, -12, -9, -2.5, -24,  -9, 2.5, -24,
+      0, 2.8, 26,     -10, 2.8, -12,  -10, -2.8, -12,
+      0, 2.8, 26,     -10, -2.8, -12,   0, -2.8, 26,
+      -10, 2.8, -12,  -10, 2.8, -26,  -10, -2.8, -12,
+      -10, 2.8, -26,  -10, -2.8, -26, -10, -2.8, -12,
       // Right Flank
-      0, 2.5, 24,    9, -2.5, -12,  0, -2.5, 24,
-      0, 2.5, 24,    9, 2.5, -12,   9, -2.5, -12,
-      9, 2.5, -12,   9, -2.5, -24,  9, -2.5, -12,
-      9, 2.5, -12,   9, 2.5, -24,   9, -2.5, -24,
+      0, 2.8, 26,     10, -2.8, -12,   10, 2.8, -12,
+      0, 2.8, 26,      0, -2.8, 26,    10, -2.8, -12,
+      10, 2.8, -12,   10, -2.8, -12,   10, 2.8, -26,
+      10, 2.8, -26,   10, -2.8, -12,   10, -2.8, -26,
       // Stern Aft
-      -9, 2.5, -24, -9, -2.5, -24,  9, -2.5, -24,
-      -9, 2.5, -24,  9, -2.5, -24,  9, 2.5, -24
+      -10, 2.8, -26,  -10, -2.8, -26,  10, -2.8, -26,
+      -10, 2.8, -26,   10, -2.8, -26,  10, 2.8, -26
     ]);
     hullGeo.setAttribute('position', new THREE.BufferAttribute(hullVerts, 3));
     hullGeo.computeVertexNormals();
     const mainHull = new THREE.Mesh(hullGeo, this.hullMat);
     this.meshGroup.add(mainHull);
 
-    // 2. Central Raised Dorsal Citadel Spine
-    const spineGeo = new THREE.BoxGeometry(7.0, 3.2, 34);
+    // 2. Beveled Titanium Chined Sponson Armor Wings
+    [-11.5, 11.5].forEach(sx => {
+      const sponsonGeo = new THREE.BoxGeometry(3.5, 2.2, 28);
+      const sponsonMesh = new THREE.Mesh(sponsonGeo, this.armorPlatesMat);
+      sponsonMesh.position.set(sx, 0.4, -4);
+      this.meshGroup.add(sponsonMesh);
+
+      // Sponson glowing navigation hazard lights
+      const lightGeo = new THREE.BoxGeometry(0.3, 0.25, 24);
+      const lightMesh = new THREE.Mesh(lightGeo, this.glowOrangeMat);
+      lightMesh.position.set(sx + (sx > 0 ? 1.8 : -1.8), 0.4, -4);
+      this.meshGroup.add(lightMesh);
+    });
+
+    // 3. Central Raised Dorsal Citadel Armor Spine
+    const spineGeo = new THREE.BoxGeometry(8.0, 3.6, 36);
     const spineMesh = new THREE.Mesh(spineGeo, this.armorPlatesMat);
-    spineMesh.position.set(0, 3.2, -4);
+    spineMesh.position.set(0, 3.6, -4);
     this.meshGroup.add(spineMesh);
 
-    // 3. Command Bridge Fortress Citadel
-    const bridgeGeo = new THREE.BoxGeometry(6.0, 4.0, 8.0);
-    const bridgeMesh = new THREE.Mesh(bridgeGeo, this.hullMat);
-    bridgeMesh.position.set(0, 5.8, -12);
+    // 4. Command Bridge Fortress Citadel
+    const bridgeGeo = new THREE.BoxGeometry(7.0, 4.4, 9.0);
+    const bridgeMesh = new THREE.Mesh(bridgeGeo, this.darkAlloyMat);
+    bridgeMesh.position.set(0, 6.4, -13);
     this.meshGroup.add(bridgeMesh);
 
-    const visorGeo = new THREE.BoxGeometry(5.2, 0.6, 0.4);
+    // Illuminated Crimson Command Observation Visor
+    const visorGeo = new THREE.BoxGeometry(6.2, 0.7, 0.4);
     const visorMesh = new THREE.Mesh(visorGeo, this.glowRedMat);
-    visorMesh.position.set(0, 6.2, -7.8);
+    visorMesh.position.set(0, 6.8, -8.3);
     this.meshGroup.add(visorMesh);
 
-    // 4. Three Rotating Heavy Triple-Railgun Turrets
-    const turretZPositions = [12.0, 2.0, -6.0];
+    // Communications Sensor Mast
+    const mastGeo = new THREE.CylinderGeometry(0.15, 0.25, 4.5, 6);
+    const mastMesh = new THREE.Mesh(mastGeo, this.armorPlatesMat);
+    mastMesh.position.set(0, 9.4, -14);
+    this.meshGroup.add(mastMesh);
+
+    // 5. Three Rotating Heavy Triple-Railgun Turrets (Fore, Mid, Aft)
+    const turretZPositions = [13.0, 3.0, -5.0];
     turretZPositions.forEach((zPos, idx) => {
       const turretGroup = new THREE.Group();
-      turretGroup.position.set(0, 5.0, zPos);
+      turretGroup.position.set(0, 5.8, zPos);
 
-      // Base Dome
-      const baseGeo = new THREE.CylinderGeometry(2.2, 2.6, 1.2, 12);
+      // Armored Barbette Base
+      const baseGeo = new THREE.CylinderGeometry(2.6, 3.2, 1.4, 14);
       const baseMesh = new THREE.Mesh(baseGeo, this.armorPlatesMat);
       turretGroup.add(baseMesh);
 
-      // Triple Barrel Assembly
+      // Faceted Turret Gunhouse Carapace
+      const houseGeo = new THREE.BoxGeometry(3.6, 1.6, 4.2);
+      const houseMesh = new THREE.Mesh(houseGeo, this.darkAlloyMat);
+      houseMesh.position.set(0, 1.0, 0);
+      turretGroup.add(houseMesh);
+
+      // Triple Heavy Railgun Barrels Assembly
       const barrelGroup = new THREE.Group();
-      barrelGroup.position.set(0, 0.5, 0);
-      [-0.7, 0, 0.7].forEach(bx => {
-        const barrelGeo = new THREE.CylinderGeometry(0.2, 0.25, 4.5, 8);
+      barrelGroup.position.set(0, 1.0, 0);
+      [-0.9, 0, 0.9].forEach(bx => {
+        const barrelGeo = new THREE.CylinderGeometry(0.24, 0.3, 5.2, 8);
         barrelGeo.rotateX(Math.PI / 2);
-        const barrelMesh = new THREE.Mesh(barrelGeo, this.hullMat);
-        barrelMesh.position.set(bx, 0, 2.2);
+        const barrelMesh = new THREE.Mesh(barrelGeo, this.armorPlatesMat);
+        barrelMesh.position.set(bx, 0, 2.6);
         barrelGroup.add(barrelMesh);
 
-        // Muzzle Ring
-        const ringGeo = new THREE.TorusGeometry(0.26, 0.05, 6, 12);
-        const ringMesh = new THREE.Mesh(ringGeo, this.glowOrangeMat);
-        ringMesh.position.set(bx, 0, 4.2);
+        // Magnetic Induction Accelerator Coils
+        for (let c = 1.0; c <= 4.0; c += 1.2) {
+          const coilGeo = new THREE.TorusGeometry(0.32, 0.06, 6, 12);
+          const coilMesh = new THREE.Mesh(coilGeo, this.glowOrangeMat);
+          coilMesh.position.set(bx, 0, c);
+          barrelGroup.add(coilMesh);
+        }
+
+        // Muzzle Lens Ring
+        const ringGeo = new THREE.TorusGeometry(0.32, 0.07, 6, 14);
+        const ringMesh = new THREE.Mesh(ringGeo, this.glowRedMat);
+        ringMesh.position.set(bx, 0, 5.2);
         barrelGroup.add(ringMesh);
       });
 
@@ -178,52 +260,79 @@ export class HeavyBattleship {
         id: `battleship_turret_${idx}`,
         mesh: turretGroup,
         barrelGroup: barrelGroup,
-        relPos: new THREE.Vector3(0, 5.0, zPos),
-        hp: 700,
-        maxHp: 700,
+        relPos: new THREE.Vector3(0, 5.8, zPos),
+        hp: 850,
+        maxHp: 850,
         isDead: false
       });
     });
 
-    // 5. Destructible Port & Starboard Engine Nacelles
-    [-11.0, 11.0].forEach((nx, idx) => {
+    // 6. Destructible Port & Starboard Heavy Ion Engine Nacelles
+    [-13.5, 13.5].forEach((nx, idx) => {
       const nacelleGroup = new THREE.Group();
-      nacelleGroup.position.set(nx, 0, -18);
+      nacelleGroup.position.set(nx, 0.2, -19);
 
-      const nacelleBodyGeo = new THREE.CylinderGeometry(2.4, 2.8, 14, 10);
-      nacelleBodyGeo.rotateX(Math.PI / 2);
-      const nacelleMesh = new THREE.Mesh(nacelleBodyGeo, this.armorPlatesMat);
+      const nacelleBodyGeo = new THREE.BoxGeometry(3.6, 4.2, 16);
+      const nacelleMesh = new THREE.Mesh(nacelleBodyGeo, this.darkAlloyMat);
       nacelleGroup.add(nacelleMesh);
 
-      // Thruster Flare Core
-      const flareGeo = new THREE.CylinderGeometry(1.8, 1.2, 1.5, 12);
-      flareGeo.rotateX(Math.PI / 2);
-      const flareMesh = new THREE.Mesh(flareGeo, this.glowOrangeMat);
-      flareMesh.position.set(0, 0, -7.2);
-      nacelleGroup.add(flareMesh);
+      // Nacelle Armor Armor Cowling
+      const cowlGeo = new THREE.BoxGeometry(4.2, 4.8, 10);
+      const cowlMesh = new THREE.Mesh(cowlGeo, this.armorPlatesMat);
+      cowlMesh.position.set(0, 0, 1.0);
+      nacelleGroup.add(cowlMesh);
+
+      // Dual Exhaust Nozzles per nacelle (Quad thruster array)
+      [-1.0, 1.0].forEach(ex => {
+        const bellGeo = new THREE.CylinderGeometry(1.2, 1.6, 2.2, 12);
+        bellGeo.rotateX(Math.PI / 2);
+        const bellMesh = new THREE.Mesh(bellGeo, this.armorPlatesMat);
+        bellMesh.position.set(ex, 0, -8.6);
+        nacelleGroup.add(bellMesh);
+
+        // Glowing Ion Core
+        const coreGeo = new THREE.PlaneGeometry(1.8, 1.8);
+        coreGeo.rotateY(Math.PI);
+        const coreMesh = new THREE.Mesh(coreGeo, this.glowOrangeMat);
+        coreMesh.position.set(ex, 0, -9.6);
+        nacelleGroup.add(coreMesh);
+
+        // Mach Shock Diamond
+        const shockGeo = new THREE.ConeGeometry(0.9, 3.5, 8);
+        shockGeo.rotateX(-Math.PI / 2);
+        const shockMesh = new THREE.Mesh(shockGeo, this.glowOrangeMat);
+        shockMesh.position.set(ex, 0, -11.5);
+        nacelleGroup.add(shockMesh);
+        this.thrusters.push(shockMesh);
+      });
 
       this.meshGroup.add(nacelleGroup);
 
       this.subsystems.push({
         id: `battleship_engine_${idx === 0 ? 'port' : 'starboard'}`,
         mesh: nacelleGroup,
-        relPos: new THREE.Vector3(nx, 0, -18),
-        hp: 600,
-        maxHp: 600,
+        relPos: new THREE.Vector3(nx, 0.2, -19),
+        hp: 750,
+        maxHp: 750,
         isDead: false
       });
     });
 
-    // 6. Central Prow Spinal Magnetic Lance Cannon
-    const prowLanceGeo = new THREE.BoxGeometry(2.0, 1.8, 8.0);
-    const prowLanceMesh = new THREE.Mesh(prowLanceGeo, this.armorPlatesMat);
-    prowLanceMesh.position.set(0, 0, 20);
+    // 7. Central Prow Spinal Magnetic Lance Cannon Trench
+    const prowLanceGeo = new THREE.BoxGeometry(2.8, 2.4, 10.0);
+    const prowLanceMesh = new THREE.Mesh(prowLanceGeo, this.darkAlloyMat);
+    prowLanceMesh.position.set(0, 0, 22);
     this.meshGroup.add(prowLanceMesh);
 
-    const prowCoreGeo = new THREE.SphereGeometry(1.2, 12, 12);
+    const prowCoreGeo = new THREE.SphereGeometry(1.5, 16, 16);
     this.lanceCoreMesh = new THREE.Mesh(prowCoreGeo, this.glowRedMat);
-    this.lanceCoreMesh.position.set(0, 0, 24);
+    this.lanceCoreMesh.position.set(0, 0, 27);
     this.meshGroup.add(this.lanceCoreMesh);
+
+    // Dedicated Specular Spotlight for High-Definition Hull Illumination
+    this.keyLight = new THREE.PointLight(0xb8dcff, 1.2, 60);
+    this.keyLight.position.set(0, 18, 5);
+    this.meshGroup.add(this.keyLight);
   }
 
   update(dt, playerShip, gameManager) {
@@ -234,6 +343,14 @@ export class HeavyBattleship {
       return;
     }
 
+    // Pulsing Thruster Shock Diamonds
+    if (this.thrusters && this.thrusters.length > 0) {
+      const pulse = 0.9 + Math.sin(Date.now() * 0.015) * 0.2;
+      this.thrusters.forEach(t => {
+        if (t && t.scale) t.scale.set(pulse, pulse, pulse * 1.3);
+      });
+    }
+
     const pos = this.meshGroup.position;
     const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
 
@@ -241,7 +358,7 @@ export class HeavyBattleship {
     if (pos.z < this.targetZ) {
       pos.z += this.speed * dt;
     } else {
-      // Slow tactical strafe
+      // Slow tactical dreadnought strafe
       this.strafeTimer += dt * 0.4;
       pos.x = Math.sin(this.strafeTimer) * 14.0;
       pos.y = 3.0 + Math.cos(this.strafeTimer * 0.8) * 3.0;
@@ -283,10 +400,11 @@ export class HeavyBattleship {
     if (this.isChargingLance) {
       this.lanceChargeTime -= dt;
       if (this.lanceCoreMesh) {
-        const scale = 1.0 + (2.5 - this.lanceChargeTime) * 1.5;
+        const scale = 1.0 + (2.5 - this.lanceChargeTime) * 1.8;
         this.lanceCoreMesh.scale.set(scale, scale, scale);
         if (Math.random() < 0.6 && this.particleManager) {
           this.particleManager.createLaserImpact(this.lanceCoreMesh.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(0, 0, 1), 0xff0044);
+          this.particleManager.spawnSparks(this.lanceCoreMesh.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(0, 0, 1), 0xff7700, 10);
         }
       }
 
@@ -328,12 +446,12 @@ export class HeavyBattleship {
 
   fireSpinalLanceBeam(gameManager, playerPos) {
     if (!gameManager) return;
-    const lanceOrigin = this.meshGroup.position.clone().add(new THREE.Vector3(0, 0, 24));
+    const lanceOrigin = this.meshGroup.position.clone().add(new THREE.Vector3(0, 0, 27));
     const dir = new THREE.Vector3(0, 0, 1);
 
     if (this.particleManager) {
       this.particleManager.spawnSonicBoomDisc(lanceOrigin, 0xff0044);
-      this.particleManager.createExplosion(lanceOrigin, 0xff0044, 40, 2.0);
+      this.particleManager.createExplosion(lanceOrigin, 0xff0044, 45, 2.2);
     }
 
     // Heavy Beam Rapid Pulse Stream
@@ -341,7 +459,7 @@ export class HeavyBattleship {
       setTimeout(() => {
         if (this.isDead || !gameManager) return;
         if (gameManager.spawnEnemyLaser) {
-          gameManager.spawnEnemyLaser(lanceOrigin, dir, 0xff0022, 65);
+          gameManager.spawnEnemyLaser(lanceOrigin, dir, 0xff0022, 68);
         }
       }, i * 60);
     }
@@ -360,6 +478,7 @@ export class HeavyBattleship {
       turret.isDead = true;
       if (this.particleManager && turret.mesh) {
         this.particleManager.createExplosion(turret.mesh.getWorldPosition(new THREE.Vector3()), 0xff5500, 30, 1.2);
+        this.particleManager.spawnSparks(turret.mesh.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(0, 1, 0), 0xffaa00, 18);
       }
       if (turret.mesh) turret.mesh.visible = false;
     }
@@ -374,6 +493,7 @@ export class HeavyBattleship {
       sub.isDead = true;
       if (this.particleManager && sub.mesh) {
         this.particleManager.createExplosion(sub.mesh.getWorldPosition(new THREE.Vector3()), 0xff3300, 35, 1.5);
+        this.particleManager.spawnSparks(sub.mesh.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(0, 1, 0), 0xffaa00, 20);
       }
       if (sub.mesh) sub.mesh.visible = false;
     }
@@ -385,6 +505,7 @@ export class HeavyBattleship {
     this.coreHp -= amount;
     if (this.particleManager) {
       this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xff7700);
+      this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xffaa00, 12);
     }
 
     if (this.coreHp <= 0 && !this.isDying) {
@@ -409,8 +530,8 @@ export class HeavyBattleship {
 
     // Cascading Hull Secondary Explosions
     if (Math.random() < 0.7 && this.particleManager) {
-      const offset = new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 35);
-      this.particleManager.createExplosion(pos.clone().add(offset), 0xff5500, 25, 1.0);
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 22, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 36);
+      this.particleManager.createExplosion(pos.clone().add(offset), 0xff5500, 28, 1.2);
     }
 
     this.meshGroup.rotation.z += 0.8 * dt;
@@ -425,8 +546,9 @@ export class HeavyBattleship {
   destroy() {
     this.isDead = true;
     if (this.particleManager) {
-      this.particleManager.createExplosion(this.meshGroup.position, 0xff0044, 70, 3.5);
-      this.particleManager.createEmpShockwave(this.meshGroup.position, 55);
+      this.particleManager.createExplosion(this.meshGroup.position, 0xff0044, 80, 4.0);
+      this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xffaa00, 35);
+      this.particleManager.createEmpShockwave(this.meshGroup.position, 60);
     }
     if (this.meshGroup && this.meshGroup.parent) {
       this.meshGroup.parent.remove(this.meshGroup);

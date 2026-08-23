@@ -592,7 +592,11 @@ export class GameManager {
 
       case 'BATTLESHIP': {
         const bship = new HeavyBattleship(this.spaceScene.scene, this.particleManager);
-        if (bship.meshGroup) bship.meshGroup.position.set(0, 0, -36);
+        if (bship.meshGroup) {
+          bship.meshGroup.position.set(0, -1, -26);
+          bship.meshGroup.rotation.set(0.32, 0.7, 0);
+          bship.meshGroup.scale.set(0.8, 0.8, 0.8);
+        }
         this.heavyBattleships.push(bship);
         this.spaceHUD?.showWaveBanner("INSPECTING", "GOLIATH HEAVY BATTLESHIP");
         break;
