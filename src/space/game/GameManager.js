@@ -480,7 +480,7 @@ export class GameManager {
       const drone = new EnemyDrone(this.spaceScene.scene);
       if (drone.meshGroup) {
         drone.meshGroup.position.set(x, 0, -28);
-        drone.meshGroup.rotation.y = Math.PI;
+        drone.meshGroup.rotation.y = 0;
       }
       this.drones.push(drone);
     });
@@ -550,8 +550,9 @@ export class GameManager {
       case 'DRONE': {
         const drone = new EnemyDrone(this.spaceScene.scene);
         if (drone.meshGroup) {
-          drone.meshGroup.position.set(0, 0, -22);
-          drone.meshGroup.rotation.y = Math.PI;
+          drone.meshGroup.position.set(0, 1.2, -3.5);
+          drone.meshGroup.scale.set(1.4, 1.4, 1.4);
+          drone.meshGroup.rotation.set(0.18, 0.35, 0);
         }
         this.drones.push(drone);
         this.spaceHUD?.showWaveBanner("INSPECTING", "ENEMY SCOUT INTERCEPTOR DRONE");
