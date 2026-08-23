@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Procedural Normal/Bump Texture for Valiant Capital Cruiser Armor
+ * Procedural Normal/Bump Texture for Valiant Capital Cruiser Armor (Silver Platinum Finish)
  */
 function generateCruiserArmorTexture() {
   const canvas = document.createElement('canvas');
@@ -9,12 +9,12 @@ function generateCruiserArmorTexture() {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
 
-  // Base metallic navy-cobalt alloy
-  ctx.fillStyle = '#1c2536';
+  // Base metallic brushed silver alloy
+  ctx.fillStyle = '#ccd6e0';
   ctx.fillRect(0, 0, 256, 256);
 
-  // Geometric armor plate seams
-  ctx.strokeStyle = '#3d5275';
+  // Geometric silver panel seams
+  ctx.strokeStyle = '#8092a6';
   ctx.lineWidth = 2.2;
   for (let x = 0; x < 256; x += 32) {
     ctx.strokeRect(x, 0, 32, 256);
@@ -24,7 +24,7 @@ function generateCruiserArmorTexture() {
   }
 
   // Micro-rivets along armor boundaries
-  ctx.fillStyle = '#8ca8d8';
+  ctx.fillStyle = '#f4f8fc';
   for (let y = 4; y < 256; y += 16) {
     for (let x = 4; x < 256; x += 32) {
       ctx.beginPath();
@@ -80,29 +80,29 @@ export class CapitalShip {
   buildMesh() {
     this.armorTexture = generateCruiserArmorTexture();
 
-    // ── High-Definition Materials ──
+    // ── High-Definition Sleek Silver / Platinum Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x6e86a8,
+      color: 0xc8d6e5,
       bumpMap: this.armorTexture,
-      bumpScale: 0.14,
-      metalness: 0.85,
-      roughness: 0.2,
-      emissive: 0x1a283d,
-      emissiveIntensity: 0.4
+      bumpScale: 0.12,
+      metalness: 0.95,
+      roughness: 0.16,
+      emissive: 0x182230,
+      emissiveIntensity: 0.25
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0xb5cced,
-      metalness: 0.94,
-      roughness: 0.15,
+      color: 0xf0f5fb,
+      metalness: 0.98,
+      roughness: 0.10,
       bumpMap: this.armorTexture,
-      bumpScale: 0.08
+      bumpScale: 0.06
     });
 
     this.darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x2e3b50,
-      metalness: 0.9,
-      roughness: 0.25
+      color: 0x64748b,
+      metalness: 0.92,
+      roughness: 0.20
     });
 
     this.glowCyanMat = new THREE.MeshBasicMaterial({
