@@ -584,7 +584,11 @@ export class GameManager {
 
       case 'CRUISER': {
         const cruiser = new CapitalShip(this.spaceScene.scene, this.particleManager);
-        if (cruiser.meshGroup) cruiser.meshGroup.position.set(0, 0, -32);
+        if (cruiser.meshGroup) {
+          cruiser.meshGroup.position.set(0, 0.8, -4.8);
+          cruiser.meshGroup.rotation.set(0.24, 0.42, 0);
+          cruiser.meshGroup.scale.set(1.3, 1.3, 1.3);
+        }
         this.capitalShips.push(cruiser);
         this.spaceHUD?.showWaveBanner("INSPECTING", "VALIANT CAPITAL CRUISER");
         break;
