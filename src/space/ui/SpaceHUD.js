@@ -103,6 +103,7 @@ export class SpaceHUD {
     this.btnCloseSettings = document.getElementById('btn-close-settings');
     this.btnGraphicsLow = document.getElementById('btn-graphics-low');
     this.btnGraphicsHigh = document.getElementById('btn-graphics-high');
+    this.btnGraphicsUltra = document.getElementById('btn-graphics-ultra');
     this.btnVoiceOff = document.getElementById('btn-voice-off');
     this.btnVoiceOn = document.getElementById('btn-voice-on');
     this.btnStartSettings = document.getElementById('btn-start-settings');
@@ -378,6 +379,15 @@ export class SpaceHUD {
         e.stopPropagation();
         localStorage.setItem('orbital_vanguard_graphics_quality', 'high');
         this.gameManager.postProcessing.setGraphicsQuality('high');
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnGraphicsUltra) {
+      this.btnGraphicsUltra.addEventListener('click', (e) => {
+        e.stopPropagation();
+        localStorage.setItem('orbital_vanguard_graphics_quality', 'ultra');
+        this.gameManager.postProcessing.setGraphicsQuality('ultra');
         this.updateSettingsUI();
       });
     }
@@ -872,17 +882,11 @@ export class SpaceHUD {
 
   updateSettingsUI() {
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    const quality = savedQuality || (this.gameManager.postProcessing.isMobile ? 'low' : 'high');
+    const quality = savedQuality || 'ultra';
       
-    if (this.btnGraphicsLow && this.btnGraphicsHigh) {
-      if (quality === 'low') {
-        this.btnGraphicsLow.classList.add('active');
-        this.btnGraphicsHigh.classList.remove('active');
-      } else {
-        this.btnGraphicsLow.classList.remove('active');
-        this.btnGraphicsHigh.classList.add('active');
-      }
-    }
+    if (this.btnGraphicsLow) this.btnGraphicsLow.classList.toggle('active', quality === 'low');
+    if (this.btnGraphicsHigh) this.btnGraphicsHigh.classList.toggle('active', quality === 'high');
+    if (this.btnGraphicsUltra) this.btnGraphicsUltra.classList.toggle('active', quality === 'ultra');
 
     const voiceEnabled = this.gameManager.voiceAnnouncer.enabled;
     if (this.btnVoiceOff && this.btnVoiceOn) {

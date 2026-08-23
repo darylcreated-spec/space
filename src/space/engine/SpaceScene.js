@@ -104,31 +104,103 @@ export class SpaceScene {
   }
 
   setupLighting() {
-    const ambient = new THREE.AmbientLight(0x1e2c44, 0.75);
+    const ambient = new THREE.AmbientLight(0x223355, 0.85);
     this.scene.add(ambient);
 
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    sunLight.position.set(30, 50, 40);
-    this.scene.add(sunLight);
+    // Primary High-Dynamic-Range Sun Key Light
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 2.8);
+    this.sunLight.position.set(45, 60, 50);
+    this.scene.add(this.sunLight);
 
-    const cyanLight = new THREE.PointLight(0x00f3ff, 1.2, 80);
-    cyanLight.position.set(-15, 20, 0);
-    this.scene.add(cyanLight);
+    // Secondary Cool Celestial Rim Light
+    this.cyanRimLight = new THREE.DirectionalLight(0x00f3ff, 1.4);
+    this.cyanRimLight.position.set(-50, -20, -30);
+    this.scene.add(this.cyanRimLight);
 
-    const magentaLight = new THREE.PointLight(0xff0077, 0.9, 80);
-    magentaLight.position.set(15, 15, -30);
-    this.scene.add(magentaLight);
+    // Warm Plasma Engine Back-Scatter Light
+    this.warmBackLight = new THREE.DirectionalLight(0xff0066, 0.9);
+    this.warmBackLight.position.set(20, -30, 40);
+    this.scene.add(this.warmBackLight);
+
+    // Dynamic Flash Point Light for laser salvos and explosions
+    this.dynamicFlashLight = new THREE.PointLight(0x00f3ff, 0, 50);
+    this.dynamicFlashLight.position.set(0, 0, 10);
+    this.scene.add(this.dynamicFlashLight);
+  }
+
+  triggerDynamicLightFlash(pos, colorHex = 0x00f3ff, intensity = 4.5, duration = 0.12) {
+    if (!this.dynamicFlashLight) return;
+    this.dynamicFlashLight.color.setHex(colorHex);
+    this.dynamicFlashLight.position.copy(pos);
+    this.dynamicFlashLight.intensity = intensity;
+
+    if (this._flashTimer) clearTimeout(this._flashTimer);
+    this._flashTimer = setTimeout(() => {
+      if (this.dynamicFlashLight) this.dynamicFlashLight.intensity = 0;
+    }, duration * 1000);
+  }
+
+  createNebulaTexture(colorCenter, colorMid, colorEdge) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    grad.addColorStop(0.0, colorCenter);
+    grad.addColorStop(0.35, colorMid);
+    grad.addColorStop(0.7, colorEdge);
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+
+    return new THREE.CanvasTexture(canvas);
+  }
+
+  createPlanetTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    // Deep sapphire gas giant atmosphere with swirling cloud bands
+    const grad = ctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0.0, '#041226');
+    grad.addColorStop(0.2, '#08284d');
+    grad.addColorStop(0.35, '#00e1ff');
+    grad.addColorStop(0.48, '#0b3560');
+    grad.addColorStop(0.65, '#00a6ff');
+    grad.addColorStop(0.82, '#0d4078');
+    grad.addColorStop(1.0, '#031022');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 256);
+
+    // High-altitude atmospheric wisps & storm vortex
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    for (let y = 30; y < 230; y += 18) {
+      ctx.fillRect(0, y, 512, 3 + Math.sin(y * 0.2) * 2);
+    }
+
+    // Great atmospheric storm vortex
+    ctx.beginPath();
+    ctx.ellipse(320, 110, 38, 18, 0.1, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 243, 255, 0.45)';
+    ctx.fill();
+
+    return new THREE.CanvasTexture(canvas);
   }
 
   buildDeepSpaceEnvironment() {
     // 1. Realistic Spherical Starfield (Smooth Circular Radial Glow, No Cubes)
-    const starCount = this.isMobile ? 900 : 1800;
+    const starCount = this.isMobile ? 1000 : 2200;
     const starGeo = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
 
     for (let i = 0; i < starCount; i++) {
-      const r = 500 + Math.random() * 500;
+      const r = 550 + Math.random() * 450;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2.0 * Math.random() - 1.0);
 
@@ -137,10 +209,12 @@ export class SpaceScene {
       starPositions[i * 3 + 2] = r * Math.cos(phi);
 
       const colorType = Math.random();
-      if (colorType > 0.7) {
+      if (colorType > 0.75) {
         starColors[i * 3] = 0.0; starColors[i * 3 + 1] = 0.95; starColors[i * 3 + 2] = 1.0;
-      } else if (colorType > 0.4) {
-        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.0; starColors[i * 3 + 2] = 0.6;
+      } else if (colorType > 0.5) {
+        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.2; starColors[i * 3 + 2] = 0.7;
+      } else if (colorType > 0.3) {
+        starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 0.85; starColors[i * 3 + 2] = 0.4;
       } else {
         starColors[i * 3] = 1.0; starColors[i * 3 + 1] = 1.0; starColors[i * 3 + 2] = 1.0;
       }
@@ -150,7 +224,7 @@ export class SpaceScene {
     starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
 
     const starMat = new THREE.PointsMaterial({
-      size: this.isMobile ? 1.6 : 2.2,
+      size: this.isMobile ? 1.8 : 2.5,
       map: this.starTexture,
       vertexColors: true,
       transparent: true,
@@ -163,22 +237,90 @@ export class SpaceScene {
     this.starField = new THREE.Points(starGeo, starMat);
     this.scene.add(this.starField);
 
-    // 3. Floating Interstellar Dust Particles (Realistic Round Glow)
-    const dustCount = this.isMobile ? 250 : 500;
+    // 2. AAA Volumetric Deep-Space Nebula Cloud Layers
+    this.nebulaGroup = new THREE.Group();
+    const nebulaConfigs = [
+      // Cyan Orion Filament
+      { colorCenter: 'rgba(0, 243, 255, 0.45)', colorMid: 'rgba(0, 120, 255, 0.22)', colorEdge: 'rgba(0, 40, 180, 0.08)', pos: new THREE.Vector3(-180, 70, -420), scale: 260 },
+      // Magenta / Violet Carina Filament
+      { colorCenter: 'rgba(255, 0, 150, 0.42)', colorMid: 'rgba(170, 0, 255, 0.2)', colorEdge: 'rgba(70, 0, 140, 0.06)', pos: new THREE.Vector3(200, -60, -460), scale: 280 },
+      // Electric Gold Solar Filament
+      { colorCenter: 'rgba(255, 170, 0, 0.35)', colorMid: 'rgba(255, 80, 0, 0.16)', colorEdge: 'rgba(120, 30, 0, 0.04)', pos: new THREE.Vector3(0, 140, -490), scale: 320 }
+    ];
+
+    nebulaConfigs.forEach(cfg => {
+      const tex = this.createNebulaTexture(cfg.colorCenter, cfg.colorMid, cfg.colorEdge);
+      const nebMat = new THREE.SpriteMaterial({
+        map: tex,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(nebMat);
+      sprite.position.copy(cfg.pos);
+      sprite.scale.set(cfg.scale, cfg.scale * 0.7, 1);
+      this.nebulaGroup.add(sprite);
+    });
+    this.scene.add(this.nebulaGroup);
+
+    // 3. AAA Distant Majestic Celestial Gas Giant & Equatorial Rings
+    this.planetGroup = new THREE.Group();
+    this.planetGroup.position.set(240, 85, -580);
+
+    const planetGeo = new THREE.SphereGeometry(85, 32, 32);
+    const planetTex = this.createPlanetTexture();
+    const planetMat = new THREE.MeshStandardMaterial({
+      map: planetTex,
+      roughness: 0.85,
+      metalness: 0.1,
+      emissive: 0x021124,
+      emissiveIntensity: 0.3
+    });
+    const planetMesh = new THREE.Mesh(planetGeo, planetMat);
+    this.planetGroup.add(planetMesh);
+
+    // Atmospheric Rayleigh Limb Glow Rim
+    const atmosGeo = new THREE.SphereGeometry(88.5, 32, 32);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide
+    });
+    this.planetGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
+
+    // Translucent Ice Ring
+    const ringGeo = new THREE.RingGeometry(110, 175, 48);
+    ringGeo.rotateX(Math.PI * 0.38);
+    ringGeo.rotateZ(Math.PI * 0.12);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x88ccff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.32,
+      blending: THREE.AdditiveBlending
+    });
+    this.planetGroup.add(new THREE.Mesh(ringGeo, ringMat));
+
+    this.scene.add(this.planetGroup);
+
+    // 4. Floating Interstellar Dust Particles (Realistic Round Glow)
+    const dustCount = this.isMobile ? 250 : 600;
     const dustGeo = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(dustCount * 3);
 
     for (let i = 0; i < dustCount; i++) {
-      dustPositions[i * 3] = (Math.random() - 0.5) * 120;
-      dustPositions[i * 3 + 1] = (Math.random() - 0.5) * 80;
-      dustPositions[i * 3 + 2] = -Math.random() * 180;
+      dustPositions[i * 3] = (Math.random() - 0.5) * 140;
+      dustPositions[i * 3 + 1] = (Math.random() - 0.5) * 90;
+      dustPositions[i * 3 + 2] = -Math.random() * 200;
     }
 
     dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
 
     const dustMat = new THREE.PointsMaterial({
       color: 0x00f3ff,
-      size: 0.6,
+      size: 0.65,
       map: this.starTexture,
       transparent: true,
       opacity: 0.75,
@@ -190,10 +332,10 @@ export class SpaceScene {
     this.dustPoints = new THREE.Points(dustGeo, dustMat);
     this.scene.add(this.dustPoints);
 
-    // 4. Background Deep-Space Capital Fleet Silhouettes
+    // 5. Background Deep-Space Capital Fleet Silhouettes
     this.bgFleetGroup = new THREE.Group();
-    const fleetMat = new THREE.MeshBasicMaterial({ color: 0x081426, transparent: true, opacity: 0.85 });
-    const engineGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9 });
+    const fleetMat = new THREE.MeshBasicMaterial({ color: 0x0a1830, transparent: true, opacity: 0.88 });
+    const engineGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.95 });
 
     for (let f = 0; f < 6; f++) {
       const frigate = new THREE.Group();
@@ -422,6 +564,18 @@ export class SpaceScene {
         l.mesh.material.dispose();
         this.bgLasers.splice(i, 1);
       }
+    }
+
+    // Atmosphere & Planet Slow Rotation
+    if (this.planetGroup) {
+      this.planetGroup.rotation.y += dt * 0.012;
+    }
+    if (this.nebulaGroup) {
+      this.nebulaGroup.rotation.z += dt * 0.002;
+    }
+    if (this.dustPoints) {
+      this.dustPoints.position.z += dt * (playerShip && playerShip.isBoosting ? 28.0 : 8.0);
+      if (this.dustPoints.position.z > 80) this.dustPoints.position.z = -100;
     }
 
     // Dynamic camera roll/tilt when banking during dogfights

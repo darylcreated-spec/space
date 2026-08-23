@@ -2,7 +2,99 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+
+// AAA Cinematic Post-Processing Shader (Anamorphic Flares, Chromatic Aberration, 35mm Film Grain, ACES S-Curve, Hyper-Boost Warp)
+const AAACinematicShader = {
+  name: 'AAACinematicShader',
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0.0 },
+    uBoost: { value: 0.0 },
+    uAberration: { value: 0.0035 },
+    uVignette: { value: 0.85 },
+    uGrainIntensity: { value: 0.028 },
+    uQuality: { value: 3.0 } // 1.0 = low, 2.0 = high, 3.0 = ultra
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uTime;
+    uniform float uBoost;
+    uniform float uAberration;
+    uniform float uVignette;
+    uniform float uGrainIntensity;
+    uniform float uQuality;
+    varying vec2 vUv;
+
+    // High-frequency pseudo-random noise for 35mm film grain
+    float rand(vec2 co) {
+      return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    void main() {
+      vec2 uv = vUv;
+      vec2 center = vec2(0.5, 0.5);
+      vec2 toCenter = uv - center;
+      float dist = length(toCenter);
+
+      // 1. Hyper-Boost Radial Warp Tunnel
+      if (uBoost > 0.01) {
+        float warp = pow(dist, 2.2) * uBoost * 0.055;
+        uv -= toCenter * warp;
+      }
+
+      // 2. High-Precision Chromatic Aberration
+      float ab = uAberration + (uBoost * 0.018);
+      vec2 uvR = uv + toCenter * ab;
+      vec2 uvG = uv;
+      vec2 uvB = uv - toCenter * ab;
+
+      float r = texture2D(tDiffuse, uvR).r;
+      float g = texture2D(tDiffuse, uvG).g;
+      float b = texture2D(tDiffuse, uvB).b;
+      vec3 color = vec3(r, g, b);
+
+      // 3. Anamorphic Horizontal Optical Streaks (High-Quality Ultra Mode)
+      if (uQuality >= 2.0) {
+        vec3 flare = vec3(0.0);
+        for (float i = 1.0; i <= 5.0; i++) {
+          float offset = i * 0.0035;
+          vec3 s1 = texture2D(tDiffuse, vec2(uv.x + offset, uv.y)).rgb;
+          vec3 s2 = texture2D(tDiffuse, vec2(uv.x - offset, uv.y)).rgb;
+          vec3 l1 = max(vec3(0.0), s1 - 0.72);
+          vec3 l2 = max(vec3(0.0), s2 - 0.72);
+          flare += (l1 + l2) * (1.0 / i);
+        }
+        // Subtle optical tint: cyan-blue anamorphic flare
+        color += flare * vec3(0.2, 0.65, 1.0) * 0.38;
+      }
+
+      // 4. Cinematic Vignette
+      float vignette = smoothstep(1.15, 0.35, dist * uVignette);
+      color *= mix(0.72, 1.0, vignette);
+
+      // 5. 35mm Organic Film Grain
+      if (uGrainIntensity > 0.0) {
+        float grain = (rand(uv + fract(uTime * 19.3)) - 0.5) * uGrainIntensity;
+        color += grain;
+      }
+
+      // 6. Contrast S-Curve Tone Mapping
+      color = clamp(color, 0.0, 1.0);
+      color = color * color * (3.0 - 2.0 * color);
+
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `
+};
 
 export class PostProcessing {
   constructor(renderer, scene, camera) {
@@ -11,7 +103,11 @@ export class PostProcessing {
     this.camera = camera;
 
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || 'high';
+    this.quality = savedQuality || 'ultra';
+
+    this.boostAmount = 0.0;
+    this.targetBoost = 0.0;
+    this.time = 0;
 
     this._initComposer();
     window.addEventListener('resize', this.onResize.bind(this));
@@ -23,16 +119,24 @@ export class PostProcessing {
       const renderPass = new RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
-      // UnrealBloomPass: Subtle, crisp glow ONLY for intense energy cores and explosions (zero blinding washout)
       const res = new THREE.Vector2(window.innerWidth, window.innerHeight);
+
+      // 1. UnrealBloomPass: Crisp, high-luminance optical bloom
+      const bloomStrength = this.quality === 'ultra' ? 0.65 : (this.quality === 'high' ? 0.5 : 0.35);
       this.bloomPass = new UnrealBloomPass(
         res,
-        0.45, // Subtle, crisp bloom strength
-        0.25, // Tight radius
-        0.85  // High luminance threshold so ship hulls, planet, and space remain crystal clear
+        bloomStrength,
+        0.3,
+        0.82
       );
       this.composer.addPass(this.bloomPass);
 
+      // 2. AAA Cinematic Shader Pass
+      this.cinemaPass = new ShaderPass(AAACinematicShader);
+      this.cinemaPass.uniforms.uQuality.value = this.quality === 'ultra' ? 3.0 : (this.quality === 'high' ? 2.0 : 1.0);
+      this.composer.addPass(this.cinemaPass);
+
+      // 3. Output Tone Mapping Pass
       const outputPass = new OutputPass();
       this.composer.addPass(outputPass);
     } catch (e) {
@@ -48,7 +152,32 @@ export class PostProcessing {
     } else {
       if (!this.composer) {
         this._initComposer();
+      } else {
+        if (this.bloomPass) {
+          this.bloomPass.strength = level === 'ultra' ? 0.65 : (level === 'high' ? 0.5 : 0.35);
+        }
+        if (this.cinemaPass) {
+          this.cinemaPass.uniforms.uQuality.value = level === 'ultra' ? 3.0 : (level === 'high' ? 2.0 : 1.0);
+          this.cinemaPass.uniforms.uGrainIntensity.value = level === 'ultra' ? 0.028 : (level === 'high' ? 0.02 : 0.0);
+        }
       }
+    }
+  }
+
+  update(dt, playerShip) {
+    this.time += dt;
+
+    if (playerShip && playerShip.isBoosting) {
+      this.targetBoost = 1.0;
+    } else {
+      this.targetBoost = 0.0;
+    }
+
+    this.boostAmount = THREE.MathUtils.lerp(this.boostAmount, this.targetBoost, dt * 8.0);
+
+    if (this.cinemaPass && this.cinemaPass.uniforms) {
+      this.cinemaPass.uniforms.uTime.value = this.time;
+      this.cinemaPass.uniforms.uBoost.value = this.boostAmount;
     }
   }
 

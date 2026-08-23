@@ -695,6 +695,12 @@ export class GameManager {
     bolt.reset(startPos, colorHex, isEnemy, targetDir, projectileType);
     if (isCrit) bolt.isCritical = true;
     if (!this.lasers.includes(bolt)) this.lasers.push(bolt);
+
+    // AAA Dynamic Muzzle Lighting Flash
+    if (!isEnemy && this.spaceScene && Math.random() < 0.4) {
+      this.spaceScene.triggerDynamicLightFlash(startPos, colorHex, 3.0, 0.07);
+    }
+
     return bolt;
   }
 
@@ -959,8 +965,13 @@ export class GameManager {
     }
   }
 
-  renderScene() {
-    this.postProcessing.render();
+  renderScene(dt = 0.016) {
+    if (this.postProcessing) {
+      this.postProcessing.update(dt, this.playerShip);
+      this.postProcessing.render();
+    } else {
+      this.spaceScene.renderer.render(this.spaceScene.scene, this.spaceScene.camera);
+    }
   }
 
   update(dt) {
@@ -968,7 +979,7 @@ export class GameManager {
       this.playerShip.update(dt, { x: 0, y: 0 });
       this.spaceScene.update(dt, this.playerShip, this.activeBoss);
       this.particleManager.update();
-      this.renderScene();
+      this.renderScene(dt);
       return;
     }
 
@@ -1341,7 +1352,7 @@ export class GameManager {
     const bossForCam = this.activeBoss || this.carrierBoss || (this.heavyBattleships && this.heavyBattleships.find(b => !b.isDead));
     this.spaceScene.update(dt, this.playerShip, bossForCam);
     this.particleManager.update();
-    this.renderScene();
+    this.renderScene(effectiveDt);
   }
 
   spawnSentinelDrone() {
