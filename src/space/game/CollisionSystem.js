@@ -12,6 +12,7 @@ export class CollisionSystem {
   }
 
   checkCollisions(gameManager) {
+    if (gameManager.freezeFleetAI) return;
     const player = gameManager.playerShip;
     if (!player || !player.meshGroup) return;
     const pPos = player.meshGroup.position;

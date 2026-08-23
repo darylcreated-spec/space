@@ -544,6 +544,7 @@ export class GameManager {
     if (this.spaceHUD) {
       if (this.spaceHUD.modalStart) this.spaceHUD.modalStart.classList.add('hidden');
       if (this.spaceHUD.modalFleet) this.spaceHUD.modalFleet.classList.add('hidden');
+      if (this.spaceHUD.modalGameOver) this.spaceHUD.modalGameOver.classList.add('hidden');
     }
 
     switch (shipKey) {
@@ -560,14 +561,22 @@ export class GameManager {
       }
 
       case 'STEALTH': {
-        const sf = new StealthFighter(this.spaceScene.scene, this.particleManager, new THREE.Vector3(0, 0, -24));
+        const sf = new StealthFighter(this.spaceScene.scene, this.particleManager, new THREE.Vector3(0, 1.2, -3.5));
+        if (sf.meshGroup) {
+          sf.meshGroup.scale.set(1.4, 1.4, 1.4);
+          sf.meshGroup.rotation.set(0.18, 0.35, 0);
+        }
         sf.isCloaked = false;
         sf.cloakOpacity = 1.0;
         sf.targetCloakOpacity = 1.0;
         sf.state = 'UNCLOAK_AMBUSH';
         if (sf.hullMat) sf.hullMat.opacity = 1.0;
-        if (sf.accentMat) sf.accentMat.opacity = 1.0;
+        if (sf.titaniumMat) sf.titaniumMat.opacity = 1.0;
+        if (sf.conduitMat) sf.conduitMat.opacity = 1.0;
+        if (sf.oculusMat) sf.oculusMat.opacity = 1.0;
         if (sf.glowMat) sf.glowMat.opacity = 1.0;
+        if (sf.shimmerMesh) sf.shimmerMesh.visible = false;
+        if (sf.keyLight) sf.keyLight.intensity = 2.4;
         this.stealthFighters.push(sf);
         this.spaceHUD?.showWaveBanner("INSPECTING", "SHADOW-WRAITH STEALTH FIGHTER");
         break;
