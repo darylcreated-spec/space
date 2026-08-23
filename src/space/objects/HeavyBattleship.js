@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Procedural Normal/Bump Texture for Goliath Heavy Battleship Armor Plating
+ * Procedural Normal/Bump Texture for Goliath Heavy Battleship Armor Plating (Arctic White Finish)
  */
 function generateBattleshipArmorTexture() {
   const canvas = document.createElement('canvas');
@@ -9,13 +9,13 @@ function generateBattleshipArmorTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  // Base deep military slate-gunmetal
-  ctx.fillStyle = '#222b3a';
+  // Base arctic white ceramic composite
+  ctx.fillStyle = '#e8eef6';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Heavy steel armor plate seams
-  ctx.strokeStyle = '#4a5b75';
-  ctx.lineWidth = 3.0;
+  // Precision titanium armor plate seams
+  ctx.strokeStyle = '#8da2be';
+  ctx.lineWidth = 2.8;
   for (let x = 0; x < 512; x += 64) {
     ctx.strokeRect(x, 0, 64, 512);
   }
@@ -23,8 +23,8 @@ function generateBattleshipArmorTexture() {
     ctx.strokeRect(0, y, 512, 64);
   }
 
-  // Micro-rivets along armor boundaries
-  ctx.fillStyle = '#94a7c4';
+  // Pure white micro-rivets along armor boundaries
+  ctx.fillStyle = '#ffffff';
   for (let y = 8; y < 512; y += 32) {
     for (let x = 8; x < 512; x += 64) {
       ctx.beginPath();
@@ -33,10 +33,8 @@ function generateBattleshipArmorTexture() {
     }
   }
 
-  // Hazard warning chevron stripes for missile/hangar zones
-  ctx.fillStyle = '#ff8800';
-  ctx.strokeStyle = '#222b3a';
-  ctx.lineWidth = 4;
+  // High-contrast orange/graphite hazard chevron stripes
+  ctx.fillStyle = '#ff6600';
   for (let i = 0; i < 4; i++) {
     const xOff = 384 + i * 28;
     ctx.beginPath();
@@ -102,29 +100,29 @@ export class HeavyBattleship {
   buildShip() {
     this.armorTexture = generateBattleshipArmorTexture();
 
-    // ── High-Definition High-Contrast Heavy Armor Materials ──
+    // ── High-Definition Arctic / Pearl White Armor Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x5a6d88,
+      color: 0xecf3f9,
       bumpMap: this.armorTexture,
-      bumpScale: 0.15,
-      metalness: 0.88,
-      roughness: 0.22,
-      emissive: 0x141c28,
-      emissiveIntensity: 0.35
+      bumpScale: 0.12,
+      metalness: 0.82,
+      roughness: 0.18,
+      emissive: 0x1c2536,
+      emissiveIntensity: 0.2
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0x9fb5d1,
-      metalness: 0.94,
-      roughness: 0.16,
+      color: 0xfcfdff,
+      metalness: 0.92,
+      roughness: 0.12,
       bumpMap: this.armorTexture,
-      bumpScale: 0.08
+      bumpScale: 0.06
     });
 
     this.darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x242d3d,
-      metalness: 0.9,
-      roughness: 0.3
+      color: 0x3b4759,
+      metalness: 0.90,
+      roughness: 0.22
     });
 
     this.glowRedMat = new THREE.MeshBasicMaterial({
