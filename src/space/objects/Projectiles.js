@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 // â”€â”€ Shared Cache for LaserBolt Geometries & Materials â”€â”€
 const laserGeoCache = {};
@@ -63,7 +63,11 @@ export class LaserBolt {
     this.scene.add(this.meshGroup);
   }
 
-  reset(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, projectileType = 'STANDARD') {
+  reset(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, projectileType = 'STANDARD', gameManager = null) {
+    if (gameManager) this.gameManager = gameManager;
+    else if (!this.gameManager && typeof window !== 'undefined' && window.spaceGameManager) {
+      this.gameManager = window.spaceGameManager;
+    }
     this.isEnemy = isEnemy;
     this.projectileType = projectileType;
     this.isDead = false;
@@ -153,30 +157,53 @@ export class LaserBolt {
   update(dt) {
     if (this.isDead) return;
 
+    const gm = this.gameManager || (typeof window !== 'undefined' ? window.spaceGameManager : null);
+
     // Homing Steering Logic for TACTICIAN seeking plasma
-    if (this.projectileType === 'HOMING' && !this.isEnemy && this.gameManager) {
+    if (this.projectileType === 'HOMING' && !this.isEnemy && gm) {
       if (!this.homingTarget || this.homingTarget.isDead) {
-        // Find nearest active enemy ahead
         let nearest = null;
-        let minDist = 75;
+        let minDist = 85;
         
         // Check drones
-        if (this.gameManager.drones) {
-          for (let d of this.gameManager.drones) {
+        if (gm.drones) {
+          for (let d of gm.drones) {
             if (!d.isDead && d.meshGroup && d.meshGroup.position.z < this.meshGroup.position.z) {
               const dist = this.meshGroup.position.distanceTo(d.meshGroup.position);
               if (dist < minDist) { minDist = dist; nearest = d; }
             }
           }
         }
+        // Check stealth fighters
+        if (!nearest && gm.stealthFighters) {
+          for (let s of gm.stealthFighters) {
+            if (!s.isDead && s.meshGroup && s.meshGroup.position.z < this.meshGroup.position.z) {
+              const dist = this.meshGroup.position.distanceTo(s.meshGroup.position);
+              if (dist < minDist) { minDist = dist; nearest = s; }
+            }
+          }
+        }
+        // Check heavy battleships
+        if (!nearest && gm.heavyBattleships) {
+          for (let b of gm.heavyBattleships) {
+            if (!b.isDead && b.meshGroup && b.meshGroup.position.z < this.meshGroup.position.z) {
+              const dist = this.meshGroup.position.distanceTo(b.meshGroup.position);
+              if (dist < minDist) { minDist = dist; nearest = b; }
+            }
+          }
+        }
         // Check asteroids
-        if (!nearest && this.gameManager.asteroids) {
-          for (let a of this.gameManager.asteroids) {
+        if (!nearest && gm.asteroids) {
+          for (let a of gm.asteroids) {
             if (!a.isDead && a.meshGroup && a.meshGroup.position.z < this.meshGroup.position.z) {
               const dist = this.meshGroup.position.distanceTo(a.meshGroup.position);
               if (dist < minDist) { minDist = dist; nearest = a; }
             }
           }
+        }
+        // Check carrier boss
+        if (!nearest && gm.carrierBoss && !gm.carrierBoss.isDead && gm.carrierBoss.meshGroup) {
+          nearest = gm.carrierBoss;
         }
         this.homingTarget = nearest;
       }

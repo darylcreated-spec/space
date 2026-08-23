@@ -203,14 +203,15 @@ export class PlayerShip {
 
   rebuildShipMesh(className) {
     this.clearShipMesh();
-    this.shipClass = className;
+    this.shipClass = className || 'INTERCEPTOR';
 
     // Hexagonal Shield Dome
     const shieldGeo = new THREE.IcosahedronGeometry(3.3, 2);
     let shieldColor = 0x00f3ff;
-    if (className === 'DREADNOUGHT') shieldColor = 0xff0044;
-    else if (className === 'TACTICIAN') shieldColor = 0x00ff88;
-    else if (className === 'REAPER') shieldColor = 0xaa00ff;
+    if (this.shipClass === 'DREADNOUGHT') shieldColor = 0xff0044;
+    else if (this.shipClass === 'TACTICIAN') shieldColor = 0x00ff88;
+    else if (this.shipClass === 'REAPER') shieldColor = 0xaa00ff;
+    else if (this.shipClass === 'SENTINEL') shieldColor = 0x00e5ff;
 
     this.shieldMat = new THREE.MeshBasicMaterial({
       color: shieldColor,
@@ -222,14 +223,18 @@ export class PlayerShip {
     this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
     this.meshGroup.add(this.shieldMesh);
 
-    if (className === 'INTERCEPTOR') {
+    if (this.shipClass === 'INTERCEPTOR') {
       this.buildInterceptorMesh();
-    } else if (className === 'DREADNOUGHT') {
+    } else if (this.shipClass === 'DREADNOUGHT') {
       this.buildDreadnoughtMesh();
-    } else if (className === 'TACTICIAN') {
+    } else if (this.shipClass === 'TACTICIAN') {
       this.buildTacticianMesh();
-    } else if (className === 'REAPER') {
+    } else if (this.shipClass === 'REAPER') {
       this.buildReaperMesh();
+    } else if (this.shipClass === 'SENTINEL') {
+      this.buildSentinelMesh();
+    } else {
+      this.buildInterceptorMesh();
     }
   }
 
@@ -707,6 +712,106 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLight);
   }
 
+  // ────────────────────────────────────────────────────────────
+  // 5. 🛡️ SENTINEL: "Aegis Warden" (Dual Tuning Emitters & Autonomous Escort Drone)
+  // ────────────────────────────────────────────────────────────
+  buildSentinelMesh() {
+    this.maxShield = 130;
+    this.shield = 130;
+    this.speed = 30;
+    this.laserFireDelay = 0.08;
+    this.dodgeMaxCooldown = 1.4;
+    this.maxSwarmCD = 3.5;
+
+    const hullTex = getProceduralHullTexture();
+
+    // Sleek Forward Command Chassis
+    const bodyGeo = new THREE.CylinderGeometry(0.7, 0.95, 5.0, 8);
+    bodyGeo.rotateX(Math.PI / 2);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      map: hullTex,
+      color: 0x0f2238,
+      metalness: 0.95,
+      roughness: 0.18,
+      emissive: 0x003b5c,
+      emissiveIntensity: 0.35
+    });
+    this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+    // Dual Forward Energy Emitter Prongs (Aegis Tuning Forks)
+    [-0.9, 0.9].forEach(px => {
+      const prongGeo = new THREE.BoxGeometry(0.24, 0.24, 3.2);
+      const prongMat = new THREE.MeshStandardMaterial({ color: 0x14324f, metalness: 0.92, roughness: 0.15 });
+      const prong = new THREE.Mesh(prongGeo, prongMat);
+      prong.position.set(px, 0, -2.4);
+      this.meshGroup.add(prong);
+
+      const tipGeo = new THREE.SphereGeometry(0.18, 8, 8);
+      const tipMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.position.set(px, 0, -4.0);
+      this.meshGroup.add(tip);
+    });
+
+    // High-Clarity Cyan Glass Canopy
+    this.buildCockpitInterior(this.meshGroup, 0x00e5ff);
+
+    // Forward Swept Wing Blades
+    const wingGeo = new THREE.BoxGeometry(2.2, 0.12, 1.8);
+    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x1b3857, metalness: 0.9, roughness: 0.2 });
+
+    const rightWing = new THREE.Mesh(wingGeo, wingMat);
+    rightWing.position.set(1.8, 0, -0.4);
+    rightWing.rotation.y = -0.25;
+    this.meshGroup.add(rightWing);
+
+    const leftWing = new THREE.Mesh(wingGeo, wingMat);
+    leftWing.position.set(-1.8, 0, -0.4);
+    leftWing.rotation.y = 0.25;
+    this.meshGroup.add(leftWing);
+
+    // Dual Twin Pulse Cannons
+    this.muzzleOffsets = [
+      new THREE.Vector3(-0.9, 0, -3.8),
+      new THREE.Vector3(0.9, 0, -3.8),
+      new THREE.Vector3(-2.6, 0, -1.2),
+      new THREE.Vector3(2.6, 0, -1.2)
+    ];
+
+    // High Output Ion Thrusters
+    [-0.65, 0.65].forEach(x => {
+      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x061424, metalness: 0.92 }));
+      eng.rotateX(Math.PI / 2);
+      eng.position.set(x, -0.05, 2.3);
+      this.meshGroup.add(eng);
+
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.5, 8), new THREE.MeshBasicMaterial({ color: 0x00e5ff }));
+      flame.rotation.x = -Math.PI / 2;
+      flame.position.set(0, 0, 0.6);
+      eng.add(flame);
+      this.flameMeshes.push(flame);
+
+      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 8), new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide }));
+      dia.position.set(0, 0, 0.4);
+      eng.add(dia);
+      this.shockDiamonds.push(dia);
+    });
+
+    this.wingtipOffsets = [new THREE.Vector3(-2.8, 0, -1.0), new THREE.Vector3(2.8, 0, -1.0)];
+    this.engineTrailOffsets = [new THREE.Vector3(-0.65, 0, 2.8), new THREE.Vector3(0.65, 0, 2.8)];
+
+    this.rcsPorts = [
+      { pos: new THREE.Vector3(0, 0.4, -2.4), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.4, -2.4), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-2.6, 0, -1.0), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(2.6, 0, -1.0), dirY: 0, dirX: 1 }
+    ];
+
+    this.engineLight = new THREE.PointLight(0x00e5ff, 2.0, 9);
+    this.engineLight.position.set(0, 0, 2.6);
+    this.meshGroup.add(this.engineLight);
+  }
+
   triggerBarrelRecoil() {
     this.flakRecoil = 0.35;
     this.moltenHeat = Math.min(1.0, this.moltenHeat + 0.25);
@@ -933,6 +1038,7 @@ export class PlayerShip {
       if (this.shipClass === 'DREADNOUGHT') rcsColor = 0xff3300;
       else if (this.shipClass === 'TACTICIAN') rcsColor = 0x00ff88;
       else if (this.shipClass === 'REAPER') rcsColor = 0xaa00ff;
+      else if (this.shipClass === 'SENTINEL') rcsColor = 0x00e5ff;
 
       this.rcsPorts.forEach(port => {
         if ((dY > 0.15 && port.dirY > 0) || (dY < -0.15 && port.dirY < 0) ||
@@ -944,7 +1050,7 @@ export class PlayerShip {
       });
     }
 
-    // â”€â”€ Flame & Shock Diamond Dynamics â”€â”€
+    // ── Flame & Shock Diamond Dynamics ──
     const flicker = 1.0 + Math.sin(this._time * 24) * 0.15;
     const thrustBoost = (this.isBoosting ? 2.5 : 1.0) * (1.0 + Math.abs(inputDir.x) * 0.3 + Math.abs(inputDir.y) * 0.3);
     this.flameMeshes.forEach(f => {
@@ -969,6 +1075,7 @@ export class PlayerShip {
         if (this.shipClass === 'DREADNOUGHT') tipColor = 0xffa0b0;
         else if (this.shipClass === 'TACTICIAN') tipColor = 0xb0ffda;
         else if (this.shipClass === 'REAPER') tipColor = 0xe8b0ff;
+        else if (this.shipClass === 'SENTINEL') tipColor = 0x80f0ff;
         this.particleManager.spawnEngineParticle(leftTip, tipColor);
         this.particleManager.spawnEngineParticle(rightTip, tipColor);
       }
@@ -982,6 +1089,7 @@ export class PlayerShip {
       else if (this.shipClass === 'DREADNOUGHT') pColor = this.isBoosting ? 0xffea00 : 0xff0044;
       else if (this.shipClass === 'TACTICIAN') pColor = this.isBoosting ? 0xffea00 : 0x00ff88;
       else if (this.shipClass === 'REAPER') pColor = this.isBoosting ? 0xff00bb : 0xaa00ff;
+      else if (this.shipClass === 'SENTINEL') pColor = this.isBoosting ? 0xffea00 : 0x00e5ff;
 
       this.engineTrailOffsets.forEach(offset => {
         const worldPos = this.meshGroup.localToWorld(offset.clone());

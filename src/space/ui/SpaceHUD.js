@@ -139,7 +139,8 @@ export class SpaceHUD {
         this.btnSelectInterceptor,
         this.btnSelectDreadnought,
         this.btnSelectTactician,
-        this.btnSelectReaper
+        this.btnSelectReaper,
+        this.btnSelectSentinel
       ].forEach(btn => {
         if (btn) {
           btn.classList.remove('active');

@@ -153,7 +153,14 @@ export class GameManager {
   }
 
   setSelectedShipClass(shipClass) {
-    this.selectedShipClass = shipClass;
+    this.selectedShipClass = shipClass || 'INTERCEPTOR';
+    if (this.playerShip) {
+      this.playerShip.setShipClass(this.selectedShipClass);
+      if (this.upgradeSystem) {
+        this.upgradeSystem.applyUpgradesToShip(this.playerShip);
+      }
+      this.playerShip.shield = this.playerShip.maxShield;
+    }
   }
 
   triggerDodgeRoll(direction = null) {
@@ -501,6 +508,9 @@ export class GameManager {
     } else if (shipClass === 'REAPER') {
       projectileType = 'CRIT_DART';
       color = 0xaa00ff;
+    } else if (shipClass === 'SENTINEL') {
+      projectileType = 'STANDARD';
+      color = 0x00e5ff;
     }
 
     if (this.overchargeTimer > 0) color = 0xffea00;
