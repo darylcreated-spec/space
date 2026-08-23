@@ -85,6 +85,18 @@ export class SpaceHUD {
     this.finalKills = document.getElementById('space-final-kills');
     this.btnRestartGame = document.getElementById('btn-restart-space');
 
+    // Fleet Inspector Modal cache
+    this.btnOpenFleetInspector = document.getElementById('btn-open-fleet-inspector');
+    this.modalFleet = document.getElementById('space-modal-fleet');
+    this.btnCloseFleet = document.getElementById('btn-close-fleet');
+    this.btnFleetShowcaseAll = document.getElementById('btn-fleet-showcase-all');
+    this.btnFleetToggleGod = document.getElementById('btn-fleet-toggle-god');
+    this.btnFleetToggleFreeze = document.getElementById('btn-fleet-toggle-freeze');
+    this.btnFleetClearAll = document.getElementById('btn-fleet-clear-all');
+    this.fleetGodBtnText = document.getElementById('fleet-god-btn-text');
+    this.fleetFreezeBtnText = document.getElementById('fleet-freeze-btn-text');
+    this.fleetGodStatus = document.getElementById('fleet-god-status');
+
     // Settings Modal cache
     this.btnOpenSettings = document.getElementById('btn-open-settings');
     this.modalSettings = document.getElementById('space-modal-settings');
@@ -226,6 +238,98 @@ export class SpaceHUD {
       });
     }
 
+    // Fleet Inspector Modal Event Handlers
+    if (this.btnOpenFleetInspector) {
+      this.btnOpenFleetInspector.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showFleetModal();
+      });
+    }
+
+    if (this.btnCloseFleet) {
+      this.btnCloseFleet.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeFleetModal();
+      });
+    }
+
+    if (this.btnFleetShowcaseAll) {
+      this.btnFleetShowcaseAll.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.spawnAllFleetFormation();
+        this.closeFleetModal();
+      });
+    }
+
+    if (this.btnFleetToggleGod) {
+      this.btnFleetToggleGod.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isGod = this.gameManager.toggleGodMode();
+        if (this.fleetGodBtnText) {
+          this.fleetGodBtnText.textContent = isGod ? '🛡️ GOD MODE: ON' : '🛡️ GOD MODE: OFF';
+        }
+        if (this.fleetGodStatus) {
+          this.fleetGodStatus.textContent = isGod ? 'INVULNERABILITY: ACTIVE' : 'INVULNERABILITY: READY';
+          this.fleetGodStatus.style.color = isGod ? '#00ff66' : '#00f3ff';
+        }
+      });
+    }
+
+    if (this.btnFleetToggleFreeze) {
+      this.btnFleetToggleFreeze.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isFrozen = this.gameManager.toggleFreezeFleetAI();
+        if (this.fleetFreezeBtnText) {
+          this.fleetFreezeBtnText.textContent = isFrozen ? '⏸️ FREEZE AI: ON' : '⏸️ FREEZE AI: OFF';
+        }
+      });
+    }
+
+    if (this.btnFleetClearAll) {
+      this.btnFleetClearAll.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.clearAllThreats();
+        this.gameManager.clearAllEntities();
+      });
+    }
+
+    // Individual inspect solo and spawn battle buttons
+    document.querySelectorAll('.btn-inspect-solo').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const shipKey = btn.dataset.ship;
+        if (shipKey) {
+          this.gameManager.spawnSoloInspect(shipKey);
+          this.closeFleetModal();
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-spawn-battle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const shipKey = btn.dataset.ship;
+        if (shipKey) {
+          this.closeFleetModal();
+          this.gameManager.state = 'PLAYING';
+          if (this.modalStart) this.modalStart.classList.add('hidden');
+          switch(shipKey) {
+            case 'DRONE': this.gameManager.spawnDrone(); break;
+            case 'STEALTH': this.gameManager.spawnStealthFighter(); break;
+            case 'CRUISER': this.gameManager.spawnCapitalShip(); break;
+            case 'BATTLESHIP': this.gameManager.spawnHeavyBattleship(); break;
+            case 'CARRIER': this.gameManager.spawnCarrierBoss(); break;
+            case 'MOONBASE': this.gameManager.spawnSpaceStation(); break;
+            case 'HALO': this.gameManager.spawnHaloBoss(); break;
+            case 'BABYLON': this.gameManager.spawnBabylon5Boss(); break;
+            case 'MOTHERSHIP': this.gameManager.spawnCommandMothership(); break;
+            case 'TITAN': this.gameManager.spawnTitanBoss(); break;
+            case 'DREADNOUGHT': this.gameManager.spawnBoss(); break;
+          }
+        }
+      });
+    });
+
     if (this.btnOpenSettings) {
       this.btnOpenSettings.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -306,6 +410,13 @@ export class SpaceHUD {
       if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q' || e.code === 'ShiftLeft') this.gameManager.fireEmpPulse();
       if (e.code === 'KeyE' || e.key === 'e' || e.key === 'E' || e.code === 'Digit2') this.gameManager.fireSwarmMissiles();
       if (e.code === 'KeyB' || e.key === 'b' || e.key === 'B') this.gameManager.triggerHyperBoost();
+      if (e.code === 'KeyF' || e.key === 'f' || e.key === 'F') {
+        if (this.modalFleet && !this.modalFleet.classList.contains('hidden')) {
+          this.closeFleetModal();
+        } else {
+          this.showFleetModal();
+        }
+      }
       if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
         this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
       }
@@ -314,7 +425,9 @@ export class SpaceHUD {
         this.gameManager.spaceScene.toggleCameraMode();
       }
       if (e.code === 'Escape') {
-        if (this.modalSettings && !this.modalSettings.classList.contains('hidden')) {
+        if (this.modalFleet && !this.modalFleet.classList.contains('hidden')) {
+          this.closeFleetModal();
+        } else if (this.modalSettings && !this.modalSettings.classList.contains('hidden')) {
           this.closeSettingsModal();
         } else {
           this.showSettingsModal();
@@ -643,12 +756,35 @@ export class SpaceHUD {
     }
   }
 
+  showFleetModal() {
+    if (this.modalFleet) {
+      if (this.fleetGodBtnText) {
+        this.fleetGodBtnText.textContent = this.gameManager.isGodMode ? '🛡️ GOD MODE: ON' : '🛡️ GOD MODE: OFF';
+      }
+      if (this.fleetFreezeBtnText) {
+        this.fleetFreezeBtnText.textContent = this.gameManager.freezeFleetAI ? '⏸️ FREEZE AI: ON' : '⏸️ FREEZE AI: OFF';
+      }
+      if (this.fleetGodStatus) {
+        this.fleetGodStatus.textContent = this.gameManager.isGodMode ? 'INVULNERABILITY: ACTIVE' : 'INVULNERABILITY: READY';
+        this.fleetGodStatus.style.color = this.gameManager.isGodMode ? '#00ff66' : '#00f3ff';
+      }
+      this.modalFleet.classList.remove('hidden');
+    }
+  }
+
+  closeFleetModal() {
+    if (this.modalFleet) {
+      this.modalFleet.classList.add('hidden');
+    }
+  }
+
   hideAllModals() {
     if (this.modalStart) this.modalStart.classList.add('hidden');
     if (this.modalGameOver) this.modalGameOver.classList.add('hidden');
     if (this.modalHangar) this.modalHangar.classList.add('hidden');
     if (this.modalSettings) this.modalSettings.classList.add('hidden');
     if (this.modalPerks) this.modalPerks.classList.add('hidden');
+    if (this.modalFleet) this.modalFleet.classList.add('hidden');
   }
 
   flashShieldImpact() {

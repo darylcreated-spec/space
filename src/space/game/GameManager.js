@@ -73,7 +73,9 @@ export class GameManager {
     this.laserPool = [];
     this.plasmaPulsePool = [];
     this.activeEmpPulse = null;
-    this.activeBoss = null;
+    this.showcaseBosses = [];
+    this.isGodMode = false;
+    this.freezeFleetAI = false;
 
     // Active Power-Up Timers
     this.overchargeTimer = 0;
@@ -224,6 +226,11 @@ export class GameManager {
       this.carrierBoss = null;
     }
 
+    if (this.showcaseBosses && this.showcaseBosses.length > 0) {
+      this.showcaseBosses.forEach(b => { try { b.destroy(); } catch(e) {} });
+      this.showcaseBosses = [];
+    }
+
     this.activeEmpPulse = null;
     this.destroySentinelDrone();
   }
@@ -258,6 +265,11 @@ export class GameManager {
       try { b.destroy(); } catch(e) {}
     });
     this.heavyBattleships = [];
+
+    if (this.showcaseBosses && this.showcaseBosses.length > 0) {
+      this.showcaseBosses.forEach(b => { try { b.destroy(); } catch(e) {} });
+      this.showcaseBosses = [];
+    }
 
     // Clear ALL in-flight projectiles (enemy lasers, plasma pulses) to prevent
     // stale references after boss death / wave transition
@@ -407,6 +419,223 @@ export class GameManager {
     if (this.spaceScene) {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
       this.spaceScene.triggerBossIntroCamera();
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // ADMIRALTY FLEET INSPECTOR & SHOWCASE MATRIX
+  // ══════════════════════════════════════════════════════════════════════════════
+  toggleGodMode() {
+    this.isGodMode = !this.isGodMode;
+    if (this.playerShip) {
+      this.playerShip.isInvulnerable = this.isGodMode;
+      if (this.isGodMode) this.playerShip.shield = this.playerShip.maxShield;
+    }
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission(
+        this.isGodMode ? "ADMIRALTY GOD MODE: ACTIVE (Invulnerable)" : "ADMIRALTY GOD MODE: DISABLED (Standard Combat)",
+        "FLEET COMMAND",
+        3.0
+      );
+    }
+    return this.isGodMode;
+  }
+
+  toggleFreezeFleetAI() {
+    this.freezeFleetAI = !this.freezeFleetAI;
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission(
+        this.freezeFleetAI ? "FLEET AI: FROZEN (Static 3D Inspection Mode)" : "FLEET AI: RESUMED (Active Combat Simulation)",
+        "FLEET COMMAND",
+        3.0
+      );
+    }
+    return this.freezeFleetAI;
+  }
+
+  spawnAllFleetFormation() {
+    this.clearAllEntities();
+    this.state = 'PLAYING';
+    this.isGodMode = true;
+    this.freezeFleetAI = true;
+    if (this.playerShip) {
+      this.playerShip.isInvulnerable = true;
+      this.playerShip.shield = this.playerShip.maxShield;
+      this.playerShip.meshGroup.position.set(0, -2, 20);
+    }
+
+    if (this.spaceHUD) {
+      if (this.spaceHUD.modalStart) this.spaceHUD.modalStart.classList.add('hidden');
+      if (this.spaceHUD.modalFleet) this.spaceHUD.modalFleet.classList.add('hidden');
+      this.spaceHUD.showRadioTransmission(
+        "ADMIRALTY FLEET REVIEW: All 11 enemy craft archetypes & bosses assembled in formation! Use Optics (C) or fly freely to inspect each vessel.",
+        "HIGH COMMAND",
+        6.5
+      );
+      this.spaceHUD.showWaveBanner("FLEET REVIEW", "ALL 11 ENEMY CRAFTS & BOSSES ASSEMBLED");
+    }
+
+    // 1. Light Interceptors & Drones (Front Echelon)
+    [-24, -8, 8, 24].forEach(x => {
+      const drone = new EnemyDrone(this.spaceScene.scene);
+      if (drone.meshGroup) {
+        drone.meshGroup.position.set(x, 0, -28);
+        drone.meshGroup.rotation.y = Math.PI;
+      }
+      this.drones.push(drone);
+    });
+
+    // 2. Shadow-Wraith Stealth Fighters (Flanking Echelon)
+    [-18, 18].forEach(x => {
+      const sf = new StealthFighter(this.spaceScene.scene, this.particleManager, new THREE.Vector3(x, 2, -44));
+      sf.isCloaked = false;
+      sf.cloakOpacity = 1.0;
+      sf.targetCloakOpacity = 1.0;
+      if (sf.hullMat) sf.hullMat.opacity = 1.0;
+      if (sf.accentMat) sf.accentMat.opacity = 1.0;
+      if (sf.glowMat) sf.glowMat.opacity = 1.0;
+      this.stealthFighters.push(sf);
+    });
+
+    // 3. Valiant Capital Cruiser & Goliath Heavy Battleship (Mid-Line Battlefleet)
+    const cruiser = new CapitalShip(this.spaceScene.scene, this.particleManager);
+    if (cruiser.meshGroup) cruiser.meshGroup.position.set(-34, 4, -68);
+    this.capitalShips.push(cruiser);
+
+    const bship = new HeavyBattleship(this.spaceScene.scene, this.particleManager);
+    if (bship.meshGroup) bship.meshGroup.position.set(34, 4, -68);
+    this.heavyBattleships.push(bship);
+
+    // 4. CV-99 Hyperion Supercarrier (Center Capital Supercarrier)
+    this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
+    if (this.carrierBoss.meshGroup) this.carrierBoss.meshGroup.position.set(0, 5, -88);
+
+    // 5. Boss Megastructures & Flagships (Backdrop Formation Line)
+    this.showcaseBosses = [];
+
+    const moonBase = new MoonBase(this.spaceScene.scene, this.particleManager);
+    if (moonBase.meshGroup) moonBase.meshGroup.position.set(-46, 12, -130);
+    this.showcaseBosses.push(moonBase);
+
+    const halo = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
+    if (halo.meshGroup) halo.meshGroup.position.set(46, 12, -130);
+    this.showcaseBosses.push(halo);
+
+    const leviathan = new CommandMothership(this.spaceScene.scene, this.particleManager);
+    if (leviathan.meshGroup) leviathan.meshGroup.position.set(0, 16, -155);
+    this.showcaseBosses.push(leviathan);
+
+    const babylon = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
+    if (babylon.meshGroup) babylon.meshGroup.position.set(0, 26, -190);
+    this.showcaseBosses.push(babylon);
+  }
+
+  spawnSoloInspect(shipKey) {
+    this.clearAllEntities();
+    this.state = 'PLAYING';
+    this.isGodMode = true;
+    this.freezeFleetAI = true;
+    if (this.playerShip) {
+      this.playerShip.isInvulnerable = true;
+      this.playerShip.shield = this.playerShip.maxShield;
+      this.playerShip.meshGroup.position.set(0, 0, 15);
+    }
+
+    if (this.spaceHUD) {
+      if (this.spaceHUD.modalStart) this.spaceHUD.modalStart.classList.add('hidden');
+      if (this.spaceHUD.modalFleet) this.spaceHUD.modalFleet.classList.add('hidden');
+    }
+
+    switch (shipKey) {
+      case 'DRONE': {
+        const drone = new EnemyDrone(this.spaceScene.scene);
+        if (drone.meshGroup) {
+          drone.meshGroup.position.set(0, 0, -22);
+          drone.meshGroup.rotation.y = Math.PI;
+        }
+        this.drones.push(drone);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "ENEMY SCOUT INTERCEPTOR DRONE");
+        break;
+      }
+
+      case 'STEALTH': {
+        const sf = new StealthFighter(this.spaceScene.scene, this.particleManager, new THREE.Vector3(0, 0, -24));
+        sf.isCloaked = false;
+        sf.cloakOpacity = 1.0;
+        sf.targetCloakOpacity = 1.0;
+        sf.state = 'UNCLOAK_AMBUSH';
+        if (sf.hullMat) sf.hullMat.opacity = 1.0;
+        if (sf.accentMat) sf.accentMat.opacity = 1.0;
+        if (sf.glowMat) sf.glowMat.opacity = 1.0;
+        this.stealthFighters.push(sf);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "SHADOW-WRAITH STEALTH FIGHTER");
+        break;
+      }
+
+      case 'CRUISER': {
+        const cruiser = new CapitalShip(this.spaceScene.scene, this.particleManager);
+        if (cruiser.meshGroup) cruiser.meshGroup.position.set(0, 0, -32);
+        this.capitalShips.push(cruiser);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "VALIANT CAPITAL CRUISER");
+        break;
+      }
+
+      case 'BATTLESHIP': {
+        const bship = new HeavyBattleship(this.spaceScene.scene, this.particleManager);
+        if (bship.meshGroup) bship.meshGroup.position.set(0, 0, -36);
+        this.heavyBattleships.push(bship);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "GOLIATH HEAVY BATTLESHIP");
+        break;
+      }
+
+      case 'CARRIER': {
+        this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
+        if (this.carrierBoss.meshGroup) this.carrierBoss.meshGroup.position.set(0, 2, -46);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "CV-99 HYPERION SUPERCARRIER");
+        break;
+      }
+
+      case 'MOONBASE': {
+        this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
+        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 2, -56);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "SECTOR ALPHA MOON BASE CITADEL");
+        break;
+      }
+
+      case 'HALO': {
+        this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
+        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -60);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "HALO MEGASTRUCTURE RING");
+        break;
+      }
+
+      case 'BABYLON': {
+        this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
+        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -70);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "BABYLON 5 CYLINDER CITADEL");
+        break;
+      }
+
+      case 'MOTHERSHIP': {
+        this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
+        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 4, -75);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "LEVIATHAN COMMAND MOTHERSHIP");
+        break;
+      }
+
+      case 'TITAN': {
+        this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
+        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -50);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "TITAN ASTEROID COLOSSUS");
+        break;
+      }
+
+      case 'DREADNOUGHT': {
+        this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
+        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -45);
+        this.spaceHUD?.showWaveBanner("INSPECTING", "BOSS DREADNOUGHT FLAGSHIP");
+        break;
+      }
     }
   }
 
@@ -801,21 +1030,26 @@ export class GameManager {
     for (let i = 0; i < this.drones.length; i++) {
       const drone = this.drones[i];
       if (!drone || drone.isDead || !drone.meshGroup) continue;
-      const firePlasma = drone.update(effectiveDt, pPos);
-
-      if (firePlasma && drone.meshGroup) {
-        const dPos = drone.meshGroup.position;
-        const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
-        this.spawnLaser(dPos, 0xff0055, true, targetDir);
-        this.spaceAudio.playLaserPew();
+      if (this.freezeFleetAI) {
+        drone.meshGroup.rotation.y += 0.005;
+      } else {
+        const firePlasma = drone.update(effectiveDt, pPos);
+        if (firePlasma && drone.meshGroup) {
+          const dPos = drone.meshGroup.position;
+          const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
+          this.spawnLaser(dPos, 0xff0055, true, targetDir);
+          this.spaceAudio.playLaserPew();
+        }
       }
     }
 
-    for (let i = this.drones.length - 1; i >= 0; i--) {
-      const drone = this.drones[i];
-      if (drone.isDead) {
-        drone.destroy();
-        this.drones.splice(i, 1);
+    if (!this.freezeFleetAI) {
+      for (let i = this.drones.length - 1; i >= 0; i--) {
+        const drone = this.drones[i];
+        if (drone.isDead) {
+          drone.destroy();
+          this.drones.splice(i, 1);
+        }
       }
     }
 
@@ -823,14 +1057,20 @@ export class GameManager {
     for (let i = 0; i < this.stealthFighters.length; i++) {
       const fighter = this.stealthFighters[i];
       if (!fighter || fighter.isDead || !fighter.meshGroup) continue;
-      fighter.update(effectiveDt, this.playerShip, this);
+      if (this.freezeFleetAI) {
+        fighter.meshGroup.rotation.y += 0.005;
+      } else {
+        fighter.update(effectiveDt, this.playerShip, this);
+      }
     }
 
-    for (let i = this.stealthFighters.length - 1; i >= 0; i--) {
-      const fighter = this.stealthFighters[i];
-      if (fighter.isDead) {
-        fighter.destroy();
-        this.stealthFighters.splice(i, 1);
+    if (!this.freezeFleetAI) {
+      for (let i = this.stealthFighters.length - 1; i >= 0; i--) {
+        const fighter = this.stealthFighters[i];
+        if (fighter.isDead) {
+          fighter.destroy();
+          this.stealthFighters.splice(i, 1);
+        }
       }
     }
 
@@ -838,22 +1078,28 @@ export class GameManager {
     for (let i = 0; i < this.capitalShips.length; i++) {
       const ship = this.capitalShips[i];
       if (!ship || ship.isDead || !ship.meshGroup) continue;
-      const firePositions = ship.update(effectiveDt, pPos);
+      if (this.freezeFleetAI) {
+        ship.meshGroup.rotation.y += 0.003;
+      } else {
+        const firePositions = ship.update(effectiveDt, pPos);
 
-      if (firePositions && Array.isArray(firePositions)) {
-        firePositions.forEach(tPos => {
-          const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-          this.spawnLaser(tPos, 0xff0055, true, targetDir);
-        });
-        this.spaceAudio.playLaserPew();
+        if (firePositions && Array.isArray(firePositions)) {
+          firePositions.forEach(tPos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+            this.spawnLaser(tPos, 0xff0055, true, targetDir);
+          });
+          this.spaceAudio.playLaserPew();
+        }
       }
     }
 
-    for (let i = this.capitalShips.length - 1; i >= 0; i--) {
-      const ship = this.capitalShips[i];
-      if (ship.isDead) {
-        ship.destroy();
-        this.capitalShips.splice(i, 1);
+    if (!this.freezeFleetAI) {
+      for (let i = this.capitalShips.length - 1; i >= 0; i--) {
+        const ship = this.capitalShips[i];
+        if (ship.isDead) {
+          ship.destroy();
+          this.capitalShips.splice(i, 1);
+        }
       }
     }
 
@@ -861,14 +1107,20 @@ export class GameManager {
     for (let i = 0; i < this.heavyBattleships.length; i++) {
       const battleship = this.heavyBattleships[i];
       if (!battleship || battleship.isDead || !battleship.meshGroup) continue;
-      battleship.update(effectiveDt, this.playerShip, this);
+      if (this.freezeFleetAI) {
+        battleship.meshGroup.rotation.y += 0.003;
+      } else {
+        battleship.update(effectiveDt, this.playerShip, this);
+      }
     }
 
-    for (let i = this.heavyBattleships.length - 1; i >= 0; i--) {
-      const battleship = this.heavyBattleships[i];
-      if (battleship.isDead) {
-        battleship.destroy();
-        this.heavyBattleships.splice(i, 1);
+    if (!this.freezeFleetAI) {
+      for (let i = this.heavyBattleships.length - 1; i >= 0; i--) {
+        const battleship = this.heavyBattleships[i];
+        if (battleship.isDead) {
+          battleship.destroy();
+          this.heavyBattleships.splice(i, 1);
+        }
       }
     }
 
@@ -881,37 +1133,41 @@ export class GameManager {
         this.addScore(25000);
         this.addScrap(300);
       } else {
-        const carrierStatus = this.carrierBoss.update(effectiveDt, this.playerShip);
-        if (carrierStatus && carrierStatus.lasers && Array.isArray(carrierStatus.lasers)) {
-          carrierStatus.lasers.forEach(tPos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-            this.spawnLaser(tPos, 0x00ff66, true, targetDir);
-          });
-          this.spaceAudio.playLaserPew();
-        }
-        if (carrierStatus && carrierStatus.siegeLasers && Array.isArray(carrierStatus.siegeLasers)) {
-          carrierStatus.siegeLasers.forEach(tPos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-            this.spawnLaser(tPos, 0xff0044, true, targetDir);
-          });
-          if (this.spaceAudio.playHeavyCannonSound) {
-            this.spaceAudio.playHeavyCannonSound();
-          }
-        }
-        if (carrierStatus && carrierStatus.droneLaunches && carrierStatus.droneLaunches.length > 0) {
-          carrierStatus.droneLaunches.forEach(launch => {
-            this.spawnDrone({
-              x: launch.pos.x,
-              y: launch.pos.y,
-              z: launch.pos.z,
-              vx: launch.vx,
-              vy: launch.vy,
-              vz: launch.vz
+        if (this.freezeFleetAI) {
+          if (this.carrierBoss.meshGroup) this.carrierBoss.meshGroup.rotation.y += 0.002;
+        } else {
+          const carrierStatus = this.carrierBoss.update(effectiveDt, this.playerShip);
+          if (carrierStatus && carrierStatus.lasers && Array.isArray(carrierStatus.lasers)) {
+            carrierStatus.lasers.forEach(tPos => {
+              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+              this.spawnLaser(tPos, 0x00ff66, true, targetDir);
             });
-          });
-        } else if (carrierStatus && carrierStatus.droneSpawns > 0) {
-          for (let d = 0; d < carrierStatus.droneSpawns; d++) {
-            this.spawnDrone();
+            this.spaceAudio.playLaserPew();
+          }
+          if (carrierStatus && carrierStatus.siegeLasers && Array.isArray(carrierStatus.siegeLasers)) {
+            carrierStatus.siegeLasers.forEach(tPos => {
+              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+              this.spawnLaser(tPos, 0xff0044, true, targetDir);
+            });
+            if (this.spaceAudio.playHeavyCannonSound) {
+              this.spaceAudio.playHeavyCannonSound();
+            }
+          }
+          if (carrierStatus && carrierStatus.droneLaunches && carrierStatus.droneLaunches.length > 0) {
+            carrierStatus.droneLaunches.forEach(launch => {
+              this.spawnDrone({
+                x: launch.pos.x,
+                y: launch.pos.y,
+                z: launch.pos.z,
+                vx: launch.vx,
+                vy: launch.vy,
+                vz: launch.vz
+              });
+            });
+          } else if (carrierStatus && carrierStatus.droneSpawns > 0) {
+            for (let d = 0; d < carrierStatus.droneSpawns; d++) {
+              this.spawnDrone();
+            }
           }
         }
       }
@@ -974,6 +1230,21 @@ export class GameManager {
           console.warn('Boss update error (suppressed):', e);
         }
       }
+    }
+
+    // Update Fleet Showcase Bosses in Review Formation
+    if (this.showcaseBosses && this.showcaseBosses.length > 0) {
+      this.showcaseBosses.forEach(boss => {
+        if (boss && !boss.isDead && boss.meshGroup) {
+          try {
+            if (this.freezeFleetAI) {
+              if (boss.meshGroup) boss.meshGroup.rotation.y += 0.003;
+            } else {
+              boss.update(effectiveDt, pPos);
+            }
+          } catch(e) {}
+        }
+      });
     }
 
     for (let i = this.lasers.length - 1; i >= 0; i--) {
