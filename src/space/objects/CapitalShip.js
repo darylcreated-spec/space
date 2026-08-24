@@ -71,6 +71,8 @@ export class CapitalShip {
       { id: 0, relPos: new THREE.Vector3(-3.2, 1.2, -0.5), pedestalH: 1.6, hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null },
       { id: 1, relPos: new THREE.Vector3( 3.2, 1.2, -0.5), pedestalH: 1.6, hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null }
     ];
+    this.underwingMissiles = [];
+    this.missileTimer = 3.2;
     this.thrusters = [];
 
     this.buildMesh();
@@ -215,6 +217,66 @@ export class CapitalShip {
       const wBeacon = new THREE.Mesh(wBeaconGeo, this.glowCyanMat);
       wBeacon.position.set(sx + side * 3.75, 0.5, -2.4);
       this.meshGroup.add(wBeacon);
+
+      // ── 🚀 UNDERWING HEAVY MISSILE PYLONS & TORPEDO ORDNANCE ──
+      const missilePylonGeo = new THREE.BoxGeometry(0.08, 0.32, 1.4);
+      const missileBodyGeo = new THREE.CylinderGeometry(0.12, 0.12, 1.8, 8);
+      missileBodyGeo.rotateX(Math.PI / 2);
+      const warheadGeo = new THREE.ConeGeometry(0.14, 0.45, 8);
+      warheadGeo.rotateX(Math.PI / 2);
+      const finGeo = new THREE.BoxGeometry(0.5, 0.04, 0.4);
+
+      [
+        { id: `${side < 0 ? 'port' : 'starboard'}_inboard`,  x: sx + side * 1.4, y: -0.32, z: 0.2 },
+        { id: `${side < 0 ? 'port' : 'starboard'}_outboard`, x: sx + side * 2.6, y: -0.32, z: -0.6 }
+      ].forEach(mPos => {
+        const mGroup = new THREE.Group();
+        mGroup.position.set(mPos.x, mPos.y, mPos.z);
+
+        // Armored Suspension Pylon
+        const pylon = new THREE.Mesh(missilePylonGeo, this.darkAlloyMat);
+        pylon.position.set(0, 0.16, 0);
+        mGroup.add(pylon);
+
+        // Sleek Cylindrical Missile Fuselage
+        const mBody = new THREE.Mesh(missileBodyGeo, this.armorPlatesMat);
+        mGroup.add(mBody);
+
+        // Kinetic Warhead Cone with Seeker Tip
+        const warhead = new THREE.Mesh(warheadGeo, this.glowOrangeMat);
+        warhead.position.set(0, 0, 1.1);
+        mGroup.add(warhead);
+
+        // Seeker Optical Lens
+        const seeker = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), this.glowCyanMat);
+        seeker.position.set(0, 0, 1.35);
+        mGroup.add(seeker);
+
+        // Cruciform Tail Stabilizer Fins
+        const fin1 = new THREE.Mesh(finGeo, this.darkAlloyMat);
+        fin1.position.set(0, 0, -0.7);
+        mGroup.add(fin1);
+
+        const fin2 = new THREE.Mesh(finGeo, this.darkAlloyMat);
+        fin2.position.set(0, 0, -0.7);
+        fin2.rotation.z = Math.PI / 2;
+        mGroup.add(fin2);
+
+        // Glowing Solid Rocket Exhaust Port
+        const nozzle = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.1, 8), this.glowCyanMat);
+        nozzle.position.set(0, 0, -0.92);
+        mGroup.add(nozzle);
+
+        this.meshGroup.add(mGroup);
+
+        this.underwingMissiles.push({
+          id: mPos.id,
+          mesh: mGroup,
+          relPos: new THREE.Vector3(mPos.x, mPos.y, mPos.z),
+          hp: 40,
+          isDead: false
+        });
+      });
     });
 
     // ── 4. ✨ SWEPT DORSAL EMPENNAGE TAIL FIN ──
@@ -375,6 +437,27 @@ export class CapitalShip {
       }
     }
 
+    // Check if hit landed on an underwing missile
+    if (hitPos && this.underwingMissiles) {
+      for (const m of this.underwingMissiles) {
+        if (!m.isDead && m.mesh) {
+          const mPos = m.mesh.getWorldPosition(new THREE.Vector3());
+          if (hitPos.distanceTo(mPos) < 1.4) {
+            m.hp -= amount * 1.5;
+            if (m.hp <= 0) {
+              m.isDead = true;
+              m.mesh.visible = false;
+              if (this.particleManager) {
+                this.particleManager.createExplosion(mPos, 0xff7700, 30, 1.4);
+                this.particleManager.spawnSparks(mPos, new THREE.Vector3(0, -1, 0), 0xffaa00, 15);
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
     this.hp -= amount;
 
     if (this.particleManager) {
@@ -446,6 +529,29 @@ export class CapitalShip {
       }
     });
 
+    // ── Underwing Missile Launch Salvo ──
+    this.missileTimer -= dt;
+    if (this.missileTimer <= 0 && this.meshGroup.position.z >= -40 && this.meshGroup.position.z < 25) {
+      this.missileTimer = 3.2 + Math.random() * 0.8;
+      const gm = window.spaceGameManager;
+      if (this.underwingMissiles && gm) {
+        this.underwingMissiles.forEach(m => {
+          if (!m.isDead && m.mesh && Math.random() < 0.6) {
+            const mPos = m.mesh.getWorldPosition(new THREE.Vector3());
+            if (gm.spawnEnemyMissile) {
+              gm.spawnEnemyMissile(mPos, playerPos);
+            } else if (gm.spawnEnemyLaser) {
+              const dir = new THREE.Vector3().subVectors(playerPos, mPos).normalize();
+              gm.spawnEnemyLaser(mPos, dir, 0xff7700, 38);
+            }
+            if (this.particleManager) {
+              this.particleManager.spawnSparks(mPos, new THREE.Vector3(0, -1, 1), 0x00f3ff, 8);
+            }
+          }
+        });
+      }
+    }
+
     // Firing logic
     this.fireTimer -= dt;
     let shouldFire = false;
@@ -455,7 +561,7 @@ export class CapitalShip {
     if (this.fireTimer <= 0 && this.meshGroup.position.z < 25) {
       this.fireTimer = 1.4 + Math.random() * 0.4;
       this.turrets.forEach(t => {
-        if (t.mesh) {
+        if (!t.isDead && t.mesh) {
           out.push(t.mesh.getWorldPosition(new THREE.Vector3()));
         }
       });
