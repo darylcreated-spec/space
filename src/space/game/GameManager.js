@@ -556,7 +556,7 @@ export class GameManager {
           drone.meshGroup.rotation.set(0.18, 0.35, 0);
         }
         this.drones.push(drone);
-        this.spaceHUD?.showWaveBanner("INSPECTING", "ENEMY SCOUT INTERCEPTOR DRONE");
+        this.spaceHUD?.showWaveBanner("INSPECTING", "ENEMY SCOUT RECON DRONE");
         break;
       }
 
@@ -590,7 +590,7 @@ export class GameManager {
           cruiser.meshGroup.scale.set(1.3, 1.3, 1.3);
         }
         this.capitalShips.push(cruiser);
-        this.spaceHUD?.showWaveBanner("INSPECTING", "VALIANT CAPITAL CRUISER");
+        this.spaceHUD?.showWaveBanner("INSPECTING", "VALIANT CAPITAL CRUISER (SILVER)");
         break;
       }
 
@@ -602,13 +602,17 @@ export class GameManager {
           bship.meshGroup.scale.set(0.8, 0.8, 0.8);
         }
         this.heavyBattleships.push(bship);
-        this.spaceHUD?.showWaveBanner("INSPECTING", "GOLIATH HEAVY BATTLESHIP");
+        this.spaceHUD?.showWaveBanner("INSPECTING", "GOLIATH HEAVY BATTLESHIP (WHITE)");
         break;
       }
 
       case 'CARRIER': {
         this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
-        if (this.carrierBoss.meshGroup) this.carrierBoss.meshGroup.position.set(0, 2, -46);
+        if (this.carrierBoss.meshGroup) {
+          this.carrierBoss.meshGroup.position.set(0, 1.5, -42);
+          this.carrierBoss.meshGroup.rotation.set(0.18, 0.35, 0);
+          this.carrierBoss.meshGroup.scale.set(0.9, 0.9, 0.9);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "CV-99 HYPERION SUPERCARRIER");
         break;
       }
@@ -626,35 +630,55 @@ export class GameManager {
 
       case 'HALO': {
         this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
-        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -60);
+        if (this.activeBoss.meshGroup) {
+          this.activeBoss.meshGroup.position.set(0, 0, -56);
+          this.activeBoss.meshGroup.rotation.set(0.35, 0.45, 0);
+          this.activeBoss.meshGroup.scale.set(0.85, 0.85, 0.85);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "HALO MEGASTRUCTURE RING");
         break;
       }
 
       case 'BABYLON': {
         this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
-        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -70);
+        if (this.activeBoss.meshGroup) {
+          this.activeBoss.meshGroup.position.set(0, 0, -60);
+          this.activeBoss.meshGroup.rotation.set(0.2, 0.5, 0);
+          this.activeBoss.meshGroup.scale.set(0.85, 0.85, 0.85);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "BABYLON 5 CYLINDER CITADEL");
         break;
       }
 
       case 'MOTHERSHIP': {
         this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
-        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 4, -75);
+        if (this.activeBoss.meshGroup) {
+          this.activeBoss.meshGroup.position.set(0, 2, -65);
+          this.activeBoss.meshGroup.rotation.set(0.2, 0.35, 0);
+          this.activeBoss.meshGroup.scale.set(0.85, 0.85, 0.85);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "LEVIATHAN COMMAND MOTHERSHIP");
         break;
       }
 
       case 'TITAN': {
         this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
-        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -50);
+        if (this.activeBoss.meshGroup) {
+          this.activeBoss.meshGroup.position.set(0, 0, -42);
+          this.activeBoss.meshGroup.rotation.set(0.2, 0.3, 0);
+          this.activeBoss.meshGroup.scale.set(0.9, 0.9, 0.9);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "TITAN ASTEROID COLOSSUS");
         break;
       }
 
       case 'DREADNOUGHT': {
         this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
-        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 0, -45);
+        if (this.activeBoss.meshGroup) {
+          this.activeBoss.meshGroup.position.set(0, 0, -38);
+          this.activeBoss.meshGroup.rotation.set(0.22, 0.4, 0);
+          this.activeBoss.meshGroup.scale.set(0.9, 0.9, 0.9);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "BOSS DREADNOUGHT FLAGSHIP");
         break;
       }
@@ -1236,28 +1260,34 @@ export class GameManager {
         try {
           const salvo = this.activeBoss.update(effectiveDt, pPos);
 
-          if (this.activeBoss && this.activeBoss.justPhaseTransitioned) {
-            this.activeBoss.justPhaseTransitioned = false;
-            this.voiceAnnouncer.speak("Warning! Boss shield overcharging!", true);
-            if (this.spaceHUD) {
-              this.spaceHUD.showWaveBanner("WARNING", "BOSS SHIELD OVERCHARGED!");
+          if (this.freezeFleetAI) {
+            if (this.activeBoss.meshGroup) {
+              this.activeBoss.meshGroup.rotation.y += 0.003;
             }
-          }
-
-          if (salvo && this.activeBoss) {
-            if (Array.isArray(salvo)) {
-              salvo.forEach(tPos => {
-                const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-                this.spawnLaser(tPos, 0xff0055, true, targetDir);
-              });
-            } else if (salvo !== false) {
-              const bPos = this.activeBoss.meshGroup.position;
-              const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
-              this.spawnLaser(new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir);
-              this.spawnLaser(new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir);
+          } else {
+            if (this.activeBoss && this.activeBoss.justPhaseTransitioned) {
+              this.activeBoss.justPhaseTransitioned = false;
+              this.voiceAnnouncer.speak("Warning! Boss shield overcharging!", true);
+              if (this.spaceHUD) {
+                this.spaceHUD.showWaveBanner("WARNING", "BOSS SHIELD OVERCHARGED!");
+              }
             }
 
-            this.spaceAudio.playLaserPew();
+            if (salvo && this.activeBoss) {
+              if (Array.isArray(salvo)) {
+                salvo.forEach(tPos => {
+                  const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+                  this.spawnLaser(tPos, 0xff0055, true, targetDir);
+                });
+              } else if (salvo !== false) {
+                const bPos = this.activeBoss.meshGroup.position;
+                const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
+                this.spawnLaser(new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir);
+                this.spawnLaser(new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir);
+              }
+
+              this.spaceAudio.playLaserPew();
+            }
           }
         } catch(e) {
           console.warn('Boss update error (suppressed):', e);
