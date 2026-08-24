@@ -1,9 +1,105 @@
 import * as THREE from 'three';
 
+/**
+ * Procedural Texture for Forerunner Outer Armor Shell
+ */
+function generateHaloArmorTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Base metallic titanium-silver
+  ctx.fillStyle = '#4b5b70';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Precision panel seams
+  ctx.strokeStyle = '#2d3b4e';
+  ctx.lineWidth = 3;
+  for (let x = 0; x < 512; x += 64) {
+    ctx.strokeRect(x, 0, 64, 512);
+  }
+  for (let y = 0; y < 512; y += 64) {
+    ctx.strokeRect(0, y, 512, 64);
+  }
+
+  // Specular rivets
+  ctx.fillStyle = '#b0c4de';
+  for (let y = 8; y < 512; y += 32) {
+    for (let x = 8; x < 512; x += 64) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Glowing cyan Forerunner glyph conduits
+  ctx.strokeStyle = '#00f3ff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, 128); ctx.lineTo(128, 128); ctx.lineTo(192, 192); ctx.lineTo(512, 192);
+  ctx.moveTo(0, 384); ctx.lineTo(256, 384); ctx.lineTo(320, 320); ctx.lineTo(512, 320);
+  ctx.stroke();
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+/**
+ * Procedural Texture for Inward Terraformed Biosphere Ribbon
+ */
+function generateHaloBiosphereTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+
+  // Deep azure ocean backdrop
+  ctx.fillStyle = '#06182c';
+  ctx.fillRect(0, 0, 1024, 256);
+
+  // Archipelago landmasses & continents
+  ctx.fillStyle = '#1e4d2b';
+  for (let i = 0; i < 24; i++) {
+    const cx = (i * 45) + Math.random() * 10;
+    const cy = 60 + Math.random() * 136;
+    const rw = 25 + Math.random() * 35;
+    const rh = 20 + Math.random() * 30;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rw, rh, Math.random() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Mountain ridges and highlands
+  ctx.fillStyle = '#6b7a82';
+  for (let i = 0; i < 18; i++) {
+    const cx = (i * 58) + 15;
+    const cy = 80 + Math.random() * 96;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 12, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Atmospheric cloud bands
+  ctx.fillStyle = 'rgba(230, 245, 255, 0.45)';
+  for (let i = 0; i < 30; i++) {
+    const cx = Math.random() * 1024;
+    const cy = Math.random() * 256;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 30 + Math.random() * 40, 6 + Math.random() * 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.repeat.set(4, 1);
+  return texture;
+}
+
 // ============================================================
-// WAVE 2 BOSS â€” Halo Megastructure Ring
-// AAA Overhaul: 50m diameter open ring, dramatic spoke struts,
-// inner terrain glow, 2-phase attack, gravity shockwave ability
+// WAVE 2 BOSS — Halo Megastructure Ring
+// Full AAA Overhaul: 50m diameter open ring, Forerunner architecture,
+// inward terraformed biosphere, 12 structural truss spokes,
+// gyroscopic Index control citadel, 6 defined railgun defense batteries
 // ============================================================
 export class HaloRingBoss {
   constructor(scene, particleManager) {
@@ -12,14 +108,14 @@ export class HaloRingBoss {
 
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 0, -130);
-    this.meshGroup.rotation.x = Math.PI / 5.5; // tilt to show ring face
+    this.meshGroup.rotation.x = Math.PI / 5.5; // dramatic tilt to show ring face
 
     this.targetZ = -88;
     this.speed = 7.5;
 
-    this.coreHp = 3500;
-    this.maxCoreHp = 3500;
-    this.scoreValue = 35000;
+    this.coreHp = 4200;
+    this.maxCoreHp = 4200;
+    this.scoreValue = 45000;
     this.isDead = false;
     this.hitRadius = 52;
 
@@ -31,137 +127,218 @@ export class HaloRingBoss {
     this.justPhaseTransitioned = false;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(0,  48, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
-      { id: 1, relPos: new THREE.Vector3(0, -48, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
-      { id: 2, relPos: new THREE.Vector3(48,  0, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
-      { id: 3, relPos: new THREE.Vector3(-48, 0, 0), hp: 700, maxHp: 700, isDead: false, mesh: null, light: null },
-      { id: 4, relPos: new THREE.Vector3(34, 34, 0),  hp: 600, maxHp: 600, isDead: false, mesh: null, light: null },
-      { id: 5, relPos: new THREE.Vector3(-34,-34, 0), hp: 600, maxHp: 600, isDead: false, mesh: null, light: null },
+      { id: 0, relPos: new THREE.Vector3(0,  46, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, relPos: new THREE.Vector3(0, -46, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, relPos: new THREE.Vector3(46,  0, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, relPos: new THREE.Vector3(-46, 0, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, relPos: new THREE.Vector3(32.5, 32.5, 0),  hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, relPos: new THREE.Vector3(-32.5,-32.5, 0), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
     ];
 
+    this.reticleMeshes = [];
     this._build();
     this.scene.add(this.meshGroup);
   }
 
   _build() {
     const ringR  = 46.0;  // large outer ring radius
-    const tubeR  = 3.8;   // tube cross-section
+    const tubeR  = 4.0;   // tube cross-section
 
-    // â”€â”€ 1. Outer Bronze Structural Ring â€” thick and imposing â”€â”€
-    const outerGeo = new THREE.TorusGeometry(ringR, tubeR, 22, 100);
-    const bronzeMat = new THREE.MeshStandardMaterial({
-      color: 0x8c5a12,
-      emissive: 0x3d1e00,
-      emissiveIntensity: 0.5,
-      roughness: 0.42,
-      metalness: 0.88,
+    const armorTex = generateHaloArmorTexture();
+    const bioTex = generateHaloBiosphereTexture();
+
+    // ── 1. Outer Forerunner Pewter-Silver Structural Shell ──
+    const outerGeo = new THREE.TorusGeometry(ringR, tubeR, 24, 100);
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: 0x788c9f,
+      bumpMap: armorTex,
+      bumpScale: 0.14,
+      metalness: 0.94,
+      roughness: 0.16,
+      emissive: 0x141f2d,
+      emissiveIntensity: 0.35
     });
-    this.ringMesh = new THREE.Mesh(outerGeo, bronzeMat);
+    this.ringMesh = new THREE.Mesh(outerGeo, shellMat);
     this.meshGroup.add(this.ringMesh);
 
-    // â”€â”€ 2. Inner Terrain Habitat Band â€” glowing ice blue â”€â”€
-    const innerGeo = new THREE.TorusGeometry(ringR - 1.0, tubeR - 1.4, 18, 100);
-    const terrainMat = new THREE.MeshStandardMaterial({
-      color: 0xb87a22,
-      emissive: 0x00ddff,
-      emissiveIntensity: 1.8,
-      roughness: 0.25,
-      metalness: 0.6,
+    // ── 2. Inward Terraformed Biosphere Band ──
+    const innerGeo = new THREE.TorusGeometry(ringR - 0.8, tubeR - 1.2, 20, 100);
+    const bioMat = new THREE.MeshStandardMaterial({
+      color: 0xd8e8f5,
+      map: bioTex,
+      roughness: 0.3,
+      metalness: 0.5,
+      emissive: 0x004488,
+      emissiveIntensity: 0.25
     });
-    this.meshGroup.add(new THREE.Mesh(innerGeo, terrainMat));
+    this.meshGroup.add(new THREE.Mesh(innerGeo, bioMat));
 
-    // â”€â”€ 3. Secondary inner ring â€” accent band â”€â”€
-    const accent = new THREE.TorusGeometry(ringR - 5.0, 0.9, 8, 80);
-    const accentMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
-    this.meshGroup.add(new THREE.Mesh(accent, accentMat));
+    // ── 3. Dual Titanium Retaining Wall Rims with Cyan Lighting ──
+    [-tubeR * 0.9, tubeR * 0.9].forEach(zOff => {
+      const rimGeo = new THREE.TorusGeometry(ringR + 0.6, 0.7, 10, 80);
+      const rimMat = new THREE.MeshStandardMaterial({ color: 0x243244, metalness: 0.95, roughness: 0.2 });
+      const rim = new THREE.Mesh(rimGeo, rimMat);
+      rim.position.z = zOff;
+      this.meshGroup.add(rim);
 
-    // â”€â”€ 4. 12 Structural Spoke Struts â€” the iconic Halo silhouette â”€â”€
+      const conduitGeo = new THREE.TorusGeometry(ringR + 0.9, 0.2, 8, 80);
+      const conduitMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const conduit = new THREE.Mesh(conduitGeo, conduitMat);
+      conduit.position.z = zOff;
+      this.meshGroup.add(conduit);
+    });
+
+    // ── 4. 12 Triangular Structural Truss Spoke Struts ──
     const spokeMat = new THREE.MeshStandardMaterial({
-      color: 0x5c3608,
-      emissive: 0x001a33,
-      emissiveIntensity: 0.3,
-      roughness: 0.55,
-      metalness: 0.92,
+      color: 0x36485e,
+      metalness: 0.95,
+      roughness: 0.22,
+      emissive: 0x0e1824,
+      emissiveIntensity: 0.2
     });
+    const conduitMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
     this.hubGroup = new THREE.Group();
 
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2;
-      const spokeLen = ringR - 8;
-      const spokeGeo = new THREE.CylinderGeometry(0.7, 0.7, spokeLen, 7);
-      const spoke = new THREE.Mesh(spokeGeo, spokeMat);
-      spoke.position.set(Math.cos(a) * spokeLen * 0.5, Math.sin(a) * spokeLen * 0.5, 0);
-      spoke.rotation.z = -a;
-      this.meshGroup.add(spoke);
+      const spokeLen = ringR - 7.5;
 
-      // Glowing conduit strip along each spoke
-      const condGeo = new THREE.CylinderGeometry(0.12, 0.12, spokeLen * 0.9, 5);
-      const condMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-      const cond = new THREE.Mesh(condGeo, condMat);
-      cond.position.set(Math.cos(a) * spokeLen * 0.5, Math.sin(a) * spokeLen * 0.5, 0.8);
-      cond.rotation.z = -a;
-      this.meshGroup.add(cond);
+      const spokeGroup = new THREE.Group();
+      spokeGroup.position.set(Math.cos(a) * spokeLen * 0.5, Math.sin(a) * spokeLen * 0.5, 0);
+      spokeGroup.rotation.z = -a;
+
+      // Main structural beam
+      const spokeGeo = new THREE.BoxGeometry(1.2, spokeLen, 1.4);
+      const spoke = new THREE.Mesh(spokeGeo, spokeMat);
+      spokeGroup.add(spoke);
+
+      // Embedded energized plasma conduit line
+      const condGeo = new THREE.CylinderGeometry(0.18, 0.18, spokeLen * 0.95, 6);
+      const cond = new THREE.Mesh(condGeo, conduitMat);
+      cond.position.z = 0.85;
+      spokeGroup.add(cond);
+
+      this.meshGroup.add(spokeGroup);
     }
 
-    // â”€â”€ 5. Central Control Hub â€” large glowing dodecahedron â”€â”€
-    const hubGeo = new THREE.DodecahedronGeometry(10.0, 1);
+    // ── 5. Central Control Citadel (Index Spire Core) ──
+    const hubGeo = new THREE.DodecahedronGeometry(9.0, 1);
     this.coreMat = new THREE.MeshStandardMaterial({
-      color: 0x001a33,
-      emissive: 0x00ddff,
-      emissiveIntensity: 4.5,
-      roughness: 0.08,
-      metalness: 0.15,
+      color: 0x0b1c2e,
+      emissive: 0x00f3ff,
+      emissiveIntensity: 3.5,
+      roughness: 0.1,
+      metalness: 0.8,
     });
     this.coreMesh = new THREE.Mesh(hubGeo, this.coreMat);
     this.hubGroup.add(this.coreMesh);
+
+    // Decorative Forerunner Pylons at Core
+    for (let p = 0; p < 6; p++) {
+      const pAng = (p / 6) * Math.PI * 2;
+      const pylonGeo = new THREE.ConeGeometry(1.2, 5.5, 5);
+      pylonGeo.rotateZ(pAng);
+      const pylon = new THREE.Mesh(pylonGeo, spokeMat);
+      pylon.position.set(Math.cos(pAng) * 9.5, Math.sin(pAng) * 9.5, 0);
+      this.hubGroup.add(pylon);
+    }
+
     this.meshGroup.add(this.hubGroup);
 
-    // Hub bright glow light
-    this.hubLight = new THREE.PointLight(0x00e5ff, 12.0, 120);
-    this.hubLight.position.set(0, 0, 0);
+    // Central Index Core Point Lights
+    this.hubLight = new THREE.PointLight(0x00f3ff, 14.0, 130);
     this.meshGroup.add(this.hubLight);
 
-    // Secondary ring light that illuminates the whole ring from inside
-    this.ringLight = new THREE.PointLight(0x00aaff, 5.0, 80);
-    this.ringLight.position.set(ringR * 0.6, 0, 0);
+    this.ringLight = new THREE.PointLight(0x0088ff, 6.0, 90);
+    this.ringLight.position.set(ringR * 0.5, 0, 10);
     this.meshGroup.add(this.ringLight);
 
-    // â”€â”€ 6. 3 Gyro Shield Rings at hub â”€â”€
+    // ── 6. 3 Gyroscopic Counter-Rotating Containment Rings ──
     const ringAngles = [0, Math.PI / 3, Math.PI * 2 / 3];
     this.shieldRings = [];
     ringAngles.forEach((ra, idx) => {
-      const sGeo = new THREE.TorusGeometry(13, 0.38, 10, 40);
+      const sGeo = new THREE.TorusGeometry(12.5 + idx * 1.5, 0.45, 10, 48);
       const sMat = new THREE.MeshBasicMaterial({
-        color: idx === 0 ? 0x00e5ff : idx === 1 ? 0x00aaff : 0x0066ff,
-        transparent: true, opacity: 0.8,
+        color: idx === 0 ? 0x00f3ff : (idx === 1 ? 0x00aaff : 0x0066ff),
+        transparent: true,
+        opacity: 0.85,
       });
       const sRing = new THREE.Mesh(sGeo, sMat);
       sRing.rotation.set(ra, ra * 0.5, ra * 0.3);
       this.hubGroup.add(sRing);
-      this.shieldRings.push({ mesh: sRing, dir: idx % 2 === 0 ? 1 : -1 });
+      this.shieldRings.push({ mesh: sRing, dir: idx % 2 === 0 ? 1 : -1, speed: 2.0 + idx * 0.5 });
     });
 
-    // â”€â”€ 7. Rail-cannon turrets â€” long single barrel + coil â”€â”€
-    const baseMat   = new THREE.MeshStandardMaterial({ color: 0x3d1f00, metalness: 0.99, roughness: 0.18 });
-    const railMat   = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-    this.chargeMat = new THREE.MeshStandardMaterial({ color: 0x001833, emissive: 0x00e5ff, emissiveIntensity: 2.0 });
+    // ── 7. 6 Ultra-Defined Magnetic Railgun Defense Batteries ──
+    const barbetteGeo = new THREE.CylinderGeometry(2.4, 3.0, 1.2, 6);
+    const barbetteMat = new THREE.MeshStandardMaterial({ color: 0x223247, metalness: 0.94, roughness: 0.2 });
+    const houseGeo = new THREE.BoxGeometry(2.6, 1.4, 3.0);
+    const houseMat = new THREE.MeshStandardMaterial({ color: 0x3b4e68, metalness: 0.96, roughness: 0.18 });
+
+    const barrelGeo = new THREE.CylinderGeometry(0.24, 0.3, 5.0, 8);
+    barrelGeo.rotateX(Math.PI / 2);
+    this.barrelMat = new THREE.MeshStandardMaterial({ color: 0x8aa2bf, metalness: 0.95, roughness: 0.15 });
+
+    const coilGeo = new THREE.TorusGeometry(0.36, 0.08, 6, 14);
+    const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const visorMat = new THREE.MeshBasicMaterial({ color: 0x00ffaa });
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
 
-      tGroup.add(new THREE.Mesh(new THREE.OctahedronGeometry(3.2, 0), baseMat));
+      // Barbette base
+      const barbette = new THREE.Mesh(barbetteGeo, barbetteMat);
+      barbette.rotation.x = Math.PI / 2;
+      tGroup.add(barbette);
 
-      const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 8.0, 7), railMat);
-      rail.rotation.x = Math.PI / 2; rail.position.z = 3.5;
-      tGroup.add(rail);
+      // Gunhouse & Barrels
+      const bGroup = new THREE.Group();
+      bGroup.position.set(0, 0, 0.8);
 
-      const coil = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.0, 1.5), this.chargeMat);
-      coil.position.set(0, 1.2, 2.0);
-      tGroup.add(coil);
+      const house = new THREE.Mesh(houseGeo, houseMat);
+      house.position.set(0, 0.2, 0);
+      bGroup.add(house);
+
+      // Sensor visor
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.4), visorMat);
+      visor.position.set(0, 0.8, 1.2);
+      bGroup.add(visor);
+
+      // Twin railgun barrels
+      [-0.8, 0.8].forEach(xOff => {
+        const barrel = new THREE.Mesh(barrelGeo, this.barrelMat);
+        barrel.position.set(xOff, 0.2, 2.5);
+        bGroup.add(barrel);
+
+        // Magnetic induction acceleration coils
+        [1.0, 2.2, 3.4].forEach(zC => {
+          const coil = new THREE.Mesh(coilGeo, glowCyanMat);
+          coil.position.set(xOff, 0.2, zC);
+          bGroup.add(coil);
+        });
+
+        // Muzzle ring
+        const muzzle = new THREE.Mesh(coilGeo, glowCyanMat);
+        muzzle.position.set(xOff, 0.2, 5.0);
+        bGroup.add(muzzle);
+      });
+
+      tGroup.add(bGroup);
+
+      // 3D Target Reticle
+      const reticleGeo = new THREE.RingGeometry(1.8, 2.2, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 3.5);
+      tGroup.add(reticle);
 
       this.meshGroup.add(tGroup);
       t.mesh = tGroup;
+      t.barrelGroup = bGroup;
+      t.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
   }
 
@@ -169,11 +346,18 @@ export class HaloRingBoss {
     const t = this.turrets.find(t => t.id === turretId);
     if (!t || t.isDead) return false;
     t.hp -= amount;
+
+    if (t.reticle && t.reticle.material) {
+      const pct = t.hp / t.maxHp;
+      t.reticle.material.color.setHex(pct > 0.5 ? 0x00f3ff : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
     if (t.hp <= 0) {
       t.isDead = true;
       t.mesh.visible = false;
+      if (t.reticle) t.reticle.visible = false;
       const wp = t.mesh.getWorldPosition(new THREE.Vector3());
-      this.particleManager.createExplosion(wp, 0x00e5ff, 60, 2.5);
+      this.particleManager.createExplosion(wp, 0x00f3ff, 120, 3.5);
     }
     return t.isDead;
   }
@@ -185,10 +369,10 @@ export class HaloRingBoss {
     this.coreHp -= amount;
     if (this.coreMat) {
       this.coreMat.emissiveIntensity = 10.0;
-      if (this.hubLight) this.hubLight.intensity = 25.0;
+      if (this.hubLight) this.hubLight.intensity = 28.0;
       setTimeout(() => {
-        if (this.coreMat) this.coreMat.emissiveIntensity = 4.5;
-        if (this.hubLight) this.hubLight.intensity = 12.0;
+        if (this.coreMat) this.coreMat.emissiveIntensity = 3.5;
+        if (this.hubLight) this.hubLight.intensity = 14.0;
       }, 120);
     }
 
@@ -209,15 +393,19 @@ export class HaloRingBoss {
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00e5ff, 280, 6.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xb87333, 200, 4.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 100, 3.5);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 120);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 350, 7.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x0088ff, 250, 5.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 150, 4.0);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 160);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 240);
   }
 
   destroy() {
     this.scene.remove(this.meshGroup);
-    this.meshGroup.traverse(c => { if (c.geometry) c.geometry.dispose(); if (c.material) c.material.dispose(); });
+    this.meshGroup.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+    });
   }
 
   update(dt, playerPos) {
@@ -225,46 +413,48 @@ export class HaloRingBoss {
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) this.meshGroup.position.z += this.speed * dt;
 
-    // Ring spins on Z â€” clearly a spinning ring
-    const spinSpeed = 0.25 + this.phase * 0.12;
+    // Ring spins on Z axis
+    const spinSpeed = 0.20 + this.phase * 0.10;
     this.meshGroup.rotation.z += spinSpeed * dt;
 
     // Hub counter-rotates
-    if (this.hubGroup) this.hubGroup.rotation.z -= (1.2 + this.phase * 0.3) * dt;
+    if (this.hubGroup) this.hubGroup.rotation.z -= (0.8 + this.phase * 0.25) * dt;
 
-    // Gyro rings each rotate on different axes
-    this.shieldRings.forEach((sr, idx) => {
-      if (idx === 0) sr.mesh.rotation.z += sr.dir * 2.5 * dt;
-      else if (idx === 1) sr.mesh.rotation.x += sr.dir * 2.2 * dt;
-      else sr.mesh.rotation.y += sr.dir * 2.0 * dt;
-    });
+    // Gyro containment rings multi-axis rotation
+    if (this.shieldRings) {
+      this.shieldRings.forEach((sr, idx) => {
+        if (idx === 0) sr.mesh.rotation.z += sr.dir * sr.speed * dt;
+        else if (idx === 1) sr.mesh.rotation.x += sr.dir * sr.speed * dt;
+        else sr.mesh.rotation.y += sr.dir * sr.speed * dt;
+      });
+    }
 
-    // Hub pulse
+    // 3D Target Reticles Rotation
+    if (this.reticleMeshes) {
+      this.reticleMeshes.forEach(r => {
+        if (r && r.visible) r.rotation.z += 2.0 * dt;
+      });
+    }
+
+    // Hub pulse animation
     if (this.phaseShieldTimer > 0) {
       this.phaseShieldTimer -= dt;
       if (this.hubLight) this.hubLight.intensity = 35.0 + Math.sin(this._time * 35) * 15.0;
-      if (this.coreMat) this.coreMat.emissiveIntensity = 20.0 + Math.sin(this._time * 30) * 8.0;
+      if (this.coreMat) this.coreMat.emissiveIntensity = 18.0 + Math.sin(this._time * 30) * 8.0;
     } else {
       if (this.hubLight) {
-        this.hubLight.intensity = 10.0 + Math.sin(this._time * 6) * 3.0 + this.phase * 2.0;
+        this.hubLight.intensity = 12.0 + Math.sin(this._time * 6) * 3.0 + this.phase * 2.0;
       }
       if (this.coreMat) {
-        this.coreMat.emissiveIntensity = 4.0 + Math.sin(this._time * 8) * 0.8;
+        this.coreMat.emissiveIntensity = 3.5 + Math.sin(this._time * 8) * 0.8;
       }
     }
 
-    // Turret charge lights (emissive animation)
-    const chargeRatio = Math.max(0, 1.0 - this.fireTimer / (0.7 / this.phase));
-    if (this.chargeMat) {
-      this.chargeMat.emissiveIntensity = 2.0 + chargeRatio * 10.0 + Math.sin(this._time * 10) * 0.8;
-    }
-
-    // Turret tracking
-    if (arrived) {
+    // Dynamic Turret 3D Aim Tracking towards Player
+    if (arrived && playerPos) {
       this.turrets.forEach(t => {
-        if (!t.isDead && t.mesh) {
-          const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
-          t.mesh.lookAt(localTarget);
+        if (!t.isDead && t.barrelGroup) {
+          t.barrelGroup.lookAt(playerPos);
         }
       });
     }
@@ -272,9 +462,9 @@ export class HaloRingBoss {
     // Gravity shockwave in phase 2+
     if (this.phase >= 2 && arrived) {
       this.gravWaveTimer += dt;
-      if (this.gravWaveTimer > (this.phase === 2 ? 6 : 3.5)) {
+      if (this.gravWaveTimer > (this.phase === 2 ? 6.0 : 3.5)) {
         this.gravWaveTimer = 0;
-        this.particleManager.createEmpShockwave(this.meshGroup.position, 30);
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 60);
       }
     }
 
