@@ -642,9 +642,9 @@ export class GameManager {
       case 'BABYLON': {
         this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
         if (this.activeBoss.meshGroup) {
-          this.activeBoss.meshGroup.position.set(0, 0, -60);
-          this.activeBoss.meshGroup.rotation.set(0.2, 0.5, 0);
-          this.activeBoss.meshGroup.scale.set(0.85, 0.85, 0.85);
+          this.activeBoss.meshGroup.position.set(0, 0, -78);
+          this.activeBoss.meshGroup.rotation.set(0.28, 0.65, 0);
+          this.activeBoss.meshGroup.scale.set(0.72, 0.72, 0.72);
         }
         this.spaceHUD?.showWaveBanner("INSPECTING", "BABYLON 5 CYLINDER CITADEL");
         break;
