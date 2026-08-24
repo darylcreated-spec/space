@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 /**
  * Procedural Obsidian-Carbon Composite Hull Texture for Boss Dreadnought Flagship
+ * Enhanced with Rich Royal Obsidian Violet, Luminous Gold Insets, and Neon Magenta/Cyan Circuitry
  */
 function generateDreadnoughtHullTexture() {
   const canvas = document.createElement('canvas');
@@ -9,12 +10,16 @@ function generateDreadnoughtHullTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  // Dark obsidian-violet composite base
-  ctx.fillStyle = '#140c1e';
+  // Rich royal obsidian-violet composite base gradient
+  const grad = ctx.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, '#220e3d');
+  grad.addColorStop(0.5, '#160829');
+  grad.addColorStop(1, '#2c124e');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 512);
 
   // Heavy faceted armor plate seam lines
-  ctx.strokeStyle = '#2d1a45';
+  ctx.strokeStyle = '#4a247c';
   ctx.lineWidth = 3.5;
   for (let x = 0; x < 512; x += 64) {
     ctx.strokeRect(x, 0, 64, 512);
@@ -24,7 +29,7 @@ function generateDreadnoughtHullTexture() {
   }
 
   // Micro-rivets along plating boundaries
-  ctx.fillStyle = '#6e4599';
+  ctx.fillStyle = '#a865f5';
   for (let y = 8; y < 512; y += 32) {
     for (let x = 8; x < 512; x += 64) {
       ctx.beginPath();
@@ -33,12 +38,29 @@ function generateDreadnoughtHullTexture() {
     }
   }
 
-  // Neon crimson fiber-optic data channels
-  ctx.strokeStyle = '#ff0055';
-  ctx.lineWidth = 2.0;
+  // Luminous Gold & Amber Chevron Stripes
+  ctx.strokeStyle = '#ffb700';
+  ctx.lineWidth = 3.0;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(64 + i * 40, 20);
+    ctx.lineTo(84 + i * 40, 48);
+    ctx.lineTo(64 + i * 40, 76);
+    ctx.stroke();
+  }
+
+  // Neon Magenta & Electric Cyan fiber-optic data conduits
+  ctx.strokeStyle = '#ff007f';
+  ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(0, 128); ctx.lineTo(160, 128); ctx.lineTo(256, 192); ctx.lineTo(512, 192);
   ctx.moveTo(0, 384); ctx.lineTo(200, 384); ctx.lineTo(256, 320); ctx.lineTo(512, 320);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#00f3ff';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(0, 200); ctx.lineTo(120, 200); ctx.lineTo(180, 260); ctx.lineTo(512, 260);
   ctx.stroke();
 
   return new THREE.CanvasTexture(canvas);
@@ -47,7 +69,7 @@ function generateDreadnoughtHullTexture() {
 // ============================================================
 // BOSS DREADNOUGHT FLAGSHIP — Void Reaver Heavy Assault Flagship
 // 68m Heavy Assault Warship with Armored Kinetic Ram Prow,
-// Multi-Tier Command Citadel Bridge Spire Tower,
+// Swept Empennage Dorsal Tail Fin & Multi-Tier Command Citadel,
 // Quad Fusion Engine Nacelles with Mach Shock Diamond Plumes,
 // 4 Heavy Dual-Railgun Artillery Batteries, 2 Torpedo Pods,
 // Dual Shield Generator Pylons, and Suspended Antimatter Core!
@@ -112,29 +134,39 @@ export class BossDreadnought {
   buildBossMesh() {
     const hullTex = generateDreadnoughtHullTexture();
 
+    // Vibrant Obsidian Violet / Royal Indigo Hull with High Specular Sheen
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1a0f2e,
+      color: 0x2b134d,
       bumpMap: hullTex,
-      bumpScale: 0.15,
-      metalness: 0.94,
-      roughness: 0.22,
-      emissive: 0x0a0514,
-      emissiveIntensity: 0.4
+      bumpScale: 0.18,
+      metalness: 0.95,
+      roughness: 0.18,
+      emissive: 0x15072b,
+      emissiveIntensity: 0.45
     });
 
     const armorTrussMat = new THREE.MeshStandardMaterial({
-      color: 0x2e1a4f,
-      metalness: 0.96,
-      roughness: 0.18
+      color: 0x421d74,
+      metalness: 0.98,
+      roughness: 0.14
+    });
+
+    const goldAccentMat = new THREE.MeshStandardMaterial({
+      color: 0xffb700,
+      metalness: 0.95,
+      roughness: 0.22,
+      emissive: 0x3d2800,
+      emissiveIntensity: 0.35
     });
 
     const darkTrimMat = new THREE.MeshStandardMaterial({
-      color: 0x110a1c,
+      color: 0x120822,
       metalness: 0.98,
       roughness: 0.2
     });
 
     const glowCrimsonMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+    const glowMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff007f });
     const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
     const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
@@ -151,11 +183,19 @@ export class BossDreadnought {
     prow.position.set(0, 0, 28);
     this.meshGroup.add(prow);
 
-    // Heavy Titanium Ramming Blade Edge
+    // Heavy Titanium Ramming Blade Edge with Radiant Gold Trim
     const bladeGeo = new THREE.BoxGeometry(1.2, 8.0, 22);
     const blade = new THREE.Mesh(bladeGeo, darkTrimMat);
     blade.position.set(0, 0, 26);
     this.meshGroup.add(blade);
+
+    const bladeGoldTrim = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.2, 20), goldAccentMat);
+    bladeGoldTrim.position.set(0, 3.8, 26);
+    this.meshGroup.add(bladeGoldTrim);
+
+    const prowEnergyStrip = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 18), glowMagentaMat);
+    prowEnergyStrip.position.set(0, 0, 27);
+    this.meshGroup.add(prowEnergyStrip);
 
     // ── 2. Multi-Tier Command Citadel Bridge Spire Tower (Dorsal Aft) ──
     const bridgeSpireGeo = new THREE.BoxGeometry(12, 6.5, 20);
@@ -163,18 +203,82 @@ export class BossDreadnought {
     bridgeSpire.position.set(0, 6.0, -8);
     this.meshGroup.add(bridgeSpire);
 
-    // Command Bridge Crimson Visor
+    // Bridge Golden Crown Battlements
+    const bridgeCrownGeo = new THREE.BoxGeometry(12.6, 1.0, 20.6);
+    const bridgeCrown = new THREE.Mesh(bridgeCrownGeo, goldAccentMat);
+    bridgeCrown.position.set(0, 9.3, -8);
+    this.meshGroup.add(bridgeCrown);
+
+    // Command Bridge Crimson & Magenta Visor
     const visorGeo = new THREE.BoxGeometry(10, 1.6, 4.0);
     const visor = new THREE.Mesh(visorGeo, glowCrimsonMat);
     visor.position.set(0, 8.0, -2);
     this.meshGroup.add(visor);
 
-    // ── 3. Port & Starboard Heavy Armor Wing Sponsons ──
+    // ── ✨ 3. DREADNOUGHT EMPENNAGE DORSAL TAIL FIN & STABILIZERS ──
+    const tailGroup = new THREE.Group();
+    tailGroup.position.set(0, 9.0, -14);
+
+    // Swept Vertical Dorsal Fin
+    const tailFinGeo = new THREE.BoxGeometry(1.4, 9.5, 16);
+    const tailFin = new THREE.Mesh(tailFinGeo, hullMat);
+    tailFin.position.set(0, 3.8, 0);
+    tailFin.rotation.x = -0.32; // Swept backwards aggressively
+    tailGroup.add(tailFin);
+
+    // Heavy Titanium & Gold Leading Edge Fin Armor Spine
+    const tailSpineGeo = new THREE.BoxGeometry(1.8, 10.2, 2.8);
+    const tailSpine = new THREE.Mesh(tailSpineGeo, goldAccentMat);
+    tailSpine.position.set(0, 4.0, 6.8);
+    tailSpine.rotation.x = -0.32;
+    tailGroup.add(tailSpine);
+
+    // Luminous Neon Magenta Trailing Edge Beacon Channel
+    const tailBeaconGeo = new THREE.BoxGeometry(0.8, 9.0, 0.9);
+    const tailBeacon = new THREE.Mesh(tailBeaconGeo, glowMagentaMat);
+    tailBeacon.position.set(0, 3.8, -7.0);
+    tailBeacon.rotation.x = -0.32;
+    tailGroup.add(tailBeacon);
+
+    // Cyan High-Intensity Empennage Mast Antenna Spire
+    const tailMastGeo = new THREE.CylinderGeometry(0.18, 0.35, 6.0, 8);
+    const tailMast = new THREE.Mesh(tailMastGeo, darkTrimMat);
+    tailMast.position.set(0, 9.5, -2.5);
+    tailGroup.add(tailMast);
+
+    const mastBeaconGeo = new THREE.SphereGeometry(0.4, 8, 8);
+    const mastBeacon = new THREE.Mesh(mastBeaconGeo, glowCyanMat);
+    mastBeacon.position.set(0, 12.5, -2.5);
+    tailGroup.add(mastBeacon);
+
+    this.meshGroup.add(tailGroup);
+
+    // Twin Cantilevered Ventral Tail Stabilizers (Keel Skegs)
+    [-7.5, 7.5].forEach(skx => {
+      const skegGeo = new THREE.BoxGeometry(0.9, 4.2, 10.0);
+      const skeg = new THREE.Mesh(skegGeo, armorTrussMat);
+      skeg.position.set(skx, -4.8, -16);
+      skeg.rotation.x = 0.28;
+      skeg.rotation.z = (skx < 0 ? -1 : 1) * 0.15;
+      this.meshGroup.add(skeg);
+
+      const skegBeacon = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.8, 0.4), glowCyanMat);
+      skegBeacon.position.set(skx, -4.8, -20.5);
+      skegBeacon.rotation.x = 0.28;
+      this.meshGroup.add(skegBeacon);
+    });
+
+    // ── 4. Port & Starboard Heavy Armor Wing Sponsons with Radiant Decals ──
     [-18, 18].forEach(wx => {
       const wingGeo = new THREE.BoxGeometry(14, 4.0, 34);
       const wing = new THREE.Mesh(wingGeo, hullMat);
       wing.position.set(wx, 0, -2);
       this.meshGroup.add(wing);
+
+      // Gold Trim Armor Plates along Sponson Outer Ridge
+      const wGoldTrim = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.2, 30), goldAccentMat);
+      wGoldTrim.position.set(wx < 0 ? wx - 6.5 : wx + 6.5, 1.8, -2);
+      this.meshGroup.add(wGoldTrim);
 
       // Heat Dissipation Radiator Grilles
       const radGeo = new THREE.PlaneGeometry(12, 2.5);
@@ -182,6 +286,12 @@ export class BossDreadnought {
       rad.position.set(wx, 2.1, -2);
       rad.rotation.x = -Math.PI / 2;
       this.meshGroup.add(rad);
+
+      // Luminous Neon Cyan Lateral Strobe Strips
+      const strobeGeo = new THREE.BoxGeometry(0.3, 0.3, 26);
+      const strobe = new THREE.Mesh(strobeGeo, glowCyanMat);
+      strobe.position.set(wx < 0 ? wx - 7.0 : wx + 7.0, 0, -2);
+      this.meshGroup.add(strobe);
     });
 
     // ── 4. Central Antimatter Plasma Reactor Core & Containment Gyro-Rings ──
