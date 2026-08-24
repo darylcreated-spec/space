@@ -101,6 +101,14 @@ function generateHaloBiosphereTexture() {
 // inward terraformed biosphere, 12 structural truss spokes,
 // gyroscopic Index control citadel, 6 defined railgun defense batteries
 // ============================================================
+// ============================================================
+// WAVE 2 BOSS — Halo Megastructure Ring
+// Full AAA Overhaul: 50m diameter open ring, Forerunner architecture,
+// inward terraformed biosphere, 12 structural truss spokes,
+// 4 Independent Autonomous Orbiting Sentinel Drones,
+// 6 Independent Perimeter Railgun Batteries,
+// 4 Targetable Structural Framing Keel Nodes (The only way to destroy the Megastructure)
+// ============================================================
 export class HaloRingBoss {
   constructor(scene, particleManager) {
     this.scene = scene;
@@ -113,29 +121,50 @@ export class HaloRingBoss {
     this.targetZ = -88;
     this.speed = 7.5;
 
-    this.coreHp = 4200;
-    this.maxCoreHp = 4200;
-    this.scoreValue = 45000;
+    // Megastructure Health is directly bound to Framing Structure Integrity
+    this.coreHp = 4400;
+    this.maxCoreHp = 4400;
+    this.scoreValue = 50000;
     this.isDead = false;
-    this.hitRadius = 52;
+    this.hitRadius = 54;
 
     this.fireTimer = 0.8;
+    this.sentinelFireTimer = 1.2;
     this.phase = 1;
     this.gravWaveTimer = 0;
     this._time = 0;
     this.phaseShieldTimer = 0;
     this.justPhaseTransitioned = false;
 
+    // ── 1. 4 Primary Structural Framing Keel Nodes (The Only Way to Destroy the Ring) ──
+    const R_FRAME = 41.5;
+    this.framingNodes = [
+      { id: 0, name: 'NORTH FRAMING ANCHOR', relPos: new THREE.Vector3(0,  R_FRAME, 0), hp: 1100, maxHp: 1100, isDead: false, mesh: null, conduitSpoke: null, reticle: null },
+      { id: 1, name: 'EAST FRAMING ANCHOR',  relPos: new THREE.Vector3( R_FRAME, 0, 0), hp: 1100, maxHp: 1100, isDead: false, mesh: null, conduitSpoke: null, reticle: null },
+      { id: 2, name: 'SOUTH FRAMING ANCHOR', relPos: new THREE.Vector3(0, -R_FRAME, 0), hp: 1100, maxHp: 1100, isDead: false, mesh: null, conduitSpoke: null, reticle: null },
+      { id: 3, name: 'WEST FRAMING ANCHOR',  relPos: new THREE.Vector3(-R_FRAME, 0, 0), hp: 1100, maxHp: 1100, isDead: false, mesh: null, conduitSpoke: null, reticle: null },
+    ];
+
+    // ── 2. 4 Independent Orbiting Forerunner Sentinel Drones ──
+    this.sentinels = [
+      { id: 0, name: 'ALPHA SENTINEL',  orbitAngle: 0,               orbitRadius: 53.0, orbitSpeed: 0.8, hp: 500, maxHp: 500, isDead: false, mesh: null, reticle: null },
+      { id: 1, name: 'BETA SENTINEL',   orbitAngle: Math.PI * 0.5,   orbitRadius: 55.0, orbitSpeed: -0.7, hp: 500, maxHp: 500, isDead: false, mesh: null, reticle: null },
+      { id: 2, name: 'GAMMA SENTINEL',  orbitAngle: Math.PI,         orbitRadius: 53.0, orbitSpeed: 0.75, hp: 500, maxHp: 500, isDead: false, mesh: null, reticle: null },
+      { id: 3, name: 'DELTA SENTINEL',  orbitAngle: Math.PI * 1.5,   orbitRadius: 55.0, orbitSpeed: -0.85, hp: 500, maxHp: 500, isDead: false, mesh: null, reticle: null },
+    ];
+
+    // ── 3. 6 Perimeter Magnetic Railgun Batteries ──
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(0,  46, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 1, relPos: new THREE.Vector3(0, -46, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 2, relPos: new THREE.Vector3(46,  0, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 3, relPos: new THREE.Vector3(-46, 0, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 4, relPos: new THREE.Vector3(32.5, 32.5, 0),  hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 5, relPos: new THREE.Vector3(-32.5,-32.5, 0), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 0, name: 'NORTH TURRET', relPos: new THREE.Vector3(0,  46, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'SOUTH TURRET', relPos: new THREE.Vector3(0, -46, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'EAST TURRET',  relPos: new THREE.Vector3(46,  0, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'WEST TURRET',  relPos: new THREE.Vector3(-46, 0, 0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'NORTH-EAST TURRET', relPos: new THREE.Vector3(32.5, 32.5, 0),  hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'SOUTH-WEST TURRET', relPos: new THREE.Vector3(-32.5,-32.5, 0), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
     ];
 
     this.reticleMeshes = [];
+    this.spokeConduits = [];
     this._build();
     this.scene.add(this.meshGroup);
   }
@@ -196,7 +225,6 @@ export class HaloRingBoss {
       emissive: 0x0e1824,
       emissiveIntensity: 0.2
     });
-    const conduitMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
 
     this.hubGroup = new THREE.Group();
 
@@ -215,14 +243,98 @@ export class HaloRingBoss {
 
       // Embedded energized plasma conduit line
       const condGeo = new THREE.CylinderGeometry(0.18, 0.18, spokeLen * 0.95, 6);
-      const cond = new THREE.Mesh(condGeo, conduitMat);
+      const condMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const cond = new THREE.Mesh(condGeo, condMat);
       cond.position.z = 0.85;
       spokeGroup.add(cond);
+      this.spokeConduits.push({ mesh: cond, mat: condMat, angleIndex: i });
 
       this.meshGroup.add(spokeGroup);
     }
 
-    // ── 5. Central Control Citadel (Index Spire Core) ──
+    // ── 5. 4 Primary Structural Framing Keel Nodes (The Vulnerability Anchors) ──
+    const frameNodeBaseGeo = new THREE.BoxGeometry(4.2, 3.2, 4.0);
+    const frameNodeBaseMat = new THREE.MeshStandardMaterial({ color: 0x1f2e42, metalness: 0.95, roughness: 0.2 });
+    const frameCoreGeo = new THREE.CylinderGeometry(1.2, 1.6, 2.5, 8);
+    frameCoreGeo.rotateX(Math.PI / 2);
+    const frameCoreMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const frameClampGeo = new THREE.TorusGeometry(2.2, 0.35, 8, 20);
+
+    this.framingNodes.forEach(fn => {
+      const fnGroup = new THREE.Group();
+      fnGroup.position.copy(fn.relPos);
+
+      // Structural Anchor Bracket Housing
+      const bracket = new THREE.Mesh(frameNodeBaseGeo, frameNodeBaseMat);
+      fnGroup.add(bracket);
+
+      // Exposed Superconducting Power Matrix Core
+      const core = new THREE.Mesh(frameCoreGeo, frameCoreMat);
+      core.position.set(0, 0, 1.2);
+      fnGroup.add(core);
+
+      // Structural Hydraulic Clamp Rings
+      const clamp1 = new THREE.Mesh(frameClampGeo, frameNodeBaseMat);
+      clamp1.position.set(0, 0, 0.6);
+      fnGroup.add(clamp1);
+
+      const clamp2 = new THREE.Mesh(frameClampGeo, frameNodeBaseMat);
+      clamp2.position.set(0, 0, 1.8);
+      fnGroup.add(clamp2);
+
+      // 3D Target Reticle for Structural Framing Keel Node
+      const reticleGeo = new THREE.RingGeometry(2.4, 2.9, 20);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 3.2);
+      fnGroup.add(reticle);
+
+      this.meshGroup.add(fnGroup);
+      fn.mesh = fnGroup;
+      fn.coreMesh = core;
+      fn.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
+
+    // ── 6. 4 Independent Orbiting Forerunner Sentinel Drones ──
+    const sentBodyGeo = new THREE.OctahedronGeometry(1.6, 0);
+    const sentBodyMat = new THREE.MeshStandardMaterial({ color: 0x8ea2bd, metalness: 0.94, roughness: 0.18 });
+    const sentWingGeo = new THREE.BoxGeometry(0.3, 2.8, 1.2);
+    const sentWingMat = new THREE.MeshStandardMaterial({ color: 0x243447, metalness: 0.95 });
+    const sentOpticMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
+    this.sentinels.forEach(s => {
+      const sGroup = new THREE.Group();
+
+      const body = new THREE.Mesh(sentBodyGeo, sentBodyMat);
+      sGroup.add(body);
+
+      // Flank Wings
+      [-1.2, 1.2].forEach(xOff => {
+        const wing = new THREE.Mesh(sentWingGeo, sentWingMat);
+        wing.position.set(xOff, 0, 0);
+        sGroup.add(wing);
+      });
+
+      // Central Optical Beam Emitter
+      const optic = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 10), sentOpticMat);
+      optic.position.set(0, 0, 1.0);
+      sGroup.add(optic);
+
+      // 3D Target Reticle for Sentinel
+      const sReticleGeo = new THREE.RingGeometry(1.5, 1.8, 16);
+      const sReticleMat = new THREE.MeshBasicMaterial({ color: 0xffea00, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const sReticle = new THREE.Mesh(sReticleGeo, sReticleMat);
+      sReticle.position.set(0, 0, 2.0);
+      sGroup.add(sReticle);
+
+      this.meshGroup.add(sGroup);
+      s.mesh = sGroup;
+      s.reticle = sReticle;
+      this.reticleMeshes.push(sReticle);
+    });
+
+    // ── 7. Central Control Citadel (Index Spire Core) ──
     const hubGeo = new THREE.DodecahedronGeometry(9.0, 1);
     this.coreMat = new THREE.MeshStandardMaterial({
       color: 0x0b1c2e,
@@ -254,7 +366,7 @@ export class HaloRingBoss {
     this.ringLight.position.set(ringR * 0.5, 0, 10);
     this.meshGroup.add(this.ringLight);
 
-    // ── 6. 3 Gyroscopic Counter-Rotating Containment Rings ──
+    // ── 8. 3 Gyroscopic Counter-Rotating Containment Rings ──
     const ringAngles = [0, Math.PI / 3, Math.PI * 2 / 3];
     this.shieldRings = [];
     ringAngles.forEach((ra, idx) => {
@@ -270,7 +382,7 @@ export class HaloRingBoss {
       this.shieldRings.push({ mesh: sRing, dir: idx % 2 === 0 ? 1 : -1, speed: 2.0 + idx * 0.5 });
     });
 
-    // ── 7. 6 Ultra-Defined Magnetic Railgun Defense Batteries ──
+    // ── 9. 6 Ultra-Defined Magnetic Railgun Defense Batteries ──
     const barbetteGeo = new THREE.CylinderGeometry(2.4, 3.0, 1.2, 6);
     const barbetteMat = new THREE.MeshStandardMaterial({ color: 0x223247, metalness: 0.94, roughness: 0.2 });
     const houseGeo = new THREE.BoxGeometry(2.6, 1.4, 3.0);
@@ -342,6 +454,74 @@ export class HaloRingBoss {
     });
   }
 
+  takeFramingDamage(nodeId, amount) {
+    const node = this.framingNodes.find(n => n.id === nodeId);
+    if (!node || node.isDead) return false;
+
+    node.hp -= amount;
+
+    // Recalculate total core hp based on framing structure health
+    const totalFramingHp = this.framingNodes.reduce((acc, n) => acc + (n.isDead ? 0 : Math.max(0, n.hp)), 0);
+    this.coreHp = totalFramingHp;
+
+    if (node.reticle && node.reticle.material) {
+      const pct = node.hp / node.maxHp;
+      node.reticle.material.color.setHex(pct > 0.5 ? 0x00f3ff : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
+    if (node.coreMesh && node.coreMesh.material) {
+      node.coreMesh.material.color.setHex(0xff0044);
+      setTimeout(() => {
+        if (node && node.coreMesh && node.coreMesh.material) {
+          node.coreMesh.material.color.setHex(node.isDead ? 0x222222 : 0x00f3ff);
+        }
+      }, 100);
+    }
+
+    if (node.hp <= 0 && !node.isDead) {
+      node.isDead = true;
+      if (node.reticle) node.reticle.visible = false;
+      const wp = node.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0x00f3ff, 200, 5.5);
+      this.particleManager.createExplosion(wp, 0xff0044, 150, 4.0);
+      this.particleManager.createEmpShockwave(wp, 80);
+
+      // Break connected spoke conduit
+      const conduitIdx = nodeId * 3;
+      if (this.spokeConduits[conduitIdx]) {
+        this.spokeConduits[conduitIdx].mat.color.setHex(0xff0044);
+      }
+
+      window.spaceGameManager?.voiceAnnouncer?.speak(`Framing sector ${node.name} shattered! Structural collapse imminent!`, true);
+    }
+
+    if (this.coreHp <= 0 && !this.isDead) {
+      this.isDead = true;
+      this._explode();
+    }
+    return this.isDead;
+  }
+
+  takeSentinelDamage(sentinelId, amount) {
+    const s = this.sentinels.find(sen => sen.id === sentinelId);
+    if (!s || s.isDead) return false;
+    s.hp -= amount;
+
+    if (s.reticle && s.reticle.material) {
+      const pct = s.hp / s.maxHp;
+      s.reticle.material.color.setHex(pct > 0.5 ? 0xffea00 : (pct > 0.25 ? 0xff7700 : 0xff0044));
+    }
+
+    if (s.hp <= 0) {
+      s.isDead = true;
+      s.mesh.visible = false;
+      if (s.reticle) s.reticle.visible = false;
+      const wp = s.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xffea00, 80, 3.0);
+    }
+    return s.isDead;
+  }
+
   takeTurretDamage(turretId, amount) {
     const t = this.turrets.find(t => t.id === turretId);
     if (!t || t.isDead) return false;
@@ -363,28 +543,17 @@ export class HaloRingBoss {
   }
 
   takeCoreDamage(amount) {
-    if (this.phaseShieldTimer > 0) return false;
+    // If framing nodes are still active, direct attacks on core are deflected!
+    const activeFraming = this.framingNodes.filter(n => !n.isDead);
+    if (activeFraming.length > 0) {
+      if (this.coreMat) {
+        this.coreMat.emissiveIntensity = 8.0;
+        setTimeout(() => { if (this.coreMat) this.coreMat.emissiveIntensity = 3.5; }, 80);
+      }
+      return false; // Immune to direct core fire while framing structure is intact!
+    }
 
-    const prevPhase = this.phase;
     this.coreHp -= amount;
-    if (this.coreMat) {
-      this.coreMat.emissiveIntensity = 10.0;
-      if (this.hubLight) this.hubLight.intensity = 28.0;
-      setTimeout(() => {
-        if (this.coreMat) this.coreMat.emissiveIntensity = 3.5;
-        if (this.hubLight) this.hubLight.intensity = 14.0;
-      }, 120);
-    }
-
-    const hpRatio = this.coreHp / this.maxCoreHp;
-    if (hpRatio < 0.5 && this.phase === 1) { this.phase = 2; }
-    if (hpRatio < 0.25 && this.phase === 2) { this.phase = 3; }
-
-    if (this.phase > prevPhase) {
-      this.phaseShieldTimer = 3.0; // 3 seconds phase protection
-      this.justPhaseTransitioned = true;
-    }
-
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
       this._explode();
@@ -393,11 +562,11 @@ export class HaloRingBoss {
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 350, 7.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0x0088ff, 250, 5.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 150, 4.0);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 160);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 240);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 450, 8.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x0088ff, 350, 7.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 5.0);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 200);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 300);
   }
 
   destroy() {
@@ -414,7 +583,7 @@ export class HaloRingBoss {
     if (!arrived) this.meshGroup.position.z += this.speed * dt;
 
     // Ring spins on Z axis
-    const spinSpeed = 0.20 + this.phase * 0.10;
+    const spinSpeed = 0.18 + (1.0 - this.coreHp / this.maxCoreHp) * 0.15;
     this.meshGroup.rotation.z += spinSpeed * dt;
 
     // Hub counter-rotates
@@ -436,18 +605,21 @@ export class HaloRingBoss {
       });
     }
 
-    // Hub pulse animation
-    if (this.phaseShieldTimer > 0) {
-      this.phaseShieldTimer -= dt;
-      if (this.hubLight) this.hubLight.intensity = 35.0 + Math.sin(this._time * 35) * 15.0;
-      if (this.coreMat) this.coreMat.emissiveIntensity = 18.0 + Math.sin(this._time * 30) * 8.0;
-    } else {
-      if (this.hubLight) {
-        this.hubLight.intensity = 12.0 + Math.sin(this._time * 6) * 3.0 + this.phase * 2.0;
-      }
-      if (this.coreMat) {
-        this.coreMat.emissiveIntensity = 3.5 + Math.sin(this._time * 8) * 0.8;
-      }
+    // Orbiting Sentinel Drones Update
+    if (this.sentinels) {
+      this.sentinels.forEach(s => {
+        if (!s.isDead && s.mesh) {
+          s.orbitAngle += s.orbitSpeed * dt;
+          s.mesh.position.set(
+            Math.cos(s.orbitAngle) * s.orbitRadius,
+            Math.sin(s.orbitAngle) * s.orbitRadius,
+            Math.sin(s.orbitAngle * 2.0) * 6.0
+          );
+          if (playerPos) {
+            s.mesh.lookAt(playerPos);
+          }
+        }
+      });
     }
 
     // Dynamic Turret 3D Aim Tracking towards Player
@@ -460,22 +632,34 @@ export class HaloRingBoss {
     }
 
     // Gravity shockwave in phase 2+
-    if (this.phase >= 2 && arrived) {
+    const framingBroken = this.framingNodes.filter(n => n.isDead).length;
+    if (framingBroken >= 2 && arrived) {
       this.gravWaveTimer += dt;
-      if (this.gravWaveTimer > (this.phase === 2 ? 6.0 : 3.5)) {
+      if (this.gravWaveTimer > (framingBroken >= 3 ? 3.5 : 5.5)) {
         this.gravWaveTimer = 0;
         this.particleManager.createEmpShockwave(this.meshGroup.position, 60);
       }
     }
 
+    // Turret and Sentinel Independent Attacks
     this.fireTimer -= dt;
+    this.sentinelFireTimer -= dt;
     const out = [];
+
     if (this.fireTimer <= 0 && arrived) {
-      this.fireTimer = 0.7 / this.phase;
+      this.fireTimer = 0.8;
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) out.push(t.mesh.getWorldPosition(new THREE.Vector3()));
       });
     }
+
+    if (this.sentinelFireTimer <= 0 && arrived) {
+      this.sentinelFireTimer = 1.3;
+      this.sentinels.forEach(s => {
+        if (!s.isDead && s.mesh) out.push(s.mesh.getWorldPosition(new THREE.Vector3()));
+      });
+    }
+
     return out.length > 0 ? out : false;
   }
 }

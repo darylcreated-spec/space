@@ -430,7 +430,41 @@ export class CollisionSystem {
                 }
               }
 
-              // 4. Check Turrets (MoonBase)
+              // 3B. Check Structural Framing Keel Nodes (Halo Megastructure Ring - The Key Vulnerability)
+              if (!hitRegistered && boss.framingNodes && Array.isArray(boss.framingNodes)) {
+                for (const fn of boss.framingNodes) {
+                  if (!fn.isDead && fn.mesh) {
+                    const fnPos = fn.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(fnPos) < 6.5) {
+                      if (!laser.hitEntities.has(`halo_frame_${fn.id}`)) {
+                        laser.hitEntities.add(`halo_frame_${fn.id}`);
+                        dead = boss.takeFramingDamage(fn.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 3C. Check Autonomous Sentinel Escort Drones (Halo Megastructure Ring)
+              if (!hitRegistered && boss.sentinels && Array.isArray(boss.sentinels)) {
+                for (const s of boss.sentinels) {
+                  if (!s.isDead && s.mesh) {
+                    const sPos = s.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(sPos) < 4.8) {
+                      if (!laser.hitEntities.has(`halo_sent_${s.id}`)) {
+                        laser.hitEntities.add(`halo_sent_${s.id}`);
+                        boss.takeSentinelDamage(s.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 4. Check Turrets (MoonBase / Halo Ring / Dreadnought)
               if (!hitRegistered && boss.turrets && Array.isArray(boss.turrets)) {
                 const livingTurrets = boss.turrets.filter(t => t && !t.isDead && t.mesh);
                 let hitTurret = null;
@@ -443,8 +477,8 @@ export class CollisionSystem {
                   }
                 }
                 if (hitTurret && closestDist < 5.5) {
-                  if (!laser.hitEntities.has(hitTurret.id)) {
-                    laser.hitEntities.add(hitTurret.id);
+                  if (!laser.hitEntities.has(`turret_${hitTurret.id}`)) {
+                    laser.hitEntities.add(`turret_${hitTurret.id}`);
                     boss.takeTurretDamage(hitTurret.id, dmg);
                     hitRegistered = true;
                   }
