@@ -80,13 +80,22 @@ export class Babylon5Boss {
     this.hitRadius = 40;
 
     this.fireTimer = 0.7;
+    this.satelliteFireTimer = 1.0;
     this.phase = 1;
     this.plasmaCannonTimer = 0;
     this._time = 0;
     this.phaseShieldTimer = 0;
     this.justPhaseTransitioned = false;
 
-    // 8 Heavy Defense Batteries mounted across the cylinder quadrants
+    // ── 1. 4 Autonomous Orbiting Defense Satellites with Laser Emitters ──
+    this.satellites = [
+      { id: 0, name: 'ALPHA DEFENSE SATELLITE', orbitAngle: 0,               orbitRadius: 36.0, orbitSpeed: 0.9,  inclination:  0.35, hp: 550, maxHp: 550, isDead: false, mesh: null, turretGroup: null, reticle: null },
+      { id: 1, name: 'BETA DEFENSE SATELLITE',  orbitAngle: Math.PI * 0.5,   orbitRadius: 38.0, orbitSpeed: -0.75, inclination: -0.25, hp: 550, maxHp: 550, isDead: false, mesh: null, turretGroup: null, reticle: null },
+      { id: 2, name: 'GAMMA DEFENSE SATELLITE', orbitAngle: Math.PI,         orbitRadius: 36.0, orbitSpeed: 0.85,  inclination:  0.40, hp: 550, maxHp: 550, isDead: false, mesh: null, turretGroup: null, reticle: null },
+      { id: 3, name: 'DELTA DEFENSE SATELLITE', orbitAngle: Math.PI * 1.5,   orbitRadius: 38.0, orbitSpeed: -0.95, inclination: -0.30, hp: 550, maxHp: 550, isDead: false, mesh: null, turretGroup: null, reticle: null },
+    ];
+
+    // ── 2. 8 Heavy Defense Batteries mounted across the cylinder quadrants ──
     this.turrets = [
       { id: 0, name: 'FORWARD DORSAL TURRET',  relPos: new THREE.Vector3(0,  15.5,  26), hp: 900, maxHp: 900, isDead: false, mesh: null, barrelGroup: null, reticle: null },
       { id: 1, name: 'FORWARD VENTRAL TURRET', relPos: new THREE.Vector3(0, -15.5,  26), hp: 900, maxHp: 900, isDead: false, mesh: null, barrelGroup: null, reticle: null },
@@ -337,6 +346,86 @@ export class Babylon5Boss {
       t.reticle = reticle;
       this.reticleMeshes.push(reticle);
     });
+
+    // ── 7. 4 Autonomous Orbiting Defense Satellites ──
+    const satBodyGeo = new THREE.BoxGeometry(2.2, 1.8, 2.2);
+    const satBodyMat = new THREE.MeshStandardMaterial({ color: 0x27364b, metalness: 0.94, roughness: 0.2 });
+    const solarWingGeo = new THREE.BoxGeometry(0.18, 2.6, 5.8);
+    const solarWingMat = new THREE.MeshStandardMaterial({
+      color: 0x0a2444,
+      metalness: 0.85,
+      roughness: 0.15,
+      emissive: 0x003366,
+      emissiveIntensity: 0.4
+    });
+    const satGimbalGeo = new THREE.CylinderGeometry(0.35, 0.45, 2.4, 8);
+    satGimbalGeo.rotateX(Math.PI / 2);
+    const satGimbalMat = new THREE.MeshStandardMaterial({ color: 0x6e87a6, metalness: 0.95, roughness: 0.15 });
+    const satLensMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+
+    this.satellites.forEach(s => {
+      const sGroup = new THREE.Group();
+
+      // Central avionics bus
+      const body = new THREE.Mesh(satBodyGeo, satBodyMat);
+      sGroup.add(body);
+
+      // Twin deployable solar wings
+      [-2.2, 2.2].forEach(xOff => {
+        const wing = new THREE.Mesh(solarWingGeo, solarWingMat);
+        wing.position.set(xOff, 0, 0);
+        sGroup.add(wing);
+      });
+
+      // Steerable Laser Turret Gimbal
+      const tGimbal = new THREE.Group();
+      tGimbal.position.set(0, 0, 1.2);
+
+      const barrel = new THREE.Mesh(satGimbalGeo, satGimbalMat);
+      barrel.position.set(0, 0, 1.0);
+      tGimbal.add(barrel);
+
+      // Optical laser emitter lens
+      const lens = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), satLensMat);
+      lens.position.set(0, 0, 2.2);
+      tGimbal.add(lens);
+
+      sGroup.add(tGimbal);
+
+      // 3D Target Reticle
+      const reticleGeo = new THREE.RingGeometry(1.6, 2.0, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 2.5);
+      sGroup.add(reticle);
+
+      this.meshGroup.add(sGroup);
+      s.mesh = sGroup;
+      s.turretGroup = tGimbal;
+      s.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
+  }
+
+  takeSatelliteDamage(satelliteId, amount) {
+    const s = this.satellites.find(sat => sat.id === satelliteId);
+    if (!s || s.isDead) return false;
+    s.hp -= amount;
+
+    if (s.reticle && s.reticle.material) {
+      const pct = s.hp / s.maxHp;
+      s.reticle.material.color.setHex(pct > 0.5 ? 0xffaa00 : (pct > 0.25 ? 0xff5500 : 0xff0044));
+    }
+
+    if (s.hp <= 0) {
+      s.isDead = true;
+      s.mesh.visible = false;
+      if (s.reticle) s.reticle.visible = false;
+      const wp = s.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff7700, 90, 3.2);
+      this.particleManager.createExplosion(wp, 0x00f3ff, 60, 2.5);
+    }
+    return s.isDead;
   }
 
   takeTurretDamage(turretId, amount) {
@@ -423,14 +512,31 @@ export class Babylon5Boss {
       });
     }
 
-    // 3. 3D Target Reticles Rotation
+    // 3. Orbiting Defense Satellites Update & Aim Tracking
+    if (this.satellites) {
+      this.satellites.forEach(s => {
+        if (!s.isDead && s.mesh) {
+          s.orbitAngle += s.orbitSpeed * dt;
+          s.mesh.position.set(
+            Math.cos(s.orbitAngle) * s.orbitRadius,
+            Math.sin(s.orbitAngle) * s.orbitRadius * Math.cos(s.inclination),
+            Math.sin(s.orbitAngle) * s.orbitRadius * Math.sin(s.inclination)
+          );
+          if (playerPos) {
+            s.mesh.lookAt(playerPos);
+          }
+        }
+      });
+    }
+
+    // 4. 3D Target Reticles Rotation
     if (this.reticleMeshes) {
       this.reticleMeshes.forEach(ret => {
         if (ret && ret.visible) ret.rotation.z += 2.0 * dt;
       });
     }
 
-    // 4. Forward Fusion Core Breathing Light
+    // 5. Forward Fusion Core Breathing Light
     if (this.phaseShieldTimer > 0) {
       this.phaseShieldTimer -= dt;
       if (this.coreMat) this.coreMat.emissiveIntensity = 25.0 + Math.sin(this._time * 35) * 10.0;
@@ -443,12 +549,12 @@ export class Babylon5Boss {
       }
     }
 
-    // 5. Plasma Cannon Ring Arc Charging
+    // 6. Plasma Cannon Ring Arc Charging
     if (this.cannonRingMat) {
       this.cannonRingMat.emissiveIntensity = 1.4 + Math.sin(this._time * 8.0) * 0.8;
     }
 
-    // 6. Turrets Dynamic 3D Tracking
+    // 7. Turrets Dynamic 3D Tracking
     if (arrived && playerPos) {
       this.turrets.forEach(t => {
         if (!t.isDead && t.barrelGroup) {
@@ -457,15 +563,25 @@ export class Babylon5Boss {
       });
     }
 
-    // 7. Weapon Firing Loop
+    // 8. Weapon & Satellite Laser Firing Loop
     this.fireTimer -= dt;
+    this.satelliteFireTimer -= dt;
     const out = [];
+
     if (this.fireTimer <= 0 && arrived) {
       this.fireTimer = 0.65 / this.phase;
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) out.push(t.mesh.getWorldPosition(new THREE.Vector3()));
       });
     }
+
+    if (this.satelliteFireTimer <= 0 && arrived) {
+      this.satelliteFireTimer = 1.2;
+      this.satellites.forEach(s => {
+        if (!s.isDead && s.mesh) out.push(s.mesh.getWorldPosition(new THREE.Vector3()));
+      });
+    }
+
     return out.length > 0 ? out : false;
   }
 }

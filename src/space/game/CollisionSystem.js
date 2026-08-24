@@ -464,7 +464,24 @@ export class CollisionSystem {
                 }
               }
 
-              // 4. Check Turrets (MoonBase / Halo Ring / Dreadnought)
+              // 3D. Check Autonomous Orbiting Defense Satellites (Babylon 5 Cylinder Citadel)
+              if (!hitRegistered && boss.satellites && Array.isArray(boss.satellites)) {
+                for (const s of boss.satellites) {
+                  if (!s.isDead && s.mesh) {
+                    const sPos = s.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(sPos) < 4.8) {
+                      if (!laser.hitEntities.has(`b5_sat_${s.id}`)) {
+                        laser.hitEntities.add(`b5_sat_${s.id}`);
+                        boss.takeSatelliteDamage(s.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 4. Check Turrets (MoonBase / Halo Ring / Babylon 5 / Dreadnought)
               if (!hitRegistered && boss.turrets && Array.isArray(boss.turrets)) {
                 const livingTurrets = boss.turrets.filter(t => t && !t.isDead && t.mesh);
                 let hitTurret = null;
