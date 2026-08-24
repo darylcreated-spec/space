@@ -311,39 +311,44 @@ export class PlayerShip {
     this.meshGroup.add(canopy);
     this.buildCockpitInterior(this.meshGroup, 0x00f3ff);
 
-    // ── 3. Swept Delta Wings (Port & Starboard) ──
+    // ── 3. Swept Delta Wings (Port & Starboard Symmetrical) ──
     const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x14243d, metalness: 0.92, roughness: 0.18 });
 
+    // Right Wing Base Shape (Counter-Clockwise)
+    const rightWingShape = new THREE.Shape();
+    rightWingShape.moveTo(0.25, 0.7);       // Root leading edge (forward)
+    rightWingShape.lineTo(3.4, -1.2);      // Wingtip leading edge (swept back)
+    rightWingShape.lineTo(3.2, -2.1);      // Wingtip trailing edge
+    rightWingShape.lineTo(0.25, -1.7);     // Root trailing edge
+    rightWingShape.closePath();
+
+    const wingExtrude = { depth: 0.12, bevelEnabled: true, bevelSize: 0.03 };
+    const baseWingGeo = new THREE.ExtrudeGeometry(rightWingShape, wingExtrude);
+    baseWingGeo.rotateX(-Math.PI / 2); // Rotate flat in XZ plane with top facing +Y
+
+    const rightWing = new THREE.Mesh(baseWingGeo, wingMat);
+    rightWing.position.set(0, 0.02, 0);
+    this.meshGroup.add(rightWing);
+
+    const leftWingGeo = baseWingGeo.clone();
+    leftWingGeo.scale(-1, 1, 1);
+    const leftWing = new THREE.Mesh(leftWingGeo, wingMat);
+    leftWing.position.set(0, 0.02, 0);
+    this.meshGroup.add(leftWing);
+
+    // Wingtip Winglets & Navigation Beacons
     [-1, 1].forEach(side => {
-      const wingShape = new THREE.Shape();
-      wingShape.moveTo(0, 0.8);              // Wing root leading edge (forward)
-      wingShape.lineTo(side * 3.4, -1.2);   // Wingtip leading edge (swept back)
-      wingShape.lineTo(side * 3.2, -2.2);   // Wingtip trailing edge
-      wingShape.lineTo(0.3 * side, -1.8);   // Wing root trailing edge
-      wingShape.closePath();
-
-      const wingExtrude = { depth: 0.12, bevelEnabled: true, bevelSize: 0.04 };
-      const wingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrude);
-      wingGeo.rotateX(-Math.PI / 2); // Rotate flat in XZ plane with top facing +Y
-
-      const wingMesh = new THREE.Mesh(wingGeo, wingMat);
-      wingMesh.position.set(0, 0.02, 0);
-      this.meshGroup.add(wingMesh);
-
-      // Vertical Wingtip Winglet
       const wingletGeo = new THREE.BoxGeometry(0.12, 0.9, 1.3);
       const winglet = new THREE.Mesh(wingletGeo, armorTrussMat);
-      winglet.position.set(side * 3.3, 0.38, 1.7);
+      winglet.position.set(side * 3.3, 0.38, 1.65);
       winglet.rotation.x = -0.15;
       winglet.rotation.z = -side * 0.18;
       this.meshGroup.add(winglet);
 
-      // Winglet Navigation Strobe Beacon
       const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), edgeMat);
-      beacon.position.set(side * 3.35, 0.38, 2.25);
+      beacon.position.set(side * 3.35, 0.38, 2.2);
       this.meshGroup.add(beacon);
 
-      // Neon Cyan Leading Edge Conduit
       const conduitGeo = new THREE.BoxGeometry(0.08, 0.08, 2.6);
       const conduit = new THREE.Mesh(conduitGeo, edgeMat);
       conduit.position.set(side * 1.8, 0.08, 0.2);
@@ -1148,10 +1153,13 @@ export class PlayerShip {
 
       this.targetRoll = -inputDir.x * (this.isBoosting ? 0.85 : 0.65);
       this.targetPitch = inputDir.y * 0.28;
+      this.targetYaw = -inputDir.x * 0.12;
       this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
       this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
+      this.currentYaw = (this.currentYaw || 0) + (this.targetYaw - (this.currentYaw || 0)) * 0.18;
       this.meshGroup.rotation.z = this.currentRoll;
       this.meshGroup.rotation.x = this.currentPitch;
+      this.meshGroup.rotation.y = this.currentYaw;
     }
 
     // â”€â”€ Active RCS Micro-Thruster Bursts â”€â”€
