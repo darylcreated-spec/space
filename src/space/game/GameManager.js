@@ -653,9 +653,9 @@ export class GameManager {
       case 'MOTHERSHIP': {
         this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
         if (this.activeBoss.meshGroup) {
-          this.activeBoss.meshGroup.position.set(0, 3, -62);
-          this.activeBoss.meshGroup.rotation.set(0.12, 0.28, 0);
-          this.activeBoss.meshGroup.scale.set(0.8, 0.8, 0.8);
+          this.activeBoss.meshGroup.position.set(0, 4, -85);
+          this.activeBoss.meshGroup.rotation.set(0.15, 0.38, 0);
+          this.activeBoss.meshGroup.scale.set(0.62, 0.62, 0.62);
         }
         this.spaceHUD?.showWaveBanner("INSPECTING", "LEVIATHAN COMMAND MOTHERSHIP");
         break;
