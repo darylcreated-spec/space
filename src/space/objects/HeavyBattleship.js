@@ -121,6 +121,7 @@ export class HeavyBattleship {
     this.railgunTimer = 2.8;
     this.missileTimer = 3.5;
     this.flakTimer = 1.8;
+    this.apexLaserTimer = 2.0;
     this.spinalLanceTimer = 9.0;
     this.isChargingLance = false;
     this.lanceChargeTime = 0;
@@ -437,6 +438,35 @@ export class HeavyBattleship {
     this.lanceCoreMesh.position.set(0, 0, 44);
     this.meshGroup.add(this.lanceCoreMesh);
 
+    // ── 11. 💥 FRONT TRIANGULAR APEX SUPER-LASER EMITTER (At Tip Z: 62.6) ──
+    const apexGroup = new THREE.Group();
+    apexGroup.position.set(0, 0, 62.0);
+
+    // Armored Focus Shroud
+    const apexShroudGeo = new THREE.CylinderGeometry(1.6, 2.6, 3.6, 8);
+    apexShroudGeo.rotateX(Math.PI / 2);
+    const apexShroud = new THREE.Mesh(apexShroudGeo, this.darkAlloyMat);
+    apexGroup.add(apexShroud);
+
+    // Superconducting Magnetic Lens Ring
+    const apexRingGeo = new THREE.TorusGeometry(1.8, 0.28, 8, 20);
+    const apexRing = new THREE.Mesh(apexRingGeo, this.glowOrangeMat);
+    apexRing.position.set(0, 0, 1.4);
+    apexGroup.add(apexRing);
+
+    // Hyper-Luminous Plasma Focus Crystal
+    const apexCrystalGeo = new THREE.SphereGeometry(1.5, 16, 16);
+    this.apexCrystalMesh = new THREE.Mesh(apexCrystalGeo, this.glowRedMat);
+    this.apexCrystalMesh.position.set(0, 0, 1.8);
+    apexGroup.add(this.apexCrystalMesh);
+
+    // Blinding Apex Point Light
+    this.apexLight = new THREE.PointLight(0xff0044, 8.0, 50);
+    this.apexLight.position.set(0, 0, 3.0);
+    apexGroup.add(this.apexLight);
+
+    this.meshGroup.add(apexGroup);
+
     // Dedicated Specular Spotlight for High-Definition Hull Illumination
     this.keyLight = new THREE.PointLight(0xd8ecff, 3.8, 90);
     this.keyLight.position.set(0, 24, 10);
@@ -676,6 +706,37 @@ export class HeavyBattleship {
           });
         }
         if (this.lanceCoreMesh) this.lanceCoreMesh.scale.set(1, 1, 1);
+      }
+    }
+
+    // 6. 💥 Front Triangular Apex Super-Laser Salvo Cycle
+    this.apexLaserTimer -= dt;
+    if (this.apexCrystalMesh) {
+      const pulse = 1.0 + Math.sin(this._time * 12.0) * 0.25;
+      this.apexCrystalMesh.scale.set(pulse, pulse, pulse);
+    }
+    if (this.apexLight) {
+      this.apexLight.intensity = 6.0 + Math.sin(this._time * 16.0) * 3.0;
+    }
+
+    if (this.apexLaserTimer <= 0 && pos.z >= this.targetZ - 15) {
+      this.apexLaserTimer = 2.6 + Math.random() * 0.8;
+      const apexOrigin = this.meshGroup.position.clone().add(new THREE.Vector3(0, 0, 63.8));
+      const dir = new THREE.Vector3().subVectors(playerPos, apexOrigin).normalize();
+
+      if (this.particleManager) {
+        this.particleManager.spawnSonicBoomDisc(apexOrigin, 0xff0044);
+        this.particleManager.spawnSparks(apexOrigin, dir, 0xff0055, 20);
+      }
+
+      if (gameManager && gameManager.spawnEnemyLaser) {
+        [-0.6, 0.6].forEach(offsetSide => {
+          const spawnPt = apexOrigin.clone().add(new THREE.Vector3(offsetSide, 0, 0));
+          gameManager.spawnEnemyLaser(spawnPt, dir, 0xff0044, 58);
+        });
+      }
+      if (gameManager && gameManager.spaceAudio && gameManager.spaceAudio.playEnemyLaser) {
+        gameManager.spaceAudio.playEnemyLaser();
       }
     }
   }
