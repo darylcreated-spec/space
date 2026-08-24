@@ -535,10 +535,14 @@ export class GameManager {
     this.state = 'PLAYING';
     this.isGodMode = true;
     this.freezeFleetAI = true;
+    const isPlayerCraft = (shipKey === 'INTERCEPTOR' || shipKey.endsWith('_PLAYER'));
     if (this.playerShip) {
       this.playerShip.isInvulnerable = true;
       this.playerShip.shield = this.playerShip.maxShield;
-      this.playerShip.meshGroup.position.set(0, 0, 15);
+      this.playerShip.isInspectingSolo = isPlayerCraft;
+      if (!isPlayerCraft) {
+        this.playerShip.meshGroup.position.set(0, 0, 15);
+      }
     }
 
     if (this.spaceHUD) {
@@ -548,6 +552,57 @@ export class GameManager {
     }
 
     switch (shipKey) {
+      case 'INTERCEPTOR': {
+        if (this.playerShip) {
+          this.playerShip.setShipClass('INTERCEPTOR');
+          this.playerShip.meshGroup.position.set(0, 0.4, 2.5);
+          this.playerShip.meshGroup.rotation.set(0.28, 0.45, -0.15);
+          this.playerShip.meshGroup.scale.set(1.4, 1.4, 1.4);
+        }
+        this.spaceHUD?.showWaveBanner("INSPECTING", "VANGUARD ALPHA INTERCEPTOR");
+        break;
+      }
+
+      case 'DREADNOUGHT_PLAYER': {
+        if (this.playerShip) {
+          this.playerShip.setShipClass('DREADNOUGHT');
+          this.playerShip.meshGroup.position.set(0, 0, 4);
+          this.playerShip.meshGroup.rotation.set(0.28, 0.45, -0.2);
+        }
+        this.spaceHUD?.showWaveBanner("INSPECTING", "TITAN COLOSSUS DREADNOUGHT");
+        break;
+      }
+
+      case 'TACTICIAN_PLAYER': {
+        if (this.playerShip) {
+          this.playerShip.setShipClass('TACTICIAN');
+          this.playerShip.meshGroup.position.set(0, 0, 4);
+          this.playerShip.meshGroup.rotation.set(0.28, 0.45, -0.2);
+        }
+        this.spaceHUD?.showWaveBanner("INSPECTING", "CHRONOS COMMAND TACTICIAN");
+        break;
+      }
+
+      case 'REAPER_PLAYER': {
+        if (this.playerShip) {
+          this.playerShip.setShipClass('REAPER');
+          this.playerShip.meshGroup.position.set(0, 0, 4);
+          this.playerShip.meshGroup.rotation.set(0.28, 0.45, -0.2);
+        }
+        this.spaceHUD?.showWaveBanner("INSPECTING", "VOID REAPER PHANTOM");
+        break;
+      }
+
+      case 'SENTINEL_PLAYER': {
+        if (this.playerShip) {
+          this.playerShip.setShipClass('SENTINEL');
+          this.playerShip.meshGroup.position.set(0, 0, 4);
+          this.playerShip.meshGroup.rotation.set(0.28, 0.45, -0.2);
+        }
+        this.spaceHUD?.showWaveBanner("INSPECTING", "AEGIS BASTION SENTINEL");
+        break;
+      }
+
       case 'DRONE': {
         const drone = new EnemyDrone(this.spaceScene.scene);
         if (drone.meshGroup) {

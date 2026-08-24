@@ -1018,6 +1018,8 @@ export class PlayerShip {
     this.boostEnergy = this.maxBoostEnergy;
     this.isBoosting = false;
     this.swarmMissileCooldown = 0;
+    this.isInspectingSolo = false;
+    this.meshGroup.scale.set(1, 1, 1);
   }
 
   update(dt, inputDir = { x: 0, y: 0 }) {
@@ -1120,7 +1122,12 @@ export class PlayerShip {
     const minY = bossActive ? -25 : this.bounds.minY;
     const maxY = bossActive ? 25 : this.bounds.maxY;
 
-    if (this.dodgeTimer > 0) {
+    if (this.isInspectingSolo) {
+      this.meshGroup.position.set(0, 0.4, 2.5);
+      this.meshGroup.rotation.y += 0.75 * dt;
+      this.meshGroup.rotation.x = 0.28 + Math.sin(this._time * 1.5) * 0.06;
+      this.meshGroup.rotation.z = Math.sin(this._time * 1.2) * 0.05;
+    } else if (this.dodgeTimer > 0) {
       this.dodgeTimer -= dt;
       const dodgeSpeed = 54.0;
       this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
