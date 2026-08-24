@@ -155,23 +155,43 @@ export class CommandMothership {
       { id: 3, name: 'STARBOARD AFT MISSILE POD',     relPos: new THREE.Vector3( 34, 14, -45), hp: 850, maxHp: 850, isDead: false, mesh: null, reticle: null },
     ];
 
-    // ── 6. Internal Obstacles & Security Systems ──
+    // ── 6. Automated Element Manufacturing & Drone Foundry Bays (Targetable!) ──
+    this.foundryBays = [
+      { id: 0, name: 'PORT FORWARD FOUNDRY FORGE',     relPos: new THREE.Vector3(-50, 6,   0), hp: 1100, maxHp: 1100, isDead: false, mesh: null, vatMesh: null, reticle: null },
+      { id: 1, name: 'STARBOARD FORWARD FOUNDRY FORGE', relPos: new THREE.Vector3( 50, 6,   0), hp: 1100, maxHp: 1100, isDead: false, mesh: null, vatMesh: null, reticle: null },
+      { id: 2, name: 'PORT AFT FOUNDRY FORGE',         relPos: new THREE.Vector3(-50, 6, -50), hp: 1100, maxHp: 1100, isDead: false, mesh: null, vatMesh: null, reticle: null },
+      { id: 3, name: 'STARBOARD AFT FOUNDRY FORGE',     relPos: new THREE.Vector3( 50, 6, -50), hp: 1100, maxHp: 1100, isDead: false, mesh: null, vatMesh: null, reticle: null },
+    ];
+
+    // ── 7. Internal Obstacles & Security Systems (All Targetable & Destructible!) ──
     // Animated Laser Tripwire Barrier Grids
     this.laserTripwires = [
-      { id: 0, z: 0.0,   axis: 'y', range: 10, speed: 2.0, mesh: null },
-      { id: 1, z: -48.0, axis: 'x', range: 18, speed: 2.5, mesh: null },
-      { id: 2, z: -88.0, axis: 'y', range: 10, speed: 3.0, mesh: null },
+      { id: 0, name: 'ENTRY LASER GRID TRIPWIRE', z: 0.0,   axis: 'y', range: 10, speed: 2.0, hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null },
+      { id: 1, name: 'MID TRENCH LASER TRIPWIRE', z: -48.0, axis: 'x', range: 18, speed: 2.5, hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null },
+      { id: 2, name: 'VAULT LASER GRID TRIPWIRE', z: -88.0, axis: 'y', range: 10, speed: 3.0, hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null },
     ];
 
     // Hydraulic Compression Blast Bulkheads (Opening and Closing)
     this.bulkheads = [
-      { id: 0, z: -10.0, leftDoor: null, rightDoor: null, openState: 0.8, openDir: -1, timer: 3.0 },
-      { id: 1, z: -60.0, leftDoor: null, rightDoor: null, openState: 0.2, openDir:  1, timer: 2.5 },
+      { id: 0, name: 'FORWARD COMPRESSION BULKHEAD', z: -10.0, leftDoor: null, rightDoor: null, openState: 0.8, openDir: -1, timer: 3.0, hp: 750, maxHp: 750, isDead: false, overrideBox: null, reticle: null },
+      { id: 1, name: 'MID TRENCH BLAST BULKHEAD',    z: -60.0, leftDoor: null, rightDoor: null, openState: 0.2, openDir:  1, timer: 2.5, hp: 750, maxHp: 750, isDead: false, overrideBox: null, reticle: null },
+    ];
+
+    // 6 Internal Ceiling Ventilation Turbines
+    this.turbines = [
+      { id: 0, name: 'TURBINE 1', z: -115, cowlMesh: null, fanGroup: null, hp: 600, maxHp: 600, isDead: false, reticle: null },
+      { id: 1, name: 'TURBINE 2', z: -85,  cowlMesh: null, fanGroup: null, hp: 600, maxHp: 600, isDead: false, reticle: null },
+      { id: 2, name: 'TURBINE 3', z: -55,  cowlMesh: null, fanGroup: null, hp: 600, maxHp: 600, isDead: false, reticle: null },
+      { id: 3, name: 'TURBINE 4', z: -25,  cowlMesh: null, fanGroup: null, hp: 600, maxHp: 600, isDead: false, reticle: null },
+      { id: 4, name: 'TURBINE 5', z: 5,    cowlMesh: null, fanGroup: null, hp: 600, maxHp: 600, isDead: false, reticle: null },
+      { id: 5, name: 'TURBINE 6', z: 35,   cowlMesh: null, fanGroup: null, hp: 600, maxHp: 600, isDead: false, reticle: null },
     ];
 
     this.reticleMeshes = [];
     this.turbineFans = [];
     this.coreGyroRings = [];
+    this.engineExhaustPlumes = [];
+    this.machDiamondRings = [];
 
     // Core Drop & Rupture Physics State
     this.isCoreDropping = false;
@@ -248,25 +268,41 @@ export class CommandMothership {
     bridgeVisor.position.set(0, 26, -40);
     this.meshGroup.add(bridgeVisor);
 
-    // ── 1B. Automated Manufacturing & Element Fabrication Super-Foundries ──
-    [[-50, 6, 0], [50, 6, 0], [-50, 6, -50], [50, 6, -50]].forEach(([fx, fy, fz]) => {
+    // ── 1B. Automated Manufacturing & Element Fabrication Super-Foundries (Targetable!) ──
+    const foundryVatMat = new THREE.MeshStandardMaterial({ color: 0x3d1a04, emissive: 0xff6600, emissiveIntensity: 4.5, metalness: 0.8, roughness: 0.2 });
+
+    this.foundryBays.forEach(fb => {
+      const fbGroup = new THREE.Group();
+      fbGroup.position.copy(fb.relPos);
+
       const forgeBayGeo = new THREE.BoxGeometry(10, 8, 28);
       const forgeBay = new THREE.Mesh(forgeBayGeo, mechanicalTrussMat);
-      forgeBay.position.set(fx, fy, fz);
-      this.meshGroup.add(forgeBay);
+      fbGroup.add(forgeBay);
 
       // Molten element smelting vat
       const vatGeo = new THREE.CylinderGeometry(3.5, 2.8, 3.0, 10);
-      const vatMat = new THREE.MeshStandardMaterial({ color: 0x3d1a04, emissive: 0xff6600, emissiveIntensity: 4.0 });
-      const vat = new THREE.Mesh(vatGeo, vatMat);
-      vat.position.set(fx, fy + 3.2, fz);
-      this.meshGroup.add(vat);
+      const vat = new THREE.Mesh(vatGeo, foundryVatMat);
+      vat.position.set(0, 3.2, 0);
+      fbGroup.add(vat);
 
       // Nanite assembly crane
       const craneGeo = new THREE.BoxGeometry(1.5, 6.0, 1.5);
       const crane = new THREE.Mesh(craneGeo, mechanicalTrussMat);
-      crane.position.set(fx + (fx < 0 ? 4.5 : -4.5), fy + 5.5, fz);
-      this.meshGroup.add(crane);
+      crane.position.set(fb.relPos.x < 0 ? 4.5 : -4.5, 5.5, 0);
+      fbGroup.add(crane);
+
+      // 3D Target Reticle
+      const reticleGeo = new THREE.RingGeometry(2.4, 3.0, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff6600, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 4.0, 4.0);
+      fbGroup.add(reticle);
+
+      this.meshGroup.add(fbGroup);
+      fb.mesh = fbGroup;
+      fb.vatMesh = vat;
+      fb.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
 
     // ── 1C. 3 Giant Outrigger Pylon Arms with Heavy Engine Nacelles at the Ends ──
@@ -306,25 +342,45 @@ export class CommandMothership {
     dorsalEnginePod.position.set(0, 42, -80);
     this.meshGroup.add(dorsalEnginePod);
 
-    // Heavy Thruster Nozzles at the Ends of the 3 Outrigger Arms
+    // ── AAA Multi-Layer Engine Exhaust Thruster Plumes with Mach Shock Diamonds ──
+    const shockMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const coreFlameMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 });
+
     [[-68, -2, -98], [68, -2, -98], [0, 42, -98]].forEach(([ex, ey, ez]) => {
       [-3.5, 3.5].forEach(xOff => {
-        const nozGeo = new THREE.CylinderGeometry(3.4, 2.2, 7.0, 10);
+        const nozGeo = new THREE.CylinderGeometry(3.4, 2.2, 7.0, 12);
         nozGeo.rotateX(Math.PI / 2);
         const noz = new THREE.Mesh(nozGeo, darkEngineMat);
         noz.position.set(ex + xOff, ey, ez);
         this.meshGroup.add(noz);
 
-        // Pulsating Plasma Thrust Plume
-        const plumeGeo = new THREE.ConeGeometry(3.0, 10.0, 10);
-        plumeGeo.rotateX(-Math.PI / 2);
-        const plume = new THREE.Mesh(plumeGeo, glowAmberMat);
-        plume.position.set(ex + xOff, ey, ez - 7.5);
-        this.meshGroup.add(plume);
+        // 1. Outer Atmospheric Expansion Flame Cone
+        const outerPlumeGeo = new THREE.ConeGeometry(3.2, 12.0, 12);
+        outerPlumeGeo.rotateX(-Math.PI / 2);
+        const outerPlume = new THREE.Mesh(outerPlumeGeo, glowAmberMat);
+        outerPlume.position.set(ex + xOff, ey, ez - 8.5);
+        this.meshGroup.add(outerPlume);
+        this.engineExhaustPlumes.push(outerPlume);
+
+        // 2. Inner Hyper-Luminous Plasma Core
+        const innerCoreGeo = new THREE.ConeGeometry(1.6, 10.0, 10);
+        innerCoreGeo.rotateX(-Math.PI / 2);
+        const innerCore = new THREE.Mesh(innerCoreGeo, coreFlameMat);
+        innerCore.position.set(ex + xOff, ey, ez - 7.0);
+        this.meshGroup.add(innerCore);
+
+        // 3. Pulsating Mach Shock Diamond Rings
+        [-4.5, -8.0, -11.5].forEach((zD, sIdx) => {
+          const diamondGeo = new THREE.TorusGeometry(1.8 - sIdx * 0.4, 0.2, 6, 16);
+          const diamond = new THREE.Mesh(diamondGeo, shockMat);
+          diamond.position.set(ex + xOff, ey, ez + zD);
+          this.meshGroup.add(diamond);
+          this.machDiamondRings.push({ mesh: diamond, baseScale: 1.0 - sIdx * 0.15 });
+        });
       });
 
-      const engineLight = new THREE.PointLight(0xffaa00, 8.0, 70);
-      engineLight.position.set(ex, ey, ez);
+      const engineLight = new THREE.PointLight(0xffaa00, 12.0, 80);
+      engineLight.position.set(ex, ey, ez - 4.0);
       this.meshGroup.add(engineLight);
     });
 
@@ -451,16 +507,18 @@ export class CommandMothership {
       this.meshGroup.add(trussGroup);
     }
 
-    // 6 Animated Rotating Ventilation Turbines in Ceiling
-    [-115, -85, -55, -25, 5, 35].forEach(zPos => {
+    // 6 Animated Rotating Ventilation Turbines in Ceiling (Targetable!)
+    this.turbines.forEach(t => {
+      const tGroup = new THREE.Group();
+      tGroup.position.set(0, 12.0, t.z);
+
       const turbineCowlGeo = new THREE.CylinderGeometry(5.5, 5.5, 2.5, 16);
       turbineCowlGeo.rotateX(Math.PI / 2);
       const turbineCowl = new THREE.Mesh(turbineCowlGeo, mechanicalTrussMat);
-      turbineCowl.position.set(0, 12.0, zPos);
-      this.meshGroup.add(turbineCowl);
+      tGroup.add(turbineCowl);
 
       const fanGroup = new THREE.Group();
-      fanGroup.position.set(0, 11.8, zPos);
+      fanGroup.position.set(0, -0.2, 0);
       for (let f = 0; f < 6; f++) {
         const fAng = (f / 6) * Math.PI * 2;
         const bladeGeo = new THREE.BoxGeometry(0.5, 4.8, 0.25);
@@ -469,27 +527,38 @@ export class CommandMothership {
         blade.rotation.z = fAng + 0.3;
         fanGroup.add(blade);
       }
-      this.meshGroup.add(fanGroup);
+      tGroup.add(fanGroup);
       this.turbineFans.push(fanGroup);
 
       const tLight = new THREE.PointLight(0xff5500, 4.0, 40);
-      tLight.position.set(0, 10.5, zPos);
-      this.meshGroup.add(tLight);
+      tLight.position.set(0, -1.5, 0);
+      tGroup.add(tLight);
+
+      // Target reticle
+      const reticleGeo = new THREE.RingGeometry(2.0, 2.5, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff5500, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, -1.8, 2.5);
+      tGroup.add(reticle);
+
+      this.meshGroup.add(tGroup);
+      t.cowlMesh = tGroup;
+      t.fanGroup = fanGroup;
+      t.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
 
-    // ── 3B. Internal Obstacle: Laser Tripwire Barrier Grids ──
+    // ── 3B. Internal Obstacle: Laser Tripwire Barrier Grids (Targetable Hubs!) ──
     const tripwireLaserMat = new THREE.MeshBasicMaterial({ color: 0xff0044, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
     this.laserTripwires.forEach(lw => {
       const wireGroup = new THREE.Group();
       wireGroup.position.set(0, 0, lw.z);
 
-      // Horizontal security beam across trench
       const beamGeo = new THREE.CylinderGeometry(0.2, 0.2, 54, 6);
       beamGeo.rotateZ(Math.PI / 2);
       const beam = new THREE.Mesh(beamGeo, tripwireLaserMat);
       wireGroup.add(beam);
 
-      // Projector hubs on side walls
       [-27, 27].forEach(px => {
         const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 1.4, 8), mechanicalTrussMat);
         hub.position.set(px, 0, 0);
@@ -497,32 +566,49 @@ export class CommandMothership {
         wireGroup.add(hub);
       });
 
+      // Target reticle on tripwire emitter
+      const reticleGeo = new THREE.RingGeometry(1.6, 2.0, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff0044, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 1.5);
+      wireGroup.add(reticle);
+
       this.meshGroup.add(wireGroup);
       lw.mesh = wireGroup;
+      lw.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
 
-    // ── 3C. Internal Obstacle: Hydraulic Compression Blast Bulkheads ──
+    // ── 3C. Internal Obstacle: Hydraulic Compression Blast Bulkheads (Targetable Override Boxes!) ──
     this.bulkheads.forEach(b => {
       const bGroup = new THREE.Group();
       bGroup.position.set(0, 0, b.z);
 
-      // Left Iris Door Leaf
       const doorGeo = new THREE.BoxGeometry(26, 26, 2.5);
       const leftDoor = new THREE.Mesh(doorGeo, mechanicalTrussMat);
       leftDoor.position.set(-16, 0, 0);
       bGroup.add(leftDoor);
 
-      // Right Iris Door Leaf
       const rightDoor = new THREE.Mesh(doorGeo, mechanicalTrussMat);
       rightDoor.position.set(16, 0, 0);
       bGroup.add(rightDoor);
 
-      // Frame Arch
       const archGeo = new THREE.BoxGeometry(56, 28, 3.5);
       const archMesh = new THREE.Mesh(archGeo, hullMat);
       bGroup.add(archMesh);
 
-      // Caution Lights
+      // Hydraulic Override Box (Shoot to disable door closing!)
+      const boxGeo = new THREE.BoxGeometry(3.0, 3.0, 1.8);
+      const overrideBox = new THREE.Mesh(boxGeo, mechanicalTrussMat);
+      overrideBox.position.set(0, 10, 2.5);
+      bGroup.add(overrideBox);
+
+      const reticleGeo = new THREE.RingGeometry(1.5, 1.9, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 10, 3.8);
+      bGroup.add(reticle);
+
       const cLight = new THREE.PointLight(0xffaa00, 3.0, 25);
       cLight.position.set(0, 11, 2);
       bGroup.add(cLight);
@@ -530,6 +616,9 @@ export class CommandMothership {
       this.meshGroup.add(bGroup);
       b.leftDoor = leftDoor;
       b.rightDoor = rightDoor;
+      b.overrideBox = overrideBox;
+      b.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
 
     // ── 4. Dual Superconducting Shield Generator Hubs (Hangar Entrance) ──
@@ -846,6 +935,97 @@ export class CommandMothership {
     return p.isDead;
   }
 
+  takeFoundryBayDamage(foundryId, amount) {
+    const fb = this.foundryBays.find(f => f.id === foundryId);
+    if (!fb || fb.isDead) return false;
+    fb.hp -= amount;
+
+    if (fb.reticle && fb.reticle.material) {
+      const pct = fb.hp / fb.maxHp;
+      fb.reticle.material.color.setHex(pct > 0.5 ? 0xff6600 : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
+    if (fb.hp <= 0) {
+      fb.isDead = true;
+      if (fb.vatMesh) fb.vatMesh.visible = false;
+      if (fb.reticle) fb.reticle.visible = false;
+      const wp = fb.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff5500, 160, 4.5);
+      this.particleManager.createExplosion(wp, 0xffffff, 80, 2.5);
+      this.particleManager.createEmpShockwave(wp, 60);
+
+      window.spaceGameManager?.voiceAnnouncer?.speak(`Manufacturing Foundry Forge destroyed!`, false);
+    }
+    return fb.isDead;
+  }
+
+  takeLaserTripwireDamage(tripwireId, amount) {
+    const lw = this.laserTripwires.find(l => l.id === tripwireId);
+    if (!lw || lw.isDead) return false;
+    lw.hp -= amount;
+
+    if (lw.reticle && lw.reticle.material) {
+      const pct = lw.hp / lw.maxHp;
+      lw.reticle.material.color.setHex(pct > 0.5 ? 0xff0044 : (pct > 0.25 ? 0xffaa00 : 0xff0000));
+    }
+
+    if (lw.hp <= 0) {
+      lw.isDead = true;
+      if (lw.mesh) lw.mesh.visible = false;
+      if (lw.reticle) lw.reticle.visible = false;
+      const wp = lw.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff0044, 80, 2.5);
+      this.particleManager.createEmpShockwave(wp, 35);
+    }
+    return lw.isDead;
+  }
+
+  takeBulkheadDamage(bulkheadId, amount) {
+    const b = this.bulkheads.find(bk => bk.id === bulkheadId);
+    if (!b || b.isDead) return false;
+    b.hp -= amount;
+
+    if (b.reticle && b.reticle.material) {
+      const pct = b.hp / b.maxHp;
+      b.reticle.material.color.setHex(pct > 0.5 ? 0xffaa00 : (pct > 0.25 ? 0xff5500 : 0xff0044));
+    }
+
+    if (b.hp <= 0) {
+      b.isDead = true;
+      b.openState = 0.98; // blast doors forced wide open permanently!
+      if (b.leftDoor && b.rightDoor) {
+        b.leftDoor.position.x = -32.0;
+        b.rightDoor.position.x = 32.0;
+      }
+      if (b.overrideBox) b.overrideBox.visible = false;
+      if (b.reticle) b.reticle.visible = false;
+      const wp = b.overrideBox ? b.overrideBox.getWorldPosition(new THREE.Vector3()) : b.leftDoor.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xffaa00, 110, 3.2);
+      this.particleManager.createEmpShockwave(wp, 45);
+    }
+    return b.isDead;
+  }
+
+  takeTurbineDamage(turbineId, amount) {
+    const t = this.turbines.find(tb => tb.id === turbineId);
+    if (!t || t.isDead) return false;
+    t.hp -= amount;
+
+    if (t.reticle && t.reticle.material) {
+      const pct = t.hp / t.maxHp;
+      t.reticle.material.color.setHex(pct > 0.5 ? 0xff5500 : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
+    if (t.hp <= 0) {
+      t.isDead = true;
+      if (t.reticle) t.reticle.visible = false;
+      const wp = t.cowlMesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff5500, 90, 2.8);
+      this.particleManager.createEmpShockwave(wp, 35);
+    }
+    return t.isDead;
+  }
+
   takeDamage(subsystem, amount) {
     if (this.isDead) return false;
     return false; // Direct hull damage deflected; player must destroy the couplings to drop the core!
@@ -874,17 +1054,33 @@ export class CommandMothership {
       pos.z += this.speed * dt;
     }
 
-    // 2. Rotate Ceiling Ventilation Turbines
-    if (this.turbineFans) {
-      this.turbineFans.forEach(fan => {
-        fan.rotation.z += 8.0 * dt;
+    // 2. AAA Engine Exhaust Shimmer & Mach Shock Diamond Pulsation
+    const exhaustShudder = 1.0 + Math.sin(this._time * 28.0) * 0.12 + Math.cos(this._time * 44.0) * 0.08;
+    if (this.engineExhaustPlumes) {
+      this.engineExhaustPlumes.forEach(p => {
+        p.scale.set(exhaustShudder, exhaustShudder, 1.0 + Math.sin(this._time * 30.0) * 0.18);
+      });
+    }
+    if (this.machDiamondRings) {
+      this.machDiamondRings.forEach(d => {
+        const sc = d.baseScale * (1.0 + Math.sin(this._time * 24.0) * 0.15);
+        d.mesh.scale.set(sc, sc, sc);
       });
     }
 
-    // 2B. Animate Laser Tripwire Grids
+    // 2B. Rotate Ceiling Ventilation Turbines
+    if (this.turbines) {
+      this.turbines.forEach(tb => {
+        if (!tb.isDead && tb.fanGroup) {
+          tb.fanGroup.rotation.z += 8.0 * dt;
+        }
+      });
+    }
+
+    // 2C. Animate Laser Tripwire Grids
     if (this.laserTripwires) {
       this.laserTripwires.forEach((lw, idx) => {
-        if (lw.mesh) {
+        if (!lw.isDead && lw.mesh) {
           if (lw.axis === 'y') {
             lw.mesh.position.y = Math.sin(this._time * lw.speed + idx) * lw.range;
           } else {
@@ -894,19 +1090,21 @@ export class CommandMothership {
       });
     }
 
-    // 2C. Animate Hydraulic Compression Blast Bulkheads
+    // 2D. Animate Hydraulic Compression Blast Bulkheads
     if (this.bulkheads) {
       this.bulkheads.forEach(b => {
-        b.timer -= dt;
-        if (b.timer <= 0) {
-          b.timer = 3.0;
-          b.openDir *= -1;
-        }
-        b.openState = THREE.MathUtils.clamp(b.openState + b.openDir * 0.8 * dt, 0.1, 0.95);
-        if (b.leftDoor && b.rightDoor) {
-          const doorOffset = 14.0 + b.openState * 18.0;
-          b.leftDoor.position.x = -doorOffset;
-          b.rightDoor.position.x = doorOffset;
+        if (!b.isDead) {
+          b.timer -= dt;
+          if (b.timer <= 0) {
+            b.timer = 3.0;
+            b.openDir *= -1;
+          }
+          b.openState = THREE.MathUtils.clamp(b.openState + b.openDir * 0.8 * dt, 0.1, 0.95);
+          if (b.leftDoor && b.rightDoor) {
+            const doorOffset = 14.0 + b.openState * 18.0;
+            b.leftDoor.position.x = -doorOffset;
+            b.rightDoor.position.x = doorOffset;
+          }
         }
       });
     }
@@ -942,20 +1140,18 @@ export class CommandMothership {
 
     // 7. Core Drop & Rupture Physics
     if (this.isCoreDropping && !this.isCoreRuptured) {
-      this.coreDropVelocity += 16.0 * dt; // gravity acceleration downward
+      this.coreDropVelocity += 16.0 * dt;
       this.coreDropY -= this.coreDropVelocity * dt;
 
       if (this.coreHousingGroup) {
         this.coreHousingGroup.position.y = this.coreDropY;
       }
 
-      // Core impacts floor reactor pit
       if (this.coreDropY <= -8.5) {
         this.isCoreRuptured = true;
         this.isDying = true;
         this.deathTimer = 5.0;
 
-        // Cataclysmic Core Rupture Supernova Detonation
         const coreWorldPos = this.coreHousingGroup ? this.coreHousingGroup.getWorldPosition(new THREE.Vector3()) : pos;
         this.particleManager.createExplosion(coreWorldPos, 0xffffff, 500, 10.0);
         this.particleManager.createExplosion(coreWorldPos, 0xff5500, 400, 8.5);
@@ -1056,15 +1252,15 @@ export class CommandMothership {
       });
     }
 
-    // 12. Foundry Element Manufacturing Drone Spawns
+    // 12. Foundry Element Manufacturing Drone Spawns (Only if alive foundry bays exist!)
     this.droneLaunchTimer -= dt;
     if (this.droneLaunchTimer <= 0 && pos.z >= this.targetZ - 10) {
       this.droneLaunchTimer = 5.5;
-      if (gameManager && gameManager.spawnDrone) {
-        const p1 = pos.clone().add(new THREE.Vector3(-34, 4, 10));
-        const p2 = pos.clone().add(new THREE.Vector3(34, 4, 10));
-        gameManager.spawnDrone(p1);
-        gameManager.spawnDrone(p2);
+      const aliveFoundries = this.foundryBays.filter(fb => !fb.isDead);
+      if (aliveFoundries.length > 0 && gameManager && gameManager.spawnDrone) {
+        const randomFoundry = aliveFoundries[Math.floor(Math.random() * aliveFoundries.length)];
+        const launchPos = randomFoundry.mesh.getWorldPosition(new THREE.Vector3());
+        gameManager.spawnDrone(launchPos);
       }
     }
 

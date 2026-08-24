@@ -470,6 +470,74 @@ export class CollisionSystem {
                 }
               }
 
+              // 2E. Check Mothership Element Manufacturing Foundry Bays (Targetable!)
+              if (!hitRegistered && boss.foundryBays && Array.isArray(boss.foundryBays)) {
+                for (const fb of boss.foundryBays) {
+                  if (!fb.isDead && fb.mesh) {
+                    const fbPos = fb.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(fbPos) < 6.5) {
+                      if (!laser.hitEntities.has(`mship_foundry_${fb.id}`)) {
+                        laser.hitEntities.add(`mship_foundry_${fb.id}`);
+                        boss.takeFoundryBayDamage(fb.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 2F. Check Mothership Internal Laser Tripwire Projectors (Targetable!)
+              if (!hitRegistered && boss.laserTripwires && Array.isArray(boss.laserTripwires)) {
+                for (const lw of boss.laserTripwires) {
+                  if (!lw.isDead && lw.mesh) {
+                    const lwPos = lw.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(lwPos) < 5.5) {
+                      if (!laser.hitEntities.has(`mship_tripwire_${lw.id}`)) {
+                        laser.hitEntities.add(`mship_tripwire_${lw.id}`);
+                        boss.takeLaserTripwireDamage(lw.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 2G. Check Mothership Internal Bulkhead Overrides (Targetable!)
+              if (!hitRegistered && boss.bulkheads && Array.isArray(boss.bulkheads)) {
+                for (const b of boss.bulkheads) {
+                  if (!b.isDead && b.leftDoor) {
+                    const bPos = b.leftDoor.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(bPos) < 6.0) {
+                      if (!laser.hitEntities.has(`mship_bulkhead_${b.id}`)) {
+                        laser.hitEntities.add(`mship_bulkhead_${b.id}`);
+                        boss.takeBulkheadDamage(b.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 2H. Check Mothership Internal Ventilation Turbines (Targetable!)
+              if (!hitRegistered && boss.turbines && Array.isArray(boss.turbines)) {
+                for (const tb of boss.turbines) {
+                  if (!tb.isDead && tb.cowlMesh) {
+                    const tbPos = tb.cowlMesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(tbPos) < 5.8) {
+                      if (!laser.hitEntities.has(`mship_turbine_${tb.id}`)) {
+                        laser.hitEntities.add(`mship_turbine_${tb.id}`);
+                        boss.takeTurbineDamage(tb.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
               // 3. Check Shield Generators (MoonBase)
               if (!hitRegistered && boss.generators && Array.isArray(boss.generators)) {
                 for (const g of boss.generators) {
