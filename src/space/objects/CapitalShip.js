@@ -151,8 +151,11 @@ export class CapitalShip {
     visor.position.set(0, 1.1, -0.4);
     this.meshGroup.add(visor);
 
-    // ── 3. Port & Starboard Heavy Outrigger Sponsons ──
-    [-3.2, 3.2].forEach(sx => {
+    // ── 3. Port & Starboard Heavy Outrigger Sponsons & Swept Warship Wings ──
+    [-1, 1].forEach(side => {
+      const sx = side * 3.2;
+
+      // Heavy Inboard Sponson
       const sponsonGeo = new THREE.BoxGeometry(2.4, 0.8, 6.0);
       const sponson = new THREE.Mesh(sponsonGeo, this.hullMat);
       sponson.position.set(sx, 0, -0.2);
@@ -161,7 +164,7 @@ export class CapitalShip {
       // Connecting Pylon Strut
       const strutGeo = new THREE.BoxGeometry(1.6, 0.35, 2.2);
       const strut = new THREE.Mesh(strutGeo, this.darkAlloyMat);
-      strut.position.set(sx < 0 ? -1.9 : 1.9, 0, -0.5);
+      strut.position.set(side * 1.9, 0, -0.5);
       this.meshGroup.add(strut);
 
       // Sponson Armor Plating
@@ -170,12 +173,81 @@ export class CapitalShip {
       pPlate.position.set(sx, 0.45, -0.2);
       this.meshGroup.add(pPlate);
 
-      // Neon Cyan Sponson Leading Edge Strip
-      const stripGeo = new THREE.BoxGeometry(0.1, 0.12, 4.5);
-      const strip = new THREE.Mesh(stripGeo, this.glowCyanMat);
-      strip.position.set(sx < 0 ? sx - 1.2 : sx + 1.2, 0, -0.2);
-      this.meshGroup.add(strip);
+      // ── ✨ SWEPT CAPITAL WARSHIP WING (Extending to 7.0m Span) ──
+      const wingShape = new THREE.Shape();
+      wingShape.moveTo(0, 1.8);
+      wingShape.lineTo(side * 3.8, -0.4);  // Outward swept wingtip leading edge
+      wingShape.lineTo(side * 3.6, -2.4);  // Wingtip trailing edge
+      wingShape.lineTo(0, -1.8);           // Root trailing edge
+      wingShape.closePath();
+
+      const wingExtrude = { depth: 0.22, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.05, bevelThickness: 0.05 };
+      const wingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrude);
+      wingGeo.rotateX(-Math.PI / 2);
+      const wingMesh = new THREE.Mesh(wingGeo, this.hullMat);
+      wingMesh.position.set(sx, 0.05, 0);
+      this.meshGroup.add(wingMesh);
+
+      // Titanium Leading Edge Armor Slat
+      const slatGeo = new THREE.BoxGeometry(0.24, 0.28, 4.2);
+      const slatMesh = new THREE.Mesh(slatGeo, this.darkAlloyMat);
+      slatMesh.position.set(sx + side * 1.9, 0.1, 0.7);
+      slatMesh.rotation.y = -side * 0.45;
+      this.meshGroup.add(slatMesh);
+
+      // Glowing Neon Cyan Wing Conduit
+      const conduitGeo = new THREE.BoxGeometry(0.12, 0.12, 3.6);
+      const conduit = new THREE.Mesh(conduitGeo, this.glowCyanMat);
+      conduit.position.set(sx + side * 1.8, 0.18, 0.6);
+      conduit.rotation.y = -side * 0.45;
+      this.meshGroup.add(conduit);
+
+      // Vertical Wingtip Winglet Stabilizer
+      const wingletGeo = new THREE.BoxGeometry(0.18, 1.4, 2.2);
+      const winglet = new THREE.Mesh(wingletGeo, this.armorPlatesMat);
+      winglet.position.set(sx + side * 3.7, 0.5, -1.4);
+      winglet.rotation.x = -0.15;
+      winglet.rotation.z = side * 0.12;
+      this.meshGroup.add(winglet);
+
+      // Winglet Cyan Navigation Beacon
+      const wBeaconGeo = new THREE.BoxGeometry(0.12, 1.2, 0.15);
+      const wBeacon = new THREE.Mesh(wBeaconGeo, this.glowCyanMat);
+      wBeacon.position.set(sx + side * 3.75, 0.5, -2.4);
+      this.meshGroup.add(wBeacon);
     });
+
+    // ── 4. ✨ SWEPT DORSAL EMPENNAGE TAIL FIN ──
+    const tailGroup = new THREE.Group();
+    tailGroup.position.set(0, 1.6, -3.2);
+
+    const tailFinGeo = new THREE.BoxGeometry(0.4, 2.4, 3.8);
+    const tailFin = new THREE.Mesh(tailFinGeo, this.hullMat);
+    tailFin.position.set(0, 0.9, 0);
+    tailFin.rotation.x = -0.3; // Swept backwards
+    tailGroup.add(tailFin);
+
+    // Titanium Leading Edge Armor Spine
+    const tailSpineGeo = new THREE.BoxGeometry(0.5, 2.6, 0.6);
+    const tailSpine = new THREE.Mesh(tailSpineGeo, this.armorPlatesMat);
+    tailSpine.position.set(0, 0.9, 1.6);
+    tailSpine.rotation.x = -0.3;
+    tailGroup.add(tailSpine);
+
+    // Glowing Neon Cyan Trailing Beacon Strip
+    const tailBeaconGeo = new THREE.BoxGeometry(0.2, 2.2, 0.2);
+    const tailBeacon = new THREE.Mesh(tailBeaconGeo, this.glowCyanMat);
+    tailBeacon.position.set(0, 0.9, -1.6);
+    tailBeacon.rotation.x = -0.3;
+    tailGroup.add(tailBeacon);
+
+    // Dorsal Tail Antenna Mast
+    const tailAntennaGeo = new THREE.CylinderGeometry(0.04, 0.08, 1.8, 6);
+    const tailAntenna = new THREE.Mesh(tailAntennaGeo, this.darkAlloyMat);
+    tailAntenna.position.set(0, 2.4, -0.6);
+    tailGroup.add(tailAntenna);
+
+    this.meshGroup.add(tailGroup);
 
     // ── 5. Twin Point-Defense Dual-Railgun Turrets (Elevated Superfiring Barbettes!) ──
     const turretBarbetteGeo = new THREE.CylinderGeometry(0.75, 0.95, 0.4, 8);
