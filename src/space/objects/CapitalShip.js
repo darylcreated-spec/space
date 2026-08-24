@@ -68,8 +68,8 @@ export class CapitalShip {
     this._time = Math.random() * 100;
 
     this.turrets = [
-      { relPos: new THREE.Vector3(-3.2, 0.4, -0.5), mesh: null, barrelGroup: null },
-      { relPos: new THREE.Vector3(3.2, 0.4, -0.5), mesh: null, barrelGroup: null }
+      { id: 0, relPos: new THREE.Vector3(-3.2, 0.4, -0.5), hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null },
+      { id: 1, relPos: new THREE.Vector3( 3.2, 0.4, -0.5), hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null }
     ];
     this.thrusters = [];
 
@@ -119,109 +119,92 @@ export class CapitalShip {
       blending: THREE.AdditiveBlending
     });
 
-    // ── 1. Faceted Arrowhead Cruiser Hull (12m Length) ──
-    const hullGeo = new THREE.BufferGeometry();
-    const hullVerts = new Float32Array([
-      // Prow Wedge Top (Facing +Z forward)
-      0, 0.55, 6.0,    3.0, 0.4, -1.0,   -3.0, 0.4, -1.0,
-      // Prow Wedge Bottom
-      0, -0.6, 6.0,   -3.0, -0.4, -1.0,   3.0, -0.4, -1.0,
-      // Stern Block Top
-      -3.0, 0.4, -1.0,  3.0, 0.4, -4.5,   -3.0, 0.4, -4.5,
-      -3.0, 0.4, -1.0,  3.0, 0.4, -1.0,    3.0, 0.4, -4.5,
-      // Stern Block Bottom
-      -3.0, -0.4, -1.0, -3.0, -0.4, -4.5,  3.0, -0.4, -4.5,
-      -3.0, -0.4, -1.0,  3.0, -0.4, -4.5,  3.0, -0.4, -1.0,
-      // Left Flank
-      0, 0.55, 6.0,   -3.0, 0.4, -1.0,   -3.0, -0.4, -1.0,
-      0, 0.55, 6.0,   -3.0, -0.4, -1.0,    0, -0.6, 6.0,
-      -3.0, 0.4, -1.0, -3.0, 0.4, -4.5,  -3.0, -0.4, -1.0,
-      -3.0, 0.4, -4.5, -3.0, -0.4, -4.5, -3.0, -0.4, -1.0,
-      // Right Flank
-      0, 0.55, 6.0,    3.0, -0.4, -1.0,   3.0, 0.4, -1.0,
-      0, 0.55, 6.0,    0, -0.6, 6.0,      3.0, -0.4, -1.0,
-      3.0, 0.4, -1.0,  3.0, -0.4, -1.0,   3.0, 0.4, -4.5,
-      3.0, 0.4, -4.5,  3.0, -0.4, -1.0,   3.0, -0.4, -4.5,
-      // Stern Aft
-      -3.0, 0.4, -4.5, -3.0, -0.4, -4.5,  3.0, -0.4, -4.5,
-      -3.0, 0.4, -4.5,  3.0, -0.4, -4.5,  3.0, 0.4, -4.5
-    ]);
-    hullGeo.setAttribute('position', new THREE.BufferAttribute(hullVerts, 3));
-    hullGeo.computeVertexNormals();
-    const mainHull = new THREE.Mesh(hullGeo, this.hullMat);
-    this.meshGroup.add(mainHull);
-
-    // ── 2. Dorsal Citadel Armor Spine ──
-    const spineGeo = new THREE.BoxGeometry(1.8, 0.7, 8.0);
-    const spineMesh = new THREE.Mesh(spineGeo, this.armorPlatesMat);
-    spineMesh.position.set(0, 0.65, -0.5);
-    this.meshGroup.add(spineMesh);
-
-    // ── 3. Elevated Command Bridge Fortress ──
-    const bridgeGeo = new THREE.BoxGeometry(1.6, 0.85, 2.6);
-    const bridgeMesh = new THREE.Mesh(bridgeGeo, this.darkAlloyMat);
-    bridgeMesh.position.set(0, 1.15, -1.4);
-    this.meshGroup.add(bridgeMesh);
-
-    // Illuminated Panoramic Cyan Command Visor
-    const visorGeo = new THREE.BoxGeometry(1.4, 0.2, 0.15);
-    const visorMesh = new THREE.Mesh(visorGeo, this.glowCyanMat);
-    visorMesh.position.set(0, 1.25, -0.05);
-    this.meshGroup.add(visorMesh);
-
-    // Sensor & Communications Mast
-    const mastGeo = new THREE.CylinderGeometry(0.04, 0.08, 1.6, 6);
-    const mastMesh = new THREE.Mesh(mastGeo, this.armorPlatesMat);
-    mastMesh.position.set(0, 2.1, -1.6);
-    this.meshGroup.add(mastMesh);
-
-    // ── 4. Flank Armor Sponsons & Winglets ──
-    [-3.2, 3.2].forEach(sx => {
-      const sponsonGeo = new THREE.BoxGeometry(0.9, 0.4, 5.0);
-      const sponsonMesh = new THREE.Mesh(sponsonGeo, this.armorPlatesMat);
-      sponsonMesh.position.set(sx, 0.1, -1.2);
-      this.meshGroup.add(sponsonMesh);
-
-      // Sponson Cyan Navigation Light Strip
-      const lightGeo = new THREE.BoxGeometry(0.12, 0.1, 4.4);
-      const lightMesh = new THREE.Mesh(lightGeo, this.glowCyanMat);
-      lightMesh.position.set(sx + (sx > 0 ? 0.45 : -0.45), 0.1, -1.2);
-      this.meshGroup.add(lightMesh);
+    this.glowAmberMat = new THREE.MeshBasicMaterial({
+      color: 0xffaa00,
+      transparent: true,
+      opacity: 0.9
     });
 
-    // ── 5. Twin Heavy Rotating Flank Turrets ──
-    const turretBaseGeo = new THREE.CylinderGeometry(0.55, 0.7, 0.35, 10);
-    const houseGeo = new THREE.BoxGeometry(0.8, 0.4, 0.9);
+    // ── 1. Central Wedged Warship Hull ──
+    const mainHullGeo = new THREE.BoxGeometry(3.6, 1.4, 8.4);
+    const mainHull = new THREE.Mesh(mainHullGeo, this.hullMat);
+    mainHull.position.set(0, 0, 0);
+    this.meshGroup.add(mainHull);
+
+    // Chisel-head bow prow
+    const prowGeo = new THREE.ConeGeometry(2.2, 4.2, 4);
+    prowGeo.rotateX(Math.PI / 2);
+    prowGeo.scale(1.2, 0.45, 1.0);
+    const prow = new THREE.Mesh(prowGeo, this.armorPlatesMat);
+    prow.position.set(0, 0, 5.2);
+    this.meshGroup.add(prow);
+
+    // ── 2. Dorsal Command Bridge Spire ──
+    const bridgeSpireGeo = new THREE.BoxGeometry(1.6, 0.9, 2.6);
+    const bridgeSpire = new THREE.Mesh(bridgeSpireGeo, this.armorPlatesMat);
+    bridgeSpire.position.set(0, 0.95, -1.2);
+    this.meshGroup.add(bridgeSpire);
+
+    // Glowing Cyan Bridge Visor
+    const visorGeo = new THREE.BoxGeometry(1.4, 0.25, 0.6);
+    const visor = new THREE.Mesh(visorGeo, this.glowCyanMat);
+    visor.position.set(0, 1.1, -0.4);
+    this.meshGroup.add(visor);
+
+    // ── 3. Port & Starboard Heavy Outrigger Sponsons ──
+    [-3.2, 3.2].forEach(sx => {
+      const sponsonGeo = new THREE.BoxGeometry(2.4, 0.8, 6.0);
+      const sponson = new THREE.Mesh(sponsonGeo, this.hullMat);
+      sponson.position.set(sx, 0, -0.2);
+      this.meshGroup.add(sponson);
+
+      // Connecting Pylon Strut
+      const strutGeo = new THREE.BoxGeometry(1.6, 0.35, 2.2);
+      const strut = new THREE.Mesh(strutGeo, this.darkAlloyMat);
+      strut.position.set(sx < 0 ? -1.9 : 1.9, 0, -0.5);
+      this.meshGroup.add(strut);
+
+      // Sponson Armor Plating
+      const pPlateGeo = new THREE.BoxGeometry(2.5, 0.15, 4.0);
+      const pPlate = new THREE.Mesh(pPlateGeo, this.armorPlatesMat);
+      pPlate.position.set(sx, 0.45, -0.2);
+      this.meshGroup.add(pPlate);
+
+      // Neon Cyan Sponson Leading Edge Strip
+      const stripGeo = new THREE.BoxGeometry(0.1, 0.12, 4.5);
+      const strip = new THREE.Mesh(stripGeo, this.glowCyanMat);
+      strip.position.set(sx < 0 ? sx - 1.2 : sx + 1.2, 0, -0.2);
+      this.meshGroup.add(strip);
+    });
+
+    // ── 5. Twin Point-Defense Dual-Railgun Turrets (Targetable & Destructible!) ──
+    const turretBarbetteGeo = new THREE.CylinderGeometry(0.75, 0.95, 0.4, 8);
+    const turretHouseGeo = new THREE.BoxGeometry(0.9, 0.5, 1.1);
+    const barrelGeo = new THREE.CylinderGeometry(0.08, 0.1, 1.6, 8);
+    barrelGeo.rotateX(Math.PI / 2);
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
 
-      // Armored Barbette Base
-      const base = new THREE.Mesh(turretBaseGeo, this.armorPlatesMat);
-      tGroup.add(base);
+      const barbette = new THREE.Mesh(turretBarbetteGeo, this.darkAlloyMat);
+      tGroup.add(barbette);
 
-      // Gunhouse Carapace
-      const house = new THREE.Mesh(houseGeo, this.darkAlloyMat);
-      house.position.set(0, 0.25, 0);
-      tGroup.add(house);
-
-      // Twin Plasma Cannon Barrels
       const barrelGroup = new THREE.Group();
-      barrelGroup.position.set(0, 0.25, 0);
+      barrelGroup.position.set(0, 0.35, 0);
 
-      [-0.2, 0.2].forEach(bx => {
-        const barrelGeo = new THREE.CylinderGeometry(0.08, 0.1, 1.6, 8);
-        barrelGeo.rotateX(Math.PI / 2);
-        const barrelMesh = new THREE.Mesh(barrelGeo, this.armorPlatesMat);
-        barrelMesh.position.set(bx, 0, 0.8);
-        barrelGroup.add(barrelMesh);
+      const house = new THREE.Mesh(turretHouseGeo, this.armorPlatesMat);
+      barrelGroup.add(house);
 
-        // Muzzle Ring
-        const ringGeo = new THREE.TorusGeometry(0.1, 0.03, 6, 12);
-        const ringMesh = new THREE.Mesh(ringGeo, this.glowCyanMat);
-        ringMesh.position.set(bx, 0, 1.6);
-        barrelGroup.add(ringMesh);
+      [-0.24, 0.24].forEach(bx => {
+        const barrel = new THREE.Mesh(barrelGeo, this.darkAlloyMat);
+        barrel.position.set(bx, 0.08, 0.7);
+        barrelGroup.add(barrel);
+
+        const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.2, 8), this.glowCyanMat);
+        tip.rotateX(Math.PI / 2);
+        tip.position.set(bx, 0.08, 1.5);
+        barrelGroup.add(tip);
       });
 
       tGroup.add(barrelGroup);
@@ -282,7 +265,37 @@ export class CapitalShip {
     this.meshGroup.add(this.keyLight);
   }
 
-  takeDamage(amount) {
+  takeTurretDamage(turretId, amount) {
+    const t = this.turrets.find(tur => tur.id === turretId);
+    if (!t || t.isDead) return false;
+    t.hp -= amount;
+
+    if (t.hp <= 0) {
+      t.isDead = true;
+      if (t.mesh) t.mesh.visible = false;
+      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+      if (this.particleManager) {
+        this.particleManager.createExplosion(wp, 0x00f3ff, 40, 1.8);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  takeDamage(amount, hitPos = null) {
+    // Check if hit landed on a turret
+    if (hitPos && this.turrets) {
+      for (const t of this.turrets) {
+        if (!t.isDead && t.mesh) {
+          const tPos = t.mesh.getWorldPosition(new THREE.Vector3());
+          if (hitPos.distanceTo(tPos) < 2.0) {
+            this.takeTurretDamage(t.id, amount * 1.5);
+            break;
+          }
+        }
+      }
+    }
+
     this.hp -= amount;
 
     if (this.particleManager) {
@@ -345,12 +358,11 @@ export class CapitalShip {
       this.meshGroup.position.x += Math.cos(this._time * 1.0) * 1.2 * dt;
     }
 
-    // Turrets aim at player in world coordinates
+    // Turrets aim at player in world coordinates (only non-dead turrets)
     this.turrets.forEach(t => {
-      if (t.mesh) {
-        const turretWorldPos = t.mesh.getWorldPosition(new THREE.Vector3());
-        const dir = new THREE.Vector3().subVectors(playerPos, turretWorldPos);
-        t.mesh.rotation.y = Math.atan2(-dir.x, dir.z);
+      if (!t.isDead && t.mesh) {
+        const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+        t.barrelGroup.lookAt(localTarget);
       }
     });
 

@@ -268,8 +268,10 @@ export class StealthFighter {
     navR.position.set(1.3, 1.1, -1.6);
     this.meshGroup.add(navR);
 
-    // --- TWIN PLASMA SIPHON AUTOCANNONS ---
-    [-1.5, 1.5].forEach(x => {
+    // --- TWIN PLASMA SIPHON AUTOCANNONS (Destructible!) ---
+    this.cannons = [];
+    [-1.5, 1.5].forEach((x, idx) => {
+      const sideName = x < 0 ? 'left' : 'right';
       const gunPod = new THREE.Group();
       gunPod.position.set(x, -0.15, 0.6);
 
@@ -282,7 +284,8 @@ export class StealthFighter {
       const barrelGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.9, 6);
       barrelGeo.rotateX(Math.PI / 2);
       barrelGeo.translate(0, 0, 0.3);
-      gunPod.add(new THREE.Mesh(barrelGeo, this.conduitMat));
+      const barrel = new THREE.Mesh(barrelGeo, this.conduitMat);
+      gunPod.add(barrel);
 
       // Muzzle Lens Ring
       const muzzleLens = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.09, 8), this.oculusMat);
@@ -290,6 +293,15 @@ export class StealthFighter {
       gunPod.add(muzzleLens);
 
       this.meshGroup.add(gunPod);
+
+      this.cannons.push({
+        id: sideName,
+        hp: 50,
+        maxHp: 50,
+        isDead: false,
+        mesh: gunPod,
+        muzzle: muzzleLens
+      });
     });
 
     // --- PREDATOR SENSOR OCULUS (Front Brow Slit) ---
@@ -326,7 +338,7 @@ export class StealthFighter {
       this.meshGroup.add(nacelle);
     });
 
-    // --- ACTIVE OPTICAL CAMOUFLAGE SHIMMER LATTICE ---
+    // --- ACTIVE OPTICAL CAMOUFLAGE SHIMMER LATTICE & CLOAK GENERATOR ---
     const shimmerGeo = new THREE.IcosahedronGeometry(2.8, 1);
     this.shimmerMat = new THREE.MeshBasicMaterial({
       color: 0xbf00ff,
@@ -339,10 +351,47 @@ export class StealthFighter {
     this.shimmerMesh = new THREE.Mesh(shimmerGeo, this.shimmerMat);
     this.meshGroup.add(this.shimmerMesh);
 
+    // Dorsal Cloak Generator Module
+    const cloakModGeo = new THREE.BoxGeometry(0.6, 0.25, 0.9);
+    this.cloakModMesh = new THREE.Mesh(cloakModGeo, this.titaniumMat);
+    this.cloakModMesh.position.set(0, 0.45, -0.5);
+    this.meshGroup.add(this.cloakModMesh);
+
+    this.cloakGenerator = {
+      hp: 60,
+      maxHp: 60,
+      isDead: false,
+      mesh: this.cloakModMesh
+    };
+
     // --- DEDICATED SPECULAR KEY LIGHT ---
     this.keyLight = new THREE.PointLight(0xd8b4fe, 2.2, 12);
     this.keyLight.position.set(0, 2.5, 1.0);
     this.meshGroup.add(this.keyLight);
+  }
+
+  takeCannonDamage(sideName, amount) {
+    const cannon = this.cannons.find(c => c.id === sideName);
+    if (!cannon || cannon.isDead) return false;
+    cannon.hp -= amount;
+
+    if (cannon.muzzle && cannon.muzzle.material) {
+      const pct = cannon.hp / cannon.maxHp;
+      if (pct <= 0.5) {
+        cannon.muzzle.material = new THREE.MeshBasicMaterial({ color: 0xff5500 });
+      }
+    }
+
+    if (cannon.hp <= 0) {
+      cannon.isDead = true;
+      if (cannon.mesh) cannon.mesh.visible = false;
+      const wp = cannon.mesh.getWorldPosition(new THREE.Vector3());
+      if (this.particleManager) {
+        this.particleManager.createExplosion(wp, 0xdf44ff, 25, 1.2);
+      }
+      return true;
+    }
+    return false;
   }
 
   update(dt, playerShip, gameManager) {
@@ -480,24 +529,37 @@ export class StealthFighter {
     const pos = this.meshGroup.position;
     const dir = new THREE.Vector3().subVectors(playerPos, pos).normalize();
 
-    // Offset left and right plasma siphon cannons
-    const offsetL = new THREE.Vector3(-1.5, -0.15, 1.4);
-    const offsetR = new THREE.Vector3(1.5, -0.15, 1.4);
-
-    [offsetL, offsetR].forEach(offset => {
-      const spawnWorld = pos.clone().add(offset);
-      if (gameManager.spawnEnemyLaser) {
-        gameManager.spawnEnemyLaser(spawnWorld, dir, 0xbf00ff, 44);
-      }
-    });
+    if (this.cannons) {
+      this.cannons.forEach(c => {
+        if (!c.isDead && c.mesh) {
+          const spawnWorld = c.mesh.getWorldPosition(new THREE.Vector3());
+          if (gameManager.spawnEnemyLaser) {
+            gameManager.spawnEnemyLaser(spawnWorld, dir, 0xbf00ff, 44);
+          }
+        }
+      });
+    }
 
     if (gameManager.spaceAudio && gameManager.spaceAudio.playEnemyLaser) {
       gameManager.spaceAudio.playEnemyLaser();
     }
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, hitPos = null) {
     if (this.isDead) return false;
+
+    // Check localized weapon hits
+    if (hitPos && this.cannons) {
+      for (const cannon of this.cannons) {
+        if (!cannon.isDead && cannon.mesh) {
+          const cPos = cannon.mesh.getWorldPosition(new THREE.Vector3());
+          if (hitPos.distanceTo(cPos) < 1.4) {
+            this.takeCannonDamage(cannon.id, amount * 1.5);
+            break;
+          }
+        }
+      }
+    }
 
     // Cloaked stealth gives 30% evasion/damage deflection
     const actualDmg = this.isCloaked ? amount * 0.7 : amount;

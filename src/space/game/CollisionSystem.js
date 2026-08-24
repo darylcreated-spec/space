@@ -207,7 +207,7 @@ export class CollisionSystem {
               this.particleManager.createEmpShockwave(drone.meshGroup.position, 6.0);
             }
 
-            const dead = drone.takeDamage(dmg);
+            const dead = drone.takeDamage(dmg, lPos);
             this.spaceAudio.playExplosion();
 
             if (dead) {
@@ -254,7 +254,7 @@ export class CollisionSystem {
               }
               if (laser.hitEntities.size > 1) dmg *= 0.5;
 
-              const dead = ship.takeDamage(dmg);
+              const dead = ship.takeDamage(dmg, lPos);
               this.spaceAudio.playExplosion();
 
               if (dead) {
@@ -283,7 +283,7 @@ export class CollisionSystem {
             if (!fighter || fighter.isDead || !fighter.meshGroup) continue;
 
             if (lPos.distanceTo(fighter.meshGroup.position) < fighter.radius + laser.radius) {
-              const dead = fighter.takeDamage(laser.isCritical ? 75 : 25);
+              const dead = fighter.takeDamage(laser.isCritical ? 75 : 25, lPos);
               this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0xbf00ff);
               if (dead) {
                 gameManager.addScore(fighter.scoreValue);

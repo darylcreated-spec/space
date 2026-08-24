@@ -215,8 +215,11 @@ export class EnemyDrone {
     this.eyeLight.position.set(0, 0.15, 2.2);
     this.meshGroup.add(this.eyeLight);
 
-    // ── 4. Swept-Forward Multi-Faceted Razor Delta Wings ──
-    [1, -1].forEach(side => {
+    // ── 4. Swept-Forward Multi-Faceted Razor Delta Wings & Destructible Plasma Cannons ──
+    this.cannons = [];
+
+    [1, -1].forEach((side, idx) => {
+      const sideName = side === 1 ? 'right' : 'left';
       // Main Wing Plate (Swept forward with aggressive attack angle)
       const wingShape = new THREE.Shape();
       wingShape.moveTo(0, -0.4);
@@ -273,19 +276,21 @@ export class EnemyDrone {
       wingletGlow.position.set(side * 3.52, 0.35, -0.6);
       this.meshGroup.add(wingletGlow);
 
-      // Heavy Forward Plasma Cannon Pod
+      // ── Targetable & Destructible Forward Plasma Cannon Pod ──
+      const gunPodGroup = new THREE.Group();
+      gunPodGroup.position.set(side * 2.4, -0.16, 1.2);
+
       const cannonHousing = new THREE.Mesh(
         new THREE.BoxGeometry(0.42, 0.38, 2.2),
         this.armorPlateMat
       );
-      cannonHousing.position.set(side * 2.4, -0.16, 1.2);
-      this.meshGroup.add(cannonHousing);
+      gunPodGroup.add(cannonHousing);
 
       const barrelGeo = new THREE.CylinderGeometry(0.12, 0.15, 2.4, 8);
       barrelGeo.rotateX(Math.PI / 2);
       const barrel = new THREE.Mesh(barrelGeo, this.trimMat);
-      barrel.position.set(side * 2.4, -0.16, 2.4);
-      this.meshGroup.add(barrel);
+      barrel.position.set(0, 0, 1.2);
+      gunPodGroup.add(barrel);
 
       // Glowing Plasma Muzzle Emitter & Heat Shroud
       const muzzleGlow = new THREE.Mesh(
@@ -293,8 +298,22 @@ export class EnemyDrone {
         this.redGlowMat
       );
       muzzleGlow.rotateX(Math.PI / 2);
-      muzzleGlow.position.set(side * 2.4, -0.16, 3.5);
-      this.meshGroup.add(muzzleGlow);
+      muzzleGlow.position.set(0, 0, 2.3);
+      gunPodGroup.add(muzzleGlow);
+
+      this.meshGroup.add(gunPodGroup);
+
+      this.cannons.push({
+        id: sideName,
+        side: side,
+        hp: 30,
+        maxHp: 30,
+        isDead: false,
+        mesh: gunPodGroup,
+        barrel: barrel,
+        muzzle: muzzleGlow,
+        recoilZ: 0
+      });
     });
 
     // ── 5. Stern Dual Heavy Vector Ion Thrusters (-Z) ──
@@ -334,8 +353,45 @@ export class EnemyDrone {
     this.meshGroup.add(this.thrusterLight);
   }
 
-  takeDamage(amount) {
+  takeCannonDamage(sideName, amount) {
+    const cannon = this.cannons.find(c => c.id === sideName);
+    if (!cannon || cannon.isDead) return false;
+    cannon.hp -= amount;
+
+    // Show progressive damage on cannon
+    if (cannon.muzzle && cannon.muzzle.material) {
+      const pct = cannon.hp / cannon.maxHp;
+      if (pct <= 0.5) {
+        cannon.muzzle.material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+      }
+    }
+
+    if (cannon.hp <= 0) {
+      cannon.isDead = true;
+      if (cannon.mesh) {
+        cannon.mesh.visible = false;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  takeDamage(amount, hitPos = null) {
+    // If a hit position is specified, check if it hit a wing cannon
+    if (hitPos && this.cannons) {
+      for (const cannon of this.cannons) {
+        if (!cannon.isDead && cannon.mesh) {
+          const cPos = cannon.mesh.getWorldPosition(new THREE.Vector3());
+          if (hitPos.distanceTo(cPos) < 1.2) {
+            this.takeCannonDamage(cannon.id, amount * 1.5);
+            break;
+          }
+        }
+      }
+    }
+
     this.hp -= amount;
+
     // Flash red / white on hit
     if (this.coreMesh && this.coreMesh.material) {
       this.coreMesh.material.emissive.setHex(0xff0044);
