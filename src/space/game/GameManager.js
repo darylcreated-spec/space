@@ -615,7 +615,11 @@ export class GameManager {
 
       case 'MOONBASE': {
         this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
-        if (this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.set(0, 2, -56);
+        if (this.activeBoss.meshGroup) {
+          this.activeBoss.meshGroup.position.set(0, 0, -64);
+          this.activeBoss.meshGroup.rotation.set(0.12, 0.25, 0);
+          this.activeBoss.meshGroup.scale.set(0.9, 0.9, 0.9);
+        }
         this.spaceHUD?.showWaveBanner("INSPECTING", "SECTOR ALPHA MOON BASE CITADEL");
         break;
       }

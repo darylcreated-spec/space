@@ -146,14 +146,16 @@ export class MoonBase {
     this.ambLight = new THREE.AmbientLight(0x050d14, 0.5);
     this.scene.add(this.ambLight);
 
-    // â”€â”€ 2. Main PBR Cratered Lunar Sphere Hull â”€â”€
+    // ── 2. Main PBR Cratered Lunar Sphere Hull ──
     const hullGeo = new THREE.SphereGeometry(R, 48, 40);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x141e2c,
-      roughness: 0.55,
-      metalness: 0.9,
+      color: 0x5a6e8a,
+      roughness: 0.38,
+      metalness: 0.88,
+      emissive: 0x141e2e,
+      emissiveIntensity: 0.3,
       normalMap,
-      normalScale: new THREE.Vector2(1.2, 1.2),
+      normalScale: new THREE.Vector2(1.4, 1.4),
       flatShading: true,
     });
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
@@ -423,38 +425,55 @@ export class MoonBase {
     this.habRingGroup = habRingGroup;
     this.meshGroup.add(habRingGroup);
 
-    // â”€â”€ 7. Targetable Equatorial Shield Generator Hubs (Port & Starboard) â”€â”€
-    const genBaseGeo = new THREE.BoxGeometry(3.5, 3.0, 4.0);
-    const genBaseMat = new THREE.MeshStandardMaterial({ color: 0x0e1828, metalness: 0.95 });
-    const coilGeo = new THREE.TorusGeometry(1.6, 0.35, 10, 24);
-    const coilMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    // ── 7. Targetable Equatorial Shield Generator Hubs (Port & Starboard) ──
+    const genBaseGeo = new THREE.CylinderGeometry(2.4, 3.2, 3.0, 8);
+    const genBaseMat = new THREE.MeshStandardMaterial({ color: 0x182436, metalness: 0.94, roughness: 0.2 });
+    const outerCoilGeo = new THREE.TorusGeometry(2.2, 0.32, 10, 24);
+    const innerCoilGeo = new THREE.TorusGeometry(1.4, 0.22, 8, 20);
+    const coilMat1 = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const coilMat2 = new THREE.MeshBasicMaterial({ color: 0x0088ff });
+    const coreSphereGeo = new THREE.SphereGeometry(1.0, 16, 16);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
     this.generators.forEach(gen => {
       const gGroup = new THREE.Group();
       gGroup.position.copy(gen.relPos);
 
+      // Armored Tripod Pylon Base
       const base = new THREE.Mesh(genBaseGeo, genBaseMat);
+      base.rotation.x = Math.PI / 2;
       gGroup.add(base);
 
-      const coil = new THREE.Mesh(coilGeo, coilMat);
-      coil.position.set(0, 0, 1.8);
-      gGroup.add(coil);
+      // Dual Concentric Superconducting Coils
+      const outerCoil = new THREE.Mesh(outerCoilGeo, coilMat1);
+      outerCoil.position.set(0, 0, 1.8);
+      gGroup.add(outerCoil);
+
+      const innerCoil = new THREE.Mesh(innerCoilGeo, coilMat2);
+      innerCoil.position.set(0, 0, 1.8);
+      gGroup.add(innerCoil);
+
+      // Central Ionization Reactor Core
+      const ionCore = new THREE.Mesh(coreSphereGeo, coreMat);
+      ionCore.position.set(0, 0, 1.8);
+      gGroup.add(ionCore);
 
       // 3D Target Reticle for Shield Generator Hub
-      const reticleGeo = new THREE.RingGeometry(1.8, 2.2, 16);
+      const reticleGeo = new THREE.RingGeometry(2.2, 2.6, 20);
       const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 0, 2.5);
+      reticle.position.set(0, 0, 2.8);
       gGroup.add(reticle);
 
       this.meshGroup.add(gGroup);
       gen.mesh = gGroup;
-      gen.coil = coil;
+      gen.coil = outerCoil;
+      gen.innerCoil = innerCoil;
       gen.reticle = reticle;
       this.reticleMeshes.push(reticle);
     });
 
-    // â”€â”€ 8. Hexagonal Deflector Shield Sphere â”€â”€
+    // ── 8. Hexagonal Deflector Shield Sphere ──
     const shieldGeo = new THREE.IcosahedronGeometry(R + 4.5, 4);
     this.shieldShaderMat = new THREE.ShaderMaterial({
       uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
@@ -468,7 +487,7 @@ export class MoonBase {
     this.shieldRing = new THREE.Mesh(shieldGeo, this.shieldShaderMat);
     this.meshGroup.add(this.shieldRing);
 
-    // â”€â”€ 9. Thermal Exhaust Reactor Core (Exposed on shield collapse) â”€â”€
+    // ── 9. Thermal Exhaust Reactor Core (Exposed on shield collapse) ──
     const vulnGeo = new THREE.SphereGeometry(2.2, 16, 16);
     this.vulnMat = new THREE.MeshBasicMaterial({ color: 0xff3300, transparent: true, opacity: 0.9 });
     this.vulnMesh = new THREE.Mesh(vulnGeo, this.vulnMat);
@@ -483,40 +502,80 @@ export class MoonBase {
     this.vulnRing.lookAt(new THREE.Vector3(0, 0, 1).add(this.vulnRelPos));
     this.meshGroup.add(this.vulnRing);
 
-    // â”€â”€ 10. 4 Heavy Quad-Barrel Defense Batteries â”€â”€
-    const tBaseGeo = new THREE.BoxGeometry(3.2, 1.5, 3.2);
-    const tBaseMat = new THREE.MeshStandardMaterial({ color: 0x0c1828, metalness: 0.99, roughness: 0.25 });
-    const tBarrelGeo = new THREE.CylinderGeometry(0.28, 0.38, 3.6, 9);
-    tBarrelGeo.rotateX(Math.PI / 2);
+    // ── 10. 6 Ultra-Defined Heavy Defense CIWS Batteries ──
+    const barbetteGeo = new THREE.CylinderGeometry(2.2, 2.8, 1.0, 6);
+    const barbetteMat = new THREE.MeshStandardMaterial({ color: 0x1c283c, metalness: 0.92, roughness: 0.22 });
+    const turntableGeo = new THREE.CylinderGeometry(1.8, 1.9, 0.35, 14);
+    const houseGeo = new THREE.BoxGeometry(2.4, 1.3, 2.8);
+    const houseMat = new THREE.MeshStandardMaterial({ color: 0x303f56, metalness: 0.95, roughness: 0.18 });
+
+    const barrelGeo = new THREE.CylinderGeometry(0.2, 0.28, 4.2, 8);
+    barrelGeo.rotateX(Math.PI / 2);
     this.barrelMat = new THREE.MeshStandardMaterial({
-      color: 0x001100,
-      emissive: 0x00ff44,
-      emissiveIntensity: 2.0,
-      roughness: 0.2,
-      metalness: 0.8
+      color: 0x6a82a4,
+      metalness: 0.95,
+      roughness: 0.15
     });
-    const turretRingGeo = new THREE.TorusGeometry(0.8, 0.2, 8, 16);
+
+    const coilGeo = new THREE.TorusGeometry(0.32, 0.06, 6, 12);
+    const muzzleGeo = new THREE.TorusGeometry(0.32, 0.08, 6, 14);
+    const glowGreenMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
+    const opticMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
-      tGroup.add(new THREE.Mesh(tBaseGeo, tBaseMat));
-      tGroup.add(new THREE.Mesh(turretRingGeo, new THREE.MeshBasicMaterial({ color: 0x00ff44 })));
 
+      // Hexagonal Foundation Barbette
+      const barbette = new THREE.Mesh(barbetteGeo, barbetteMat);
+      barbette.rotation.x = Math.PI / 2;
+      tGroup.add(barbette);
+
+      // Rotating Azimuth Turntable
+      const turntable = new THREE.Mesh(turntableGeo, houseMat);
+      turntable.position.set(0, 0, 0.6);
+      tGroup.add(turntable);
+
+      // Gunhouse Carapace Group (Tracks Player)
       const bGroup = new THREE.Group();
+      bGroup.position.set(0, 0, 0.8);
+
+      // Sloped Armor Chassis
+      const house = new THREE.Mesh(houseGeo, houseMat);
+      house.position.set(0, 0.2, 0);
+      bGroup.add(house);
+
+      // Optical Targeting Sensor Lens
+      const optic = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), opticMat);
+      optic.position.set(0, 0.9, 0.8);
+      bGroup.add(optic);
+
+      // Twin Heavy Laser Autocannons
       [-0.7, 0.7].forEach(xOff => {
-        const b = new THREE.Mesh(tBarrelGeo, this.barrelMat);
-        b.position.set(xOff, 0.55, 1.2);
-        bGroup.add(b);
+        const barrel = new THREE.Mesh(barrelGeo, this.barrelMat);
+        barrel.position.set(xOff, 0.2, 2.1);
+        bGroup.add(barrel);
+
+        // Magnetic Induction Acceleration Rings
+        [0.8, 1.8, 2.8].forEach(zRing => {
+          const coil = new THREE.Mesh(coilGeo, glowGreenMat);
+          coil.position.set(xOff, 0.2, zRing);
+          bGroup.add(coil);
+        });
+
+        // Muzzle Brake Collimator Ring
+        const muzzle = new THREE.Mesh(muzzleGeo, glowGreenMat);
+        muzzle.position.set(xOff, 0.2, 4.2);
+        bGroup.add(muzzle);
       });
+
       tGroup.add(bGroup);
 
       // 3D Target Reticle for Turret
-      const reticleGeo = new THREE.RingGeometry(1.5, 1.9, 16);
+      const reticleGeo = new THREE.RingGeometry(1.8, 2.2, 16);
       const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00ff44, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 1.8, 0);
-      reticle.rotation.x = -Math.PI / 2;
+      reticle.position.set(0, 0, 3.5);
       tGroup.add(reticle);
 
       this.meshGroup.add(tGroup);
@@ -525,6 +584,11 @@ export class MoonBase {
       t.reticle = reticle;
       this.reticleMeshes.push(reticle);
     });
+
+    // Dedicated Specular Light for Moon Base Definition
+    this.keyLight = new THREE.PointLight(0xaad4ff, 2.5, 90);
+    this.keyLight.position.set(0, 20, 20);
+    this.meshGroup.add(this.keyLight);
   }
 
   takeGeneratorDamage(genId, amount) {
