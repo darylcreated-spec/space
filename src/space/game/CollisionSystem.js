@@ -627,6 +627,23 @@ export class CollisionSystem {
                 }
               }
 
+              // 4B. Check Torpedo Pods (Boss Dreadnought Flagship)
+              if (!hitRegistered && boss.torpedoPods && Array.isArray(boss.torpedoPods)) {
+                for (const p of boss.torpedoPods) {
+                  if (!p.isDead && p.mesh) {
+                    const pPos = p.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(pPos) < 5.2) {
+                      if (!laser.hitEntities.has(`dread_pod_${p.id}`)) {
+                        laser.hitEntities.add(`dread_pod_${p.id}`);
+                        boss.takeTorpedoPodDamage(p.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
               // 5. Check Thermal Exhaust Port Vulnerability (MoonBase)
               if (!hitRegistered && boss.vulnMesh && !boss.hasShield) {
                 const vulnPos = boss.vulnMesh.getWorldPosition(this._tempVec1);
