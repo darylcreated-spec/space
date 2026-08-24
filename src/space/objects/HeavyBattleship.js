@@ -92,16 +92,16 @@ export class HeavyBattleship {
       { id: 1, name: 'STARBOARD DEFLECTOR GENERATOR', relPos: new THREE.Vector3( 18.0, 4.5, 10), hp: 900, maxHp: 900, isDead: false, mesh: null, ringMesh: null, reticle: null },
     ];
 
-    // ── 2. Eight Heavy Triple-Railgun Batteries (Dorsal, Flank, Ventral) ──
+    // ── 2. Eight Heavy Triple-Railgun Batteries (Raised Superfiring Arrangement!) ──
     this.turrets = [
-      { id: 0, name: 'DORSAL BOW BATTERY',       relPos: new THREE.Vector3(  0,  6.2,  32), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 1, name: 'DORSAL MID-FORE BATTERY',  relPos: new THREE.Vector3(  0,  6.8,  14), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 2, name: 'DORSAL MID-AFT BATTERY',   relPos: new THREE.Vector3(  0,  6.8,  -6), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 3, name: 'DORSAL STERN BATTERY',     relPos: new THREE.Vector3(  0,  6.2, -24), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 4, name: 'PORT FLANK BATTERY',       relPos: new THREE.Vector3(-22,  1.5,   4), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 5, name: 'STARBOARD FLANK BATTERY',  relPos: new THREE.Vector3( 22,  1.5,   4), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 6, name: 'VENTRAL FORE BATTERY',     relPos: new THREE.Vector3(  0, -5.2,  20), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 7, name: 'VENTRAL AFT BATTERY',      relPos: new THREE.Vector3(  0, -5.2, -12), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 0, name: 'DORSAL BOW SUPERFIRING BATTERY',      relPos: new THREE.Vector3(  0,  9.2,  34), pedestalH: 4.2, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'DORSAL MID-FORE APEX BATTERY',         relPos: new THREE.Vector3(  0, 12.0,  16), pedestalH: 7.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'DORSAL MID-AFT APEX BATTERY',          relPos: new THREE.Vector3(  0, 12.0,  -8), pedestalH: 7.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'DORSAL STERN SUPERFIRING BATTERY',     relPos: new THREE.Vector3(  0,  9.2, -26), pedestalH: 4.2, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'PORT FLANK OUTRIGGER BATTERY',        relPos: new THREE.Vector3(-24,  4.5,   4), pedestalH: 4.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'STARBOARD FLANK OUTRIGGER BATTERY',   relPos: new THREE.Vector3( 24,  4.5,   4), pedestalH: 4.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 6, name: 'VENTRAL FORE KEEL BATTERY',            relPos: new THREE.Vector3(  0, -8.0,  22), pedestalH: 3.5, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 7, name: 'VENTRAL AFT KEEL BATTERY',             relPos: new THREE.Vector3(  0, -8.0, -14), pedestalH: 3.5, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
     ];
 
     // ── 3. Four Heavy Vertical-Launch Missile Silo Pods ──
@@ -355,6 +355,13 @@ export class HeavyBattleship {
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
+
+      // Armored Riser Barbette Pedestal
+      const pedH = t.pedestalH || 3.0;
+      const pedestalGeo = new THREE.CylinderGeometry(3.6, 4.4, pedH, 12);
+      const pedestalMesh = new THREE.Mesh(pedestalGeo, this.darkAlloyMat);
+      pedestalMesh.position.set(0, -pedH / 2, 0);
+      tGroup.add(pedestalMesh);
 
       const barbette = new THREE.Mesh(barbetteGeo, this.armorPlatesMat);
       tGroup.add(barbette);

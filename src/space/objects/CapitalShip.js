@@ -68,8 +68,8 @@ export class CapitalShip {
     this._time = Math.random() * 100;
 
     this.turrets = [
-      { id: 0, relPos: new THREE.Vector3(-3.2, 0.4, -0.5), hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null },
-      { id: 1, relPos: new THREE.Vector3( 3.2, 0.4, -0.5), hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null }
+      { id: 0, relPos: new THREE.Vector3(-3.2, 1.2, -0.5), pedestalH: 1.6, hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null },
+      { id: 1, relPos: new THREE.Vector3( 3.2, 1.2, -0.5), pedestalH: 1.6, hp: 90, maxHp: 90, isDead: false, mesh: null, barrelGroup: null }
     ];
     this.thrusters = [];
 
@@ -177,7 +177,7 @@ export class CapitalShip {
       this.meshGroup.add(strip);
     });
 
-    // ── 5. Twin Point-Defense Dual-Railgun Turrets (Targetable & Destructible!) ──
+    // ── 5. Twin Point-Defense Dual-Railgun Turrets (Elevated Superfiring Barbettes!) ──
     const turretBarbetteGeo = new THREE.CylinderGeometry(0.75, 0.95, 0.4, 8);
     const turretHouseGeo = new THREE.BoxGeometry(0.9, 0.5, 1.1);
     const barrelGeo = new THREE.CylinderGeometry(0.08, 0.1, 1.6, 8);
@@ -186,6 +186,13 @@ export class CapitalShip {
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
+
+      // Armored Riser Pedestal
+      const pedH = t.pedestalH || 1.6;
+      const pedGeo = new THREE.CylinderGeometry(0.85, 1.1, pedH, 8);
+      const pedMesh = new THREE.Mesh(pedGeo, this.darkAlloyMat);
+      pedMesh.position.set(0, -pedH / 2, 0);
+      tGroup.add(pedMesh);
 
       const barbette = new THREE.Mesh(turretBarbetteGeo, this.darkAlloyMat);
       tGroup.add(barbette);
@@ -358,10 +365,11 @@ export class CapitalShip {
       this.meshGroup.position.x += Math.cos(this._time * 1.0) * 1.2 * dt;
     }
 
-    // Turrets aim at player in world coordinates (only non-dead turrets)
+    // Turrets aim at player in world coordinates with deck-clearance pitch clamping
     this.turrets.forEach(t => {
-      if (!t.isDead && t.mesh) {
+      if (!t.isDead && t.barrelGroup) {
         const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+        localTarget.y = Math.max(localTarget.y, t.relPos.y + 0.15);
         t.barrelGroup.lookAt(localTarget);
       }
     });

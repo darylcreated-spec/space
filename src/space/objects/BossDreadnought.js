@@ -79,12 +79,12 @@ export class BossDreadnought {
       { id: 1, name: 'STARBOARD DEFLECTOR GENERATOR', relPos: new THREE.Vector3( 14.0, 3.5, 2), hp: 750, maxHp: 750, isDead: false, mesh: null, ringMesh: null, reticle: null },
     ];
 
-    // ── 2. Four Heavy Dual-Railgun Artillery Batteries ──
+    // ── 2. Four Heavy Dual-Railgun Artillery Batteries (Elevated Superfiring Hardpoints!) ──
     this.turrets = [
-      { id: 0, name: 'PORT FORWARD HEAVY BATTERY',      relPos: new THREE.Vector3(-16.0, 2.2,   8.0), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 1, name: 'STARBOARD FORWARD HEAVY BATTERY', relPos: new THREE.Vector3( 16.0, 2.2,   8.0), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 2, name: 'PORT AFT HEAVY BATTERY',          relPos: new THREE.Vector3(-18.0, 2.2, -14.0), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 3, name: 'STARBOARD AFT HEAVY BATTERY',      relPos: new THREE.Vector3( 18.0, 2.2, -14.0), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 0, name: 'PORT FORWARD HEAVY BATTERY',      relPos: new THREE.Vector3(-18.0, 4.8,   8.0), pedestalH: 3.8, hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'STARBOARD FORWARD HEAVY BATTERY', relPos: new THREE.Vector3( 18.0, 4.8,   8.0), pedestalH: 3.8, hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'PORT AFT HEAVY BATTERY',          relPos: new THREE.Vector3(-19.5, 4.8, -14.0), pedestalH: 3.8, hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'STARBOARD AFT HEAVY BATTERY',      relPos: new THREE.Vector3( 19.5, 4.8, -14.0), pedestalH: 3.8, hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
     ];
 
     // ── 3. Two Heavy Vertical-Launch Torpedo Pods ──
@@ -264,6 +264,13 @@ export class BossDreadnought {
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
+
+      // Armored Riser Pedestal
+      const pedH = t.pedestalH || 3.0;
+      const pedGeo = new THREE.CylinderGeometry(2.4, 3.2, pedH, 8);
+      const pedMesh = new THREE.Mesh(pedGeo, armorTrussMat);
+      pedMesh.position.set(0, -pedH / 2, 0);
+      tGroup.add(pedMesh);
 
       const barbette = new THREE.Mesh(turretBarbetteGeo, armorTrussMat);
       tGroup.add(barbette);
@@ -566,7 +573,9 @@ export class BossDreadnought {
     if (this.turrets) {
       this.turrets.forEach(t => {
         if (!t.isDead && t.barrelGroup) {
-          t.barrelGroup.lookAt(playerPos);
+          const localTarget = this.meshGroup.worldToLocal(playerPos.clone());
+          localTarget.y = Math.max(localTarget.y, t.relPos.y + 0.2);
+          t.barrelGroup.lookAt(this.meshGroup.localToWorld(localTarget));
         }
       });
     }
