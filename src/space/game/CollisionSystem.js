@@ -644,6 +644,40 @@ export class CollisionSystem {
                 }
               }
 
+              // 4C. Check Tectonic Armor Crust Plates (Titan Asteroid Colossus)
+              if (!hitRegistered && boss.armorPlates && Array.isArray(boss.armorPlates)) {
+                for (const ap of boss.armorPlates) {
+                  if (!ap.isDead && ap.mesh) {
+                    const apPos = ap.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(apPos) < 6.8) {
+                      if (!laser.hitEntities.has(`titan_plate_${ap.id}`)) {
+                        laser.hitEntities.add(`titan_plate_${ap.id}`);
+                        boss.takeArmorPlateDamage(ap.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 4D. Check Volcanic Magma Calderas (Titan Asteroid Colossus)
+              if (!hitRegistered && boss.calderas && Array.isArray(boss.calderas)) {
+                for (const c of boss.calderas) {
+                  if (!c.isDead && c.mesh) {
+                    const cPos = c.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(cPos) < 5.5) {
+                      if (!laser.hitEntities.has(`titan_caldera_${c.id}`)) {
+                        laser.hitEntities.add(`titan_caldera_${c.id}`);
+                        boss.takeCalderaDamage(c.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
               // 5. Check Thermal Exhaust Port Vulnerability (MoonBase)
               if (!hitRegistered && boss.vulnMesh && !boss.hasShield) {
                 const vulnPos = boss.vulnMesh.getWorldPosition(this._tempVec1);
