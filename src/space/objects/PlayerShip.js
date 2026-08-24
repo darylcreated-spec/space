@@ -238,9 +238,6 @@ export class PlayerShip {
     }
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // 1. âš¡ INTERCEPTOR: "Vanguard Alpha" (Dynamic Canards & Ailerons)
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // ────────────────────────────────────────────────────────────
   // 1. ⚡ INTERCEPTOR: "Vanguard Alpha" (Twin V-Tail, Canards, Ailerons & Underwing Missiles)
   // ────────────────────────────────────────────────────────────
@@ -279,10 +276,11 @@ export class PlayerShip {
     const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
     const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
-    // ── 1. Main Chiseled Needle Fuselage ──
-    const bodyGeo = new THREE.ConeGeometry(0.85, 6.0, 8);
-    bodyGeo.rotateX(Math.PI / 2);
+    // ── 1. Main Needle Fuselage (Nose at -Z, Stern at +Z) ──
+    const bodyGeo = new THREE.ConeGeometry(0.82, 5.6, 8);
+    bodyGeo.rotateX(-Math.PI / 2); // Apex points forward at -Z!
     const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.set(0, 0, -0.2);
     this.meshGroup.add(body);
 
     // Titanium Pitot Airspeed Needle at Nose Apex
@@ -297,7 +295,7 @@ export class PlayerShip {
     this.meshGroup.add(apexLens);
 
     // ── 2. Transparent Glass Canopy with Cockpit Interior ──
-    const canopyGeo = new THREE.SphereGeometry(0.56, 16, 16);
+    const canopyGeo = new THREE.SphereGeometry(0.52, 16, 16);
     canopyGeo.scale(0.8, 0.6, 1.5);
     const canopyMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
@@ -313,52 +311,55 @@ export class PlayerShip {
     this.meshGroup.add(canopy);
     this.buildCockpitInterior(this.meshGroup, 0x00f3ff);
 
-    // ── 3. Swept Delta Wings with Winglets & Titanium Slats ──
-    const wingShape = new THREE.Shape();
-    wingShape.moveTo(0, 0.2);
-    wingShape.lineTo(3.6, -1.8);
-    wingShape.lineTo(3.7, -2.9);
-    wingShape.lineTo(0.6, -1.5);
-    wingShape.closePath();
-
-    const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.12, bevelEnabled: true, bevelSize: 0.04 });
-    wingGeo.center();
-    wingGeo.rotateX(Math.PI / 2);
+    // ── 3. Swept Delta Wings (Port & Starboard) ──
     const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x14243d, metalness: 0.92, roughness: 0.18 });
 
-    const rightWing = new THREE.Mesh(wingGeo, wingMat);
-    rightWing.position.set(1.5, 0, 0.3);
-    this.meshGroup.add(rightWing);
+    [-1, 1].forEach(side => {
+      const wingShape = new THREE.Shape();
+      wingShape.moveTo(0, 0.8);              // Wing root leading edge (forward)
+      wingShape.lineTo(side * 3.4, -1.2);   // Wingtip leading edge (swept back)
+      wingShape.lineTo(side * 3.2, -2.2);   // Wingtip trailing edge
+      wingShape.lineTo(0.3 * side, -1.8);   // Wing root trailing edge
+      wingShape.closePath();
 
-    const leftWingGeo = wingGeo.clone();
-    leftWingGeo.scale(-1, 1, 1);
-    const leftWing = new THREE.Mesh(leftWingGeo, wingMat);
-    leftWing.position.set(-1.5, 0, 0.3);
-    this.meshGroup.add(leftWing);
+      const wingExtrude = { depth: 0.12, bevelEnabled: true, bevelSize: 0.04 };
+      const wingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrude);
+      wingGeo.rotateX(-Math.PI / 2); // Rotate flat in XZ plane with top facing +Y
 
-    // Vertical Wingtip Winglet Stabilizers with Cyan Beacons
-    [-3.8, 3.8].forEach(wx => {
-      const wingletGeo = new THREE.BoxGeometry(0.12, 0.9, 1.4);
+      const wingMesh = new THREE.Mesh(wingGeo, wingMat);
+      wingMesh.position.set(0, 0.02, 0);
+      this.meshGroup.add(wingMesh);
+
+      // Vertical Wingtip Winglet
+      const wingletGeo = new THREE.BoxGeometry(0.12, 0.9, 1.3);
       const winglet = new THREE.Mesh(wingletGeo, armorTrussMat);
-      winglet.position.set(wx, 0.35, 0.2);
+      winglet.position.set(side * 3.3, 0.38, 1.7);
       winglet.rotation.x = -0.15;
-      winglet.rotation.z = (wx < 0 ? -1 : 1) * 0.18;
+      winglet.rotation.z = -side * 0.18;
       this.meshGroup.add(winglet);
 
-      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.7, 0.08), edgeMat);
-      beacon.position.set(wx + (wx < 0 ? -0.04 : 0.04), 0.35, -0.4);
+      // Winglet Navigation Strobe Beacon
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), edgeMat);
+      beacon.position.set(side * 3.35, 0.38, 2.25);
       this.meshGroup.add(beacon);
+
+      // Neon Cyan Leading Edge Conduit
+      const conduitGeo = new THREE.BoxGeometry(0.08, 0.08, 2.6);
+      const conduit = new THREE.Mesh(conduitGeo, edgeMat);
+      conduit.position.set(side * 1.8, 0.08, 0.2);
+      conduit.rotation.y = -side * 0.58;
+      this.meshGroup.add(conduit);
     });
 
-    // ── 4. ✨ TWIN CANTED V-TAIL STABILIZER EMPENNAGE (Articulated Rudders) ──
-    const tailFinGeo = new THREE.BoxGeometry(0.1, 1.6, 2.2);
-    const rudderGeo = new THREE.BoxGeometry(0.08, 1.4, 0.4);
+    // ── 4. ✨ TWIN CANTED V-TAIL STABILIZERS (Articulated Rudders) ──
+    const tailFinGeo = new THREE.BoxGeometry(0.1, 1.6, 1.8);
+    const rudderGeo = new THREE.BoxGeometry(0.08, 1.3, 0.4);
 
-    [-0.85, 0.85].forEach((tx, idx) => {
+    [-0.75, 0.75].forEach((tx, idx) => {
       const side = idx === 0 ? -1 : 1;
       const tailGroup = new THREE.Group();
-      tailGroup.position.set(tx, 0.45, 1.8);
-      tailGroup.rotation.z = -side * 0.35; // Canted outward at 20 degrees
+      tailGroup.position.set(tx, 0.42, 1.6);
+      tailGroup.rotation.z = -side * 0.35; // Canted outward
       tailGroup.rotation.x = -0.28;       // Swept backwards
 
       const finMesh = new THREE.Mesh(tailFinGeo, wingMat);
@@ -366,18 +367,18 @@ export class PlayerShip {
       tailGroup.add(finMesh);
 
       // Titanium Leading Edge Armor Slat
-      const slatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.7, 0.3), armorTrussMat);
-      slatMesh.position.set(0, 0.7, 1.0);
+      const slatMesh = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.6, 0.25), armorTrussMat);
+      slatMesh.position.set(0, 0.7, -0.85);
       tailGroup.add(slatMesh);
 
       // Luminous Neon Cyan Trailing Beacon Strip
-      const beaconMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.5, 0.1), edgeMat);
-      beaconMesh.position.set(0, 0.7, -1.05);
+      const beaconMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.4, 0.08), edgeMat);
+      beaconMesh.position.set(0, 0.7, 0.85);
       tailGroup.add(beaconMesh);
 
       // Articulated Dynamic Rudder Surface
       const rudder = new THREE.Mesh(rudderGeo, darkAlloyMat);
-      rudder.position.set(0, 0.7, -0.85);
+      rudder.position.set(0, 0.7, 0.65);
       tailGroup.add(rudder);
 
       if (idx === 0) this.rudderL = rudder;
@@ -387,43 +388,43 @@ export class PlayerShip {
     });
 
     // ── 5. Articulated Wing Ailerons & Forward Canards ──
-    const aileronGeo = new THREE.BoxGeometry(1.3, 0.06, 0.35);
+    const aileronGeo = new THREE.BoxGeometry(1.2, 0.06, 0.35);
     this.aileronR = new THREE.Mesh(aileronGeo, wingMat);
-    this.aileronR.position.set(2.4, 0, 1.4);
+    this.aileronR.position.set(2.2, 0.04, 1.9);
     this.meshGroup.add(this.aileronR);
 
     this.aileronL = new THREE.Mesh(aileronGeo, wingMat);
-    this.aileronL.position.set(-2.4, 0, 1.4);
+    this.aileronL.position.set(-2.2, 0.04, 1.9);
     this.meshGroup.add(this.aileronL);
 
-    const canardGeo = new THREE.BoxGeometry(1.2, 0.05, 0.5);
-    canardGeo.rotateY(0.2);
+    const canardGeo = new THREE.BoxGeometry(1.0, 0.05, 0.45);
     this.canardR = new THREE.Mesh(canardGeo, wingMat);
     this.canardR.position.set(0.9, 0.08, -1.2);
+    this.canardR.rotation.y = 0.2;
     this.meshGroup.add(this.canardR);
 
-    this.canardL = this.canardR.clone();
-    this.canardL.position.x = -0.9;
+    this.canardL = new THREE.Mesh(canardGeo, wingMat);
+    this.canardL.position.set(-0.9, 0.08, -1.2);
     this.canardL.rotation.y = -0.2;
     this.meshGroup.add(this.canardL);
 
     // ── 6. 🚀 UNDERWING HEAVY MISSILE PYLONS & SWARM ORDNANCE ──
-    const mPylonGeo = new THREE.BoxGeometry(0.06, 0.22, 1.1);
-    const mBodyGeo = new THREE.CylinderGeometry(0.07, 0.07, 1.2, 8);
+    const mPylonGeo = new THREE.BoxGeometry(0.06, 0.2, 1.0);
+    const mBodyGeo = new THREE.CylinderGeometry(0.07, 0.07, 1.1, 8);
     mBodyGeo.rotateX(Math.PI / 2);
-    const mHeadGeo = new THREE.ConeGeometry(0.08, 0.32, 8);
-    mHeadGeo.rotateX(Math.PI / 2);
+    const mHeadGeo = new THREE.ConeGeometry(0.08, 0.3, 8);
+    mHeadGeo.rotateX(-Math.PI / 2); // Warhead points forward at -Z!
 
-    [-2.2, 2.2].forEach(mx => {
+    [-1.9, 1.9].forEach(mx => {
       const pylonGroup = new THREE.Group();
-      pylonGroup.position.set(mx, -0.22, 0.3);
+      pylonGroup.position.set(mx, -0.2, 0.4);
 
       const pylon = new THREE.Mesh(mPylonGeo, darkAlloyMat);
       pylon.position.set(0, 0.1, 0);
       pylonGroup.add(pylon);
 
       // Micro Kinetic Swarm Missiles
-      [-0.15, 0.15].forEach(ox => {
+      [-0.14, 0.14].forEach(ox => {
         const missile = new THREE.Group();
         missile.position.set(ox, -0.08, 0);
 
@@ -431,11 +432,11 @@ export class PlayerShip {
         missile.add(mBody);
 
         const mHead = new THREE.Mesh(mHeadGeo, glowAmberMat);
-        mHead.position.set(0, 0, 0.72);
+        mHead.position.set(0, 0, -0.65);
         missile.add(mHead);
 
         const mLens = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), edgeMat);
-        mLens.position.set(0, 0, 0.88);
+        mLens.position.set(0, 0, -0.8);
         missile.add(mLens);
 
         pylonGroup.add(missile);
@@ -446,48 +447,54 @@ export class PlayerShip {
 
     // ── 7. Triple Rapid-Pulse Laser Muzzles ──
     this.muzzleOffsets = [
-      new THREE.Vector3(-2.6, 0, -0.6),
+      new THREE.Vector3(-2.6, 0, 0.0),
       new THREE.Vector3(0, -0.15, -3.2),
-      new THREE.Vector3(2.6, 0, -0.6)
+      new THREE.Vector3(2.6, 0, 0.0)
     ];
     this.muzzleOffsets.forEach(pos => {
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), edgeMat);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), edgeMat);
       tip.position.copy(pos);
       this.meshGroup.add(tip);
     });
 
-    // ── 8. Twin High-Thrust Afterburning Engines with Mach Shock Diamonds ──
-    [-0.65, 0.65].forEach(x => {
-      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.44, 1.1, 12), new THREE.MeshStandardMaterial({ color: 0x08101c, metalness: 0.95 }));
-      eng.rotateX(Math.PI / 2);
-      eng.position.set(x, -0.08, 2.3);
+    // ── 8. Twin High-Thrust Afterburning Engines (Firing Directly Backwards +Z) ──
+    const engGeo = new THREE.CylinderGeometry(0.3, 0.42, 1.1, 12);
+    engGeo.rotateX(Math.PI / 2);
+    const engMat = new THREE.MeshStandardMaterial({ color: 0x08101c, metalness: 0.95, roughness: 0.2 });
+
+    const flameGeo = new THREE.ConeGeometry(0.24, 1.5, 10);
+    flameGeo.rotateX(Math.PI / 2); // Base at nozzle, apex pointing backward (+Z)
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+
+    [-0.6, 0.6].forEach(x => {
+      const eng = new THREE.Mesh(engGeo, engMat);
+      eng.position.set(x, -0.06, 2.1);
       this.meshGroup.add(eng);
 
-      // Multi-Stage Flame
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.26, 1.5, 10), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
-      flame.rotation.x = -Math.PI / 2;
-      flame.position.set(0, 0, 0.65);
-      eng.add(flame);
+      // Exhaust Flame firing directly out the back (+Z)
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(x, -0.06, 3.2);
+      this.meshGroup.add(flame);
       this.flameMeshes.push(flame);
 
       // Mach Shock Diamond Disks
       for (let d = 0; d < 3; d++) {
-        const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.18 - d * 0.03, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
-        dia.position.set(0, 0, 0.35 + d * 0.35);
-        eng.add(dia);
+        const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16 - d * 0.03, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+        dia.position.set(x, -0.06, 2.5 + d * 0.35);
+        this.meshGroup.add(dia);
         this.shockDiamonds.push(dia);
       }
     });
 
-    this.wingtipOffsets = [new THREE.Vector3(-3.8, 0, 0.3), new THREE.Vector3(3.8, 0, 0.3)];
-    this.engineTrailOffsets = [new THREE.Vector3(-0.65, -0.08, 3.0), new THREE.Vector3(0.65, -0.08, 3.0)];
+    this.wingtipOffsets = [new THREE.Vector3(-3.4, 0, 1.7), new THREE.Vector3(3.4, 0, 1.7)];
+    this.engineTrailOffsets = [new THREE.Vector3(-0.6, -0.06, 2.8), new THREE.Vector3(0.6, -0.06, 2.8)];
 
     // RCS Quad Ports (Nose and Wingtips)
     this.rcsPorts = [
       { pos: new THREE.Vector3(0, 0.3, -2.6), dirY: 1, dirX: 0 },
       { pos: new THREE.Vector3(0, -0.3, -2.6), dirY: -1, dirX: 0 },
-      { pos: new THREE.Vector3(-3.6, 0, 0.2), dirY: 0, dirX: -1 },
-      { pos: new THREE.Vector3(3.6, 0, 0.2), dirY: 0, dirX: 1 }
+      { pos: new THREE.Vector3(-3.2, 0, 1.5), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(3.2, 0, 1.5), dirY: 0, dirX: 1 }
     ];
 
     this.engineLight = new THREE.PointLight(0x00f3ff, 1.8, 10);
@@ -495,7 +502,7 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLight);
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ────────────────────────────────────────────────────────────
   // 2. ðŸ›¡ï¸ DREADNOUGHT: "Titan Colossus" (Recoil Physics & Radiator Vents)
   // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   buildDreadnoughtMesh() {
