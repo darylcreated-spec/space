@@ -313,10 +313,32 @@ export class CollisionSystem {
               let dmg = laser.isCritical ? 75 : 25;
               let hitSub = false;
 
+              // Check Shield Generators
+              if (battleship.shieldGenerators) {
+                for (const g of battleship.shieldGenerators) {
+                  if (!g.isDead && g.mesh && lPos.distanceTo(g.mesh.getWorldPosition(this._tempVec1)) < 5.0) {
+                    battleship.takeShieldGenDamage(g.id, dmg);
+                    hitSub = true;
+                    break;
+                  }
+                }
+              }
+
+              // Check Missile Silo Pods
+              if (!hitSub && battleship.missilePods) {
+                for (const p of battleship.missilePods) {
+                  if (!p.isDead && p.mesh && lPos.distanceTo(p.mesh.getWorldPosition(this._tempVec1)) < 4.5) {
+                    battleship.takeMissilePodDamage(p.id, dmg);
+                    hitSub = true;
+                    break;
+                  }
+                }
+              }
+
               // Check Triple-Railgun Turrets
-              if (battleship.turrets) {
+              if (!hitSub && battleship.turrets) {
                 for (const t of battleship.turrets) {
-                  if (!t.isDead && t.mesh && lPos.distanceTo(t.mesh.getWorldPosition(this._tempVec1)) < 4.5) {
+                  if (!t.isDead && t.mesh && lPos.distanceTo(t.mesh.getWorldPosition(this._tempVec1)) < 4.8) {
                     battleship.takeTurretDamage(t.id, dmg);
                     hitSub = true;
                     break;
@@ -324,20 +346,9 @@ export class CollisionSystem {
                 }
               }
 
-              // Check Engine Nacelles
-              if (!hitSub && battleship.subsystems) {
-                for (const sub of battleship.subsystems) {
-                  if (!sub.isDead && sub.mesh && lPos.distanceTo(sub.mesh.getWorldPosition(this._tempVec1)) < 5.0) {
-                    battleship.takeSubsystemDamage(sub.id, dmg);
-                    hitSub = true;
-                    break;
-                  }
-                }
-              }
-
-              // Main Hull
+              // Main Hull / Armor Core
               if (!hitSub) {
-                const dead = battleship.takeDamage(dmg);
+                const dead = battleship.takeDamage(null, dmg);
                 if (dead) {
                   gameManager.addScore(battleship.scoreValue);
                   gameManager.addScrap(450);
