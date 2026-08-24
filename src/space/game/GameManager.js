@@ -411,9 +411,9 @@ export class GameManager {
 
   spawnCommandMothership() {
     this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Critical Threat! Leviathan Command Mothership Approaching! Destroy Aegis Escort Frigates!", true);
+    this.voiceAnnouncer.speak("Warning! Leviathan Command Mothership Approaching! Destroy Entrance Shield Generators to Breach Trench!", true);
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("CRITICAL: Leviathan Extreme Command Mothership detected! Destroy the 4 tethered Aegis Shield-Frigates to breach its core barrier!", "STARBOUND COMMAND", 6.0);
+      this.spaceHUD.showRadioTransmission("FINAL SIEGE: Leviathan Command Mothership detected! Destroy the dual Shield Generators at the entrance pylons to lower the Plasma Shield, then fly inside and sever the 4 Magnetic Couplings!", "STARBOUND COMMAND", 8.0);
       this.spaceHUD.showWaveBanner("APEX COMMAND SIEGE", "LEVIATHAN COMMAND MOTHERSHIP");
     }
     if (this.spaceScene) {
@@ -653,9 +653,9 @@ export class GameManager {
       case 'MOTHERSHIP': {
         this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
         if (this.activeBoss.meshGroup) {
-          this.activeBoss.meshGroup.position.set(0, 2, -65);
-          this.activeBoss.meshGroup.rotation.set(0.2, 0.35, 0);
-          this.activeBoss.meshGroup.scale.set(0.85, 0.85, 0.85);
+          this.activeBoss.meshGroup.position.set(0, 3, -62);
+          this.activeBoss.meshGroup.rotation.set(0.12, 0.28, 0);
+          this.activeBoss.meshGroup.scale.set(0.8, 0.8, 0.8);
         }
         this.spaceHUD?.showWaveBanner("INSPECTING", "LEVIATHAN COMMAND MOTHERSHIP");
         break;

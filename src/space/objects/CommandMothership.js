@@ -1,494 +1,714 @@
 import * as THREE from 'three';
 
 /**
- * Procedural Normal Map for Leviathan Command Citadel
+ * Procedural Hull Texture for Leviathan Mothership Outer Armor
  */
-function generateCitadelNormalMap() {
+function generateMothershipHullTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgb(128, 128, 255)';
-  ctx.fillRect(0, 0, 256, 256);
 
-  ctx.strokeStyle = 'rgb(60, 60, 180)';
-  ctx.lineWidth = 4;
-  for (let i = 0; i < 256; i += 32) {
-    ctx.strokeRect(i, 0, 32, 256);
-    ctx.strokeRect(0, i, 256, 32);
+  // Base dark industrial carbon-titanium
+  ctx.fillStyle = '#121a26';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Heavy steel armor plate seams
+  ctx.strokeStyle = '#27384e';
+  ctx.lineWidth = 3;
+  for (let x = 0; x < 512; x += 64) {
+    ctx.strokeRect(x, 0, 64, 512);
   }
+  for (let y = 0; y < 512; y += 64) {
+    ctx.strokeRect(0, y, 512, 64);
+  }
+
+  // Micro-rivets along plating boundaries
+  ctx.fillStyle = '#6580a3';
+  for (let y = 8; y < 512; y += 32) {
+    for (let x = 8; x < 512; x += 64) {
+      ctx.beginPath();
+      ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Neon gold/cyan circuit conduits
+  ctx.strokeStyle = '#ffaa00';
+  ctx.lineWidth = 2.0;
+  ctx.beginPath();
+  ctx.moveTo(0, 128); ctx.lineTo(192, 128); ctx.lineTo(256, 192); ctx.lineTo(512, 192);
+  ctx.stroke();
+
   return new THREE.CanvasTexture(canvas);
 }
 
+/**
+ * Procedural Texture for Mechanical Floor Grating & Warning Chevrons
+ */
+function generateInteriorGrateTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Steel grating floor base
+  ctx.fillStyle = '#101620';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Diamond grating mesh
+  ctx.strokeStyle = '#263447';
+  ctx.lineWidth = 1.5;
+  for (let i = -512; i < 1024; i += 16) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0); ctx.lineTo(i + 512, 512);
+    ctx.moveTo(i, 512); ctx.lineTo(i + 512, 0);
+    ctx.stroke();
+  }
+
+  // Amber hazard stripes along walkways
+  ctx.fillStyle = '#ffaa00';
+  for (let i = 0; i < 8; i++) {
+    const xOff = 32 + i * 56;
+    ctx.beginPath();
+    ctx.moveTo(xOff, 0);
+    ctx.lineTo(xOff + 20, 0);
+    ctx.lineTo(xOff - 10, 48);
+    ctx.lineTo(xOff - 30, 48);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+// ============================================================
+// FINAL APEX BOSS — Leviathan Command Mothership
+// Enormous Superstructure with Fly-in Trench / Hangar Maw,
+// Heavily Detailed Mechanical Top & Bottom (Trusses, Rotating Fans, Grating),
+// Dual Superconducting Shield Generators & Plasma Forcefield Barrier,
+// Internal CIWS Laser Turrets, and Suspended Power Core with
+// 4 Magnetic Couplings that drop and rupture upon destruction!
+// ============================================================
 export class CommandMothership {
   constructor(scene, particleManager, spawnZ = -160) {
     this.scene = scene;
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    this.meshGroup.position.set(0, 4, spawnZ);
+    this.meshGroup.position.set(0, 2, spawnZ);
 
     // -- Boss Telemetry & Stats --
-    this.coreHp = 10000;
-    this.maxCoreHp = 10000;
-    this.hitRadius = 55.0;
-    this.radius = 55.0;
+    this.coreHp = 6000;
+    this.maxCoreHp = 6000;
+    this.hitRadius = 60.0;
+    this.radius = 60.0;
     this.isDead = false;
-    this.scoreValue = 8500;
+    this.scoreValue = 100000;
 
-    // Tethered Invulnerability Shield (Protected by 4 Aegis Escort Frigates)
-    this.hasShield = true;
-    this.aegisFrigates = [];
-    this.tetherLines = [];
+    this.targetZ = -78;
+    this.speed = 8.5;
+    this._time = 0;
 
-    // 8 Automated CIWS Point-Defense Turrets
-    this.ciwsTurrets = [];
+    // ── 1. Dual Superconducting Shield Generators (Protecting the Plasma Shield) ──
+    this.hasPlasmaShield = true;
+    this.shieldGenerators = [
+      { id: 0, name: 'PORT SHIELD GENERATOR',      relPos: new THREE.Vector3(-18.5, 0, 26), hp: 1100, maxHp: 1100, isDead: false, mesh: null, ringMesh: null, reticle: null },
+      { id: 1, name: 'STARBOARD SHIELD GENERATOR', relPos: new THREE.Vector3( 18.5, 0, 26), hp: 1100, maxHp: 1100, isDead: false, mesh: null, ringMesh: null, reticle: null },
+    ];
 
-    // Launch Catapults & Combat Cycles
-    this.targetZ = -105;
-    this.speed = 10.0;
-    this.droneLaunchTimer = 5.0;
-    this.stealthLaunchTimer = 12.0;
-    this.ciwsFireTimer = 0.8;
-    this.annihilatorBeamTimer = 14.0;
-    this.isFiringAnnihilator = false;
-    this.annihilatorChargeTimer = 0;
+    // ── 2. 4 Magnetic Suspension Couplings (Holding the Power Core in Place) ──
+    this.coreCouplings = [
+      { id: 0, name: 'NORTH-WEST MAGNETIC COUPLING', relPos: new THREE.Vector3(-8.5,  6.0, -18.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, clampArm: null, reticle: null },
+      { id: 1, name: 'NORTH-EAST MAGNETIC COUPLING', relPos: new THREE.Vector3( 8.5,  6.0, -18.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, clampArm: null, reticle: null },
+      { id: 2, name: 'SOUTH-WEST MAGNETIC COUPLING', relPos: new THREE.Vector3(-8.5, -5.5, -18.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, clampArm: null, reticle: null },
+      { id: 3, name: 'SOUTH-EAST MAGNETIC COUPLING', relPos: new THREE.Vector3( 8.5, -5.5, -18.0), hp: 1500, maxHp: 1500, isDead: false, mesh: null, clampArm: null, reticle: null },
+    ];
 
-    // Death sequence
+    // ── 3. Internal CIWS Point-Defense Laser Turrets ──
+    this.internalTurrets = [
+      { id: 0, name: 'CEILING FORWARD TURRET', relPos: new THREE.Vector3(-7,  7.2,  12), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'CEILING MID TURRET',     relPos: new THREE.Vector3( 7,  7.2,  12), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'FLOOR PORT TURRET',      relPos: new THREE.Vector3(-8, -6.2,  -2), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'FLOOR STARBOARD TURRET', relPos: new THREE.Vector3( 8, -6.2,  -2), hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'CORE CHAMBER CEILING',   relPos: new THREE.Vector3( 0,  7.4, -26), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'CORE CHAMBER FLOOR',     relPos: new THREE.Vector3( 0, -6.4, -26), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+    ];
+
+    this.reticleMeshes = [];
+    this.turbineFans = [];
+    this.coreGyroRings = [];
+
+    // Core Drop & Rupture Physics State
+    this.isCoreDropping = false;
+    this.isCoreRuptured = false;
+    this.coreDropY = 0.5;
+    this.coreDropVelocity = 0;
     this.isDying = false;
     this.deathTimer = 0;
 
-    this.buildMothership();
-    this.buildAegisFrigates();
+    this.fireTimer = 0.8;
+    this.droneLaunchTimer = 5.0;
+
+    this._buildMothership();
     this.scene.add(this.meshGroup);
   }
 
-  buildMothership() {
-    const normalMap = generateCitadelNormalMap();
+  _buildMothership() {
+    const hullTex = generateMothershipHullTexture();
+    const grateTex = generateInteriorGrateTexture();
 
-    this.citadelMat = new THREE.MeshStandardMaterial({
-      color: 0x101622,
+    const hullMat = new THREE.MeshStandardMaterial({
+      color: 0x223246,
+      bumpMap: hullTex,
+      bumpScale: 0.14,
       metalness: 0.95,
+      roughness: 0.2,
+      emissive: 0x0c1622,
+      emissiveIntensity: 0.3
+    });
+
+    const floorGrateMat = new THREE.MeshStandardMaterial({
+      color: 0x1a2636,
+      map: grateTex,
+      metalness: 0.92,
       roughness: 0.25,
-      normalMap: normalMap
+      emissive: 0x141005,
+      emissiveIntensity: 0.2
     });
 
-    this.platingMat = new THREE.MeshStandardMaterial({
-      color: 0x1f2c42,
-      metalness: 0.9,
-      roughness: 0.3,
-      normalMap: normalMap
+    const mechanicalTrussMat = new THREE.MeshStandardMaterial({
+      color: 0x2f4157,
+      metalness: 0.96,
+      roughness: 0.18
     });
 
-    this.glowGoldMat = new THREE.MeshBasicMaterial({
-      color: 0xffb700,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending
+    const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const glowMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff00bb, transparent: true, opacity: 0.85 });
+
+    // ── 1. Colossal Outer Dreadnought Hull Spire (140m length, 56m width, 28m height) ──
+    // Port Outer Flank
+    const portFlankGeo = new THREE.BoxGeometry(16, 26, 120);
+    const portFlank = new THREE.Mesh(portFlankGeo, hullMat);
+    portFlank.position.set(-26, 0, -10);
+    this.meshGroup.add(portFlank);
+
+    // Starboard Outer Flank
+    const stbFlankGeo = new THREE.BoxGeometry(16, 26, 120);
+    const stbFlank = new THREE.Mesh(stbFlankGeo, hullMat);
+    stbFlank.position.set(26, 0, -10);
+    this.meshGroup.add(stbFlank);
+
+    // Command Spire Bridge Tower (Dorsal Aft)
+    const spireBridgeGeo = new THREE.BoxGeometry(24, 12, 45);
+    const spireBridge = new THREE.Mesh(spireBridgeGeo, hullMat);
+    spireBridge.position.set(0, 16, -30);
+    this.meshGroup.add(spireBridge);
+
+    // Bridge Observation Deck Visor
+    const bridgeVisor = new THREE.Mesh(new THREE.BoxGeometry(18, 2.5, 6), glowAmberMat);
+    bridgeVisor.position.set(0, 19, -15);
+    this.meshGroup.add(bridgeVisor);
+
+    // ── 2. Mechanical Interior Trench Floor (Bottom) ──
+    const floorGeo = new THREE.BoxGeometry(36, 3.5, 110);
+    const floorMesh = new THREE.Mesh(floorGeo, floorGrateMat);
+    floorMesh.position.set(0, -9.5, -10);
+    this.meshGroup.add(floorMesh);
+
+    // Hydraulic Floor Expansion Ribs & Power Conduit Tracks
+    for (let z = -60; z <= 35; z += 15) {
+      const ribGeo = new THREE.BoxGeometry(35.5, 1.2, 2.4);
+      const rib = new THREE.Mesh(ribGeo, mechanicalTrussMat);
+      rib.position.set(0, -7.5, z);
+      this.meshGroup.add(rib);
+
+      // Embedded Glowing Coolant Conduit
+      const condGeo = new THREE.CylinderGeometry(0.3, 0.3, 34, 6);
+      condGeo.rotateZ(Math.PI / 2);
+      const cond = new THREE.Mesh(condGeo, glowCyanMat);
+      cond.position.set(0, -6.8, z);
+      this.meshGroup.add(cond);
+    }
+
+    // ── 3. Mechanical Interior Trench Ceiling (Top) ──
+    const roofGeo = new THREE.BoxGeometry(36, 3.5, 110);
+    const roofMesh = new THREE.Mesh(roofGeo, hullMat);
+    roofMesh.position.set(0, 9.5, -10);
+    this.meshGroup.add(roofMesh);
+
+    // Overhead Structural Steel Trusses & Girders
+    for (let z = -60; z <= 35; z += 15) {
+      const trussGroup = new THREE.Group();
+      trussGroup.position.set(0, 7.5, z);
+
+      const tBeamGeo = new THREE.BoxGeometry(35.5, 1.6, 2.0);
+      const tBeam = new THREE.Mesh(tBeamGeo, mechanicalTrussMat);
+      trussGroup.add(tBeam);
+
+      // Dangling Conduit Cables
+      const cableGeo = new THREE.CylinderGeometry(0.2, 0.2, 34, 6);
+      cableGeo.rotateZ(Math.PI / 2);
+      const cable = new THREE.Mesh(cableGeo, glowAmberMat);
+      cable.position.set(0, -0.9, 0);
+      trussGroup.add(cable);
+
+      this.meshGroup.add(trussGroup);
+    }
+
+    // 4 Animated Rotating Ventilation / Exhaust Turbines in Ceiling
+    [-45, -25, -5, 15].forEach(zPos => {
+      const turbineCowlGeo = new THREE.CylinderGeometry(4.2, 4.2, 2.0, 16);
+      turbineCowlGeo.rotateX(Math.PI / 2);
+      const turbineCowl = new THREE.Mesh(turbineCowlGeo, mechanicalTrussMat);
+      turbineCowl.position.set(0, 8.0, zPos);
+      this.meshGroup.add(turbineCowl);
+
+      // Rotating Fan Blades
+      const fanGroup = new THREE.Group();
+      fanGroup.position.set(0, 7.8, zPos);
+      for (let f = 0; f < 6; f++) {
+        const fAng = (f / 6) * Math.PI * 2;
+        const bladeGeo = new THREE.BoxGeometry(0.4, 3.6, 0.2);
+        const blade = new THREE.Mesh(bladeGeo, mechanicalTrussMat);
+        blade.position.set(Math.cos(fAng) * 1.8, Math.sin(fAng) * 1.8, 0);
+        blade.rotation.z = fAng + 0.3;
+        fanGroup.add(blade);
+      }
+      this.meshGroup.add(fanGroup);
+      this.turbineFans.push(fanGroup);
+
+      // Turbine Interior Warning Light
+      const tLight = new THREE.PointLight(0xff5500, 3.5, 30);
+      tLight.position.set(0, 7.0, zPos);
+      this.meshGroup.add(tLight);
     });
 
-    this.glowCyanMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending
+    // ── 4. Dual Superconducting Shield Generator Hubs ──
+    const genPylonGeo = new THREE.CylinderGeometry(1.8, 2.8, 12.0, 8);
+    const genRingGeo = new THREE.TorusGeometry(3.2, 0.45, 10, 24);
+
+    this.shieldGenerators.forEach(g => {
+      const gGroup = new THREE.Group();
+      gGroup.position.copy(g.relPos);
+
+      // Support Pylon
+      const pylon = new THREE.Mesh(genPylonGeo, mechanicalTrussMat);
+      gGroup.add(pylon);
+
+      // Superconducting Coil Ring
+      const ring = new THREE.Mesh(genRingGeo, glowCyanMat);
+      ring.position.set(0, 2.5, 0);
+      ring.rotation.x = Math.PI / 2;
+      gGroup.add(ring);
+
+      // Power Core Crystal
+      const crystalGeo = new THREE.OctahedronGeometry(1.6, 0);
+      const crystal = new THREE.Mesh(crystalGeo, glowMagentaMat);
+      crystal.position.set(0, 2.5, 0);
+      gGroup.add(crystal);
+
+      // 3D Target Reticle
+      const reticleGeo = new THREE.RingGeometry(2.4, 3.0, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff00bb, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 2.5, 3.0);
+      gGroup.add(reticle);
+
+      this.meshGroup.add(gGroup);
+      g.mesh = gGroup;
+      g.ringMesh = ring;
+      g.reticle = reticle;
+      this.reticleMeshes.push(reticle);
     });
 
-    // 1. Massive Diamond-Spire Citadel Hull (85m Span)
-    const hullGeo = new THREE.CylinderGeometry(18.0, 36.0, 22.0, 8);
-    hullGeo.rotateX(Math.PI / 2);
-    hullGeo.scale(1.2, 0.5, 1.4);
-    const hullMesh = new THREE.Mesh(hullGeo, this.citadelMat);
-    this.meshGroup.add(hullMesh);
-
-    // 2. Multi-Tier Command Bridge Spire Tower
-    const spireGeo = new THREE.CylinderGeometry(4.0, 10.0, 16.0, 8);
-    const spireMesh = new THREE.Mesh(spireGeo, this.platingMat);
-    spireMesh.position.set(0, 12.0, -8.0);
-    this.meshGroup.add(spireMesh);
-
-    const bridgeWindowGeo = new THREE.CylinderGeometry(4.2, 8.2, 2.0, 8);
-    const bridgeWindowMesh = new THREE.Mesh(bridgeWindowGeo, this.glowGoldMat);
-    bridgeWindowMesh.position.set(0, 14.0, -8.0);
-    this.meshGroup.add(bridgeWindowMesh);
-
-    // 3. Dual Rotating Catapult Flight Decks (Port & Starboard)
-    [-24.0, 24.0].forEach((hx, idx) => {
-      const hangarGroup = new THREE.Group();
-      hangarGroup.position.set(hx, 0, 0);
-
-      const hangarGeo = new THREE.BoxGeometry(14.0, 7.0, 38.0);
-      const hangarMesh = new THREE.Mesh(hangarGeo, this.platingMat);
-      hangarGroup.add(hangarMesh);
-
-      // Forcefield Launch Bay Maw
-      const bayMawGeo = new THREE.PlaneGeometry(10.0, 4.5);
-      const bayMawMesh = new THREE.Mesh(bayMawGeo, this.glowCyanMat);
-      bayMawMesh.position.set(0, 0, 19.1);
-      hangarGroup.add(bayMawMesh);
-
-      this.meshGroup.add(hangarGroup);
-    });
-
-    // 4. Eight Automated CIWS Point-Defense Turrets
-    const ciwsOffsets = [
-      new THREE.Vector3(-18, 6, 16),
-      new THREE.Vector3(18, 6, 16),
-      new THREE.Vector3(-22, 6, -12),
-      new THREE.Vector3(22, 6, -12),
-      new THREE.Vector3(-14, -5, 14),
-      new THREE.Vector3(14, -5, 14),
-      new THREE.Vector3(-8, 9, 4),
-      new THREE.Vector3(8, 9, 4)
-    ];
-
-    ciwsOffsets.forEach((off, idx) => {
-      const turretGroup = new THREE.Group();
-      turretGroup.position.copy(off);
-
-      const baseGeo = new THREE.CylinderGeometry(1.4, 1.8, 0.8, 8);
-      const baseMesh = new THREE.Mesh(baseGeo, this.citadelMat);
-      turretGroup.add(baseMesh);
-
-      const barrelGeo = new THREE.CylinderGeometry(0.12, 0.15, 2.8, 6);
-      barrelGeo.rotateX(Math.PI / 2);
-      const barrelMesh = new THREE.Mesh(barrelGeo, this.glowGoldMat);
-      barrelMesh.position.set(0, 0.4, 1.4);
-      turretGroup.add(barrelMesh);
-
-      this.meshGroup.add(turretGroup);
-
-      this.ciwsTurrets.push({
-        id: `mothership_ciws_${idx}`,
-        mesh: turretGroup,
-        barrelMesh: barrelMesh,
-        relPos: off.clone(),
-        hp: 550,
-        maxHp: 550,
-        isDead: false
-      });
-    });
-
-    // 5. Central Annihilator Lance Core (Prow)
-    const coreGeo = new THREE.SphereGeometry(3.5, 16, 16);
-    this.coreMesh = new THREE.Mesh(coreGeo, this.glowGoldMat);
-    this.coreMesh.position.set(0, 0, 24.0);
-    this.meshGroup.add(this.coreMesh);
-
-    // 6. Colossal Hexagonal Invulnerability Shield Bubble
-    const shieldGeo = new THREE.IcosahedronGeometry(42.0, 2);
-    this.shieldMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
+    // ── 5. Shimmering Plasma Forcefield Shield Barrier Grid ──
+    const shieldGridGeo = new THREE.PlaneGeometry(35.0, 16.0, 12, 8);
+    this.plasmaShieldMat = new THREE.MeshBasicMaterial({
+      color: 0xff00bb,
       wireframe: true,
       transparent: true,
-      opacity: 0.4,
-      blending: THREE.AdditiveBlending
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
     });
-    this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
-    this.meshGroup.add(this.shieldMesh);
-  }
+    this.plasmaShieldMesh = new THREE.Mesh(shieldGridGeo, this.plasmaShieldMat);
+    this.plasmaShieldMesh.position.set(0, 0, 18.0);
+    this.meshGroup.add(this.plasmaShieldMesh);
 
-  buildAegisFrigates() {
-    // 4 Aegis Escort Frigates in Diamond Formation
-    const frigateAngles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
-    frigateAngles.forEach((angle, idx) => {
-      const frigateGroup = new THREE.Group();
-      const dist = 48.0;
-      const fx = Math.cos(angle) * dist;
-      const fy = Math.sin(angle) * (dist * 0.45);
-      frigateGroup.position.set(fx, fy, -10.0);
+    // ── 5B. Trench & Entrance Interior Illumination ──
+    this.trenchLight = new THREE.PointLight(0x00f3ff, 10.0, 90);
+    this.trenchLight.position.set(0, 0, 5);
+    this.meshGroup.add(this.trenchLight);
 
-      // Frigate Hull
-      const fGeo = new THREE.ConeGeometry(2.5, 8.0, 5);
-      fGeo.rotateX(Math.PI / 2);
-      const fMesh = new THREE.Mesh(fGeo, this.platingMat);
-      frigateGroup.add(fMesh);
+    this.shieldEntranceLight = new THREE.PointLight(0xff00bb, 8.0, 60);
+    this.shieldEntranceLight.position.set(0, 0, 26);
+    this.meshGroup.add(this.shieldEntranceLight);
 
-      // Energy Shield Emitter Core
-      const eGeo = new THREE.SphereGeometry(1.2, 10, 10);
-      const eMesh = new THREE.Mesh(eGeo, this.glowCyanMat);
-      eMesh.position.set(0, 0, 2.0);
-      frigateGroup.add(eMesh);
+    // ── 6. Internal CIWS Point-Defense Laser Turrets ──
+    const turretBaseGeo = new THREE.CylinderGeometry(2.0, 2.6, 1.0, 8);
+    const barrelGeo = new THREE.CylinderGeometry(0.18, 0.24, 4.2, 6);
+    barrelGeo.rotateX(Math.PI / 2);
 
-      this.meshGroup.add(frigateGroup);
+    this.internalTurrets.forEach(t => {
+      const tGroup = new THREE.Group();
+      tGroup.position.copy(t.relPos);
 
-      // Visual Energy Tether Line to Mothership Core
-      const tetherGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(fx, fy, -10.0),
-        new THREE.Vector3(0, 0, 0)
-      ]);
-      const tetherMat = new THREE.LineBasicMaterial({
-        color: 0x00f3ff,
-        transparent: true,
-        opacity: 0.75,
-        blending: THREE.AdditiveBlending
+      const base = new THREE.Mesh(turretBaseGeo, mechanicalTrussMat);
+      tGroup.add(base);
+
+      const bGroup = new THREE.Group();
+      bGroup.position.set(0, 0, 0.6);
+
+      [-0.7, 0.7].forEach(xOff => {
+        const b = new THREE.Mesh(barrelGeo, mechanicalTrussMat);
+        b.position.set(xOff, 0, 2.0);
+        bGroup.add(b);
+
+        const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.26, 6, 6), glowAmberMat);
+        muzzle.position.set(xOff, 0, 4.0);
+        bGroup.add(muzzle);
       });
-      const tetherLine = new THREE.Line(tetherGeo, tetherMat);
-      this.meshGroup.add(tetherLine);
 
-      this.aegisFrigates.push({
-        id: `aegis_frigate_${idx}`,
-        mesh: frigateGroup,
-        tetherLine: tetherLine,
-        angle: angle,
-        orbitRadius: dist,
-        hp: 850,
-        maxHp: 850,
-        isDead: false
-      });
+      tGroup.add(bGroup);
+
+      const reticleGeo = new THREE.RingGeometry(1.6, 2.0, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 2.8);
+      tGroup.add(reticle);
+
+      this.meshGroup.add(tGroup);
+      t.mesh = tGroup;
+      t.barrelGroup = bGroup;
+      t.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
+
+    // ── 7. The Suspended Central Power Core & 4 Magnetic Couplings ──
+    this.coreHousingGroup = new THREE.Group();
+    this.coreHousingGroup.position.set(0, 0, -18.0);
+
+    // Glowing Power Core Sphere (10m Diameter)
+    const powerCoreGeo = new THREE.SphereGeometry(5.0, 24, 24);
+    this.powerCoreMat = new THREE.MeshStandardMaterial({
+      color: 0x3a1200,
+      emissive: 0xff5500,
+      emissiveIntensity: 6.0,
+      roughness: 0.05,
+      metalness: 0.8
+    });
+    this.powerCoreMesh = new THREE.Mesh(powerCoreGeo, this.powerCoreMat);
+    this.coreHousingGroup.add(this.powerCoreMesh);
+
+    // Counter-Rotating Gyroscopic Containment Rings
+    [6.8, 8.2].forEach((rRad, idx) => {
+      const gGeo = new THREE.TorusGeometry(rRad, 0.4, 8, 36);
+      const gMat = new THREE.MeshBasicMaterial({ color: idx === 0 ? 0x00f3ff : 0xffaa00, transparent: true, opacity: 0.85 });
+      const gRing = new THREE.Mesh(gGeo, gMat);
+      this.coreHousingGroup.add(gRing);
+      this.coreGyroRings.push({ mesh: gRing, speed: idx === 0 ? 1.8 : -1.4 });
+    });
+
+    // Core Illumination Point Light
+    this.coreLight = new THREE.PointLight(0xff6600, 18.0, 85);
+    this.coreHousingGroup.add(this.coreLight);
+
+    this.meshGroup.add(this.coreHousingGroup);
+
+    // ── 8. 4 Heavy Magnetic Suspension Couplings / Clamp Pylons ──
+    const clampArmGeo = new THREE.BoxGeometry(2.4, 2.4, 6.0);
+    const clampLockGeo = new THREE.CylinderGeometry(1.6, 2.0, 2.8, 8);
+    clampLockGeo.rotateX(Math.PI / 2);
+
+    this.coreCouplings.forEach(c => {
+      const cGroup = new THREE.Group();
+      cGroup.position.copy(c.relPos);
+
+      // Hydraulic Mounting Arm
+      const arm = new THREE.Mesh(clampArmGeo, mechanicalTrussMat);
+      cGroup.add(arm);
+
+      // Magnetic Lock Hub
+      const lockHub = new THREE.Mesh(clampLockGeo, mechanicalTrussMat);
+      lockHub.position.set(0, 0, 2.5);
+      cGroup.add(lockHub);
+
+      // Glowing Magnetic Lock Ring
+      const lockRing = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.25, 6, 18), glowCyanMat);
+      lockRing.position.set(0, 0, 3.5);
+      cGroup.add(lockRing);
+
+      // 3D Target Reticle for Coupling
+      const reticleGeo = new THREE.RingGeometry(2.2, 2.7, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 0, 4.2);
+      cGroup.add(reticle);
+
+      this.meshGroup.add(cGroup);
+      c.mesh = cGroup;
+      c.clampArm = arm;
+      c.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
+
+    // ── 9. Rear Fusion Thrust Array ──
+    const nozzleGeo = new THREE.CylinderGeometry(3.5, 2.2, 6.0, 10);
+    nozzleGeo.rotateX(Math.PI / 2);
+    [[-18, 0], [18, 0], [0, 8], [0, -4]].forEach(([nx, ny]) => {
+      const nozzle = new THREE.Mesh(nozzleGeo, mechanicalTrussMat);
+      nozzle.position.set(nx, ny, -68);
+      this.meshGroup.add(nozzle);
+
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(2.8, 7.0, 8), glowAmberMat);
+      flame.rotation.x = -Math.PI / 2;
+      flame.position.set(nx, ny, -72);
+      this.meshGroup.add(flame);
     });
   }
 
-  update(dt, playerShip, gameManager) {
-    if (this.isDead || !this.meshGroup) return;
+  takeShieldGenDamage(genId, amount) {
+    const g = this.shieldGenerators.find(gen => gen.id === genId);
+    if (!g || g.isDead) return false;
+    g.hp -= amount;
 
-    if (this.isDying) {
-      this.updateDeathSequence(dt);
-      return;
+    if (g.reticle && g.reticle.material) {
+      const pct = g.hp / g.maxHp;
+      g.reticle.material.color.setHex(pct > 0.5 ? 0xff00bb : (pct > 0.25 ? 0xffaa00 : 0xff0044));
     }
 
-    const pos = this.meshGroup.position;
-    const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
+    if (g.hp <= 0) {
+      g.isDead = true;
+      if (g.reticle) g.reticle.visible = false;
+      const wp = g.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff00bb, 140, 4.0);
+      this.particleManager.createEmpShockwave(wp, 60);
 
-    // 1. Advance to battle station
-    if (pos.z < this.targetZ) {
-      pos.z += this.speed * dt;
-    }
+      // Check if all shield generators are destroyed
+      const remainingGens = this.shieldGenerators.filter(gen => !gen.isDead);
+      if (remainingGens.length === 0 && this.hasPlasmaShield) {
+        this.hasPlasmaShield = false;
+        if (this.plasmaShieldMesh) this.plasmaShieldMesh.visible = false;
+        this.particleManager.createEmpShockwave(this.meshGroup.position.clone().add(new THREE.Vector3(0, 0, 18)), 120);
 
-    // 2. Update Aegis Escort Frigate Orbits & Tethers
-    let livingFrigates = 0;
-    this.aegisFrigates.forEach(frigate => {
-      if (!frigate.isDead && frigate.mesh) {
-        livingFrigates++;
-        frigate.angle += dt * 0.25;
-        const fx = Math.cos(frigate.angle) * frigate.orbitRadius;
-        const fy = Math.sin(frigate.angle) * (frigate.orbitRadius * 0.45);
-        frigate.mesh.position.set(fx, fy, -10.0);
-
-        // Update Tether Line Geometry
-        if (frigate.tetherLine) {
-          const positions = frigate.tetherLine.geometry.attributes.position.array;
-          positions[0] = fx;
-          positions[1] = fy;
-          positions[2] = -10.0;
-          positions[3] = 0;
-          positions[4] = 0;
-          positions[5] = 0;
-          frigate.tetherLine.geometry.attributes.position.needsUpdate = true;
+        window.spaceGameManager?.voiceAnnouncer?.speak("Mothership Plasma Shield Shattered! Trench Corridor Exposed! Destroy the 4 Core Magnetic Couplings!", true);
+        if (window.spaceGameManager?.spaceHUD) {
+          window.spaceGameManager.spaceHUD.showRadioTransmission("PLASMA SHIELD BREACHED! Fly into the trench and destroy the 4 Magnetic Couplings to drop the Power Core!", "STARBOUND COMMAND", 7.0);
         }
-      } else if (frigate.tetherLine) {
-        frigate.tetherLine.visible = false;
-      }
-    });
-
-    // Shield status
-    if (livingFrigates === 0 && this.hasShield) {
-      this.hasShield = false;
-      if (this.shieldMesh) this.shieldMesh.visible = false;
-      if (this.particleManager) {
-        this.particleManager.createEmpShockwave(pos, 60);
-      }
-      if (gameManager && gameManager.spaceHUD) {
-        gameManager.spaceHUD.showRadioTransmission("MOTHERSHIP AEGIS SHIELD SHATTERED! ALL POINT DEFENSES EXPOSED!", "STARBOUND COMMAND", 5.5);
       }
     }
-
-    if (this.shieldMesh && this.hasShield) {
-      this.shieldMesh.rotation.y += 0.3 * dt;
-      this.shieldMesh.rotation.z += 0.2 * dt;
-    }
-
-    // 3. Automated 360° CIWS Laser Batteries
-    this.ciwsFireTimer -= dt;
-    this.ciwsTurrets.forEach(turret => {
-      if (!turret.isDead && turret.mesh) {
-        const turretWorldPos = turret.mesh.getWorldPosition(new THREE.Vector3());
-        const dir = new THREE.Vector3().subVectors(playerPos, turretWorldPos);
-        turret.mesh.rotation.y = Math.atan2(-dir.x, dir.z);
-
-        if (this.ciwsFireTimer <= 0 && pos.z >= this.targetZ - 10) {
-          if (Math.random() < 0.4 && gameManager && gameManager.spawnEnemyLaser) {
-            gameManager.spawnEnemyLaser(turretWorldPos, dir.normalize(), 0xffb700, 44);
-          }
-        }
-      }
-    });
-
-    if (this.ciwsFireTimer <= 0) {
-      this.ciwsFireTimer = 0.75;
-    }
-
-    // 4. Catapult Hangar Launches (Stingers & Shadow-Wraiths)
-    this.droneLaunchTimer -= dt;
-    if (this.droneLaunchTimer <= 0 && pos.z >= this.targetZ - 10) {
-      this.droneLaunchTimer = 6.0;
-      this.launchDroneWing(gameManager);
-    }
-
-    this.stealthLaunchTimer -= dt;
-    if (this.stealthLaunchTimer <= 0 && pos.z >= this.targetZ - 10) {
-      this.stealthLaunchTimer = 14.0;
-      this.launchStealthFighter(gameManager);
-    }
-
-    // 5. Annihilator Beam Firing Cycle
-    this.annihilatorBeamTimer -= dt;
-    if (this.annihilatorBeamTimer <= 3.0 && !this.isFiringAnnihilator) {
-      this.isFiringAnnihilator = true;
-      this.annihilatorChargeTimer = 3.0;
-      if (gameManager && gameManager.spaceHUD) {
-        gameManager.spaceHUD.showRadioTransmission("WARNING: Leviathan charging Orbital Annihilator Cannon! CLEAR FIRE LINE!", "STARBOUND COMMAND", 3.5);
-      }
-    }
-
-    if (this.isFiringAnnihilator) {
-      this.annihilatorChargeTimer -= dt;
-      if (this.coreMesh) {
-        const scale = 1.0 + (3.0 - this.annihilatorChargeTimer) * 2.0;
-        this.coreMesh.scale.set(scale, scale, scale);
-      }
-
-      if (this.annihilatorChargeTimer <= 0) {
-        this.isFiringAnnihilator = false;
-        this.annihilatorBeamTimer = 16.0;
-        this.fireAnnihilatorStream(gameManager);
-        if (this.coreMesh) this.coreMesh.scale.set(1, 1, 1);
-      }
-    }
+    return g.isDead;
   }
 
-  launchDroneWing(gameManager) {
-    if (!gameManager || !gameManager.spawnDrone) return;
-    const pos = this.meshGroup.position;
-    [-24, 24].forEach(hx => {
-      const launchPos = pos.clone().add(new THREE.Vector3(hx, 0, 18));
-      if (this.particleManager) {
-        this.particleManager.spawnSonicBoomDisc(launchPos, 0x00f3ff);
-      }
-      gameManager.spawnDrone(launchPos);
-    });
-  }
-
-  launchStealthFighter(gameManager) {
-    if (!gameManager || !gameManager.spawnStealthFighter) return;
-    const pos = this.meshGroup.position;
-    const launchPos = pos.clone().add(new THREE.Vector3(0, -6, 20));
-    if (this.particleManager) {
-      this.particleManager.createExplosion(launchPos, 0xaa00ff, 25, 1.2);
-    }
-    gameManager.spawnStealthFighter(launchPos);
-  }
-
-  fireAnnihilatorStream(gameManager) {
-    if (!gameManager) return;
-    const origin = this.meshGroup.position.clone().add(new THREE.Vector3(0, 0, 24));
-    const dir = new THREE.Vector3(0, 0, 1);
-
-    if (this.particleManager) {
-      this.particleManager.spawnSonicBoomDisc(origin, 0xffb700);
-      this.particleManager.createExplosion(origin, 0xffb700, 50, 2.5);
-    }
-
-    for (let i = 0; i < 7; i++) {
-      setTimeout(() => {
-        if (this.isDead || !gameManager) return;
-        if (gameManager.spawnEnemyLaser) {
-          gameManager.spawnEnemyLaser(origin, dir, 0xff9900, 68);
-        }
-      }, i * 50);
-    }
-
-    if (gameManager.spaceAudio) {
-      gameManager.spaceAudio.playExplosion();
-    }
-  }
-
-  takeAegisFrigateDamage(frigateId, amount) {
-    const frigate = this.aegisFrigates.find(f => f.id === frigateId);
-    if (!frigate || frigate.isDead) return;
-
-    frigate.hp -= amount;
-    if (frigate.hp <= 0) {
-      frigate.isDead = true;
-      if (this.particleManager && frigate.mesh) {
-        this.particleManager.createExplosion(frigate.mesh.getWorldPosition(new THREE.Vector3()), 0x00f3ff, 35, 1.5);
-        this.particleManager.createEmpShockwave(frigate.mesh.getWorldPosition(new THREE.Vector3()), 30);
-      }
-      if (frigate.mesh) frigate.mesh.visible = false;
-      if (frigate.tetherLine) frigate.tetherLine.visible = false;
-    }
-  }
-
-  takeCiwsDamage(turretId, amount) {
-    const turret = this.ciwsTurrets.find(t => t.id === turretId);
-    if (!turret || turret.isDead) return;
-
-    turret.hp -= amount;
-    if (turret.hp <= 0) {
-      turret.isDead = true;
-      if (this.particleManager && turret.mesh) {
-        this.particleManager.createExplosion(turret.mesh.getWorldPosition(new THREE.Vector3()), 0xffb700, 25, 1.0);
-      }
-      if (turret.mesh) turret.mesh.visible = false;
-    }
-  }
-
-  takeDamage(subsystem, amount) {
-    if (this.isDead) return false;
-
-    // Invulnerable while Aegis Frigates live
-    if (this.hasShield) {
-      if (this.particleManager) {
-        this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0x00f3ff);
+  takeCouplingDamage(couplingId, amount) {
+    // If plasma shield is still active, couplings cannot be damaged
+    if (this.hasPlasmaShield) {
+      if (this.plasmaShieldMat) {
+        this.plasmaShieldMat.opacity = 1.0;
+        setTimeout(() => { if (this.plasmaShieldMat) this.plasmaShieldMat.opacity = 0.65; }, 80);
       }
       return false;
     }
 
-    this.coreHp -= amount;
-    if (this.particleManager) {
-      this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xffb700);
+    const c = this.coreCouplings.find(coup => coup.id === couplingId);
+    if (!c || c.isDead) return false;
+
+    c.hp -= amount;
+
+    // Recalculate remaining core hp
+    const totalCouplingHp = this.coreCouplings.reduce((acc, coup) => acc + (coup.isDead ? 0 : Math.max(0, coup.hp)), 0);
+    this.coreHp = totalCouplingHp;
+
+    if (c.reticle && c.reticle.material) {
+      const pct = c.hp / c.maxHp;
+      c.reticle.material.color.setHex(pct > 0.5 ? 0x00f3ff : (pct > 0.25 ? 0xffaa00 : 0xff0044));
     }
 
-    if (this.coreHp <= 0 && !this.isDying) {
-      this.triggerDeathSequence();
-      return true;
+    if (c.hp <= 0 && !c.isDead) {
+      c.isDead = true;
+      if (c.reticle) c.reticle.visible = false;
+      const wp = c.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0x00f3ff, 180, 4.5);
+      this.particleManager.createExplosion(wp, 0xffaa00, 120, 3.5);
+      this.particleManager.createEmpShockwave(wp, 60);
+
+      const aliveCount = this.coreCouplings.filter(coup => !coup.isDead).length;
+      if (aliveCount > 0) {
+        window.spaceGameManager?.voiceAnnouncer?.speak(`Magnetic Coupling severed! ${aliveCount} couplings remain!`, true);
+      } else {
+        // ALL 4 COUPLINGS DESTROYED -> TRIGGER POWER CORE DROP & RUPTURE DETONATION!
+        this.triggerCoreDropAndRupture();
+      }
     }
-    return false;
+    return c.isDead;
   }
 
-  triggerDeathSequence() {
-    this.isDying = true;
-    this.deathTimer = 3.5;
+  takeInternalTurretDamage(turretId, amount) {
+    const t = this.internalTurrets.find(tur => tur.id === turretId);
+    if (!t || t.isDead) return false;
+    t.hp -= amount;
 
-    if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
-      window.spaceGameManager.spaceHUD.showRadioTransmission("LEVIATHAN COMMAND MOTHERSHIP CRITICAL FAILURE! SECTOR VICTORY ACHIEVED!", "STARBOUND COMMAND", 7.0);
+    if (t.reticle && t.reticle.material) {
+      const pct = t.hp / t.maxHp;
+      t.reticle.material.color.setHex(pct > 0.5 ? 0xffaa00 : (pct > 0.25 ? 0xff5500 : 0xff0044));
+    }
+
+    if (t.hp <= 0) {
+      t.isDead = true;
+      t.mesh.visible = false;
+      if (t.reticle) t.reticle.visible = false;
+      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xffaa00, 90, 3.0);
+    }
+    return t.isDead;
+  }
+
+  takeDamage(subsystem, amount) {
+    if (this.isDead) return false;
+    return false; // Direct hull damage deflected; player must destroy the couplings to drop the core!
+  }
+
+  triggerCoreDropAndRupture() {
+    this.isCoreDropping = true;
+    this.coreDropVelocity = 0;
+
+    window.spaceGameManager?.voiceAnnouncer?.speak("ALL MAGNETIC COUPLINGS SEVERED! THE POWER CORE IS DROPPING!", true);
+    if (window.spaceGameManager?.spaceHUD) {
+      window.spaceGameManager.spaceHUD.showRadioTransmission("CORE SUSPENSION SEVERED! THE POWER CORE IS DROPPING! SHE'S DETONATING FROM THE INSIDE!", "STARBOUND COMMAND", 8.0);
     }
   }
 
-  updateDeathSequence(dt) {
-    this.deathTimer -= dt;
+  update(dt, playerShip, gameManager) {
+    if (this.isDead || !this.meshGroup) return;
+    this._time += dt;
+
     const pos = this.meshGroup.position;
+    const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
 
-    // Multi-Sector Cascading Superstructure Detonations
-    if (Math.random() < 0.8 && this.particleManager) {
-      const offset = new THREE.Vector3((Math.random() - 0.5) * 45, (Math.random() - 0.5) * 15, (Math.random() - 0.5) * 45);
-      this.particleManager.createExplosion(pos.clone().add(offset), 0xffb700, 35, 1.8);
+    // 1. Advance Mothership
+    if (pos.z < this.targetZ) {
+      pos.z += this.speed * dt;
     }
 
-    this.meshGroup.rotation.z += 0.4 * dt;
-    this.meshGroup.rotation.x += 0.2 * dt;
-    pos.y -= 2.0 * dt;
-
-    if (this.deathTimer <= 0) {
-      this.destroy();
+    // 2. Rotate Ceiling Ventilation Turbines
+    if (this.turbineFans) {
+      this.turbineFans.forEach(fan => {
+        fan.rotation.z += 8.0 * dt;
+      });
     }
+
+    // 3. Rotate Superconducting Shield Generator Rings
+    if (this.shieldGenerators) {
+      this.shieldGenerators.forEach(g => {
+        if (!g.isDead && g.ringMesh) {
+          g.ringMesh.rotation.z += 4.0 * dt;
+        }
+      });
+    }
+
+    // 4. Shimmer Plasma Forcefield Shield Barrier
+    if (this.hasPlasmaShield && this.plasmaShieldMat) {
+      this.plasmaShieldMat.opacity = 0.5 + Math.sin(this._time * 8.0) * 0.2;
+    }
+
+    // 5. Rotate Core Gyroscopic Containment Rings
+    if (this.coreGyroRings && !this.isCoreRuptured) {
+      this.coreGyroRings.forEach(cg => {
+        cg.mesh.rotation.x += cg.speed * dt;
+        cg.mesh.rotation.y += cg.speed * 0.7 * dt;
+      });
+    }
+
+    // 6. 3D Reticles Rotation
+    if (this.reticleMeshes) {
+      this.reticleMeshes.forEach(ret => {
+        if (ret && ret.visible) ret.rotation.z += 2.2 * dt;
+      });
+    }
+
+    // 7. Core Drop & Rupture Physics
+    if (this.isCoreDropping && !this.isCoreRuptured) {
+      this.coreDropVelocity += 14.0 * dt; // gravity acceleration downward
+      this.coreDropY -= this.coreDropVelocity * dt;
+
+      if (this.coreHousingGroup) {
+        this.coreHousingGroup.position.y = this.coreDropY;
+      }
+
+      // Core impacts floor reactor pit
+      if (this.coreDropY <= -6.0) {
+        this.isCoreRuptured = true;
+        this.isDying = true;
+        this.deathTimer = 4.5;
+
+        // Cataclysmic Core Rupture Supernova Detonation
+        const coreWorldPos = this.coreHousingGroup ? this.coreHousingGroup.getWorldPosition(new THREE.Vector3()) : pos;
+        this.particleManager.createExplosion(coreWorldPos, 0xffffff, 450, 9.0);
+        this.particleManager.createExplosion(coreWorldPos, 0xff5500, 350, 7.5);
+        this.particleManager.createEmpShockwave(coreWorldPos, 250);
+        this.particleManager.createEmpShockwave(coreWorldPos, 350);
+
+        if (this.powerCoreMesh) this.powerCoreMesh.visible = false;
+        if (this.coreLight) this.coreLight.intensity = 50.0;
+      }
+    }
+
+    // 8. Death Sequence & Cascading Internal Detonations
+    if (this.isDying) {
+      this.deathTimer -= dt;
+
+      if (Math.random() < 0.9 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 50, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 80);
+        this.particleManager.createExplosion(pos.clone().add(offset), 0xffaa00, 50, 2.5);
+        this.particleManager.createExplosion(pos.clone().add(offset), 0x00f3ff, 35, 1.8);
+      }
+
+      this.meshGroup.rotation.z += 0.15 * dt;
+      this.meshGroup.rotation.x += 0.08 * dt;
+
+      if (this.deathTimer <= 0) {
+        this.destroy();
+      }
+      return;
+    }
+
+    // 9. Internal Turrets Aiming & Attack Loop
+    this.fireTimer -= dt;
+    const out = [];
+
+    if (this.internalTurrets) {
+      this.internalTurrets.forEach(t => {
+        if (!t.isDead && t.barrelGroup) {
+          t.barrelGroup.lookAt(playerPos);
+        }
+      });
+    }
+
+    if (this.fireTimer <= 0 && pos.z >= this.targetZ - 10) {
+      this.fireTimer = 0.75;
+      this.internalTurrets.forEach(t => {
+        if (!t.isDead && t.mesh) {
+          const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+          out.push(wp);
+          if (gameManager && gameManager.spawnEnemyLaser) {
+            const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
+            gameManager.spawnEnemyLaser(wp, dir, 0xff3300, 48);
+          }
+        }
+      });
+    }
+
+    return out.length > 0 ? out : false;
   }
 
   destroy() {
     this.isDead = true;
     if (this.particleManager) {
-      this.particleManager.createExplosion(this.meshGroup.position, 0xffb700, 100, 5.0);
-      this.particleManager.createEmpShockwave(this.meshGroup.position, 80);
+      this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 300, 8.0);
+      this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 6.0);
+      this.particleManager.createEmpShockwave(this.meshGroup.position, 280);
     }
     if (this.meshGroup && this.meshGroup.parent) {
       this.meshGroup.parent.remove(this.meshGroup);

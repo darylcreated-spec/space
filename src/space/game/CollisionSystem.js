@@ -385,29 +385,52 @@ export class CollisionSystem {
               let hitRegistered = false;
               let dead = false;
 
-              // 1. Check Aegis Escort Frigates (CommandMothership)
-              if (boss.aegisFrigates && Array.isArray(boss.aegisFrigates)) {
-                for (const f of boss.aegisFrigates) {
-                  if (!f.isDead && f.mesh) {
-                    const fPos = f.mesh.getWorldPosition(this._tempVec1);
-                    if (lPos.distanceTo(fPos) < 5.0) {
-                      boss.takeAegisFrigateDamage(f.id, dmg);
-                      hitRegistered = true;
-                      break;
+              // 1. Check Mothership Superconducting Shield Generators
+              if (!hitRegistered && boss.shieldGenerators && Array.isArray(boss.shieldGenerators)) {
+                for (const g of boss.shieldGenerators) {
+                  if (!g.isDead && g.mesh) {
+                    const gPos = g.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(gPos) < 5.8) {
+                      if (!laser.hitEntities.has(`mship_gen_${g.id}`)) {
+                        laser.hitEntities.add(`mship_gen_${g.id}`);
+                        boss.takeShieldGenDamage(g.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
                     }
                   }
                 }
               }
 
-              // 2. Check CIWS Point-Defense Turrets (CommandMothership)
-              if (!hitRegistered && boss.ciwsTurrets && Array.isArray(boss.ciwsTurrets)) {
-                for (const t of boss.ciwsTurrets) {
+              // 2. Check Mothership Magnetic Suspension Core Couplings (The Key Vulnerability!)
+              if (!hitRegistered && boss.coreCouplings && Array.isArray(boss.coreCouplings)) {
+                for (const c of boss.coreCouplings) {
+                  if (!c.isDead && c.mesh) {
+                    const cPos = c.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(cPos) < 6.0) {
+                      if (!laser.hitEntities.has(`mship_coup_${c.id}`)) {
+                        laser.hitEntities.add(`mship_coup_${c.id}`);
+                        boss.takeCouplingDamage(c.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 2B. Check Mothership Internal CIWS Turrets
+              if (!hitRegistered && boss.internalTurrets && Array.isArray(boss.internalTurrets)) {
+                for (const t of boss.internalTurrets) {
                   if (!t.isDead && t.mesh) {
                     const tPos = t.mesh.getWorldPosition(this._tempVec1);
-                    if (lPos.distanceTo(tPos) < 3.8) {
-                      boss.takeCiwsDamage(t.id, dmg);
-                      hitRegistered = true;
-                      break;
+                    if (lPos.distanceTo(tPos) < 4.5) {
+                      if (!laser.hitEntities.has(`mship_internal_${t.id}`)) {
+                        laser.hitEntities.add(`mship_internal_${t.id}`);
+                        boss.takeInternalTurretDamage(t.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
                     }
                   }
                 }
