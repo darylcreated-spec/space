@@ -135,6 +135,24 @@ export class CommandMothership {
       { id: 5, name: 'CORE CHAMBER FLOOR',     relPos: new THREE.Vector3( 0, -6.4, -26), hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
     ];
 
+    // ── 4. Large Spread External Heavy Dual-Railgun Turrets ──
+    this.externalTurrets = [
+      { id: 0, name: 'PORT OUTRIGGER TURRET',     relPos: new THREE.Vector3(-44,  2, -30), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 1, name: 'STARBOARD OUTRIGGER TURRET', relPos: new THREE.Vector3( 44,  2, -30), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 2, name: 'DORSAL SPINE FORWARD TURRET', relPos: new THREE.Vector3(  0, 20, -10), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 3, name: 'DORSAL SPINE AFT TURRET',     relPos: new THREE.Vector3(  0, 26, -38), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'PORT FORWARD SPONSON',       relPos: new THREE.Vector3(-30, -5,  18), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'STARBOARD FORWARD SPONSON',  relPos: new THREE.Vector3( 30, -5,  18), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+    ];
+
+    // ── 5. Large Spread External Heavy Missile Silo Pods ──
+    this.missilePods = [
+      { id: 0, name: 'PORT FORWARD MISSILE POD',     relPos: new THREE.Vector3(-28, 12,  10), hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null },
+      { id: 1, name: 'STARBOARD FORWARD MISSILE POD', relPos: new THREE.Vector3( 28, 12,  10), hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null },
+      { id: 2, name: 'PORT AFT MISSILE POD',         relPos: new THREE.Vector3(-28, 12, -28), hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null },
+      { id: 3, name: 'STARBOARD AFT MISSILE POD',     relPos: new THREE.Vector3( 28, 12, -28), hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null },
+    ];
+
     this.reticleMeshes = [];
     this.turbineFans = [];
     this.coreGyroRings = [];
@@ -148,6 +166,8 @@ export class CommandMothership {
     this.deathTimer = 0;
 
     this.fireTimer = 0.8;
+    this.externalFireTimer = 1.0;
+    this.missileFireTimer = 3.5;
     this.droneLaunchTimer = 5.0;
 
     this._buildMothership();
@@ -210,6 +230,176 @@ export class CommandMothership {
     const bridgeVisor = new THREE.Mesh(new THREE.BoxGeometry(18, 2.5, 6), glowAmberMat);
     bridgeVisor.position.set(0, 19, -15);
     this.meshGroup.add(bridgeVisor);
+
+    // ── 1B. Automated Manufacturing & Element Fabrication Super-Foundries ──
+    // 4 Industrial ship component manufacturing bays with molten smelting vats
+    [[-34, 4, 10], [34, 4, 10], [-34, 4, -20], [34, 4, -20]].forEach(([fx, fy, fz]) => {
+      const forgeBayGeo = new THREE.BoxGeometry(8, 6, 20);
+      const forgeBay = new THREE.Mesh(forgeBayGeo, mechanicalTrussMat);
+      forgeBay.position.set(fx, fy, fz);
+      this.meshGroup.add(forgeBay);
+
+      // Molten element smelting vat
+      const vatGeo = new THREE.CylinderGeometry(2.5, 2.0, 2.2, 10);
+      const vatMat = new THREE.MeshStandardMaterial({ color: 0x3d1a04, emissive: 0xff6600, emissiveIntensity: 3.5 });
+      const vat = new THREE.Mesh(vatGeo, vatMat);
+      vat.position.set(fx, fy + 2.5, fz);
+      this.meshGroup.add(vat);
+
+      // Nanite assembly fabrication crane
+      const craneGeo = new THREE.BoxGeometry(1.2, 4.5, 1.2);
+      const crane = new THREE.Mesh(craneGeo, mechanicalTrussMat);
+      crane.position.set(fx + (fx < 0 ? 3.5 : -3.5), fy + 4.0, fz);
+      this.meshGroup.add(crane);
+    });
+
+    // ── 1C. 3 Giant Outrigger Pylon Arms with Heavy Engine Nacelles at the Ends ──
+    const armMat = new THREE.MeshStandardMaterial({ color: 0x1f2e42, metalness: 0.95, roughness: 0.18 });
+    const darkEngineMat = new THREE.MeshStandardMaterial({ color: 0x111c28, metalness: 0.98, roughness: 0.2 });
+
+    // 1. Port Outrigger Arm & Engine Nacelle
+    const portArmGeo = new THREE.BoxGeometry(26, 4.5, 6.5);
+    const portArm = new THREE.Mesh(portArmGeo, armMat);
+    portArm.position.set(-36, -2, -35);
+    portArm.rotation.y = 0.25;
+    this.meshGroup.add(portArm);
+
+    const portEnginePod = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 26), hullMat);
+    portEnginePod.position.set(-48, -2, -48);
+    this.meshGroup.add(portEnginePod);
+
+    // 2. Starboard Outrigger Arm & Engine Nacelle
+    const stbArmGeo = new THREE.BoxGeometry(26, 4.5, 6.5);
+    const stbArm = new THREE.Mesh(stbArmGeo, armMat);
+    stbArm.position.set(36, -2, -35);
+    stbArm.rotation.y = -0.25;
+    this.meshGroup.add(stbArm);
+
+    const stbEnginePod = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 26), hullMat);
+    stbEnginePod.position.set(48, -2, -48);
+    this.meshGroup.add(stbEnginePod);
+
+    // 3. Dorsal Top Outrigger Arm & Engine Nacelle
+    const dorsalArmGeo = new THREE.BoxGeometry(6.5, 20, 6.5);
+    const dorsalArm = new THREE.Mesh(dorsalArmGeo, armMat);
+    dorsalArm.position.set(0, 24, -35);
+    dorsalArm.rotation.x = -0.3;
+    this.meshGroup.add(dorsalArm);
+
+    const dorsalEnginePod = new THREE.Mesh(new THREE.BoxGeometry(12, 10, 26), hullMat);
+    dorsalEnginePod.position.set(0, 30, -48);
+    this.meshGroup.add(dorsalEnginePod);
+
+    // Heavy Thruster Nozzles at the Ends of the 3 Outrigger Arms
+    const outriggerEngineLocs = [
+      [-48, -2, -62], [48, -2, -62], [0, 30, -62]
+    ];
+    outriggerEngineLocs.forEach(([ex, ey, ez]) => {
+      [-2.5, 2.5].forEach(xOff => {
+        const nozGeo = new THREE.CylinderGeometry(2.4, 1.6, 5.0, 10);
+        nozGeo.rotateX(Math.PI / 2);
+        const noz = new THREE.Mesh(nozGeo, darkEngineMat);
+        noz.position.set(ex + xOff, ey, ez);
+        this.meshGroup.add(noz);
+
+        // Pulsating Plasma Thrust Plume
+        const plumeGeo = new THREE.ConeGeometry(2.2, 7.5, 10);
+        plumeGeo.rotateX(-Math.PI / 2);
+        const plume = new THREE.Mesh(plumeGeo, glowAmberMat);
+        plume.position.set(ex + xOff, ey, ez - 5.5);
+        this.meshGroup.add(plume);
+      });
+
+      // Nacelle Illumination Light
+      const engineLight = new THREE.PointLight(0xffaa00, 6.0, 50);
+      engineLight.position.set(ex, ey, ez);
+      this.meshGroup.add(engineLight);
+    });
+
+    // ── 1D. 6 Large Spread External Heavy Dual-Railgun Turrets ──
+    const extTurretBarbetteGeo = new THREE.CylinderGeometry(2.4, 3.2, 1.2, 8);
+    const extTurretHouseGeo = new THREE.BoxGeometry(2.8, 1.5, 3.2);
+    const extBarrelGeo = new THREE.CylinderGeometry(0.22, 0.28, 4.8, 8);
+    extBarrelGeo.rotateX(Math.PI / 2);
+    const extCoilGeo = new THREE.TorusGeometry(0.34, 0.08, 6, 12);
+
+    this.externalTurrets.forEach(t => {
+      const tGroup = new THREE.Group();
+      tGroup.position.copy(t.relPos);
+
+      // Barbette base
+      const barbette = new THREE.Mesh(extTurretBarbetteGeo, mechanicalTrussMat);
+      tGroup.add(barbette);
+
+      // Gunhouse Carapace
+      const bGroup = new THREE.Group();
+      bGroup.position.set(0, 0.8, 0);
+
+      const house = new THREE.Mesh(extTurretHouseGeo, hullMat);
+      bGroup.add(house);
+
+      // Dual Railgun Barrels
+      [-0.8, 0.8].forEach(xOff => {
+        const barrel = new THREE.Mesh(extBarrelGeo, mechanicalTrussMat);
+        barrel.position.set(xOff, 0.2, 2.2);
+        bGroup.add(barrel);
+
+        [1.0, 2.2, 3.4].forEach(zC => {
+          const coil = new THREE.Mesh(extCoilGeo, glowAmberMat);
+          coil.position.set(xOff, 0.2, zC);
+          bGroup.add(coil);
+        });
+      });
+
+      tGroup.add(bGroup);
+
+      // 3D Target Reticle
+      const reticleGeo = new THREE.RingGeometry(1.8, 2.3, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 1.2, 3.2);
+      tGroup.add(reticle);
+
+      this.meshGroup.add(tGroup);
+      t.mesh = tGroup;
+      t.barrelGroup = bGroup;
+      t.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
+
+    // ── 1E. 4 Large Spread External Heavy Missile Silo Pods ──
+    const podHousingGeo = new THREE.BoxGeometry(3.6, 2.0, 5.0);
+
+    this.missilePods.forEach(p => {
+      const pGroup = new THREE.Group();
+      pGroup.position.copy(p.relPos);
+
+      const housing = new THREE.Mesh(podHousingGeo, mechanicalTrussMat);
+      pGroup.add(housing);
+
+      // 6 Missile Launch Cells
+      [-1.0, 0, 1.0].forEach(xOff => {
+        [-1.2, 1.2].forEach(zOff => {
+          const tubeGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.8, 8);
+          const tube = new THREE.Mesh(tubeGeo, glowAmberMat);
+          tube.position.set(xOff, 1.0, zOff);
+          pGroup.add(tube);
+        });
+      });
+
+      // 3D Target Reticle
+      const reticleGeo = new THREE.RingGeometry(1.6, 2.1, 16);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff3300, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+      reticle.position.set(0, 1.8, 0);
+      reticle.rotation.x = Math.PI / 2;
+      pGroup.add(reticle);
+
+      this.meshGroup.add(pGroup);
+      p.mesh = pGroup;
+      p.reticle = reticle;
+      this.reticleMeshes.push(reticle);
+    });
 
     // ── 2. Mechanical Interior Trench Floor (Bottom) ──
     const floorGeo = new THREE.BoxGeometry(36, 3.5, 110);
@@ -565,6 +755,48 @@ export class CommandMothership {
     return t.isDead;
   }
 
+  takeExternalTurretDamage(turretId, amount) {
+    const t = this.externalTurrets.find(tur => tur.id === turretId);
+    if (!t || t.isDead) return false;
+    t.hp -= amount;
+
+    if (t.reticle && t.reticle.material) {
+      const pct = t.hp / t.maxHp;
+      t.reticle.material.color.setHex(pct > 0.5 ? 0xffaa00 : (pct > 0.25 ? 0xff5500 : 0xff0044));
+    }
+
+    if (t.hp <= 0) {
+      t.isDead = true;
+      t.mesh.visible = false;
+      if (t.reticle) t.reticle.visible = false;
+      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xffaa00, 110, 3.5);
+      this.particleManager.createEmpShockwave(wp, 45);
+    }
+    return t.isDead;
+  }
+
+  takeMissilePodDamage(podId, amount) {
+    const p = this.missilePods.find(pod => pod.id === podId);
+    if (!p || p.isDead) return false;
+    p.hp -= amount;
+
+    if (p.reticle && p.reticle.material) {
+      const pct = p.hp / p.maxHp;
+      p.reticle.material.color.setHex(pct > 0.5 ? 0xff3300 : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
+    if (p.hp <= 0) {
+      p.isDead = true;
+      p.mesh.visible = false;
+      if (p.reticle) p.reticle.visible = false;
+      const wp = p.mesh.getWorldPosition(new THREE.Vector3());
+      this.particleManager.createExplosion(wp, 0xff2200, 130, 4.0);
+      this.particleManager.createExplosion(wp, 0xffaa00, 80, 2.5);
+    }
+    return p.isDead;
+  }
+
   takeDamage(subsystem, amount) {
     if (this.isDead) return false;
     return false; // Direct hull damage deflected; player must destroy the couplings to drop the core!
@@ -698,6 +930,62 @@ export class CommandMothership {
           }
         }
       });
+    }
+
+    // 10. External Spread Heavy Railgun Turrets Aiming & Attack Loop
+    this.externalFireTimer -= dt;
+    if (this.externalTurrets) {
+      this.externalTurrets.forEach(t => {
+        if (!t.isDead && t.barrelGroup) {
+          t.barrelGroup.lookAt(playerPos);
+        }
+      });
+    }
+
+    if (this.externalFireTimer <= 0 && pos.z >= this.targetZ - 15) {
+      this.externalFireTimer = 0.95;
+      this.externalTurrets.forEach(t => {
+        if (!t.isDead && t.mesh && Math.random() < 0.75) {
+          const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+          out.push(wp);
+          if (gameManager && gameManager.spawnEnemyLaser) {
+            const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
+            gameManager.spawnEnemyLaser(wp, dir, 0xffaa00, 52);
+          }
+        }
+      });
+    }
+
+    // 11. External Missile Silo Pods Salvo Loop
+    this.missileFireTimer -= dt;
+    if (this.missileFireTimer <= 0 && pos.z >= this.targetZ - 15) {
+      this.missileFireTimer = 3.2;
+      this.missilePods.forEach(p => {
+        if (!p.isDead && p.mesh) {
+          const wp = p.mesh.getWorldPosition(new THREE.Vector3());
+          if (this.particleManager) {
+            this.particleManager.createExplosion(wp, 0xff5500, 20, 0.8);
+          }
+          if (gameManager && gameManager.spawnEnemyMissile) {
+            gameManager.spawnEnemyMissile(wp, playerPos);
+          } else if (gameManager && gameManager.spawnEnemyLaser) {
+            const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
+            gameManager.spawnEnemyLaser(wp, dir, 0xff2200, 40);
+          }
+        }
+      });
+    }
+
+    // 12. Foundry Element Manufacturing Drone Spawns
+    this.droneLaunchTimer -= dt;
+    if (this.droneLaunchTimer <= 0 && pos.z >= this.targetZ - 10) {
+      this.droneLaunchTimer = 5.5;
+      if (gameManager && gameManager.spawnDrone) {
+        const p1 = pos.clone().add(new THREE.Vector3(-34, 4, 10));
+        const p2 = pos.clone().add(new THREE.Vector3(34, 4, 10));
+        gameManager.spawnDrone(p1);
+        gameManager.spawnDrone(p2);
+      }
     }
 
     return out.length > 0 ? out : false;

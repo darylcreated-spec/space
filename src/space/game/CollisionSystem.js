@@ -436,6 +436,40 @@ export class CollisionSystem {
                 }
               }
 
+              // 2C. Check Mothership External Heavy Dual-Railgun Turrets (Targetable!)
+              if (!hitRegistered && boss.externalTurrets && Array.isArray(boss.externalTurrets)) {
+                for (const t of boss.externalTurrets) {
+                  if (!t.isDead && t.mesh) {
+                    const tPos = t.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(tPos) < 5.5) {
+                      if (!laser.hitEntities.has(`mship_ext_${t.id}`)) {
+                        laser.hitEntities.add(`mship_ext_${t.id}`);
+                        boss.takeExternalTurretDamage(t.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              // 2D. Check Mothership External Heavy Missile Silo Pods (Targetable!)
+              if (!hitRegistered && boss.missilePods && Array.isArray(boss.missilePods)) {
+                for (const p of boss.missilePods) {
+                  if (!p.isDead && p.mesh) {
+                    const pPos = p.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(pPos) < 5.2) {
+                      if (!laser.hitEntities.has(`mship_pod_${p.id}`)) {
+                        laser.hitEntities.add(`mship_pod_${p.id}`);
+                        boss.takeMissilePodDamage(p.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
               // 3. Check Shield Generators (MoonBase)
               if (!hitRegistered && boss.generators && Array.isArray(boss.generators)) {
                 for (const g of boss.generators) {
