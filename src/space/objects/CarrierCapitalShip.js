@@ -924,11 +924,47 @@ export class CarrierCapitalShip {
     if (t.hp <= 0) {
       t.isDead = true;
       if (t.reticle) t.reticle.visible = false;
-      if (t.mesh) {
-        const wp = t.mesh.getWorldPosition(new THREE.Vector3());
+      if (t.mesh && t.mesh.parent) {
+        const wp = new THREE.Vector3();
+        const wq = new THREE.Quaternion();
+        const ws = new THREE.Vector3();
+        t.mesh.getWorldPosition(wp);
+        t.mesh.getWorldQuaternion(wq);
+        t.mesh.getWorldScale(ws);
+
+        t.mesh.parent.remove(t.mesh);
+        t.mesh.position.copy(wp);
+        t.mesh.quaternion.copy(wq);
+        t.mesh.scale.copy(ws);
+        this.scene.add(t.mesh);
+
+        // Leave charred scorched barbette stump on carrier
+        const stumpGeo = new THREE.CylinderGeometry(1.6, 2.0, 0.6, 8);
+        const stumpMat = new THREE.MeshStandardMaterial({ color: 0x100a18, metalness: 0.98, roughness: 0.85, emissive: 0x003344, emissiveIntensity: 0.7 });
+        const stump = new THREE.Mesh(stumpGeo, stumpMat);
+        stump.position.copy(t.relPos);
+        this.meshGroup.add(stump);
+
+        if (this.particleManager && this.particleManager.metalDebris) {
+          this.particleManager.metalDebris.push({
+            mesh: t.mesh,
+            geo: t.mesh.geometry,
+            mat: t.mesh.material,
+            vx: (Math.random() - 0.5) * 12.0,
+            vy: 3.0 + (Math.random() - 0.5) * 5.0,
+            vz: 7.0 + Math.random() * 14.0,
+            rotSpeedX: (Math.random() - 0.5) * 6.0,
+            rotSpeedY: (Math.random() - 0.5) * 6.0,
+            rotSpeedZ: (Math.random() - 0.5) * 6.0,
+            life: 1.0,
+            decay: 0.16
+          });
+        }
+
         if (this.particleManager) {
           this.particleManager.createExplosion(wp, 0x00ff88, 50, 3.0);
           this.particleManager.createEmpShockwave(wp, 20);
+          this.particleManager.spawnMetalDebris(wp, 4, 0x00f3ff);
         }
       }
     }
@@ -943,11 +979,47 @@ export class CarrierCapitalShip {
       sub.isDead = true;
       if (sub.reticle) sub.reticle.visible = false;
       if (sub.forcefield) sub.forcefield.visible = false;
-      if (sub.mesh) {
-        const wp = sub.mesh.getWorldPosition(new THREE.Vector3());
+      if (sub.mesh && sub.mesh.parent) {
+        const wp = new THREE.Vector3();
+        const wq = new THREE.Quaternion();
+        const ws = new THREE.Vector3();
+        sub.mesh.getWorldPosition(wp);
+        sub.mesh.getWorldQuaternion(wq);
+        sub.mesh.getWorldScale(ws);
+
+        sub.mesh.parent.remove(sub.mesh);
+        sub.mesh.position.copy(wp);
+        sub.mesh.quaternion.copy(wq);
+        sub.mesh.scale.copy(ws);
+        this.scene.add(sub.mesh);
+
+        // Leave scorched crater
+        const craterGeo = new THREE.BoxGeometry(4.0, 0.4, 4.0);
+        const craterMat = new THREE.MeshStandardMaterial({ color: 0x100a18, metalness: 0.98, roughness: 0.85, emissive: 0x330011, emissiveIntensity: 0.6 });
+        const crater = new THREE.Mesh(craterGeo, craterMat);
+        crater.position.copy(sub.relPos);
+        this.meshGroup.add(crater);
+
+        if (this.particleManager && this.particleManager.metalDebris) {
+          this.particleManager.metalDebris.push({
+            mesh: sub.mesh,
+            geo: sub.mesh.geometry,
+            mat: sub.mesh.material,
+            vx: (Math.random() - 0.5) * 12.0,
+            vy: 2.5 + (Math.random() - 0.5) * 5.0,
+            vz: 7.0 + Math.random() * 15.0,
+            rotSpeedX: (Math.random() - 0.5) * 6.0,
+            rotSpeedY: (Math.random() - 0.5) * 6.0,
+            rotSpeedZ: (Math.random() - 0.5) * 6.0,
+            life: 1.0,
+            decay: 0.16
+          });
+        }
+
         if (this.particleManager) {
           this.particleManager.createExplosion(wp, 0xff0044, 75, 4.0);
           this.particleManager.createEmpShockwave(wp, 25);
+          this.particleManager.spawnMetalDebris(wp, 4, 0xff0055);
         }
       }
     }
