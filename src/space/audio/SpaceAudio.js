@@ -156,6 +156,53 @@ export class SpaceAudio {
     } catch (e) {}
   }
 
+  playQuantumArc(xPos) {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const oscMod = this.ctx.createOscillator();
+    const modGain = this.ctx.createGain();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(340, now + 0.14);
+
+    oscMod.type = 'sawtooth';
+    oscMod.frequency.setValueAtTime(60, now);
+    modGain.gain.setValueAtTime(400, now);
+    oscMod.connect(modGain);
+    modGain.connect(osc.frequency);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    let panVal = 0;
+    if (xPos !== undefined) {
+      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+    }
+
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panVal, now);
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
+
+    try {
+      oscMod.start(now);
+      oscMod.stop(now + 0.14);
+      osc.start(now);
+      osc.stop(now + 0.14);
+    } catch (e) {}
+  }
+
   playEnemyLaser(xPos) {
     this.ensureContext();
     if (!this.ctx) return;

@@ -771,8 +771,8 @@ export class PlayerShip {
   }
 
   // ────────────────────────────────────────────────────────────
-  // 3. ðŸŒ€ TACTICIAN: "Chronos Spec-Ops" (Dual Gyroscopic Gimbal Rings)
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // 3. 🌀 TACTICIAN: "Chronos Command" (Dual Quantum Arc Cannons & Gyroscopic Gimbal Rings)
+  // ────────────────────────────────────────────────────────────
   buildTacticianMesh() {
     this.maxShield = 110;
     this.shield = 110;
@@ -783,94 +783,200 @@ export class PlayerShip {
 
     const hullTex = getProceduralHullTexture();
 
-    // Aerodynamic forward cockpit
-    const bodyGeo = new THREE.CylinderGeometry(0.5, 0.9, 5.2, 8);
-    bodyGeo.rotateX(Math.PI / 2);
-    const bodyMat = new THREE.MeshStandardMaterial({
+    // ── High-Tech Materials ──
+    const hullMat = new THREE.MeshStandardMaterial({
       map: hullTex,
-      color: 0x0a221a,
-      metalness: 0.92,
-      roughness: 0.2,
+      color: 0x0a1f16,
+      metalness: 0.94,
+      roughness: 0.22,
       emissive: 0x003318,
-      emissiveIntensity: 0.35
+      emissiveIntensity: 0.4
     });
-    this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+    const armorTrussMat = new THREE.MeshStandardMaterial({
+      color: 0x143324,
+      metalness: 0.96,
+      roughness: 0.18
+    });
+
+    const darkAlloyMat = new THREE.MeshStandardMaterial({
+      color: 0x06120c,
+      metalness: 0.98,
+      roughness: 0.15
+    });
+
+    const emeraldGlowMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+    const cyanGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
+    // ── 1. Chiseled Forward Command Fuselage ──
+    const bodyGeo = new THREE.BoxGeometry(1.6, 0.9, 4.8);
+    const body = new THREE.Mesh(bodyGeo, hullMat);
+    body.position.set(0, 0, -0.1);
+    this.meshGroup.add(body);
+
+    // Forward Sensor Nose Cone
+    const noseGeo = new THREE.ConeGeometry(0.85, 1.8, 6);
+    noseGeo.rotateX(-Math.PI / 2); // Points forward along -Z!
+    const nose = new THREE.Mesh(noseGeo, armorTrussMat);
+    nose.position.set(0, -0.05, -3.2);
+    this.meshGroup.add(nose);
+
     this.buildCockpitInterior(this.meshGroup, 0x00ff88);
 
-    // Forward-Swept Gull Wings
-    const wingGeo = new THREE.BoxGeometry(2.4, 0.1, 1.6);
-    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x103628, metalness: 0.88, roughness: 0.25 });
+    // ── 2. ✨ Forward-Swept Gull Wings (Mirrored Math) ──
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0.8, -0.6);
+    wingShape.lineTo(2.8, -1.8);
+    wingShape.lineTo(3.1, -1.2);
+    wingShape.lineTo(1.6, 1.2);
+    wingShape.lineTo(0.8, 1.0);
+    wingShape.closePath();
 
-    const rightWing = new THREE.Mesh(wingGeo, wingMat);
-    rightWing.position.set(1.8, 0, -0.6);
-    rightWing.rotation.y = -0.35;
+    const wingExtrudeSettings = { depth: 0.12, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.03, bevelThickness: 0.03 };
+    const baseWingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
+    baseWingGeo.rotateX(Math.PI / 2);
+
+    const rightWing = new THREE.Mesh(baseWingGeo, hullMat);
+    rightWing.position.set(0, 0, 0);
     this.meshGroup.add(rightWing);
 
-    const leftWing = new THREE.Mesh(wingGeo, wingMat);
-    leftWing.position.set(-1.8, 0, -0.6);
-    leftWing.rotation.y = 0.35;
+    const leftWingGeo = baseWingGeo.clone();
+    leftWingGeo.scale(-1, 1, 1);
+    const leftWing = new THREE.Mesh(leftWingGeo, hullMat);
+    leftWing.position.set(0, 0, 0);
     this.meshGroup.add(leftWing);
 
-    // Dual Concentric Gyroscopic Electromagnetic Gimbal Rings
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: false });
-
-    // Outer Ring
-    this.tacticianGimbalOuter = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.06, 8, 24), ringMat);
-    this.tacticianGimbalOuter.position.set(0, 0.3, 0.5);
-    this.meshGroup.add(this.tacticianGimbalOuter);
-
-    // Inner Ring
-    this.tacticianGimbalInner = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.05, 8, 20), new THREE.MeshBasicMaterial({ color: 0x00f3ff }));
-    this.tacticianGimbalOuter.add(this.tacticianGimbalInner);
-
-    // Sensor Radome
-    const radomeGeo = new THREE.SphereGeometry(0.4, 12, 12);
-    const radomeMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00aa55, emissiveIntensity: 0.7 });
-    const radome = new THREE.Mesh(radomeGeo, radomeMat);
-    radome.position.set(0, 0.55, -0.8);
-    this.meshGroup.add(radome);
-
-    // Twin Homing Arc Emitters
-    this.muzzleOffsets = [
-      new THREE.Vector3(-2.6, 0, -1.6),
-      new THREE.Vector3(2.6, 0, -1.6)
-    ];
-    this.muzzleOffsets.forEach(pos => {
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), ringMat);
-      tip.position.copy(pos);
-      this.meshGroup.add(tip);
+    // Wing Leading Edge Titanium Slats
+    [-1, 1].forEach(side => {
+      const slatGeo = new THREE.BoxGeometry(0.08, 0.08, 2.4);
+      const slat = new THREE.Mesh(slatGeo, cyanGlowMat);
+      slat.position.set(side * 1.9, 0.06, -1.1);
+      slat.rotation.y = side * 0.42;
+      this.meshGroup.add(slat);
     });
 
-    // Twin Vector Thrusters with Mach Shock Diamonds
+    // ── 3. ⚡ Dual Heavy Quantum Arc Induction Cannons ──
+    [-2.2, 2.2].forEach(cx => {
+      const cannonGroup = new THREE.Group();
+      cannonGroup.position.set(cx, -0.15, -0.8);
+
+      // Heavy Pylon Housing
+      const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 2.2), darkAlloyMat);
+      cannonGroup.add(pylon);
+
+      // Primary Induction Barrel
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 2.6, 8), darkAlloyMat);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(0, -0.1, -0.8);
+      cannonGroup.add(barrel);
+
+      // 3 Concentric Electromagnetic Accelerator Coils
+      [-0.4, 0, 0.4].forEach(cz => {
+        const coil = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.03, 6, 16), emeraldGlowMat);
+        coil.position.set(0, -0.1, cz - 0.8);
+        cannonGroup.add(coil);
+      });
+
+      // Arc Pulse Focus Emitter Lens
+      const focusLens = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), cyanGlowMat);
+      focusLens.position.set(0, -0.1, -2.15);
+      cannonGroup.add(focusLens);
+
+      this.meshGroup.add(cannonGroup);
+    });
+
+    // Twin Ventral Tachyon Micro-Torpedo Tubes
+    [-0.5, 0.5].forEach(tx => {
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.16, 1.8, 8), darkAlloyMat);
+      tube.rotation.x = Math.PI / 2;
+      tube.position.set(tx, -0.3, -2.2);
+      this.meshGroup.add(tube);
+    });
+
+    // ── 4. 🌀 Concentric Gyroscopic Chrono Gimbal Rings ──
+    const gimbalCenter = new THREE.Group();
+    gimbalCenter.position.set(0, 0.42, 0.4);
+
+    // Outer Emerald Gimbal Ring
+    this.tacticianGimbalOuter = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.07, 8, 32), emeraldGlowMat);
+    gimbalCenter.add(this.tacticianGimbalOuter);
+
+    // Inner Cyan Gimbal Ring
+    this.tacticianGimbalInner = new THREE.Mesh(new THREE.TorusGeometry(0.88, 0.055, 8, 28), cyanGlowMat);
+    this.tacticianGimbalOuter.add(this.tacticianGimbalInner);
+
+    // Tachyon Sensory Core Sphere
+    const coreOrb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.42, 16, 16),
+      new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 0.9 })
+    );
+    this.tacticianGimbalInner.add(coreOrb);
+
+    this.meshGroup.add(gimbalCenter);
+
+    // ── 5. 💡 Wingtip Electronic Warfare Pods & Flashing Strobe Lights ──
+    [-3.1, 3.1].forEach((wx, i) => {
+      const podGeo = new THREE.BoxGeometry(0.2, 0.35, 1.6);
+      const pod = new THREE.Mesh(podGeo, armorTrussMat);
+      pod.position.set(wx, 0.1, -1.4);
+      this.meshGroup.add(pod);
+
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.9 });
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.55, 0.08), beaconMat);
+      beacon.position.set(wx, 0.25, -1.2);
+      this.meshGroup.add(beacon);
+      this.wingtipBeacons.push(beacon);
+
+      const tipLight = new THREE.PointLight(0x00ff88, 2.6, 8);
+      tipLight.position.set(wx, 0.25, -1.2);
+      this.meshGroup.add(tipLight);
+      this.wingtipLights.push(tipLight);
+    });
+
+    // ── 6. 🚀 Weapon Muzzle Offsets (Quantum Cannons + Torpedo Tubes) ──
+    this.muzzleOffsets = [
+      new THREE.Vector3(-2.2, -0.25, -3.0),
+      new THREE.Vector3(2.2, -0.25, -3.0),
+      new THREE.Vector3(-0.5, -0.3, -3.2),
+      new THREE.Vector3(0.5, -0.3, -3.2)
+    ];
+
+    // ── 7. 🔥 TWIN VECTOR PROPULSION THRUSTERS (Straight +Z) ──
+    const thrusterGeo = new THREE.CylinderGeometry(0.28, 0.38, 1.2, 10);
+    thrusterGeo.rotateX(Math.PI / 2);
+    const thrusterMat = new THREE.MeshStandardMaterial({ color: 0x06120c, metalness: 0.95, roughness: 0.2 });
+
+    const flameGeo = new THREE.ConeGeometry(0.22, 1.6, 8);
+    flameGeo.rotateX(Math.PI / 2); // Apex points backward +Z
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+
     [-0.7, 0.7].forEach(x => {
-      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x06140e, metalness: 0.9 }));
-      eng.rotateX(Math.PI / 2);
-      eng.position.set(x, -0.05, 2.4);
+      const eng = new THREE.Mesh(thrusterGeo, thrusterMat);
+      eng.position.set(x, -0.05, 2.3);
       this.meshGroup.add(eng);
 
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.4, 8), new THREE.MeshBasicMaterial({ color: 0x00ff88 }));
-      flame.rotation.x = -Math.PI / 2;
-      flame.position.set(0, 0, 0.6);
-      eng.add(flame);
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(x, -0.05, 3.4);
+      this.meshGroup.add(flame);
       this.flameMeshes.push(flame);
 
-      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 8), new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide }));
-      dia.position.set(0, 0, 0.4);
-      eng.add(dia);
+      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 10), new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide }));
+      dia.position.set(x, -0.05, 2.9);
+      this.meshGroup.add(dia);
       this.shockDiamonds.push(dia);
     });
 
-    this.wingtipOffsets = [new THREE.Vector3(-2.8, 0, -1.4), new THREE.Vector3(2.8, 0, -1.4)];
-    this.engineTrailOffsets = [new THREE.Vector3(-0.7, 0, 3.0), new THREE.Vector3(0.7, 0, 3.0)];
+    this.wingtipOffsets = [new THREE.Vector3(-3.1, 0, -1.4), new THREE.Vector3(3.1, 0, -1.4)];
+    this.engineTrailOffsets = [new THREE.Vector3(-0.7, -0.05, 3.0), new THREE.Vector3(0.7, -0.05, 3.0)];
 
     this.rcsPorts = [
-      { pos: new THREE.Vector3(0, 0.4, -2.4), dirY: 1, dirX: 0 },
-      { pos: new THREE.Vector3(0, -0.4, -2.4), dirY: -1, dirX: 0 },
-      { pos: new THREE.Vector3(-2.6, 0, -1.2), dirY: 0, dirX: -1 },
-      { pos: new THREE.Vector3(2.6, 0, -1.2), dirY: 0, dirX: 1 }
+      { pos: new THREE.Vector3(0, 0.4, -2.8), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.4, -2.8), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-3.0, 0, -1.4), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(3.0, 0, -1.4), dirY: 0, dirX: 1 }
     ];
 
-    this.engineLight = new THREE.PointLight(0x00ff88, 1.8, 9);
+    this.engineLight = new THREE.PointLight(0x00ff88, 2.2, 10);
     this.engineLight.position.set(0, 0, 2.6);
     this.meshGroup.add(this.engineLight);
   }

@@ -860,11 +860,15 @@ export class GameManager {
       this.spawnLaser(worldMuzzle, color, false, null, false, projectileType);
       if (shipClass === 'DREADNOUGHT') {
         this.particleManager.spawnEngineParticle(worldMuzzle, 0xff5500);
+      } else if (shipClass === 'TACTICIAN') {
+        this.particleManager.spawnEngineParticle(worldMuzzle, 0x00ff88);
       }
     });
 
     if (shipClass === 'DREADNOUGHT') {
       this.spaceAudio.playMissileLaunch(this.playerShip.meshGroup.position.x);
+    } else if (shipClass === 'TACTICIAN') {
+      this.spaceAudio.playQuantumArc(this.playerShip.meshGroup.position.x);
     } else {
       this.spaceAudio.playLaserPew(this.playerShip.meshGroup.position.x);
     }

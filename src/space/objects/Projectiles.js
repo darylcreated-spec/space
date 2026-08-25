@@ -191,6 +191,61 @@ export class LaserBolt {
       flame.rotateX(Math.PI / 2);
       flame.position.set(0, 0, 1.7);
       this.meshGroup.add(flame);
+    } else if (projectileType === 'HOMING') {
+      // 1. Aerodynamic Plasma Dart Needle Fuselage
+      const bodyGeo = new THREE.CylinderGeometry(0.12, 0.14, 2.4, 8);
+      bodyGeo.rotateX(Math.PI / 2);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x06281a,
+        metalness: 0.94,
+        roughness: 0.18,
+        emissive: 0x004422,
+        emissiveIntensity: 0.6
+      });
+      this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+      // 2. Ogive Tachyon Focus Nose Tip
+      const warheadGeo = new THREE.ConeGeometry(0.18, 0.75, 8);
+      warheadGeo.rotateX(-Math.PI / 2);
+      const warheadMat = new THREE.MeshStandardMaterial({
+        color: 0x00ff88,
+        emissive: 0x00ff88,
+        emissiveIntensity: 1.2,
+        roughness: 0.1
+      });
+      const warhead = new THREE.Mesh(warheadGeo, warheadMat);
+      warhead.position.set(0, 0, -1.45);
+      this.meshGroup.add(warhead);
+
+      // 3. Dual Concentric Electromagnetic Induction Rings
+      [-0.4, 0.4].forEach((rz, i) => {
+        const ringGeo = new THREE.TorusGeometry(0.24, 0.03, 6, 16);
+        const ringMat = new THREE.MeshBasicMaterial({ color: i === 0 ? 0x00ff88 : 0x00f3ff });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(0, 0, rz);
+        this.meshGroup.add(ring);
+      });
+
+      // 4. Cruciform Plasma Stabilizer Fins
+      const finMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const finGeo = new THREE.BoxGeometry(0.03, 0.5, 0.45);
+
+      const finV = new THREE.Mesh(finGeo, finMat);
+      finV.position.set(0, 0, 0.85);
+      this.meshGroup.add(finV);
+
+      const finH = new THREE.Mesh(finGeo, finMat);
+      finH.rotation.z = Math.PI / 2;
+      finH.position.set(0, 0, 0.85);
+      this.meshGroup.add(finH);
+
+      // 5. Tachyon Nozzle Glow
+      const glowLens = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+      );
+      glowLens.position.set(0, 0, 1.25);
+      this.meshGroup.add(glowLens);
     } else {
       const geos = getLaserGeometries(projectileType, isEnemy);
 
@@ -228,6 +283,14 @@ export class LaserBolt {
       gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xff4400);
       if (Math.random() < 0.6) {
         gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xffaa00);
+      }
+    }
+
+    // Dynamic Tachyon Spark Trail for Homing Plasma Darts
+    if (this.projectileType === 'HOMING' && gm && gm.particleManager) {
+      gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00ff88);
+      if (Math.random() < 0.5) {
+        gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
       }
     }
 
