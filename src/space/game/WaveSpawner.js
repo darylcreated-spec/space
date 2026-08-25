@@ -21,25 +21,28 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 75; // Extended Wave 1: deep asteroid corridor + carrier + moon base
+      this.totalToSpawnInWave = 45; // Stage 1: Asteroid Perimeter Incursion -> Boss: Titan Asteroid Colossus
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 50; // Wave 2: stealth fighter incursions + halo ring
+      this.totalToSpawnInWave = 50; // Stage 2: Halo Megastructure -> Mid: Supercarrier & Drones -> Boss: Halo Ring
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 60; // Wave 3: heavy battleship battlefleet + babylon 5
+      this.totalToSpawnInWave = 55; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
     } else if (this.currentWave === 4) {
-      this.totalToSpawnInWave = 70; // Wave 4: Apex command siege + Leviathan Mothership
+      this.totalToSpawnInWave = 65; // Stage 4: Babylon 5 Cylinder -> Mid: Dual Battleship + Carrier -> Boss: Babylon 5
+    } else if (this.currentWave === 5) {
+      this.totalToSpawnInWave = 75; // Stage 5: Grand Armada -> Mid: Tri-Threat (Battleship + Carrier + Dreadnought) -> Boss: Mothership
     } else {
-      this.totalToSpawnInWave = 65 + (this.currentWave - 4) * 10;
+      this.totalToSpawnInWave = 60 + (this.currentWave - 5) * 10;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
   }
 
   getWaveSubtitle() {
-    if (this.currentWave === 1) return 'MISSION 1: ASTEROID CORRIDOR & MOON BASE SUPERWEAPON';
-    if (this.currentWave === 2) return 'MISSION 2: SHADOW-WRAITH STEALTH INCURSION & HALO MEGASTRUCTURE';
-    if (this.currentWave === 3) return 'MISSION 3: GOLIATH BATTLEFLEET SIEGE & BABYLON 5 CITADEL';
-    if (this.currentWave === 4) return 'FINAL APEX MISSION: LEVIATHAN EXTREME COMMAND MOTHERSHIP';
+    if (this.currentWave === 1) return 'STAGE 1: IRON MANTLE // ASTEROID BELT // BOSS: TITAN ASTEROID COLOSSUS';
+    if (this.currentWave === 2) return 'STAGE 2: RING OF LIGHT // HALO MEGASTRUCTURE // MID: SUPERCARRIER';
+    if (this.currentWave === 3) return 'STAGE 3: SELENE SHIELD // LUNAR CITADEL MOON BASE // MID: BATTLESHIP';
+    if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // BABYLON 5 CYLINDER // MID: DUAL CAPITAL';
+    if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA // BOSS: HIVE MOTHERSHIP';
     return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
 
@@ -53,71 +56,69 @@ export class WaveSpawner {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
-      // Milestone Capital / Heavy Battleship spawning
+      // ── Mid-Stage Capital Escalations ──
       if (this.currentWave === 1) {
-        if (this.spawnedCount === 35) {
-          this.gameManager.spawnCarrierBoss();
+        // Stage 1 Midpoint: Stealth wolfpack ambush
+        if (this.spawnedCount === 22) {
+          this.gameManager.spawnStealthFighter();
+          this.gameManager.spawnStealthFighter();
         }
       } else if (this.currentWave === 2) {
-        // Wave 2: Shadow-Wraith Stealth Fighter wolfpacks
-        if (this.spawnedCount === 15 || this.spawnedCount === 30 || this.spawnedCount === 42) {
-          this.gameManager.spawnStealthFighter();
+        // Stage 2: Friendly Valiant Cruiser escort + Midpoint Supercarrier
+        if (this.spawnedCount === 5) {
+          this.gameManager.spawnCapitalShip();
+        } else if (this.spawnedCount === 22) {
+          this.gameManager.spawnCarrierBoss();
         }
       } else if (this.currentWave === 3) {
-        // Wave 3: Goliath Heavy Battleship arrival
-        if (this.spawnedCount === 25) {
+        // Stage 3 Midpoint: Devastator Heavy Battleship siege
+        if (this.spawnedCount === 22) {
           this.gameManager.spawnHeavyBattleship();
-        } else if (this.spawnedCount === 45) {
-          this.gameManager.spawnCapitalShip();
         }
       } else if (this.currentWave === 4) {
-        // Wave 4: Combined arms elite assault
-        if (this.spawnedCount === 20) {
+        // Stage 4: Friendly Valiant Cruiser escort + Midpoint DUAL CAPITAL ASSAULT (Battleship + Supercarrier)
+        if (this.spawnedCount === 5) {
+          this.gameManager.spawnCapitalShip();
+        } else if (this.spawnedCount === 24) {
           this.gameManager.spawnHeavyBattleship();
-        } else if (this.spawnedCount === 35 || this.spawnedCount === 50) {
-          this.gameManager.spawnStealthFighter();
+          setTimeout(() => {
+            if (this.gameManager.state === 'PLAYING') this.gameManager.spawnCarrierBoss();
+          }, 3000);
+        }
+      } else if (this.currentWave === 5) {
+        // Stage 5 Pre-Boss: TRI-THREAT GRAND ARMADA (Battleship + Supercarrier + Dreadnought)
+        if (this.spawnedCount === 5) {
+          this.gameManager.spawnCapitalShip();
+        } else if (this.spawnedCount === 25) {
+          this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnCarrierBoss();
+          setTimeout(() => {
+            if (this.gameManager.state === 'PLAYING') this.gameManager.spawnBoss();
+          }, 4000);
         }
       }
 
-      // Comet roll when spawning an asteroid
-      const cometChance = this.currentWave === 1 ? 0.10 : this.currentWave === 2 ? 0.18 : 0.25;
+      // ── Standard Combat Patrol Spawning Rules ──
+      // Drones only spawn if Supercarrier is active on the field!
+      const carrierActive = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
+      const cometChance = this.currentWave === 1 ? 0.12 : 0.22;
 
       if (this.currentWave === 1) {
+        // Stage 1: Asteroids & Shadow-Wraith Stealth Fighters (NO DRONES without carrier)
         const roll = Math.random();
-        if (roll < 0.55) {
+        if (roll < 0.65) {
           if (Math.random() < cometChance) {
             this.gameManager.spawnAsteroid({ isComet: true });
           } else {
             this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
           }
-        } else if (roll < 0.75) {
-          this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
-          this.gameManager.spawnAsteroid({ sizeCategory: 'small' });
         } else {
-          this.gameManager.spawnDrone();
-        }
-      } else if (this.currentWave === 2) {
-        const roll = Math.random();
-        if (roll < 0.35) {
           this.gameManager.spawnStealthFighter();
-        } else if (roll < 0.70) {
-          this.gameManager.spawnDrone();
-        } else {
-          this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
-        }
-      } else if (this.currentWave === 3) {
-        const roll = Math.random();
-        if (roll < 0.45) {
-          this.gameManager.spawnDrone();
-        } else if (roll < 0.70) {
-          this.gameManager.spawnStealthFighter();
-        } else {
-          this.gameManager.spawnAsteroid({ sizeCategory: 'large' });
         }
       } else {
-        // Wave 4+ Elite mix
+        // Stages 2-5: Stealth Fighters, Asteroids, and Carrier Drones (when Carrier is close)
         const roll = Math.random();
-        if (roll < 0.40) {
+        if (carrierActive && roll < 0.45) {
           this.gameManager.spawnDrone();
         } else if (roll < 0.70) {
           this.gameManager.spawnStealthFighter();
@@ -127,22 +128,25 @@ export class WaveSpawner {
       }
     }
 
-    // Boss Spawning Per Wave
+    // ── Boss Spawning Per Stage ──
     if (this.spawnedCount >= this.totalToSpawnInWave && !this.bossSpawned) {
       this.bossSpawned = true;
       this.waveState = 'WAITING_CLEAR';
 
       if (this.currentWave === 1) {
-        // Wave 1: Sector Alpha Moon Base
-        this.gameManager.spawnSpaceStation();
+        // Stage 1 Boss: ☄️ Titan Asteroid Colossus
+        this.gameManager.spawnTitanBoss();
       } else if (this.currentWave === 2) {
-        // Wave 2: Halo Megastructure Ring Boss
+        // Stage 2 Boss: 🌌 The Halo Megastructure Defense Ring
         this.gameManager.spawnHaloBoss();
       } else if (this.currentWave === 3) {
-        // Wave 3: Babylon 5 Cylinder Citadel Boss
+        // Stage 3 Boss: 🌕 Sector Alpha Moon Base Citadel
+        this.gameManager.spawnSpaceStation();
+      } else if (this.currentWave === 4) {
+        // Stage 4 Boss: 🪐 Babylon 5 Industrial Cylinder Citadel
         this.gameManager.spawnBabylon5Boss();
       } else {
-        // Wave 4 / Final Apex: Leviathan Extreme Command Mothership
+        // Stage 5 / Final Apex: 👑 The Vorn Hive Command Mothership
         this.gameManager.spawnCommandMothership();
       }
     }

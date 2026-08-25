@@ -332,9 +332,14 @@ export class GameManager {
     });
   }
 
-  spawnDrone() {
-    const drone = new EnemyDrone(this.spaceScene.scene);
+  spawnDrone(spawnPos = null, force = false) {
+    if (!force && (!this.carrierBoss || this.carrierBoss.isDead)) {
+      // Assault Drones only deploy when Gorgon Supercarrier is active in the combat zone!
+      return this.spawnStealthFighter(spawnPos);
+    }
+    const drone = new EnemyDrone(this.spaceScene.scene, spawnPos);
     this.drones.push(drone);
+    return drone;
   }
 
   spawnCapitalShip() {
@@ -1321,11 +1326,11 @@ export class GameManager {
                 vx: launch.vx,
                 vy: launch.vy,
                 vz: launch.vz
-              });
+              }, true);
             });
           } else if (carrierStatus && carrierStatus.droneSpawns > 0) {
             for (let d = 0; d < carrierStatus.droneSpawns; d++) {
-              this.spawnDrone();
+              this.spawnDrone(null, true);
             }
           }
         }
