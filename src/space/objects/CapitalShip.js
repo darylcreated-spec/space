@@ -152,14 +152,24 @@ export class CapitalShip {
       emissiveIntensity: 0.65
     });
 
-    this.exposedConduitMat = new THREE.MeshBasicMaterial({
+    this.exposedConduitMat = new THREE.MeshStandardMaterial({
       color: 0xff3300,
+      emissive: 0xff3300,
+      emissiveIntensity: 3.0,
+      roughness: 0.0,
+      metalness: 0.0,
+      toneMapped: false,
       transparent: true,
       opacity: 0.95
     });
 
-    this.exposedSparkMat = new THREE.MeshBasicMaterial({
+    this.exposedSparkMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
+      emissive: 0x00f3ff,
+      emissiveIntensity: 3.5,
+      roughness: 0.0,
+      metalness: 0.0,
+      toneMapped: false,
       transparent: true,
       opacity: 0.95
     });

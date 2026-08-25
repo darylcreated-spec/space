@@ -44,10 +44,16 @@ function getLaserGeometries(type = 'STANDARD', isEnemy = false) {
 function getLaserMaterial(colorHex, transparent = false, opacity = 1.0) {
   const key = `${colorHex}_${transparent}_${opacity}`;
   if (!laserMatCache[key]) {
-    laserMatCache[key] = new THREE.MeshBasicMaterial({
+    // MeshStandardMaterial with high emissive so UnrealBloomPass picks up the neon glow
+    laserMatCache[key] = new THREE.MeshStandardMaterial({
       color: colorHex,
+      emissive: colorHex,
+      emissiveIntensity: transparent ? 0.8 : 2.8, // core beam is super bright for bloom
       transparent,
-      opacity
+      opacity,
+      roughness: 0.0,
+      metalness: 0.0,
+      toneMapped: false    // bypass tone mapping so emissive values exceed 1.0 for bloom threshold
     });
   }
   return laserMatCache[key];

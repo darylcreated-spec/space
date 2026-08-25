@@ -482,7 +482,7 @@ export class PlayerShip {
 
     const flameGeo = new THREE.ConeGeometry(0.24, 1.5, 10);
     flameGeo.rotateX(Math.PI / 2); // Base at nozzle, apex pointing backward (+Z)
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const flameMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00f3ff, emissiveIntensity: 3.5, transparent: true, opacity: 0.9, roughness: 0.0, metalness: 0.0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
 
     [-0.6, 0.6].forEach(x => {
       const eng = new THREE.Mesh(engGeo, engMat);
@@ -725,7 +725,7 @@ export class PlayerShip {
 
     const flameGeo = new THREE.ConeGeometry(0.24, 1.6, 8);
     flameGeo.rotateX(Math.PI / 2); // Base at nozzle, apex pointing backward (+Z)
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff0044, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const flameMat = new THREE.MeshStandardMaterial({ color: 0xff0044, emissive: 0xff0044, emissiveIntensity: 3.5, transparent: true, opacity: 0.9, roughness: 0.0, metalness: 0.0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
 
     const thrusterPositions = [
       [-0.8, 0.38, 2.5],
@@ -950,7 +950,7 @@ export class PlayerShip {
 
     const flameGeo = new THREE.ConeGeometry(0.22, 1.6, 8);
     flameGeo.rotateX(Math.PI / 2); // Apex points backward +Z
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const flameMat = new THREE.MeshStandardMaterial({ color: 0x00ff88, emissive: 0x00ff88, emissiveIntensity: 3.5, transparent: true, opacity: 0.9, roughness: 0.0, metalness: 0.0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
 
     [-0.7, 0.7].forEach(x => {
       const eng = new THREE.Mesh(thrusterGeo, thrusterMat);
@@ -1145,7 +1145,7 @@ export class PlayerShip {
 
     const flameGeo = new THREE.ConeGeometry(0.2, 1.8, 8);
     flameGeo.rotateX(Math.PI / 2); // Apex points backward +Z
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xaa00ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const flameMat = new THREE.MeshStandardMaterial({ color: 0xaa00ff, emissive: 0xaa00ff, emissiveIntensity: 3.5, transparent: true, opacity: 0.9, roughness: 0.0, metalness: 0.0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
 
     [-0.65, 0.65].forEach(x => {
       const eng = new THREE.Mesh(thrusterGeo, thrusterMat);
@@ -1333,7 +1333,7 @@ export class PlayerShip {
 
     const flameGeo = new THREE.ConeGeometry(0.22, 1.6, 8);
     flameGeo.rotateX(Math.PI / 2); // Apex points backward +Z
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+    const flameMat = new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00e5ff, emissiveIntensity: 3.5, transparent: true, opacity: 0.9, roughness: 0.0, metalness: 0.0, toneMapped: false, blending: THREE.AdditiveBlending, depthWrite: false });
 
     [-0.7, 0.7].forEach(x => {
       const eng = new THREE.Mesh(thrusterGeo, thrusterMat);

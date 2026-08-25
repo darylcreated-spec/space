@@ -31,12 +31,13 @@ export class SpaceScene {
       antialias: !this.isMobile,
       alpha: false,
       precision: this.isMobile ? 'mediump' : 'highp',
-      stencil: false
+      stencil: false,
+      powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.2;
 
     this.renderer.domElement.style.position = 'absolute';
     this.renderer.domElement.style.top = '0';
@@ -546,7 +547,8 @@ export class SpaceScene {
       if (startF) {
         const tracerGeo = new THREE.CylinderGeometry(0.3, 0.3, 25.0, 4);
         tracerGeo.rotateX(Math.PI / 2);
-        const tracerMat = new THREE.MeshBasicMaterial({ color: Math.random() > 0.5 ? 0x00f3ff : 0xff0055 });
+      const tracerColor = Math.random() > 0.5 ? 0x00f3ff : 0xff0055;
+      const tracerMat = new THREE.MeshStandardMaterial({ color: tracerColor, emissive: tracerColor, emissiveIntensity: 2.5, toneMapped: false });
         const tracer = new THREE.Mesh(tracerGeo, tracerMat);
         tracer.position.copy(startF.position);
         tracer.velocity = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 20, -100);

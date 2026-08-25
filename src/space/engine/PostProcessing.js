@@ -121,24 +121,30 @@ export class PostProcessing {
 
       const res = new THREE.Vector2(window.innerWidth, window.innerHeight);
 
-      // 1. UnrealBloomPass: Crisp, high-luminance optical bloom
-      const bloomStrength = this.quality === 'ultra' ? 0.65 : (this.quality === 'high' ? 0.5 : 0.35);
-      this.bloomPass = new UnrealBloomPass(
-        res,
-        bloomStrength,
-        0.3,
-        0.82
-      );
+      // UnrealBloomPass: Vivid neon sci-fi bloom — strong enough to make lasers, engines & weapon fire glow
+      // threshold: 0.18 = anything brighter than ~18% max lum gets bloom (catches all neon emissives)
+      // strength:  1.2 ultra / 0.9 high / 0.6 medium — vivid without washing out structure
+      // radius:    0.85 = wide soft glow halo, real lens bloom character
+      const bloomStrength  = this.quality === 'ultra' ? 1.2  : (this.quality === 'high' ? 0.9  : 0.6);
+      const bloomRadius    = this.quality === 'ultra' ? 0.85 : (this.quality === 'high' ? 0.75 : 0.6);
+      const bloomThreshold = this.quality === 'ultra' ? 0.18 : (this.quality === 'high' ? 0.22 : 0.28);
+
+      this.bloomPass = new UnrealBloomPass(res, bloomStrength, bloomRadius, bloomThreshold);
       this.composer.addPass(this.bloomPass);
 
-      // 2. AAA Cinematic Shader Pass
+      // AAA Cinematic Shader Pass: chromatic aberration, anamorphic flares, film grain, vignette, boost warp
       this.cinemaPass = new ShaderPass(AAACinematicShader);
-      this.cinemaPass.uniforms.uQuality.value = this.quality === 'ultra' ? 3.0 : (this.quality === 'high' ? 2.0 : 1.0);
+      this.cinemaPass.uniforms.uQuality.value      = this.quality === 'ultra' ? 3.0 : (this.quality === 'high' ? 2.0 : 1.0);
+      this.cinemaPass.uniforms.uGrainIntensity.value = this.quality === 'ultra' ? 0.022 : (this.quality === 'high' ? 0.016 : 0.0);
+      this.cinemaPass.uniforms.uVignette.value     = 0.92;
+      this.cinemaPass.uniforms.uAberration.value   = 0.0028;
       this.composer.addPass(this.cinemaPass);
 
-      // 3. Output Tone Mapping Pass
+      // Output Tone Mapping Pass
       const outputPass = new OutputPass();
       this.composer.addPass(outputPass);
+
+      console.log(`[PostFX] EffectComposer initialized — Bloom strength: ${bloomStrength}, radius: ${bloomRadius}, threshold: ${bloomThreshold}, quality: ${this.quality}`);
     } catch (e) {
       console.warn('EffectComposer init fallback to direct WebGL render:', e);
       this.composer = null;
@@ -154,11 +160,13 @@ export class PostProcessing {
         this._initComposer();
       } else {
         if (this.bloomPass) {
-          this.bloomPass.strength = level === 'ultra' ? 0.65 : (level === 'high' ? 0.5 : 0.35);
+          this.bloomPass.strength   = level === 'ultra' ? 1.2  : (level === 'high' ? 0.9  : 0.6);
+          this.bloomPass.radius     = level === 'ultra' ? 0.85 : (level === 'high' ? 0.75 : 0.6);
+          this.bloomPass.threshold  = level === 'ultra' ? 0.18 : (level === 'high' ? 0.22 : 0.28);
         }
         if (this.cinemaPass) {
-          this.cinemaPass.uniforms.uQuality.value = level === 'ultra' ? 3.0 : (level === 'high' ? 2.0 : 1.0);
-          this.cinemaPass.uniforms.uGrainIntensity.value = level === 'ultra' ? 0.028 : (level === 'high' ? 0.02 : 0.0);
+          this.cinemaPass.uniforms.uQuality.value       = level === 'ultra' ? 3.0 : (level === 'high' ? 2.0 : 1.0);
+          this.cinemaPass.uniforms.uGrainIntensity.value = level === 'ultra' ? 0.022 : (level === 'high' ? 0.016 : 0.0);
         }
       }
     }
