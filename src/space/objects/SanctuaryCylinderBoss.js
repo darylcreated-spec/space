@@ -57,12 +57,12 @@ function generateCylinderHullTexture() {
 }
 
 // ============================================================
-// WAVE 3 FINAL BOSS — Babylon 5 Industrial Rotating Cylinder Citadel
+// STAGE 4 BOSS — Sanctuary-9 Industrial Rotating O'Neill Cylinder Citadel
 // AAA Overhaul: 80m faceted O'Neill cylinder, 3 contra-rotating
 // habitat centrifuge rings, forward fusion reactor lance,
 // 8 ultra-defined triple-railgun batteries, vectoring thrusters
 // ============================================================
-export class Babylon5Boss {
+export class SanctuaryCylinderBoss {
   constructor(scene, particleManager) {
     this.scene = scene;
     this.particleManager = particleManager;

@@ -27,7 +27,7 @@ export class WaveSpawner {
     } else if (this.currentWave === 3) {
       this.totalToSpawnInWave = 55; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
     } else if (this.currentWave === 4) {
-      this.totalToSpawnInWave = 65; // Stage 4: Babylon 5 Cylinder -> Mid: Dual Battleship + Carrier -> Boss: Babylon 5
+      this.totalToSpawnInWave = 65; // Stage 4: Sanctuary-9 Cylinder -> Mid: Dual Battleship + Carrier -> Boss: Sanctuary-9 Cylinder
     } else if (this.currentWave === 5) {
       this.totalToSpawnInWave = 75; // Stage 5: Grand Armada -> Mid: Tri-Threat (Battleship + Carrier + Dreadnought) -> Boss: Mothership
     } else {
@@ -41,7 +41,7 @@ export class WaveSpawner {
     if (this.currentWave === 1) return 'STAGE 1: IRON MANTLE // ASTEROID BELT // BOSS: TITAN ASTEROID COLOSSUS';
     if (this.currentWave === 2) return 'STAGE 2: RING OF LIGHT // HALO MEGASTRUCTURE // MID: SUPERCARRIER';
     if (this.currentWave === 3) return 'STAGE 3: SELENE SHIELD // LUNAR CITADEL MOON BASE // MID: BATTLESHIP';
-    if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // BABYLON 5 CYLINDER // MID: DUAL CAPITAL';
+    if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // O\'NEILL CYLINDER CITADEL // MID: DUAL CAPITAL';
     if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA // BOSS: HIVE MOTHERSHIP';
     return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
@@ -143,8 +143,8 @@ export class WaveSpawner {
         // Stage 3 Boss: 🌕 Sector Alpha Moon Base Citadel
         this.gameManager.spawnSpaceStation();
       } else if (this.currentWave === 4) {
-        // Stage 4 Boss: 🪐 Babylon 5 Industrial Cylinder Citadel
-        this.gameManager.spawnBabylon5Boss();
+        // Stage 4 Boss: 🪐 Sanctuary-9 Industrial Rotating Cylinder Citadel
+        this.gameManager.spawnSanctuaryCylinderBoss();
       } else {
         // Stage 5 / Final Apex: 👑 The Vorn Hive Command Mothership
         this.gameManager.spawnCommandMothership();

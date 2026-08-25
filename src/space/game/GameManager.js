@@ -7,7 +7,7 @@ import { BossDreadnought } from '../objects/BossDreadnought.js';
 import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
 import { MoonBase } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
-import { Babylon5Boss } from '../objects/Babylon5Boss.js';
+import { SanctuaryCylinderBoss } from '../objects/SanctuaryCylinderBoss.js';
 import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
 import { PlayerSwarmMissile } from '../objects/PlayerSwarmMissile.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
@@ -390,9 +390,13 @@ export class GameManager {
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
-  spawnBabylon5Boss() {
-    this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Warning! Babylon 5 Industrial Rotating Citadel Approaching!", true);
+  spawnSanctuaryCylinderBoss() {
+    this.activeBoss = new SanctuaryCylinderBoss(this.spaceScene.scene, this.particleManager);
+    this.voiceAnnouncer.speak("Warning! Sanctuary-9 Industrial Cylinder Approaching!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("WARNING: Sanctuary-9 O'Neill Cylinder Habitat arriving! Protect civilian evacuation corridors and neutralize siege batteries!", "STARBOUND COMMAND", 5.5);
+      this.spaceHUD.showWaveBanner("BOSS BATTLE", "SANCTUARY-9 CYLINDER CITADEL");
+    }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
@@ -530,9 +534,9 @@ export class GameManager {
     if (leviathan.meshGroup) leviathan.meshGroup.position.set(0, 16, -155);
     this.showcaseBosses.push(leviathan);
 
-    const babylon = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
-    if (babylon.meshGroup) babylon.meshGroup.position.set(0, 26, -190);
-    this.showcaseBosses.push(babylon);
+    const sanctuary = new SanctuaryCylinderBoss(this.spaceScene.scene, this.particleManager);
+    if (sanctuary.meshGroup) sanctuary.meshGroup.position.set(0, 26, -190);
+    this.showcaseBosses.push(sanctuary);
   }
 
   spawnSoloInspect(shipKey) {
@@ -699,14 +703,14 @@ export class GameManager {
         break;
       }
 
-      case 'BABYLON': {
-        this.activeBoss = new Babylon5Boss(this.spaceScene.scene, this.particleManager);
+      case 'SANCTUARY_CYLINDER': {
+        this.activeBoss = new SanctuaryCylinderBoss(this.spaceScene.scene, this.particleManager);
         if (this.activeBoss.meshGroup) {
           this.activeBoss.meshGroup.position.set(0, 0, -78);
           this.activeBoss.meshGroup.rotation.set(0.28, 0.65, 0);
           this.activeBoss.meshGroup.scale.set(0.72, 0.72, 0.72);
         }
-        this.spaceHUD?.showWaveBanner("INSPECTING", "BABYLON 5 CYLINDER CITADEL");
+        this.spaceHUD?.showWaveBanner("INSPECTING", "SANCTUARY-9 CYLINDER CITADEL");
         break;
       }
 

@@ -369,7 +369,7 @@ export class CollisionSystem {
 
         if (hit) continue;
 
-        // Player Lasers vs Boss (SpaceStation / CommandMothership / HaloRingBoss / Babylon5Boss / BossDreadnought)
+        // Player Lasers vs Boss (SpaceStation / CommandMothership / HaloRingBoss / SanctuaryCylinderBoss / BossDreadnought / TitanAsteroidBoss)
         if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
           const boss = gameManager.activeBoss;
           if (boss.isDead) continue;
@@ -600,7 +600,7 @@ export class CollisionSystem {
                 }
               }
 
-              // 3D. Check Autonomous Orbiting Defense Satellites (Babylon 5 Cylinder Citadel)
+              // 3D. Check Autonomous Orbiting Defense Satellites (Sanctuary-9 Cylinder Citadel)
               if (!hitRegistered && boss.satellites && Array.isArray(boss.satellites)) {
                 for (const s of boss.satellites) {
                   if (!s.isDead && s.mesh) {
@@ -617,7 +617,7 @@ export class CollisionSystem {
                 }
               }
 
-              // 4. Check Turrets (MoonBase / Halo Ring / Babylon 5 / Dreadnought)
+              // 4. Check Turrets (MoonBase / Halo Ring / Sanctuary-9 Cylinder / Dreadnought)
               if (!hitRegistered && boss.turrets && Array.isArray(boss.turrets)) {
                 const livingTurrets = boss.turrets.filter(t => t && !t.isDead && t.mesh);
                 let hitTurret = null;

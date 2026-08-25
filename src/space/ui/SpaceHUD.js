@@ -322,7 +322,7 @@ export class SpaceHUD {
             case 'CARRIER': this.gameManager.spawnCarrierBoss(); break;
             case 'MOONBASE': this.gameManager.spawnSpaceStation(); break;
             case 'HALO': this.gameManager.spawnHaloBoss(); break;
-            case 'BABYLON': this.gameManager.spawnBabylon5Boss(); break;
+            case 'SANCTUARY_CYLINDER': this.gameManager.spawnSanctuaryCylinderBoss(); break;
             case 'MOTHERSHIP': this.gameManager.spawnCommandMothership(); break;
             case 'TITAN': this.gameManager.spawnTitanBoss(); break;
             case 'DREADNOUGHT': this.gameManager.spawnBoss(); break;
