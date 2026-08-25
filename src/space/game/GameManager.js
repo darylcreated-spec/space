@@ -864,6 +864,8 @@ export class GameManager {
         this.particleManager.spawnEngineParticle(worldMuzzle, 0x00ff88);
       } else if (shipClass === 'REAPER') {
         this.particleManager.spawnEngineParticle(worldMuzzle, 0xcc00ff);
+      } else if (shipClass === 'SENTINEL') {
+        this.particleManager.spawnEngineParticle(worldMuzzle, 0x00e5ff);
       }
     });
 
@@ -873,6 +875,8 @@ export class GameManager {
       this.spaceAudio.playQuantumArc(this.playerShip.meshGroup.position.x);
     } else if (shipClass === 'REAPER') {
       this.spaceAudio.playTachyonNeedle(this.playerShip.meshGroup.position.x, Math.random() < 0.35);
+    } else if (shipClass === 'SENTINEL') {
+      this.spaceAudio.playAegisIonBlast(this.playerShip.meshGroup.position.x);
     } else {
       this.spaceAudio.playLaserPew(this.playerShip.meshGroup.position.x);
     }

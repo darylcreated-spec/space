@@ -139,6 +139,7 @@ export class PlayerShip {
     this.reaperWingL = null;
     this.reaperWingR = null;
     this.reaperWingSweep = 0;
+    this.sentinelDrone = null;
 
     this.rebuildShipMesh(this.shipClass);
     this.meshGroup.position.set(0, 0, 0);
@@ -167,6 +168,7 @@ export class PlayerShip {
     this.tacticianGimbalOuter = null;
     this.reaperWingL = null;
     this.reaperWingR = null;
+    this.sentinelDrone = null;
   }
 
   buildCockpitInterior(parentGroup, canopyColorHex = 0x00f3ff) {
@@ -1179,6 +1181,9 @@ export class PlayerShip {
   // ────────────────────────────────────────────────────────────
   // 5. 🛡️ SENTINEL: "Aegis Warden" (Dual Tuning Emitters & Autonomous Escort Drone)
   // ────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────
+  // 5. 🛡️ SENTINEL: "Aegis Bastion" (Dual Hardlight Tuning Emitters & Autonomous Escort Drone)
+  // ────────────────────────────────────────────────────────────
   buildSentinelMesh() {
     this.maxShield = 130;
     this.shield = 130;
@@ -1189,89 +1194,174 @@ export class PlayerShip {
 
     const hullTex = getProceduralHullTexture();
 
-    // Sleek Forward Command Chassis
-    const bodyGeo = new THREE.CylinderGeometry(0.7, 0.95, 5.0, 8);
-    bodyGeo.rotateX(Math.PI / 2);
-    const bodyMat = new THREE.MeshStandardMaterial({
+    // ── High-Tech Materials ──
+    const hullMat = new THREE.MeshStandardMaterial({
       map: hullTex,
-      color: 0x0f2238,
+      color: 0x0c1b2c,
       metalness: 0.95,
       roughness: 0.18,
       emissive: 0x003b5c,
-      emissiveIntensity: 0.35
+      emissiveIntensity: 0.4
     });
-    this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
 
-    // Dual Forward Energy Emitter Prongs (Aegis Tuning Forks)
-    [-0.9, 0.9].forEach(px => {
-      const prongGeo = new THREE.BoxGeometry(0.24, 0.24, 3.2);
-      const prongMat = new THREE.MeshStandardMaterial({ color: 0x14324f, metalness: 0.92, roughness: 0.15 });
-      const prong = new THREE.Mesh(prongGeo, prongMat);
-      prong.position.set(px, 0, -2.4);
+    const armorTrussMat = new THREE.MeshStandardMaterial({
+      color: 0x142c44,
+      metalness: 0.96,
+      roughness: 0.15
+    });
+
+    const darkAlloyMat = new THREE.MeshStandardMaterial({
+      color: 0x06101c,
+      metalness: 0.98,
+      roughness: 0.12
+    });
+
+    const cyanGlowMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
+    const hardlightMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.85 });
+
+    // ── 1. Heavy Bastion Armored Chassis ──
+    const bodyGeo = new THREE.BoxGeometry(1.8, 1.1, 5.0);
+    const body = new THREE.Mesh(bodyGeo, hullMat);
+    body.position.set(0, 0, -0.2);
+    this.meshGroup.add(body);
+
+    // Armored Dorsal Spine Slat
+    const spineGeo = new THREE.BoxGeometry(0.6, 0.35, 4.2);
+    const spine = new THREE.Mesh(spineGeo, armorTrussMat);
+    spine.position.set(0, 0.65, -0.1);
+    this.meshGroup.add(spine);
+
+    this.buildCockpitInterior(this.meshGroup, 0x00e5ff);
+
+    // ── 2. ⚡ Dual Forward Hardlight Tuning Fork Emitter Prongs ──
+    [-1.0, 1.0].forEach(px => {
+      const prongGeo = new THREE.BoxGeometry(0.25, 0.28, 3.4);
+      const prong = new THREE.Mesh(prongGeo, darkAlloyMat);
+      prong.position.set(px, 0, -2.6);
       this.meshGroup.add(prong);
 
-      const tipGeo = new THREE.SphereGeometry(0.18, 8, 8);
-      const tipMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff });
-      const tip = new THREE.Mesh(tipGeo, tipMat);
-      tip.position.set(px, 0, -4.0);
+      // 3 Concentric Resonance Accelerator Rings per prong
+      [-0.6, 0, 0.6].forEach(rz => {
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 6, 16), hardlightMat);
+        ring.position.set(px, 0, rz - 2.6);
+        this.meshGroup.add(ring);
+      });
+
+      // Pulse Focus Emitter Lens Tip
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), cyanGlowMat);
+      tip.position.set(px, 0, -4.3);
       this.meshGroup.add(tip);
     });
 
-    // High-Clarity Cyan Glass Canopy
-    this.buildCockpitInterior(this.meshGroup, 0x00e5ff);
+    // ── 3. ✨ Heavy Reinforced Swept Wings (Mirrored Math) ──
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0.9, -0.8);
+    wingShape.lineTo(3.2, 0.4);
+    wingShape.lineTo(3.0, 1.4);
+    wingShape.lineTo(0.9, 1.2);
+    wingShape.closePath();
 
-    // Forward Swept Wing Blades
-    const wingGeo = new THREE.BoxGeometry(2.2, 0.12, 1.8);
-    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x1b3857, metalness: 0.9, roughness: 0.2 });
+    const wingExtrudeSettings = { depth: 0.12, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.03, bevelThickness: 0.03 };
+    const baseWingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
+    baseWingGeo.rotateX(Math.PI / 2);
 
-    const rightWing = new THREE.Mesh(wingGeo, wingMat);
-    rightWing.position.set(1.8, 0, -0.4);
-    rightWing.rotation.y = -0.25;
+    const rightWing = new THREE.Mesh(baseWingGeo, hullMat);
+    rightWing.position.set(0, 0, 0);
     this.meshGroup.add(rightWing);
 
-    const leftWing = new THREE.Mesh(wingGeo, wingMat);
-    leftWing.position.set(-1.8, 0, -0.4);
-    leftWing.rotation.y = 0.25;
+    const leftWingGeo = baseWingGeo.clone();
+    leftWingGeo.scale(-1, 1, 1);
+    const leftWing = new THREE.Mesh(leftWingGeo, hullMat);
+    leftWing.position.set(0, 0, 0);
     this.meshGroup.add(leftWing);
 
-    // Dual Twin Pulse Cannons
+    // Wing Leading Edge Titanium Slats
+    [-1, 1].forEach(side => {
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 2.6), cyanGlowMat);
+      slat.position.set(side * 2.1, 0.08, 0.3);
+      slat.rotation.y = -side * 0.48;
+      this.meshGroup.add(slat);
+    });
+
+    // ── 4. 🛸 Autonomous Orbiting Hardlight Escort Defense Drone ──
+    this.sentinelDrone = new THREE.Group();
+    const droneBody = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.2, 4), armorTrussMat);
+    droneBody.rotateX(-Math.PI / 2);
+    this.sentinelDrone.add(droneBody);
+
+    const droneHalo = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.04, 6, 20), hardlightMat);
+    this.sentinelDrone.add(droneHalo);
+
+    const droneBlaster = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6), darkAlloyMat);
+    droneBlaster.rotateX(Math.PI / 2);
+    droneBlaster.position.set(0, -0.1, -0.6);
+    this.sentinelDrone.add(droneBlaster);
+
+    this.meshGroup.add(this.sentinelDrone);
+
+    // ── 5. 💡 Wingtip Barrier Projectors & Flashing Strobe Lights ──
+    [-3.2, 3.2].forEach(wx => {
+      const nodeGeo = new THREE.BoxGeometry(0.2, 0.32, 1.4);
+      const node = new THREE.Mesh(nodeGeo, armorTrussMat);
+      node.position.set(wx, 0.1, 0.6);
+      this.meshGroup.add(node);
+
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.9 });
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.55, 0.08), beaconMat);
+      beacon.position.set(wx, 0.22, 0.8);
+      this.meshGroup.add(beacon);
+      this.wingtipBeacons.push(beacon);
+
+      const tipLight = new THREE.PointLight(0x00e5ff, 2.6, 8);
+      tipLight.position.set(wx, 0.22, 0.8);
+      this.meshGroup.add(tipLight);
+      this.wingtipLights.push(tipLight);
+    });
+
+    // ── 6. 🚀 Weapon Muzzle Offsets (Tuning Prongs + Wingtip Hardpoints) ──
     this.muzzleOffsets = [
-      new THREE.Vector3(-0.9, 0, -3.8),
-      new THREE.Vector3(0.9, 0, -3.8),
-      new THREE.Vector3(-2.6, 0, -1.2),
-      new THREE.Vector3(2.6, 0, -1.2)
+      new THREE.Vector3(-1.0, 0, -4.3),
+      new THREE.Vector3(1.0, 0, -4.3),
+      new THREE.Vector3(-2.6, -0.1, -1.6),
+      new THREE.Vector3(2.6, -0.1, -1.6)
     ];
 
-    // High Output Ion Thrusters
-    [-0.65, 0.65].forEach(x => {
-      const eng = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 1.1, 8), new THREE.MeshStandardMaterial({ color: 0x061424, metalness: 0.92 }));
-      eng.rotateX(Math.PI / 2);
+    // ── 7. 🔥 TWIN HEAVY ION PULSE THRUSTERS (Straight +Z) ──
+    const thrusterGeo = new THREE.CylinderGeometry(0.26, 0.36, 1.2, 10);
+    thrusterGeo.rotateX(Math.PI / 2);
+    const thrusterMat = new THREE.MeshStandardMaterial({ color: 0x06101c, metalness: 0.95, roughness: 0.2 });
+
+    const flameGeo = new THREE.ConeGeometry(0.22, 1.6, 8);
+    flameGeo.rotateX(Math.PI / 2); // Apex points backward +Z
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+
+    [-0.7, 0.7].forEach(x => {
+      const eng = new THREE.Mesh(thrusterGeo, thrusterMat);
       eng.position.set(x, -0.05, 2.3);
       this.meshGroup.add(eng);
 
-      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.5, 8), new THREE.MeshBasicMaterial({ color: 0x00e5ff }));
-      flame.rotation.x = -Math.PI / 2;
-      flame.position.set(0, 0, 0.6);
-      eng.add(flame);
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(x, -0.05, 3.4);
+      this.meshGroup.add(flame);
       this.flameMeshes.push(flame);
 
-      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 8), new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide }));
-      dia.position.set(0, 0, 0.4);
-      eng.add(dia);
+      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 10), new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+      dia.position.set(x, -0.05, 2.9);
+      this.meshGroup.add(dia);
       this.shockDiamonds.push(dia);
     });
 
-    this.wingtipOffsets = [new THREE.Vector3(-2.8, 0, -1.0), new THREE.Vector3(2.8, 0, -1.0)];
-    this.engineTrailOffsets = [new THREE.Vector3(-0.65, 0, 2.8), new THREE.Vector3(0.65, 0, 2.8)];
+    this.wingtipOffsets = [new THREE.Vector3(-3.2, 0, 0.6), new THREE.Vector3(3.2, 0, 0.6)];
+    this.engineTrailOffsets = [new THREE.Vector3(-0.7, -0.05, 3.0), new THREE.Vector3(0.7, -0.05, 3.0)];
 
     this.rcsPorts = [
-      { pos: new THREE.Vector3(0, 0.4, -2.4), dirY: 1, dirX: 0 },
-      { pos: new THREE.Vector3(0, -0.4, -2.4), dirY: -1, dirX: 0 },
-      { pos: new THREE.Vector3(-2.6, 0, -1.0), dirY: 0, dirX: -1 },
-      { pos: new THREE.Vector3(2.6, 0, -1.0), dirY: 0, dirX: 1 }
+      { pos: new THREE.Vector3(0, 0.4, -2.8), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.4, -2.8), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-3.0, 0, 0.6), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(3.0, 0, 0.6), dirY: 0, dirX: 1 }
     ];
 
-    this.engineLight = new THREE.PointLight(0x00e5ff, 2.0, 9);
+    this.engineLight = new THREE.PointLight(0x00e5ff, 2.2, 10);
     this.engineLight.position.set(0, 0, 2.6);
     this.meshGroup.add(this.engineLight);
   }
@@ -1457,6 +1547,18 @@ export class PlayerShip {
       if (this.reaperBodyMat) {
         this.reaperBodyMat.opacity = (this.isBoosting ? 0.35 : 1.0) + Math.sin(this._time * 25.0) * 0.05;
       }
+    }
+
+    // Sentinel Autonomous Escort Defense Drone Orbit Dynamics
+    if (this.sentinelDrone) {
+      const droneAngle = this._time * 2.8;
+      const droneRadius = 3.6;
+      this.sentinelDrone.position.set(
+        Math.cos(droneAngle) * droneRadius,
+        Math.sin(this._time * 4.0) * 0.4 + 0.35,
+        Math.sin(droneAngle) * (droneRadius * 0.7)
+      );
+      this.sentinelDrone.rotation.y = -droneAngle + Math.PI / 2;
     }
 
     // ── Movement & Bounds ──

@@ -240,6 +240,50 @@ export class SpaceAudio {
     } catch (e) {}
   }
 
+  playAegisIonBlast(xPos) {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(140, now + 0.12);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(3200, now);
+    filter.frequency.exponentialRampToValueAtTime(600, now + 0.12);
+
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    let panVal = 0;
+    if (xPos !== undefined) {
+      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+    }
+
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panVal, now);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } catch (e) {}
+  }
+
   playEnemyLaser(xPos) {
     this.ensureContext();
     if (!this.ctx) return;
