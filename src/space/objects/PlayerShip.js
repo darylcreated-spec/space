@@ -120,6 +120,8 @@ export class PlayerShip {
     this.shockDiamonds = [];
     this.muzzleOffsets = [];
     this.wingtipOffsets = [];
+    this.wingtipLights = [];
+    this.wingtipBeacons = [];
     this.engineTrailOffsets = [];
     this.rcsPorts = [];
 
@@ -151,6 +153,8 @@ export class PlayerShip {
     this.shockDiamonds = [];
     this.muzzleOffsets = [];
     this.wingtipOffsets = [];
+    this.wingtipLights = [];
+    this.wingtipBeacons = [];
     this.engineTrailOffsets = [];
     this.rcsPorts = [];
     this.canardL = null;
@@ -336,7 +340,7 @@ export class PlayerShip {
     leftWing.position.set(0, 0.02, 0);
     this.meshGroup.add(leftWing);
 
-    // Wingtip Winglets & Navigation Beacons
+    // Wingtip Winglets & Flashing Navigation Strobe Lights
     [-1, 1].forEach(side => {
       const wingletGeo = new THREE.BoxGeometry(0.12, 0.9, 1.3);
       const winglet = new THREE.Mesh(wingletGeo, armorTrussMat);
@@ -345,9 +349,16 @@ export class PlayerShip {
       winglet.rotation.z = -side * 0.18;
       this.meshGroup.add(winglet);
 
-      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.08), edgeMat);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9 });
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.65, 0.1), beaconMat);
       beacon.position.set(side * 3.35, 0.38, 2.2);
       this.meshGroup.add(beacon);
+      this.wingtipBeacons.push(beacon);
+
+      const tipLight = new THREE.PointLight(0x00f3ff, 2.8, 8);
+      tipLight.position.set(side * 3.35, 0.38, 2.2);
+      this.meshGroup.add(tipLight);
+      this.wingtipLights.push(tipLight);
 
       const conduitGeo = new THREE.BoxGeometry(0.08, 0.08, 2.6);
       const conduit = new THREE.Mesh(conduitGeo, edgeMat);
@@ -654,16 +665,23 @@ export class PlayerShip {
     armL.rotation.z = 0.12;
     this.meshGroup.add(armL);
 
-    // Wingtip Armor Bulkheads & Strobe Beacons
+    // Wingtip Armor Bulkheads & Flashing Navigation Strobe Lights
     [-3.7, 3.7].forEach(wx => {
       const bhGeo = new THREE.BoxGeometry(0.18, 0.8, 2.4);
       const bh = new THREE.Mesh(bhGeo, armorTrussMat);
       bh.position.set(wx, 0.15, 0.4);
       this.meshGroup.add(bh);
 
-      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.08), crimsonEdgeMat);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff0044, transparent: true, opacity: 0.9 });
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.65, 0.12), beaconMat);
       beacon.position.set(wx + (wx < 0 ? -0.05 : 0.05), 0.15, 1.4);
       this.meshGroup.add(beacon);
+      this.wingtipBeacons.push(beacon);
+
+      const tipLight = new THREE.PointLight(0xff0044, 2.8, 8);
+      tipLight.position.set(wx, 0.15, 1.4);
+      this.meshGroup.add(tipLight);
+      this.wingtipLights.push(tipLight);
     });
 
     // ── 5. Armored Command Citadel & Radiator Cooling Flaps ──
@@ -1320,6 +1338,21 @@ export class PlayerShip {
     if (this.engineLight) {
       this.engineLight.intensity = (this.isBoosting ? 3.0 : 1.4) + Math.sin(this._time * 14) * 0.25;
     }
+
+    // ── Dynamic Wingtip Aviation & Combat Strobe Flashing ──
+    const strobeCycle = this._time % 1.0;
+    // Aviation Double-Flash Strobe Rhythm: Flash at 0.00-0.09s and 0.17-0.26s, off otherwise
+    const isStrobeOn = (strobeCycle < 0.09) || (strobeCycle > 0.17 && strobeCycle < 0.26);
+    const strobeIntensity = isStrobeOn ? 3.8 : 0.15;
+    const strobeScale = isStrobeOn ? 1.35 : 1.0;
+
+    this.wingtipLights.forEach(light => {
+      light.intensity = strobeIntensity;
+    });
+    this.wingtipBeacons.forEach(b => {
+      if (b.material) b.material.opacity = isStrobeOn ? 1.0 : 0.3;
+      b.scale.setScalar(strobeScale);
+    });
 
     // Wingtip Vapor Contrails
     if (Math.abs(this.currentRoll) > 0.25 || this.isBoosting || this.dodgeTimer > 0) {
