@@ -88,6 +88,13 @@ export class TitanAsteroidBoss {
     this.speed = 9.0;
     this._time = 0;
 
+    // ── Dynamic Planetoid Mass & Rotational Inertia Physics ──
+    this.baseMass = 1200000; // 1,200,000 Metric Tons
+    this.mass = this.baseMass;
+    this.massRatio = 1.0;
+    this.baseRotationSpeed = 0.15;
+    this.rotationSpeed = this.baseRotationSpeed;
+
     // ── 1. Four Heavy Tectonic Armor Crust Plates (Protecting the Core) ──
     this.armorPlates = [
       { id: 0, name: 'NORTH DORSAL TECTONIC CRUST',   relPos: new THREE.Vector3(  0,  18,  12), hp: 900, maxHp: 900, isDead: false, mesh: null, reticle: null },
@@ -367,9 +374,45 @@ export class TitanAsteroidBoss {
 
     if (ap.hp <= 0) {
       ap.isDead = true;
-      ap.mesh.visible = false;
       if (ap.reticle) ap.reticle.visible = false;
-      const wp = ap.mesh.getWorldPosition(new THREE.Vector3());
+
+      // ⚖️ Dynamically Reduce Asteroid Planetoid Mass as Crust Plates Shatter!
+      this.mass = Math.max(this.baseMass * 0.35, this.mass - 200000);
+      this.massRatio = this.mass / this.baseMass;
+      this.rotationSpeed = this.baseRotationSpeed * (1.0 + (1.0 - this.massRatio) * 1.6);
+
+      const wp = new THREE.Vector3();
+      if (ap.mesh && ap.mesh.parent) {
+        ap.mesh.getWorldPosition(wp);
+        const wq = new THREE.Quaternion();
+        const ws = new THREE.Vector3();
+        ap.mesh.getWorldQuaternion(wq);
+        ap.mesh.getWorldScale(ws);
+
+        // Detach plate and tumble through 3D space
+        ap.mesh.parent.remove(ap.mesh);
+        ap.mesh.position.copy(wp);
+        ap.mesh.quaternion.copy(wq);
+        ap.mesh.scale.copy(ws);
+        this.scene.add(ap.mesh);
+
+        if (this.particleManager && this.particleManager.metalDebris) {
+          this.particleManager.metalDebris.push({
+            mesh: ap.mesh,
+            geo: ap.mesh.geometry,
+            mat: ap.mesh.material,
+            vx: (Math.random() - 0.5) * 16.0,
+            vy: 4.0 + (Math.random() - 0.5) * 10.0,
+            vz: 10.0 + Math.random() * 20.0,
+            rotSpeedX: (Math.random() - 0.5) * 6.0,
+            rotSpeedY: (Math.random() - 0.5) * 6.0,
+            rotSpeedZ: (Math.random() - 0.5) * 6.0,
+            life: 1.0,
+            decay: 0.16
+          });
+        }
+      }
+
       this.particleManager.createExplosion(wp, 0x00f3ff, 140, 4.0);
       this.particleManager.createExplosion(wp, 0xff5500, 100, 3.0);
       this.particleManager.createEmpShockwave(wp, 50);
@@ -493,10 +536,10 @@ export class TitanAsteroidBoss {
       pos.z += this.speed * dt;
     }
 
-    // 2. Slow planetoid tumbling rotation
+    // 2. Planetoid tumbling rotation (accelerates as mass sheds)
     if (this.rockBodyMesh) {
-      this.rockBodyMesh.rotation.y += 0.15 * dt;
-      this.rockBodyMesh.rotation.x += 0.08 * dt;
+      this.rockBodyMesh.rotation.y += this.rotationSpeed * dt;
+      this.rockBodyMesh.rotation.x += (this.rotationSpeed * 0.55) * dt;
     }
 
     // 3. Orbiting Satellite Debris Boulders

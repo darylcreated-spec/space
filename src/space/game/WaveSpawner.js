@@ -21,17 +21,17 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 45; // Stage 1: Asteroid Perimeter Incursion -> Boss: Titan Asteroid Colossus
+      this.totalToSpawnInWave = 14; // Stage 1: Asteroid Perimeter Incursion -> Mid: Capital Cruiser -> Boss: Titan Asteroid Colossus
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 50; // Stage 2: Halo Megastructure -> Mid: Supercarrier & Drones -> Boss: Halo Ring
+      this.totalToSpawnInWave = 20; // Stage 2: Halo Megastructure -> Mid: Supercarrier & Drones -> Boss: Halo Ring
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 55; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
+      this.totalToSpawnInWave = 24; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
     } else if (this.currentWave === 4) {
-      this.totalToSpawnInWave = 65; // Stage 4: Sanctuary-9 Cylinder -> Mid: Dual Battleship + Carrier -> Boss: Sanctuary-9 Cylinder
+      this.totalToSpawnInWave = 28; // Stage 4: Sanctuary-9 Cylinder -> Mid: Dual Battleship + Carrier -> Boss: Sanctuary-9 Cylinder
     } else if (this.currentWave === 5) {
-      this.totalToSpawnInWave = 75; // Stage 5: Grand Armada -> Mid: Tri-Threat (Battleship + Carrier + Dreadnought) -> Boss: Mothership
+      this.totalToSpawnInWave = 32; // Stage 5: Grand Armada -> Mid: Tri-Threat (Battleship + Carrier + Dreadnought) -> Boss: Mothership
     } else {
-      this.totalToSpawnInWave = 60 + (this.currentWave - 5) * 10;
+      this.totalToSpawnInWave = 30 + (this.currentWave - 5) * 8;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
@@ -50,7 +50,7 @@ export class WaveSpawner {
     if (this.waveState !== 'SPAWNING') return;
 
     this.spawnTimer += dt;
-    const spawnInterval = Math.max(0.35, 0.85 - this.currentWave * 0.05);
+    const spawnInterval = Math.max(0.30, 0.75 - this.currentWave * 0.05);
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
@@ -58,16 +58,15 @@ export class WaveSpawner {
 
       // ── Mid-Stage Capital Escalations ──
       if (this.currentWave === 1) {
-        // Stage 1 Midpoint: Stealth wolfpack ambush
-        if (this.spawnedCount === 22) {
-          this.gameManager.spawnStealthFighter();
+        // Stage 1 Midpoint: Enemy Capital Cruiser Escort warps in to test defenses!
+        if (this.spawnedCount === 5) {
+          this.gameManager.spawnCapitalShip();
+        } else if (this.spawnedCount === 8) {
           this.gameManager.spawnStealthFighter();
         }
       } else if (this.currentWave === 2) {
-        // Stage 2: Friendly Valiant Cruiser escort + Midpoint Supercarrier
-        if (this.spawnedCount === 5) {
-          this.gameManager.spawnCapitalShip();
-        } else if (this.spawnedCount === 22) {
+        // Stage 2 Midpoint: Gorgon Supercarrier (with drone launch wings)
+        if (this.spawnedCount === 8) {
           this.gameManager.spawnCarrierBoss();
         }
       } else if (this.currentWave === 3) {
@@ -76,10 +75,8 @@ export class WaveSpawner {
           this.gameManager.spawnHeavyBattleship();
         }
       } else if (this.currentWave === 4) {
-        // Stage 4: Friendly Valiant Cruiser escort + Midpoint DUAL CAPITAL ASSAULT (Battleship + Supercarrier)
-        if (this.spawnedCount === 5) {
-          this.gameManager.spawnCapitalShip();
-        } else if (this.spawnedCount === 24) {
+        // Stage 4 Midpoint: DUAL CAPITAL ASSAULT (Battleship + Supercarrier)
+        if (this.spawnedCount === 24) {
           this.gameManager.spawnHeavyBattleship();
           setTimeout(() => {
             if (this.gameManager.state === 'PLAYING') this.gameManager.spawnCarrierBoss();
@@ -87,9 +84,7 @@ export class WaveSpawner {
         }
       } else if (this.currentWave === 5) {
         // Stage 5 Pre-Boss: TRI-THREAT GRAND ARMADA (Battleship + Supercarrier + Dreadnought)
-        if (this.spawnedCount === 5) {
-          this.gameManager.spawnCapitalShip();
-        } else if (this.spawnedCount === 25) {
+        if (this.spawnedCount === 25) {
           this.gameManager.spawnHeavyBattleship();
           this.gameManager.spawnCarrierBoss();
           setTimeout(() => {
@@ -155,6 +150,8 @@ export class WaveSpawner {
   checkWaveComplete(activeAsteroidsCount, activeDronesCount, bossActive) {
     const stealthActive = this.gameManager.stealthFighters ? this.gameManager.stealthFighters.some(s => !s.isDead) : false;
     const battleshipActive = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.some(b => !b.isDead) : false;
+    const cruiserActive = this.gameManager.capitalShips ? this.gameManager.capitalShips.some(c => !c.isDead) : false;
+    const carrierActive = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
 
     if (
       this.totalToSpawnInWave > 0 &&
@@ -165,6 +162,8 @@ export class WaveSpawner {
       activeDronesCount === 0 &&
       !stealthActive &&
       !battleshipActive &&
+      !cruiserActive &&
+      !carrierActive &&
       !bossActive
     ) {
       this.waveState = 'COMPLETED';

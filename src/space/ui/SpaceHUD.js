@@ -315,6 +315,7 @@ export class SpaceHUD {
         const shipKey = btn.dataset.ship;
         if (shipKey) {
           this.closeFleetModal();
+          this.closeHangarModal();
           this.gameManager.state = 'PLAYING';
           if (this.modalStart) this.modalStart.classList.add('hidden');
           switch(shipKey) {
@@ -705,6 +706,12 @@ export class SpaceHUD {
         this.btnBuyMiningAddon.textContent = 'UNLOCK DRILL (500 CR)';
         this.btnBuyMiningAddon.disabled = !canAfford;
       }
+    }
+  }
+
+  closeHangarModal() {
+    if (this.modalHangar) {
+      this.modalHangar.classList.add('hidden');
     }
   }
 

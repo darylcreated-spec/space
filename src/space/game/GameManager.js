@@ -342,10 +342,17 @@ export class GameManager {
     return drone;
   }
 
-  spawnCapitalShip() {
-    const ship = new CapitalShip(this.spaceScene.scene, this.particleManager);
+  spawnCapitalShip(spawnOffset = null) {
+    const ship = new CapitalShip(this.spaceScene.scene, this.particleManager, spawnOffset);
     this.capitalShips.push(ship);
-    this.voiceAnnouncer.speak("Alert! Capital Warship Entering Sector!", false);
+    this.voiceAnnouncer.speak("Warning! Enemy Capital Cruiser Escort Arrived!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("TACTICAL ALERT: Enemy Capital Cruiser escort has deployed to shield the Titan Asteroid Colossus!", "STARBOUND COMMAND", 7.0);
+      this.spaceHUD.showWaveBanner("WARSHIP ESCORT INBOUND", "ENEMY CAPITAL CRUISER");
+    }
+    if (this.spaceScene) {
+      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(ship.meshGroup.position.x, ship.meshGroup.position.y, -100));
+    }
   }
 
   spawnBoss() {
@@ -356,8 +363,15 @@ export class GameManager {
 
   spawnTitanBoss() {
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
-    this.voiceAnnouncer.speak("Warning! Titan Asteroid Core Approaching!", true);
+    this.voiceAnnouncer.speak("Warning! Titan Asteroid Colossus Approaching!", true);
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+
+    // Deploy Enemy Capital Cruiser to protect the Titan Asteroid Boss!
+    setTimeout(() => {
+      if (this.state === 'PLAYING' && this.activeBoss && !this.activeBoss.isDead) {
+        this.spawnCapitalShip(new THREE.Vector3(18, 2, -65));
+      }
+    }, 1800);
   }
 
   spawnCarrierBoss() {
@@ -1242,19 +1256,20 @@ export class GameManager {
       }
     }
 
-    // Update Capital Ships
+    // Update Enemy Capital Cruiser Escorts
     for (let i = 0; i < this.capitalShips.length; i++) {
       const ship = this.capitalShips[i];
       if (!ship || ship.isDead || !ship.meshGroup) continue;
       if (this.freezeFleetAI) {
         ship.meshGroup.rotation.y += 0.003;
       } else {
-        const firePositions = ship.update(effectiveDt, pPos);
+        const fireData = ship.update(effectiveDt, pPos);
 
-        if (firePositions && Array.isArray(firePositions)) {
-          firePositions.forEach(tPos => {
+        if (fireData && fireData.origins && Array.isArray(fireData.origins)) {
+          fireData.origins.forEach(tPos => {
             const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-            this.spawnLaser(tPos, 0xff0055, true, targetDir);
+            // Enemy Cruiser fires crimson-gold heavy plasma bolts at the player
+            this.spawnEnemyLaser(tPos, targetDir, 0xff2244, 46);
           });
           this.spaceAudio.playLaserPew();
         }

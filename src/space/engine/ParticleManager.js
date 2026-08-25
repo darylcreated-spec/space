@@ -7,6 +7,7 @@ export class ParticleManager {
     this.sonicDiscs = [];
     this.lightningArcs = [];
     this.fireballs = [];
+    this.metalDebris = [];
 
     // 1. Reusable Engine Thruster Particle Pool (250 particles)
     this.enginePool = this._buildParticlePool(250, 0.45);
@@ -244,7 +245,8 @@ export class ParticleManager {
     this.shockwaves.push({ mesh: ring, currentRadius: 0.5, maxRadius, speed: 1.6 });
   }
 
-  update() {
+  update(dt = 0.016) {
+    const delta = dt || 0.016;
     this._updatePool(this.enginePool);
     this._updatePool(this.explosionPool);
     this._updatePool(this.sparkPool);
@@ -295,6 +297,74 @@ export class ParticleManager {
         const progress = sd.scale / sd.maxScale;
         sd.mesh.material.opacity = Math.max(0, (1 - progress) * 0.85);
       }
+    }
+
+    // ── Update Breakaway Metal Debris & Armor Shards ──
+    for (let i = this.metalDebris.length - 1; i >= 0; i--) {
+      const d = this.metalDebris[i];
+      d.life -= d.decay * dt;
+      d.mesh.position.x += d.vx * dt;
+      d.mesh.position.y += d.vy * dt;
+      d.mesh.position.z += d.vz * dt;
+
+      d.mesh.rotation.x += d.rotSpeedX * dt;
+      d.mesh.rotation.y += d.rotSpeedY * dt;
+      d.mesh.rotation.z += d.rotSpeedZ * dt;
+
+      if (d.mesh.material && d.mesh.material.opacity !== undefined) {
+        d.mesh.material.transparent = true;
+        d.mesh.material.opacity = Math.min(1.0, d.life * 2.0);
+      }
+
+      if (d.life <= 0 || d.mesh.position.z > 35 || d.mesh.position.length() > 220) {
+        this.scene.remove(d.mesh);
+        if (d.mesh.geometry) d.mesh.geometry.dispose();
+        if (d.mesh.material) d.mesh.material.dispose();
+        this.metalDebris.splice(i, 1);
+      }
+    }
+  }
+
+  spawnMetalDebris(originPos, count = 5, colorHex = 0xe61c47, baseVel = null) {
+    for (let i = 0; i < count; i++) {
+      const sizeX = 0.35 + Math.random() * 0.9;
+      const sizeY = 0.18 + Math.random() * 0.45;
+      const sizeZ = 0.45 + Math.random() * 1.1;
+
+      const geo = new THREE.BoxGeometry(sizeX, sizeY, sizeZ);
+      const mat = new THREE.MeshStandardMaterial({
+        color: colorHex,
+        metalness: 0.92,
+        roughness: 0.25,
+        emissive: Math.random() > 0.35 ? 0xff3300 : 0x000000,
+        emissiveIntensity: 0.8
+      });
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(originPos);
+      mesh.position.x += (Math.random() - 0.5) * 2.2;
+      mesh.position.y += (Math.random() - 0.5) * 1.8;
+      mesh.position.z += (Math.random() - 0.5) * 2.2;
+
+      const spread = 7.0 + Math.random() * 14.0;
+      const vx = (Math.random() - 0.5) * spread + (baseVel ? baseVel.x * 0.3 : 0);
+      const vy = (Math.random() - 0.5) * spread + (baseVel ? baseVel.y * 0.3 : 0);
+      const vz = 6.0 + Math.random() * 18.0; // Tumbles backwards through space
+
+      const rotSpeedX = (Math.random() - 0.5) * 12.0;
+      const rotSpeedY = (Math.random() - 0.5) * 12.0;
+      const rotSpeedZ = (Math.random() - 0.5) * 12.0;
+
+      this.scene.add(mesh);
+      this.metalDebris.push({
+        mesh,
+        geo,
+        mat,
+        vx, vy, vz,
+        rotSpeedX, rotSpeedY, rotSpeedZ,
+        life: 1.0,
+        decay: 0.22 + Math.random() * 0.22 // Lasts 2.5 - 4.5 seconds
+      });
     }
   }
 

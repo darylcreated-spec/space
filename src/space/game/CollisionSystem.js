@@ -233,11 +233,11 @@ export class CollisionSystem {
 
         if (hit) continue;
 
-        // Player Lasers vs Capital Ships
+        // Player Lasers vs Enemy Capital Ships (Skip allied Valiant cruisers)
         if (gameManager.capitalShips && gameManager.capitalShips.length > 0) {
           for (let j = gameManager.capitalShips.length - 1; j >= 0; j--) {
             const ship = gameManager.capitalShips[j];
-            if (!ship || !ship.meshGroup || ship.isDead) continue;
+            if (!ship || !ship.meshGroup || ship.isDead || ship.isAllied || ship.isFriendly) continue;
 
             laser.hitEntities = laser.hitEntities || new Set();
             if (laser.hitEntities.has(ship.meshGroup.uuid)) continue;
@@ -285,6 +285,9 @@ export class CollisionSystem {
             if (lPos.distanceTo(fighter.meshGroup.position) < fighter.radius + laser.radius) {
               const dead = fighter.takeDamage(laser.isCritical ? 75 : 25, lPos);
               this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0xbf00ff);
+              if (this.particleManager.spawnMetalDebris) {
+                this.particleManager.spawnMetalDebris(lPos, 2, 0x8a2be2);
+              }
               if (dead) {
                 gameManager.addScore(fighter.scoreValue);
                 gameManager.addScrap(35);
@@ -390,6 +393,9 @@ export class CollisionSystem {
                 this.particleManager.createExplosion(lPos, 0xff0044, 25);
               } else {
                 this.particleManager.createExplosion(lPos, 0xffea00, 15);
+              }
+              if (this.particleManager.spawnMetalDebris) {
+                this.particleManager.spawnMetalDebris(lPos, 3, 0xff3300);
               }
               if (laser.hitEntities.size > 1) dmg *= 0.5;
 
@@ -879,7 +885,7 @@ export class CollisionSystem {
         });
 
         gameManager.capitalShips.forEach(ship => {
-          if (ship && ship.meshGroup && pulsePos.distanceTo(ship.meshGroup.position) < pulse.aoeRadius) {
+          if (ship && !ship.isAllied && !ship.isFriendly && ship.meshGroup && pulsePos.distanceTo(ship.meshGroup.position) < pulse.aoeRadius) {
             if (ship.takeDamage(250)) {
               gameManager.addScore(ship.scoreValue);
               gameManager.addScrap(100);
