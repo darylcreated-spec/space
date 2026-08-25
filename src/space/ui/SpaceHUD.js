@@ -108,6 +108,9 @@ export class SpaceHUD {
     this.btnVoiceOn = document.getElementById('btn-voice-on');
     this.btnStartSettings = document.getElementById('btn-start-settings');
     this.btnExitGame = document.getElementById('btn-exit-game');
+    this.inputGodmodeCode = document.getElementById('input-godmode-code');
+    this.btnSubmitGodmode = document.getElementById('btn-submit-godmode');
+    this.godmodeActivePill = document.getElementById('godmode-active-pill');
 
     // Run platform detection & adjust UI settings for Vercel Web vs. Android Native
     this.configurePlatformUI();
@@ -405,6 +408,46 @@ export class SpaceHUD {
         e.stopPropagation();
         this.gameManager.voiceAnnouncer.enabled = true;
         this.updateSettingsUI();
+      });
+    }
+
+    // Admiralty Authorization God Mode Code Handler
+    const handleGodModeCodeSubmit = () => {
+      if (!this.inputGodmodeCode) return;
+      const entered = this.inputGodmodeCode.value.trim().toLowerCase();
+      const GOD_MODE_CODE = 'daryl.created@gmail.com';
+
+      if (entered === GOD_MODE_CODE) {
+        const active = this.gameManager.toggleGodMode();
+        this.inputGodmodeCode.value = '';
+        this.updateSettingsUI();
+        if (active) {
+          this.showRadioTransmission("⚡ ADMIRALTY AUTHORIZATION ACCEPTED: GOD MODE ACTIVE (Shield takes NO damage)", "ADMIRALTY COMMAND", 6.0);
+        } else {
+          this.showRadioTransmission("ADMIRALTY GOD MODE DEACTIVATED (Standard Combat Vulnerability)", "ADMIRALTY COMMAND", 4.0);
+        }
+      } else if (entered.length > 0) {
+        this.inputGodmodeCode.style.borderColor = '#ff0055';
+        setTimeout(() => {
+          if (this.inputGodmodeCode) this.inputGodmodeCode.style.borderColor = 'rgba(0, 243, 255, 0.45)';
+        }, 1200);
+        this.showRadioTransmission("ACCESS DENIED: Invalid Authorization Code", "SECURITY CORE", 3.0);
+      }
+    };
+
+    if (this.btnSubmitGodmode) {
+      this.btnSubmitGodmode.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleGodModeCodeSubmit();
+      });
+    }
+
+    if (this.inputGodmodeCode) {
+      this.inputGodmodeCode.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.stopPropagation();
+          handleGodModeCodeSubmit();
+        }
       });
     }
 
@@ -897,6 +940,17 @@ export class SpaceHUD {
         this.btnVoiceOff.classList.add('active');
         this.btnVoiceOn.classList.remove('active');
       }
+    }
+
+    const isGod = !!this.gameManager.isGodMode;
+    if (this.godmodeActivePill) {
+      this.godmodeActivePill.style.display = isGod ? 'inline-block' : 'none';
+    }
+    if (this.btnSubmitGodmode) {
+      this.btnSubmitGodmode.textContent = isGod ? 'DISABLE' : 'UNLOCK';
+      this.btnSubmitGodmode.style.borderColor = isGod ? '#00ff88' : '#00f3ff';
+      this.btnSubmitGodmode.style.color = isGod ? '#00ff88' : '#00f3ff';
+      this.btnSubmitGodmode.style.background = isGod ? 'rgba(0, 255, 136, 0.25)' : 'rgba(0, 243, 255, 0.2)';
     }
   }
 }

@@ -1372,8 +1372,8 @@ export class PlayerShip {
   }
 
   takeDamage(amount) {
-    if (this.dodgeTimer > 0 || this.isInvulnerable) {
-      return false;
+    if (this.dodgeTimer > 0 || this.isInvulnerable || (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode)) {
+      return false; // God Mode: Shield takes zero damage
     }
 
     if (this.shipClass === 'REAPER' && this.isBoosting) {
