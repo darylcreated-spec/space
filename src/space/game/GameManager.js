@@ -1492,18 +1492,18 @@ export class GameManager {
         waveNum: this.waveSpawner.currentWave,
         pulseCdRatio: this.playerShip.pulseCooldown / this.playerShip.maxPulseCD,
         bossHpRatio: (this.activeBoss && !this.activeBoss.isDead) 
-          ? Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp) 
+          ? (this.activeBoss.getHealthRatio ? this.activeBoss.getHealthRatio() : Math.max(0, this.activeBoss.coreHp / this.activeBoss.maxCoreHp))
           : ((this.heavyBattleships && this.heavyBattleships.length > 0 && !this.heavyBattleships[0].isDead)
             ? Math.max(0, this.heavyBattleships[0].coreHp / this.heavyBattleships[0].maxCoreHp)
             : ((this.carrierBoss && !this.carrierBoss.isDead) 
               ? Math.max(0, this.carrierBoss.coreHp / this.carrierBoss.maxCoreHp) 
               : null)),
         bossTitle: (this.activeBoss && !this.activeBoss.isDead) 
-          ? (this.activeBoss.aegisFrigates ? "⚠️ LEVIATHAN COMMAND MOTHERSHIP ⚠️" : (this.activeBoss.generators ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : "⚠️ ENEMY MEGASTRUCTURE ⚠️"))
+          ? (this.activeBoss.armorPlates ? "⚠️ TITAN ASTEROID COLOSSUS ⚠️" : (this.activeBoss.aegisFrigates ? "⚠️ LEVIATHAN COMMAND MOTHERSHIP ⚠️" : (this.activeBoss.generators ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : (this.activeBoss.framingNodes ? "⚠️ HALO MEGASTRUCTURE RING ⚠️" : (this.activeBoss.satellites ? "⚠️ SANCTUARY-9 CYLINDER CITADEL ⚠️" : "⚠️ ENEMY MEGASTRUCTURE ⚠️")))))
           : ((this.heavyBattleships && this.heavyBattleships.length > 0 && !this.heavyBattleships[0].isDead)
             ? "⚠️ GOLIATH HEAVY BATTLESHIP DREADNOUGHT ⚠️"
             : ((this.carrierBoss && !this.carrierBoss.isDead) 
-              ? "⚠️ ENEMY SPACECRAFT CARRIER CAPITAL SHIP ⚠️" 
+              ? "⚠️ GORGON HEAVY SUPERCARRIER ⚠️" 
               : "⚠️ ENEMY TARGET ⚠️")),
         overchargeActive: this.overchargeTimer > 0,
         stasisActive: this.stasisTimer > 0

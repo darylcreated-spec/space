@@ -429,19 +429,24 @@ export class TitanAsteroidBoss {
     return c.isDead;
   }
 
-  takeDamage(targetSubsystem, amount) {
+  takeCoreDamage(amount, isCrit = false) {
     if (this.isDead) return false;
 
-    // Check if tectonic armor crust is still protecting core
-    const alivePlates = this.armorPlates.filter(p => !p.isDead).length;
-    if (alivePlates > 0) {
-      if (this.particleManager) {
-        this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0x00f3ff);
-      }
-      return false; // Deflected by tectonic armor crust
+    let finalDmg = isCrit ? amount * 2.5 : amount;
+
+    // Check if any tectonic armor plates are alive
+    const alivePlates = this.armorPlates.filter(p => !p.isDead);
+    if (alivePlates.length > 0) {
+      // Direct damage to the first living tectonic armor plate so player shots always wear down the armor!
+      const targetPlate = alivePlates[0];
+      this.takeArmorPlateDamage(targetPlate.id, finalDmg);
+      // Also apply 25% bleedthrough damage to the core
+      this.coreHp = Math.max(1, this.coreHp - finalDmg * 0.25);
+    } else {
+      // Armor broken! Full direct core damage
+      this.coreHp -= finalDmg;
     }
 
-    this.coreHp -= amount;
     if (this.particleManager) {
       this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xff5500);
     }
@@ -451,6 +456,19 @@ export class TitanAsteroidBoss {
       return true;
     }
     return false;
+  }
+
+  takeDamage(targetSubsystem, amount) {
+    if (this.isDead) return false;
+    return this.takeCoreDamage(amount, false);
+  }
+
+  getHealthRatio() {
+    const totalPlatesHp = this.armorPlates ? this.armorPlates.reduce((acc, p) => acc + (p.isDead ? 0 : p.hp), 0) : 0;
+    const maxPlatesHp = this.armorPlates ? this.armorPlates.reduce((acc, p) => acc + p.maxHp, 0) : 0;
+    const currentTotal = Math.max(0, this.coreHp) + totalPlatesHp;
+    const maxTotal = this.maxCoreHp + maxPlatesHp;
+    return Math.max(0, currentTotal / maxTotal);
   }
 
   triggerDeathSequence() {
