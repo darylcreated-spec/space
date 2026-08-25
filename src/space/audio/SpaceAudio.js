@@ -107,6 +107,55 @@ export class SpaceAudio {
     } catch (e) {}
   }
 
+  playMissileLaunch(xPos) {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.22);
+
+    gain.gain.setValueAtTime(0.24, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+    // Filter for deeper bass punch
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800, now);
+    filter.frequency.exponentialRampToValueAtTime(120, now + 0.22);
+
+    let panVal = 0;
+    if (xPos !== undefined) {
+      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+    }
+
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panVal, now);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
+
+    osc.onended = () => {
+      try { osc.disconnect(); filter.disconnect(); gain.disconnect(); } catch(e) {}
+    };
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (e) {}
+  }
+
   playEnemyLaser(xPos) {
     this.ensureContext();
     if (!this.ctx) return;

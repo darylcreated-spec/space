@@ -837,7 +837,7 @@ export class GameManager {
       projectileType = 'FLAK';
       color = 0xff3300;
       this.playerShip.triggerBarrelRecoil();
-      this.spaceScene.addScreenShake(0.35);
+      this.spaceScene.addScreenShake(0.28);
     } else if (shipClass === 'TACTICIAN') {
       projectileType = 'HOMING';
       color = 0x00ff88;
@@ -858,9 +858,16 @@ export class GameManager {
     muzzles.forEach(offset => {
       const worldMuzzle = this.playerShip.meshGroup.localToWorld(offset.clone());
       this.spawnLaser(worldMuzzle, color, false, null, false, projectileType);
+      if (shipClass === 'DREADNOUGHT') {
+        this.particleManager.spawnEngineParticle(worldMuzzle, 0xff5500);
+      }
     });
 
-    this.spaceAudio.playLaserPew(this.playerShip.meshGroup.position.x);
+    if (shipClass === 'DREADNOUGHT') {
+      this.spaceAudio.playMissileLaunch(this.playerShip.meshGroup.position.x);
+    } else {
+      this.spaceAudio.playLaserPew(this.playerShip.meshGroup.position.x);
+    }
   }
 
   fireEmpPulse() {

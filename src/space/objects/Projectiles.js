@@ -129,24 +129,88 @@ export class LaserBolt {
       this.meshGroup.remove(this.meshGroup.children[0]);
     }
 
-    const geos = getLaserGeometries(projectileType, isEnemy);
+    if (projectileType === 'FLAK') {
+      // 1. Aerodynamic Rocket Body (Dark metallic alloy)
+      const bodyGeo = new THREE.CylinderGeometry(0.18, 0.18, 2.4, 8);
+      bodyGeo.rotateX(Math.PI / 2);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1c22,
+        metalness: 0.94,
+        roughness: 0.2
+      });
+      this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
 
-    // Beam
-    this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
-    this.meshGroup.add(this.beamMesh);
+      // 2. Heavy Explosive Ogive Warhead Nose
+      const warheadGeo = new THREE.ConeGeometry(0.22, 0.85, 8);
+      warheadGeo.rotateX(-Math.PI / 2);
+      const warheadMat = new THREE.MeshStandardMaterial({
+        color: 0xff3300,
+        emissive: 0xff1100,
+        emissiveIntensity: 0.5,
+        metalness: 0.88,
+        roughness: 0.22
+      });
+      const warhead = new THREE.Mesh(warheadGeo, warheadMat);
+      warhead.position.set(0, 0, -1.45);
+      this.meshGroup.add(warhead);
 
-    // Glow
-    this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.25));
-    this.meshGroup.add(this.glowMesh);
+      // 3. Optical Seeker Lens
+      const seeker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.09, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffea00 })
+      );
+      seeker.position.set(0, 0, -1.9);
+      this.meshGroup.add(seeker);
 
-    // Core
-    this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
-    this.meshGroup.add(this.coreMesh);
+      // 4. Cruciform Delta Stabilizer Fins
+      const finMat = new THREE.MeshStandardMaterial({ color: 0x2e323b, metalness: 0.96 });
+      const finGeo = new THREE.BoxGeometry(0.04, 0.65, 0.55);
+      
+      const finVert = new THREE.Mesh(finGeo, finMat);
+      finVert.position.set(0, 0, 0.8);
+      this.meshGroup.add(finVert);
 
-    // Muzzle
-    this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff));
-    this.muzzleMesh.position.z = -geos.len / 2;
-    this.meshGroup.add(this.muzzleMesh);
+      const finHoriz = new THREE.Mesh(finGeo, finMat);
+      finHoriz.rotation.z = Math.PI / 2;
+      finHoriz.position.set(0, 0, 0.8);
+      this.meshGroup.add(finHoriz);
+
+      // 5. Rocket Thruster Nozzle & Flame Cone
+      const nozzle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.14, 0.18, 0.35, 8),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0c, metalness: 0.95 })
+      );
+      nozzle.rotateX(Math.PI / 2);
+      nozzle.position.set(0, 0, 1.25);
+      this.meshGroup.add(nozzle);
+
+      const flame = new THREE.Mesh(
+        new THREE.ConeGeometry(0.18, 0.95, 8),
+        new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.9 })
+      );
+      flame.rotateX(Math.PI / 2);
+      flame.position.set(0, 0, 1.7);
+      this.meshGroup.add(flame);
+    } else {
+      const geos = getLaserGeometries(projectileType, isEnemy);
+
+      // Beam
+      this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
+      this.meshGroup.add(this.beamMesh);
+
+      // Glow
+      this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.25));
+      this.meshGroup.add(this.glowMesh);
+
+      // Core
+      this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
+      this.meshGroup.add(this.coreMesh);
+
+      // Muzzle
+      this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff));
+      this.muzzleMesh.position.z = -geos.len / 2;
+      this.meshGroup.add(this.muzzleMesh);
+    }
   }
 
   destroy() {
@@ -158,6 +222,14 @@ export class LaserBolt {
     if (this.isDead) return;
 
     const gm = this.gameManager || (typeof window !== 'undefined' ? window.spaceGameManager : null);
+
+    // Dynamic Rocket Motor Exhaust for Heavy Missiles
+    if (this.projectileType === 'FLAK' && gm && gm.particleManager) {
+      gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xff4400);
+      if (Math.random() < 0.6) {
+        gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xffaa00);
+      }
+    }
 
     // Homing Steering Logic for TACTICIAN seeking plasma
     if (this.projectileType === 'HOMING' && !this.isEnemy && gm) {
