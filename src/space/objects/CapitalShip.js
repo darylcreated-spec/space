@@ -97,6 +97,7 @@ export class CapitalShip {
     this.breakableParts = [];
     this.detachedPartsCount = 0;
     this.breakCooldown = 0; // Paced detachment cooldown (prevents rapid-fire part drop-offs)
+    this.activeRuptureSockets = []; // Active exposed damaged hull sockets
 
     this.buildMesh();
     this.scene.add(this.meshGroup);
@@ -109,9 +110,9 @@ export class CapitalShip {
     this.hullMat = new THREE.MeshStandardMaterial({
       color: 0x1f1128,
       bumpMap: this.armorTexture,
-      bumpScale: 0.16,
+      bumpScale: 0.18,
       metalness: 0.94,
-      roughness: 0.18,
+      roughness: 0.26,
       emissive: 0x440822,
       emissiveIntensity: 0.38
     });
@@ -140,6 +141,27 @@ export class CapitalShip {
       roughness: 0.28,
       emissive: 0x220515,
       emissiveIntensity: 0.35
+    });
+
+    // ── Damaged Sub-Structure Materials (Exposed Skeleton, Charred Slag, Sparking Conduits) ──
+    this.scorchedSkeletonMat = new THREE.MeshStandardMaterial({
+      color: 0x100a18,
+      metalness: 0.98,
+      roughness: 0.82,
+      emissive: 0x330510,
+      emissiveIntensity: 0.65
+    });
+
+    this.exposedConduitMat = new THREE.MeshBasicMaterial({
+      color: 0xff3300,
+      transparent: true,
+      opacity: 0.95
+    });
+
+    this.exposedSparkMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.95
     });
 
     this.glowCrimsonMat = new THREE.MeshBasicMaterial({
@@ -175,21 +197,45 @@ export class CapitalShip {
     mainHull.position.set(0, 0, 0);
     this.meshGroup.add(mainHull);
 
-    // Radiant Gold Keel Spine
+    // Radiant Gold Keel Spine & Underlying Rupture Socket
     const keelGeo = new THREE.BoxGeometry(0.5, 0.4, 8.6);
     const keel = new THREE.Mesh(keelGeo, this.goldTrimMat);
     keel.position.set(0, -0.75, 0);
     this.meshGroup.add(keel);
-    this.breakableParts.push({ id: 'keel', mesh: keel, name: 'Gold Keel Spine' });
 
-    // Chisel-head bow prow (Vibrant Magma Crimson)
+    const keelSocket = new THREE.Group();
+    keelSocket.position.set(0, -0.65, 0);
+    const kSkel = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.22, 8.2), this.scorchedSkeletonMat);
+    keelSocket.add(kSkel);
+    keelSocket.visible = false;
+    this.meshGroup.add(keelSocket);
+    this.breakableParts.push({ id: 'keel', mesh: keel, socketMesh: keelSocket, name: 'Gold Keel Spine' });
+
+    // Chisel-head bow prow (Vibrant Magma Crimson) & Underlying Damaged Framework
     const prowGeo = new THREE.ConeGeometry(2.2, 4.2, 4);
     prowGeo.rotateX(Math.PI / 2);
     prowGeo.scale(1.2, 0.45, 1.0);
     const prow = new THREE.Mesh(prowGeo, this.armorPlatesMat);
     prow.position.set(0, 0, 5.2);
     this.meshGroup.add(prow);
-    this.breakableParts.push({ id: 'prow', mesh: prow, name: 'Prow Armor Nose' });
+
+    const prowSocket = new THREE.Group();
+    prowSocket.position.set(0, 0, 4.2);
+    const pSkelGeo = new THREE.CylinderGeometry(0.4, 1.3, 2.4, 4);
+    pSkelGeo.rotateX(Math.PI / 2);
+    const pSkel = new THREE.Mesh(pSkelGeo, this.scorchedSkeletonMat);
+    prowSocket.add(pSkel);
+    const pPipe1 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.2, 6), this.exposedConduitMat);
+    pPipe1.rotateX(Math.PI / 2);
+    pPipe1.position.set(-0.4, 0.1, 0);
+    prowSocket.add(pPipe1);
+    const pPipe2 = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.2, 6), this.exposedConduitMat);
+    pPipe2.rotateX(Math.PI / 2);
+    pPipe2.position.set(0.4, -0.1, 0);
+    prowSocket.add(pPipe2);
+    prowSocket.visible = false;
+    this.meshGroup.add(prowSocket);
+    this.breakableParts.push({ id: 'prow', mesh: prow, socketMesh: prowSocket, name: 'Prow Armor Nose' });
 
     // Glowing Crimson Energy Ram
     const ramGeo = new THREE.BoxGeometry(0.35, 0.35, 3.8);
@@ -198,7 +244,7 @@ export class CapitalShip {
     this.meshGroup.add(ram);
     this.breakableParts.push({ id: 'ram', mesh: ram, name: 'Crimson Energy Ram' });
 
-    // ── 2. Dorsal Command Bridge Spire ──
+    // ── 2. Dorsal Command Bridge Spire & Underlying Damaged Foundation ──
     const bridgeSpireGeo = new THREE.BoxGeometry(1.6, 0.9, 2.6);
     const bridgeSpire = new THREE.Mesh(bridgeSpireGeo, this.armorPlatesMat);
     bridgeSpire.position.set(0, 0.95, -1.2);
@@ -209,7 +255,17 @@ export class CapitalShip {
     const visor = new THREE.Mesh(visorGeo, this.glowCrimsonMat);
     visor.position.set(0, 1.1, -0.4);
     this.meshGroup.add(visor);
-    this.breakableParts.push({ id: 'bridge', mesh: bridgeSpire, name: 'Command Bridge Spire' });
+
+    const bridgeSocket = new THREE.Group();
+    bridgeSocket.position.set(0, 0.65, -1.2);
+    const bSkel = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.35, 2.4), this.scorchedSkeletonMat);
+    bridgeSocket.add(bSkel);
+    const bWire = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 2.2), this.exposedSparkMat);
+    bWire.position.set(0, 0.2, 0);
+    bridgeSocket.add(bWire);
+    bridgeSocket.visible = false;
+    this.meshGroup.add(bridgeSocket);
+    this.breakableParts.push({ id: 'bridge', mesh: bridgeSpire, socketMesh: bridgeSocket, name: 'Command Bridge Spire' });
 
     // ── 3. Port & Starboard Heavy Outrigger Sponsons & Swept Warship Wings ──
     [-1, 1].forEach(side => {
@@ -227,12 +283,22 @@ export class CapitalShip {
       strut.position.set(side * 1.9, 0, -0.5);
       this.meshGroup.add(strut);
 
-      // Sponson Magma Armor Plating
+      // Sponson Magma Armor Plating & Underlying Rupture Socket
       const pPlateGeo = new THREE.BoxGeometry(2.5, 0.15, 4.0);
       const pPlate = new THREE.Mesh(pPlateGeo, this.armorPlatesMat);
       pPlate.position.set(sx, 0.45, -0.2);
       this.meshGroup.add(pPlate);
-      this.breakableParts.push({ id: `sponson_${side}`, mesh: pPlate, name: 'Sponson Armor Plating' });
+
+      const sponsonSocket = new THREE.Group();
+      sponsonSocket.position.set(sx, 0.38, -0.2);
+      const sSkel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.18, 3.8), this.scorchedSkeletonMat);
+      sponsonSocket.add(sSkel);
+      const sConduit = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 3.4), this.exposedConduitMat);
+      sConduit.position.set(0, 0.1, 0);
+      sponsonSocket.add(sConduit);
+      sponsonSocket.visible = false;
+      this.meshGroup.add(sponsonSocket);
+      this.breakableParts.push({ id: `sponson_${side}`, mesh: pPlate, socketMesh: sponsonSocket, name: 'Sponson Armor Plating' });
 
       // Gold Trim Sponson Edge
       const pGoldGeo = new THREE.BoxGeometry(0.2, 0.2, 4.2);
@@ -255,13 +321,21 @@ export class CapitalShip {
       wingMesh.position.set(sx, 0.05, 0);
       this.meshGroup.add(wingMesh);
 
-      // Titanium Leading Edge Armor Slat (Magma Crimson)
+      // Titanium Leading Edge Armor Slat (Magma Crimson) & Rupture Socket
       const slatGeo = new THREE.BoxGeometry(0.24, 0.28, 4.2);
       const slatMesh = new THREE.Mesh(slatGeo, this.armorPlatesMat);
       slatMesh.position.set(sx + side * 1.9, 0.1, 0.7);
       slatMesh.rotation.y = -side * 0.45;
       this.meshGroup.add(slatMesh);
-      this.breakableParts.push({ id: `slat_${side}`, mesh: slatMesh, name: 'Leading Edge Wing Slat' });
+
+      const slatSocket = new THREE.Group();
+      slatSocket.position.set(sx + side * 1.85, 0.08, 0.7);
+      slatSocket.rotation.y = -side * 0.45;
+      const slatSkel = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 4.0), this.scorchedSkeletonMat);
+      slatSocket.add(slatSkel);
+      slatSocket.visible = false;
+      this.meshGroup.add(slatSocket);
+      this.breakableParts.push({ id: `slat_${side}`, mesh: slatMesh, socketMesh: slatSocket, name: 'Leading Edge Wing Slat' });
 
       // Glowing Neon Magma Wing Conduit
       const conduitGeo = new THREE.BoxGeometry(0.12, 0.12, 3.6);
@@ -270,14 +344,24 @@ export class CapitalShip {
       conduit.rotation.y = -side * 0.45;
       this.meshGroup.add(conduit);
 
-      // Vertical Wingtip Winglet Stabilizer (Imperial Gold & Crimson)
+      // Vertical Wingtip Winglet Stabilizer (Imperial Gold & Crimson) & Rupture Socket
       const wingletGeo = new THREE.BoxGeometry(0.18, 1.4, 2.2);
       const winglet = new THREE.Mesh(wingletGeo, this.goldTrimMat);
       winglet.position.set(sx + side * 3.7, 0.5, -1.4);
       winglet.rotation.x = -0.15;
       winglet.rotation.z = side * 0.12;
       this.meshGroup.add(winglet);
-      this.breakableParts.push({ id: `winglet_${side}`, mesh: winglet, name: 'Winglet Stabilizer' });
+
+      const wingletSocket = new THREE.Group();
+      wingletSocket.position.set(sx + side * 3.65, 0.35, -1.4);
+      const wSkel = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.55, 2.0), this.scorchedSkeletonMat);
+      wingletSocket.add(wSkel);
+      const wSpark = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 1.2), this.exposedSparkMat);
+      wSpark.position.set(0, 0.3, 0);
+      wingletSocket.add(wSpark);
+      wingletSocket.visible = false;
+      this.meshGroup.add(wingletSocket);
+      this.breakableParts.push({ id: `winglet_${side}`, mesh: winglet, socketMesh: wingletSocket, name: 'Winglet Stabilizer' });
 
       // Winglet Crimson Navigation Beacon
       const wBeaconGeo = new THREE.BoxGeometry(0.12, 1.2, 0.15);
@@ -356,13 +440,21 @@ export class CapitalShip {
     tailFin.rotation.x = -0.3; // Swept backwards
     tailGroup.add(tailFin);
 
-    // Titanium Leading Edge Armor Spine (Gold & Crimson)
+    // Titanium Leading Edge Armor Spine (Gold & Crimson) & Rupture Socket
     const tailSpineGeo = new THREE.BoxGeometry(0.5, 2.6, 0.6);
     const tailSpine = new THREE.Mesh(tailSpineGeo, this.armorPlatesMat);
     tailSpine.position.set(0, 0.9, 1.6);
     tailSpine.rotation.x = -0.3;
     tailGroup.add(tailSpine);
-    this.breakableParts.push({ id: 'tailSpine', mesh: tailSpine, name: 'Dorsal Tail Armor Spine' });
+
+    const tailSocket = new THREE.Group();
+    tailSocket.position.set(0, 0.9, 1.4);
+    tailSocket.rotation.x = -0.3;
+    const tSkel = new THREE.Mesh(new THREE.BoxGeometry(0.36, 2.3, 0.4), this.scorchedSkeletonMat);
+    tailSocket.add(tSkel);
+    tailSocket.visible = false;
+    tailGroup.add(tailSocket);
+    this.breakableParts.push({ id: 'tailSpine', mesh: tailSpine, socketMesh: tailSocket, name: 'Dorsal Tail Armor Spine' });
 
     // Glowing Neon Crimson Trailing Beacon Strip
     const tailBeaconGeo = new THREE.BoxGeometry(0.2, 2.2, 0.2);
@@ -580,6 +672,12 @@ export class CapitalShip {
           part.mesh.scale.copy(worldScale);
           this.scene.add(part.mesh);
 
+          // 🚨 Activate underlying damaged skeleton socket on the ship (ship permanently changes appearance!)
+          if (part.socketMesh) {
+            part.socketMesh.visible = true;
+            this.activeRuptureSockets.push(part.socketMesh);
+          }
+
           // Realistic physical tumbling velocity
           const spreadX = (Math.random() - 0.5) * 12.0;
           const spreadY = 2.5 + (Math.random() - 0.5) * 6.0;
@@ -600,7 +698,7 @@ export class CapitalShip {
               decay: 0.16 // Tumbles for ~6 seconds
             });
 
-            // Realistic fracture burst at detachment seam with varied debris
+            // Realistic fracture burst at detachment seam with matching varied debris
             this.particleManager.createExplosion(worldPos, 0xff3300, 55, 2.0);
             this.particleManager.spawnSparks(worldPos, new THREE.Vector3(0, 1, 1), 0xffd700, 25);
             this.particleManager.spawnMetalDebris(worldPos, 4);
@@ -653,6 +751,15 @@ export class CapitalShip {
     this._time += dt;
     if (this.breakCooldown > 0) this.breakCooldown -= dt;
     const gm = window.spaceGameManager;
+
+    // ── Continuous dynamic electrical sparks & smoke from active exposed rupture sockets ──
+    if (this.activeRuptureSockets.length > 0 && Math.random() < 0.35 && this.particleManager) {
+      const randomSocket = this.activeRuptureSockets[Math.floor(Math.random() * this.activeRuptureSockets.length)];
+      if (randomSocket && randomSocket.parent) {
+        const socketPos = randomSocket.getWorldPosition(new THREE.Vector3());
+        this.particleManager.spawnSparks(socketPos, new THREE.Vector3((Math.random() - 0.5) * 2, 1, 1), 0x00f3ff, 6);
+      }
+    }
 
     // ── Dynamic Recoil Physics Impulse & Mass Damping ──
     if (this.recoilVelocity.lengthSq() > 0.001) {
