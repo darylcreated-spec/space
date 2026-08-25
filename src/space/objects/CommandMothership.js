@@ -1173,13 +1173,16 @@ export class CommandMothership {
         this.particleManager.createExplosion(pos.clone().add(offset), 0x00f3ff, 45, 2.2);
       }
 
-      this.meshGroup.rotation.z += 0.12 * dt;
-      this.meshGroup.rotation.x += 0.06 * dt;
+      if (this.meshGroup) {
+        this.meshGroup.rotation.z += 0.12 * dt;
+        this.meshGroup.rotation.x += 0.06 * dt;
+      }
 
       if (this.deathTimer <= 0) {
         this.destroy();
+        return false;
       }
-      return;
+      return false;
     }
 
     // 9. Internal Turrets Aiming & Attack Loop
@@ -1269,6 +1272,12 @@ export class CommandMothership {
 
   destroy() {
     this.isDead = true;
+    const gm = window.spaceGameManager;
+    if (gm) {
+      gm.addScore(this.scoreValue || 75000);
+      gm.addScrap(500);
+      gm.achievementSystem?.recordBossKill();
+    }
     if (this.particleManager) {
       this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 300, 8.0);
       this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 6.0);

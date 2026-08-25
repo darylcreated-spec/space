@@ -1405,7 +1405,7 @@ export class GameManager {
                   const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
                   this.spawnLaser(tPos, 0xff0055, true, targetDir);
                 });
-              } else if (salvo !== false) {
+              } else if (salvo !== false && this.activeBoss.meshGroup && this.activeBoss.meshGroup.position) {
                 const bPos = this.activeBoss.meshGroup.position;
                 const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
                 this.spawnLaser(new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir);
