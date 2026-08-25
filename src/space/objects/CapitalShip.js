@@ -96,6 +96,7 @@ export class CapitalShip {
     this.thrusters = [];
     this.breakableParts = [];
     this.detachedPartsCount = 0;
+    this.breakCooldown = 0; // Paced detachment cooldown (prevents rapid-fire part drop-offs)
 
     this.buildMesh();
     this.scene.add(this.meshGroup);
@@ -529,25 +530,27 @@ export class CapitalShip {
 
     this.hp -= amount;
 
-    // ── 💥 1. Spawn High-Velocity Metal Debris & Armor Shards on Every Impact ──
+    // ── 💥 1. Spawn Varied High-Velocity Metal Debris & Armor Shards on Every Impact ──
     if (this.particleManager) {
       this.particleManager.createLaserImpact(impactPoint, new THREE.Vector3(0, 0, 1), 0xff0055);
       this.particleManager.spawnSparks(impactPoint, new THREE.Vector3(0, 0, 1), 0xffaa00, 14);
       if (this.particleManager.spawnMetalDebris) {
-        // Crimson Magma & Imperial Gold breakaway alloy plates
-        this.particleManager.spawnMetalDebris(impactPoint, 4, 0xe61c47);
-        this.particleManager.spawnMetalDebris(impactPoint, 2, 0xffbb00);
+        // Multi-shaped, multi-colored sci-fi alloy shards (Obsidian, Crimson Magma, Imperial Gold, Slag, Neon)
+        this.particleManager.spawnMetalDebris(impactPoint, 3);
       }
     }
 
-    // ── 🔨 2. Progressive Physical Component Detachment & Mass Reduction ──
+    // ── 🔨 2. Phased Physical Component Detachment & Mass Reduction ──
+    // Paced over distinct combat damage phases with realistic cooldown interval
     if (this.breakableParts && this.breakableParts.length > 0) {
       const hpRatio = Math.max(0, this.hp / this.maxHp);
       const totalParts = this.breakableParts.length + this.detachedPartsCount;
       const shouldBreakTarget = Math.floor((1.0 - hpRatio) * totalParts);
 
-      while (this.detachedPartsCount < shouldBreakTarget && this.breakableParts.length > 0) {
+      // Only drop 1 major component at a time when cooldown allows (smooth, realistic pacing)
+      if (this.detachedPartsCount < shouldBreakTarget && this.breakCooldown <= 0 && this.breakableParts.length > 0) {
         this.detachedPartsCount++;
+        this.breakCooldown = 1.4; // 1.4s pacing between major plate shear-offs
         const part = this.breakableParts.shift();
 
         // ⚖️ Dynamically Reduce Vessel Structural Mass & Shrink Armor Hitbox
@@ -577,10 +580,10 @@ export class CapitalShip {
           part.mesh.scale.copy(worldScale);
           this.scene.add(part.mesh);
 
-          // Violent explosive fracture velocity (tumbles away through space!)
-          const spreadX = (Math.random() - 0.5) * 14.0;
-          const spreadY = 3.0 + (Math.random() - 0.5) * 8.0;
-          const spreadZ = 8.0 + Math.random() * 20.0; // Tumbles backwards past camera
+          // Realistic physical tumbling velocity
+          const spreadX = (Math.random() - 0.5) * 12.0;
+          const spreadY = 2.5 + (Math.random() - 0.5) * 6.0;
+          const spreadZ = 7.0 + Math.random() * 16.0;
 
           if (this.particleManager && this.particleManager.metalDebris) {
             this.particleManager.metalDebris.push({
@@ -590,16 +593,17 @@ export class CapitalShip {
               vx: spreadX,
               vy: spreadY,
               vz: spreadZ,
-              rotSpeedX: (Math.random() - 0.5) * 10.0,
-              rotSpeedY: (Math.random() - 0.5) * 10.0,
-              rotSpeedZ: (Math.random() - 0.5) * 10.0,
+              rotSpeedX: (Math.random() - 0.5) * 6.0,
+              rotSpeedY: (Math.random() - 0.5) * 6.0,
+              rotSpeedZ: (Math.random() - 0.5) * 6.0,
               life: 1.0,
-              decay: 0.18 // Tumbles for ~5.5 seconds before dissolving
+              decay: 0.16 // Tumbles for ~6 seconds
             });
 
-            // Explosive fracture burst at detachment seam
+            // Realistic fracture burst at detachment seam with varied debris
             this.particleManager.createExplosion(worldPos, 0xff3300, 55, 2.0);
             this.particleManager.spawnSparks(worldPos, new THREE.Vector3(0, 1, 1), 0xffd700, 25);
+            this.particleManager.spawnMetalDebris(worldPos, 4);
           }
         }
       }
@@ -647,6 +651,7 @@ export class CapitalShip {
 
   update(dt, playerPos) {
     this._time += dt;
+    if (this.breakCooldown > 0) this.breakCooldown -= dt;
     const gm = window.spaceGameManager;
 
     // ── Dynamic Recoil Physics Impulse & Mass Damping ──
