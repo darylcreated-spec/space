@@ -908,12 +908,10 @@ export class GameManager {
     if (this.state !== 'PLAYING' || this.playerShip.swarmMissileCooldown > 0) return;
     this.playerShip.swarmMissileCooldown = this.playerShip.maxSwarmCD;
 
-    // Collect candidate targets (drones, stealth fighters, heavy battleships, carrier parts, boss parts, asteroids)
+    // Collect candidate hostile targets
     const targets = [];
-    this.drones.forEach(d => { if (!d.isDead) targets.push(d); });
-    if (this.stealthFighters) {
-      this.stealthFighters.forEach(s => { if (!s.isDead) targets.push(s); });
-    }
+    if (this.drones) this.drones.forEach(d => { if (!d.isDead) targets.push(d); });
+    if (this.stealthFighters) this.stealthFighters.forEach(s => { if (!s.isDead) targets.push(s); });
     if (this.heavyBattleships) {
       this.heavyBattleships.forEach(b => {
         if (!b.isDead) {
@@ -923,34 +921,64 @@ export class GameManager {
       });
     }
     if (this.carrierBoss && !this.carrierBoss.isDead) {
-      this.carrierBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
-      this.carrierBoss.subsystems.forEach(s => { if (!s.isDead) targets.push(s); });
+      if (this.carrierBoss.turrets) this.carrierBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
+      if (this.carrierBoss.subsystems) this.carrierBoss.subsystems.forEach(s => { if (!s.isDead) targets.push(s); });
       targets.push(this.carrierBoss);
     }
     if (this.activeBoss && !this.activeBoss.isDead) {
-      if (this.activeBoss.generators) {
-        this.activeBoss.generators.forEach(g => { if (!g.isDead) targets.push(g); });
-      }
-      if (this.activeBoss.turrets) {
-        this.activeBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
-      }
+      if (this.activeBoss.generators) this.activeBoss.generators.forEach(g => { if (!g.isDead) targets.push(g); });
+      if (this.activeBoss.turrets) this.activeBoss.turrets.forEach(t => { if (!t.isDead) targets.push(t); });
       targets.push(this.activeBoss);
     }
-    this.asteroids.forEach(a => { if (!a.isDead && a.meshGroup && a.meshGroup.position && a.meshGroup.position.z < 0) targets.push(a); });
+    if (this.asteroids) {
+      this.asteroids.forEach(a => {
+        if (!a.isDead && a.meshGroup && a.meshGroup.position && a.meshGroup.position.z < 10) targets.push(a);
+      });
+    }
 
-    const numMissiles = 6;
     const pPos = this.playerShip.meshGroup.position;
+    const getTargetPos = (t) => {
+      if (!t || t.isDead) return null;
+      if (t.meshGroup) return t.meshGroup.position;
+      if (t.mesh) {
+        const p = new THREE.Vector3();
+        t.mesh.getWorldPosition(p);
+        return p;
+      }
+      if (t.position) return t.position;
+      return null;
+    };
+
+    // Sort targets strictly ascending by distance to player (nearest enemy first!)
+    const sortedTargets = targets
+      .filter(t => !t.isDead && getTargetPos(t) !== null)
+      .sort((a, b) => {
+        const posA = getTargetPos(a);
+        const posB = getTargetPos(b);
+        return pPos.distanceTo(posA) - pPos.distanceTo(posB);
+      });
+
+    const shipClass = this.playerShip.shipClass || 'INTERCEPTOR';
+    const numMissiles = shipClass === 'DREADNOUGHT' ? 8 : 6;
+    let themeColor = 0x00f3ff;
+    if (shipClass === 'DREADNOUGHT') themeColor = 0xff0044;
+    else if (shipClass === 'TACTICIAN') themeColor = 0x00ff88;
+    else if (shipClass === 'REAPER') themeColor = 0xaa00ff;
+    else if (shipClass === 'SENTINEL') themeColor = 0x00e5ff;
 
     for (let i = 0; i < numMissiles; i++) {
       setTimeout(() => {
         if (this.state !== 'PLAYING') return;
-        const target = targets[i % Math.max(1, targets.length)] || null;
-        const sideOffset = (i % 2 === 0 ? -2.8 : 2.8);
-        const launchPos = new THREE.Vector3(sideOffset, -0.2, 0).add(pPos);
-        const missile = new PlayerSwarmMissile(this.spaceScene.scene, launchPos, target, this.particleManager);
+        const target = sortedTargets.length > 0 ? sortedTargets[i % sortedTargets.length] : null;
+        const sideOffset = (i % 2 === 0 ? -2.6 : 2.6);
+        const launchPos = new THREE.Vector3(sideOffset, -0.2, -0.4).add(this.playerShip.meshGroup.position);
+        const missile = new PlayerSwarmMissile(this.spaceScene.scene, launchPos, target, this.particleManager, this, themeColor);
         this.playerSwarmMissiles.push(missile);
-        this.spaceAudio.playLaserPew(sideOffset);
-      }, i * 70);
+        this.spaceAudio.playMissileLaunch(sideOffset);
+        if (this.particleManager) {
+          this.particleManager.spawnEngineParticle(launchPos, 0xff5500);
+        }
+      }, i * 65);
     }
 
     if (navigator.vibrate) navigator.vibrate([40, 30, 40, 30, 80]);
