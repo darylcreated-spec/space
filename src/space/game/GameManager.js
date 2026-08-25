@@ -337,7 +337,8 @@ export class GameManager {
       // Assault Drones only deploy when Gorgon Supercarrier is active in the combat zone!
       return this.spawnStealthFighter(spawnPos);
     }
-    const drone = new EnemyDrone(this.spaceScene.scene, spawnPos);
+    const opts = spawnPos ? (spawnPos.isVector3 ? { x: spawnPos.x, y: spawnPos.y, z: spawnPos.z } : spawnPos) : {};
+    const drone = new EnemyDrone(this.spaceScene.scene, opts);
     this.drones.push(drone);
     return drone;
   }

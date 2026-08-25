@@ -729,7 +729,7 @@ export class BossDreadnought {
 
   destroy() {
     this.isDead = true;
-    if (this.particleManager) {
+    if (this.particleManager && this.meshGroup && this.meshGroup.position) {
       this.particleManager.createExplosion(this.meshGroup.position, 0xff0055, 200, 6.0);
       this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 150, 4.5);
       this.particleManager.createEmpShockwave(this.meshGroup.position, 180);

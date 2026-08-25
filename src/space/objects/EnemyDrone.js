@@ -40,6 +40,7 @@ function generateDroneArmorTexture() {
 export class EnemyDrone {
   constructor(scene, options = {}) {
     this.scene = scene;
+    const opt = options || {};
 
     this.radius = 2.4;
     this.hp = 65;
@@ -48,16 +49,16 @@ export class EnemyDrone {
 
     this.meshGroup = new THREE.Group();
 
-    const spawnX = options.x !== undefined ? options.x : (Math.random() - 0.5) * 36;
-    const spawnY = options.y !== undefined ? options.y : (Math.random() - 0.5) * 20;
-    const spawnZ = options.z !== undefined ? options.z : (-75 - Math.random() * 20);
+    const spawnX = opt.x !== undefined ? opt.x : (Math.random() - 0.5) * 36;
+    const spawnY = opt.y !== undefined ? opt.y : (Math.random() - 0.5) * 20;
+    const spawnZ = opt.z !== undefined ? opt.z : (-75 - Math.random() * 20);
 
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
     this.targetPos = new THREE.Vector3(spawnX, spawnY, 0);
     this.velocity = new THREE.Vector3(
-      options.vx !== undefined ? options.vx : 0,
-      options.vy !== undefined ? options.vy : 0,
-      options.vz !== undefined ? options.vz : (14 + Math.random() * 6)
+      opt.vx !== undefined ? opt.vx : 0,
+      opt.vy !== undefined ? opt.vy : 0,
+      opt.vz !== undefined ? opt.vz : (14 + Math.random() * 6)
     );
     this.fireTimer = 0.5 + Math.random() * 0.8;
     this.isDead = false;

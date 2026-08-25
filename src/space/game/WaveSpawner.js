@@ -27,11 +27,11 @@ export class WaveSpawner {
     } else if (this.currentWave === 3) {
       this.totalToSpawnInWave = 24; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
     } else if (this.currentWave === 4) {
-      this.totalToSpawnInWave = 28; // Stage 4: Sanctuary-9 Cylinder -> Mid: Dual Battleship + Carrier -> Boss: Sanctuary-9 Cylinder
+      this.totalToSpawnInWave = 28; // Stage 4: Sanctuary-9 Cylinder -> Phase 1: Battleship -> Phase 2: Supercarrier -> Boss: Sanctuary Cylinder
     } else if (this.currentWave === 5) {
-      this.totalToSpawnInWave = 32; // Stage 5: Grand Armada -> Mid: Tri-Threat (Battleship + Carrier + Dreadnought) -> Boss: Mothership
+      this.totalToSpawnInWave = 42; // Stage 5: Grand Armada -> Phase 1: Battleship -> Phase 2: Supercarrier -> Phase 3: Dreadnought -> Boss: Mothership
     } else {
-      this.totalToSpawnInWave = 30 + (this.currentWave - 5) * 8;
+      this.totalToSpawnInWave = 36 + (this.currentWave - 5) * 8;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
@@ -42,7 +42,7 @@ export class WaveSpawner {
     if (this.currentWave === 2) return 'STAGE 2: RING OF LIGHT // HALO MEGASTRUCTURE // MID: SUPERCARRIER';
     if (this.currentWave === 3) return 'STAGE 3: SELENE SHIELD // LUNAR CITADEL MOON BASE // MID: BATTLESHIP';
     if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // O\'NEILL CYLINDER CITADEL // MID: DUAL CAPITAL';
-    if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA // BOSS: HIVE MOTHERSHIP';
+    if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA ESCALATION // BOSS: HIVE MOTHERSHIP';
     return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
 
@@ -56,7 +56,7 @@ export class WaveSpawner {
       this.spawnTimer = 0;
       this.spawnedCount++;
 
-      // ── Mid-Stage Capital Escalations ──
+      // ── Staged Capital Escalations (Spread arrivals for buttery-smooth 60fps gameplay) ──
       if (this.currentWave === 1) {
         // Stage 1 Midpoint: Enemy Capital Cruiser Escort warps in to test defenses!
         if (this.spawnedCount === 5) {
@@ -71,26 +71,30 @@ export class WaveSpawner {
         }
       } else if (this.currentWave === 3) {
         // Stage 3 Midpoint: Devastator Heavy Battleship siege
-        if (this.spawnedCount === 22) {
+        if (this.spawnedCount === 10) {
           this.gameManager.spawnHeavyBattleship();
         }
       } else if (this.currentWave === 4) {
-        // Stage 4 Midpoint: DUAL CAPITAL ASSAULT (Battleship + Supercarrier)
-        if (this.spawnedCount === 24) {
+        // Stage 4 Phased Escalation: Battleship first, then Supercarrier
+        if (this.spawnedCount === 8) {
           this.gameManager.spawnHeavyBattleship();
-          setTimeout(() => {
-            if (this.gameManager.state === 'PLAYING') this.gameManager.spawnCarrierBoss();
-          }, 3000);
+        } else if (this.spawnedCount === 18) {
+          this.gameManager.spawnCarrierBoss();
         }
       } else if (this.currentWave === 5) {
-        // Stage 5 Pre-Boss: TRI-THREAT GRAND ARMADA (Battleship + Supercarrier + Dreadnought)
-        if (this.spawnedCount === 25) {
+        // Stage 5 Phased Armada: Spread arrivals smoothly before Mothership
+        if (this.spawnedCount === 8) {
+          // Phase 1: Heavy Battleship Vanguard
           this.gameManager.spawnHeavyBattleship();
+        } else if (this.spawnedCount === 20) {
+          // Phase 2: Supercarrier with Drone Interceptor Wings
           this.gameManager.spawnCarrierBoss();
-          setTimeout(() => {
-            if (this.gameManager.state === 'PLAYING') this.gameManager.spawnBoss();
-          }, 4000);
+        } else if (this.spawnedCount === 32) {
+          // Phase 3: Dreadnought Flagship & Escort Cruiser
+          this.gameManager.spawnBoss();
+          this.gameManager.spawnCapitalShip();
         }
+        // Phase 4 (at Count 42): Leviathan Command Mothership Apex Boss!
       }
 
       // ── Standard Combat Patrol Spawning Rules ──
