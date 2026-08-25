@@ -862,6 +862,8 @@ export class GameManager {
         this.particleManager.spawnEngineParticle(worldMuzzle, 0xff5500);
       } else if (shipClass === 'TACTICIAN') {
         this.particleManager.spawnEngineParticle(worldMuzzle, 0x00ff88);
+      } else if (shipClass === 'REAPER') {
+        this.particleManager.spawnEngineParticle(worldMuzzle, 0xcc00ff);
       }
     });
 
@@ -869,6 +871,8 @@ export class GameManager {
       this.spaceAudio.playMissileLaunch(this.playerShip.meshGroup.position.x);
     } else if (shipClass === 'TACTICIAN') {
       this.spaceAudio.playQuantumArc(this.playerShip.meshGroup.position.x);
+    } else if (shipClass === 'REAPER') {
+      this.spaceAudio.playTachyonNeedle(this.playerShip.meshGroup.position.x, Math.random() < 0.35);
     } else {
       this.spaceAudio.playLaserPew(this.playerShip.meshGroup.position.x);
     }

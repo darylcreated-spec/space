@@ -203,6 +203,43 @@ export class SpaceAudio {
     } catch (e) {}
   }
 
+  playTachyonNeedle(xPos, isCrit = false) {
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = isCrit ? 'triangle' : 'sawtooth';
+    osc.frequency.setValueAtTime(isCrit ? 1800 : 950, now);
+    osc.frequency.exponentialRampToValueAtTime(isCrit ? 320 : 180, now + 0.1);
+
+    gain.gain.setValueAtTime(isCrit ? 0.22 : 0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    let panVal = 0;
+    if (xPos !== undefined) {
+      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+    }
+
+    if (this.ctx.createStereoPanner) {
+      const panner = this.ctx.createStereoPanner();
+      panner.pan.setValueAtTime(panVal, now);
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(this.ctx.destination);
+    } else {
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+    }
+
+    try {
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch (e) {}
+  }
+
   playEnemyLaser(xPos) {
     this.ensureContext();
     if (!this.ctx) return;

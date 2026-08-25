@@ -981,9 +981,9 @@ export class PlayerShip {
     this.meshGroup.add(this.engineLight);
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // 4. ðŸ’€ REAPER: "Void Phantom" (Variable-Geometry Wing Sweeping)
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ────────────────────────────────────────────────────────────
+  // 4. 💀 REAPER: "Void Phantom" (Variable-Geometry Dagger Wings & Quad Tachyon Needles)
+  // ────────────────────────────────────────────────────────────
   buildReaperMesh() {
     this.maxShield = 85;
     this.shield = 85;
@@ -994,85 +994,184 @@ export class PlayerShip {
 
     const hullTex = getProceduralHullTexture();
 
-    // Stealth Diamond Faceted Fuselage
-    const bodyGeo = new THREE.ConeGeometry(1.0, 5.4, 4);
-    bodyGeo.rotateX(Math.PI / 2);
-    bodyGeo.rotateZ(Math.PI / 4);
+    // ── High-Tech Stealth Materials ──
     this.reaperBodyMat = new THREE.MeshStandardMaterial({
       map: hullTex,
-      color: 0x10081c,
+      color: 0x12081e,
       metalness: 0.98,
-      roughness: 0.12,
-      emissive: 0x220038,
-      emissiveIntensity: 0.45,
+      roughness: 0.14,
+      emissive: 0x300052,
+      emissiveIntensity: 0.5,
       transparent: true,
       opacity: 1.0
     });
-    this.meshGroup.add(new THREE.Mesh(bodyGeo, this.reaperBodyMat));
-    this.buildCockpitInterior(this.meshGroup, 0xaa00ff);
 
-    // Variable-Geometry Dagger Wings (Pivot Rigging)
-    const wingGeo = new THREE.BoxGeometry(1.8, 0.08, 1.6);
-    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x180c2a, metalness: 0.95, roughness: 0.1 });
-
-    this.reaperWingR = new THREE.Mesh(wingGeo, wingMat);
-    this.reaperWingR.position.set(1.0, 0, 0.4);
-    this.meshGroup.add(this.reaperWingR);
-
-    this.reaperWingL = new THREE.Mesh(wingGeo, wingMat);
-    this.reaperWingL.position.set(-1.0, 0, 0.4);
-    this.meshGroup.add(this.reaperWingL);
-
-    // Glowing Ultraviolet Plasma Blade Edges
-    const bladeMat = new THREE.MeshBasicMaterial({ color: 0xaa00ff });
-    [-1.8, 1.8].forEach(x => {
-      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 2.4), bladeMat);
-      edge.position.set(x, 0.06, 0.2);
-      this.meshGroup.add(edge);
+    const armorTrussMat = new THREE.MeshStandardMaterial({
+      color: 0x241038,
+      metalness: 0.96,
+      roughness: 0.18
     });
 
-    // Quad Needle Laser Cannons (2 Wing + 2 Fuselage)
-    this.muzzleOffsets = [
-      new THREE.Vector3(-1.8, 0, -0.6),
-      new THREE.Vector3(-0.6, -0.1, -2.4),
-      new THREE.Vector3(0.6, -0.1, -2.4),
-      new THREE.Vector3(1.8, 0, -0.6)
-    ];
-    this.muzzleOffsets.forEach(pos => {
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), bladeMat);
-      tip.position.copy(pos);
+    const darkAlloyMat = new THREE.MeshStandardMaterial({
+      color: 0x08030e,
+      metalness: 0.98,
+      roughness: 0.12
+    });
+
+    const violetGlowMat = new THREE.MeshBasicMaterial({ color: 0xcc00ff });
+    const cyanGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+
+    // ── 1. Stealth Diamond Faceted Fuselage ──
+    const bodyGeo = new THREE.ConeGeometry(1.2, 5.2, 4);
+    bodyGeo.rotateX(-Math.PI / 2); // Apex points forward along -Z!
+    bodyGeo.rotateZ(Math.PI / 4);  // Diamond facet profile
+    const body = new THREE.Mesh(bodyGeo, this.reaperBodyMat);
+    body.position.set(0, 0, -0.4);
+    this.meshGroup.add(body);
+
+    // Dorsal Stealth Spine Slat
+    const spineGeo = new THREE.BoxGeometry(0.3, 0.25, 3.6);
+    const spine = new THREE.Mesh(spineGeo, armorTrussMat);
+    spine.position.set(0, 0.45, -0.2);
+    this.meshGroup.add(spine);
+
+    this.buildCockpitInterior(this.meshGroup, 0xaa00ff);
+
+    // ── 2. ✨ Variable-Geometry Dagger Swing-Wings (Pivot Rigging) ──
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0, -0.4);
+    wingShape.lineTo(2.4, 0.8);
+    wingShape.lineTo(2.2, 1.4);
+    wingShape.lineTo(0, 0.6);
+    wingShape.closePath();
+
+    const wingExtrudeSettings = { depth: 0.08, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
+    const baseWingGeo = new THREE.ExtrudeGeometry(wingShape, wingExtrudeSettings);
+    baseWingGeo.rotateX(Math.PI / 2);
+
+    // Right Dagger Wing Pivot
+    this.reaperWingR = new THREE.Group();
+    this.reaperWingR.position.set(0.9, 0.02, 0.2);
+    const rWingMesh = new THREE.Mesh(baseWingGeo, this.reaperBodyMat);
+    this.reaperWingR.add(rWingMesh);
+    this.meshGroup.add(this.reaperWingR);
+
+    // Left Dagger Wing Pivot (Mirrored Math)
+    this.reaperWingL = new THREE.Group();
+    this.reaperWingL.position.set(-0.9, 0.02, 0.2);
+    const leftWingGeo = baseWingGeo.clone();
+    leftWingGeo.scale(-1, 1, 1);
+    const lWingMesh = new THREE.Mesh(leftWingGeo, this.reaperBodyMat);
+    this.reaperWingL.add(lWingMesh);
+    this.meshGroup.add(this.reaperWingL);
+    // Glowing Ultraviolet Plasma Blade Leading Edges
+    [-1, 1].forEach(side => {
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 2.6), violetGlowMat);
+      blade.position.set(side * 2.0, 0.06, 0.6);
+      blade.rotation.y = side * 0.45;
+      this.meshGroup.add(blade);
+    });
+
+    // ── 3. 🔪 Twin Canted Dagger V-Tails ──
+    const vTailGeo = new THREE.BoxGeometry(0.08, 1.4, 1.6);
+    [-0.7, 0.7].forEach(tx => {
+      const vTail = new THREE.Mesh(vTailGeo, armorTrussMat);
+      vTail.position.set(tx, 0.65, 1.2);
+      vTail.rotation.z = tx < 0 ? 0.45 : -0.45;
+      this.meshGroup.add(vTail);
+
+      const vEdge = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.2, 0.06), violetGlowMat);
+      vEdge.position.set(tx + (tx < 0 ? -0.35 : 0.35), 0.8, 1.8);
+      this.meshGroup.add(vEdge);
+    });
+
+    // ── 4. ⚡ Quad Precision Tachyon Needle Cannons ──
+    // 2 Wingtip Needle Emitters
+    [-2.4, 2.4].forEach(wx => {
+      const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 2.8, 6), darkAlloyMat);
+      barrel.rotation.x = Math.PI / 2;
+      barrel.position.set(wx, -0.05, 0.2);
+      this.meshGroup.add(barrel);
+
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), violetGlowMat);
+      tip.position.set(wx, -0.05, -1.2);
       this.meshGroup.add(tip);
     });
 
-    // Central High-Density Plasma Thruster
-    const engGeo = new THREE.CylinderGeometry(0.42, 0.52, 1.2, 6);
-    engGeo.rotateX(Math.PI / 2);
-    const eng = new THREE.Mesh(engGeo, new THREE.MeshStandardMaterial({ color: 0x080310, metalness: 0.95 }));
-    eng.position.set(0, 0, 2.4);
-    this.meshGroup.add(eng);
+    // 2 Fuselage High-Velocity Chin Needle Barrels
+    [-0.55, 0.55].forEach(cx => {
+      const chinBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 2.6, 6), darkAlloyMat);
+      chinBarrel.rotation.x = Math.PI / 2;
+      chinBarrel.position.set(cx, -0.2, -2.0);
+      this.meshGroup.add(chinBarrel);
 
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.8, 6), bladeMat);
-    flame.rotation.x = -Math.PI / 2;
-    flame.position.set(0, 0, 0.7);
-    eng.add(flame);
-    this.flameMeshes.push(flame);
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), cyanGlowMat);
+      tip.position.set(cx, -0.2, -3.3);
+      this.meshGroup.add(tip);
+    });
 
-    const dia = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.22, 6), new THREE.MeshBasicMaterial({ color: 0xff00ff, side: THREE.DoubleSide }));
-    dia.position.set(0, 0, 0.5);
-    eng.add(dia);
-    this.shockDiamonds.push(dia);
-
-    this.wingtipOffsets = [new THREE.Vector3(-1.8, 0, 0.4), new THREE.Vector3(1.8, 0, 0.4)];
-    this.engineTrailOffsets = [new THREE.Vector3(0, 0, 3.2)];
-
-    this.rcsPorts = [
-      { pos: new THREE.Vector3(0, 0.3, -2.4), dirY: 1, dirX: 0 },
-      { pos: new THREE.Vector3(0, -0.3, -2.4), dirY: -1, dirX: 0 },
-      { pos: new THREE.Vector3(-1.6, 0, 0.4), dirY: 0, dirX: -1 },
-      { pos: new THREE.Vector3(1.6, 0, 0.4), dirY: 0, dirX: 1 }
+    this.muzzleOffsets = [
+      new THREE.Vector3(-2.4, -0.05, -1.3),
+      new THREE.Vector3(2.4, -0.05, -1.3),
+      new THREE.Vector3(-0.55, -0.2, -3.4),
+      new THREE.Vector3(0.55, -0.2, -3.4)
     ];
 
-    this.engineLight = new THREE.PointLight(0xaa00ff, 2.0, 9);
+    // ── 5. 💡 Wingtip Optical Camo Pods & Flashing Strobe Lights ──
+    [-3.2, 3.2].forEach(wx => {
+      const podGeo = new THREE.BoxGeometry(0.18, 0.25, 1.4);
+      const pod = new THREE.Mesh(podGeo, armorTrussMat);
+      pod.position.set(wx, 0.1, 0.6);
+      this.meshGroup.add(pod);
+
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xcc00ff, transparent: true, opacity: 0.9 });
+      const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.55, 0.08), beaconMat);
+      beacon.position.set(wx, 0.2, 0.8);
+      this.meshGroup.add(beacon);
+      this.wingtipBeacons.push(beacon);
+
+      const tipLight = new THREE.PointLight(0xcc00ff, 2.6, 8);
+      tipLight.position.set(wx, 0.2, 0.8);
+      this.meshGroup.add(tipLight);
+      this.wingtipLights.push(tipLight);
+    });
+
+    // ── 6. 🔥 TWIN STEALTH VECTOR PULSE THRUSTERS (Straight +Z) ──
+    const thrusterGeo = new THREE.CylinderGeometry(0.24, 0.32, 1.2, 8);
+    thrusterGeo.rotateX(Math.PI / 2);
+    const thrusterMat = new THREE.MeshStandardMaterial({ color: 0x08030e, metalness: 0.95, roughness: 0.2 });
+
+    const flameGeo = new THREE.ConeGeometry(0.2, 1.8, 8);
+    flameGeo.rotateX(Math.PI / 2); // Apex points backward +Z
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xaa00ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+
+    [-0.65, 0.65].forEach(x => {
+      const eng = new THREE.Mesh(thrusterGeo, thrusterMat);
+      eng.position.set(x, -0.05, 2.3);
+      this.meshGroup.add(eng);
+
+      const flame = new THREE.Mesh(flameGeo, flameMat);
+      flame.position.set(x, -0.05, 3.4);
+      this.meshGroup.add(flame);
+      this.flameMeshes.push(flame);
+
+      const dia = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.16, 8), new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide }));
+      dia.position.set(x, -0.05, 2.9);
+      this.meshGroup.add(dia);
+      this.shockDiamonds.push(dia);
+    });
+
+    this.wingtipOffsets = [new THREE.Vector3(-3.2, 0, 0.6), new THREE.Vector3(3.2, 0, 0.6)];
+    this.engineTrailOffsets = [new THREE.Vector3(-0.65, -0.05, 3.0), new THREE.Vector3(0.65, -0.05, 3.0)];
+
+    this.rcsPorts = [
+      { pos: new THREE.Vector3(0, 0.4, -2.6), dirY: 1, dirX: 0 },
+      { pos: new THREE.Vector3(0, -0.4, -2.6), dirY: -1, dirX: 0 },
+      { pos: new THREE.Vector3(-2.8, 0, 0.6), dirY: 0, dirX: -1 },
+      { pos: new THREE.Vector3(2.8, 0, 0.6), dirY: 0, dirX: 1 }
+    ];
+
+    this.engineLight = new THREE.PointLight(0xaa00ff, 2.2, 10);
     this.engineLight.position.set(0, 0, 2.6);
     this.meshGroup.add(this.engineLight);
   }

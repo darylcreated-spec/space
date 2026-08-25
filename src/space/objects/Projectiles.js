@@ -246,6 +246,43 @@ export class LaserBolt {
       );
       glowLens.position.set(0, 0, 1.25);
       this.meshGroup.add(glowLens);
+    } else if (projectileType === 'CRIT_DART') {
+      // 1. Hyper-Velocity Tachyon Needle Fuselage
+      const needleColor = this.isCritical ? 0xff00ff : 0xaa00ff;
+      const coreColor = this.isCritical ? 0xffffff : 0xdd88ff;
+
+      const bodyGeo = new THREE.CylinderGeometry(0.06, 0.08, 3.8, 6);
+      bodyGeo.rotateX(Math.PI / 2);
+      const bodyMat = new THREE.MeshStandardMaterial({
+        color: 0x160824,
+        metalness: 0.96,
+        roughness: 0.15,
+        emissive: needleColor,
+        emissiveIntensity: this.isCritical ? 1.5 : 0.6
+      });
+      this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+      // 2. Razor Tachyon Point Apex Tip
+      const tipGeo = new THREE.ConeGeometry(0.12, 1.1, 6);
+      tipGeo.rotateX(-Math.PI / 2);
+      const tipMat = new THREE.MeshBasicMaterial({ color: coreColor });
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.position.set(0, 0, -2.1);
+      this.meshGroup.add(tip);
+
+      // 3. Energy Shroud Lattice Ring
+      const latticeGeo = new THREE.TorusGeometry(0.2, 0.025, 4, 12);
+      const latticeMat = new THREE.MeshBasicMaterial({ color: needleColor });
+      const lattice = new THREE.Mesh(latticeGeo, latticeMat);
+      lattice.position.set(0, 0, -0.4);
+      this.meshGroup.add(lattice);
+
+      // 4. Twin Micro-Dagger Stabilizers
+      const finGeo = new THREE.BoxGeometry(0.02, 0.38, 0.4);
+      const finMat = new THREE.MeshBasicMaterial({ color: needleColor });
+      const fin = new THREE.Mesh(finGeo, finMat);
+      fin.position.set(0, 0, 1.2);
+      this.meshGroup.add(fin);
     } else {
       const geos = getLaserGeometries(projectileType, isEnemy);
 
@@ -291,6 +328,15 @@ export class LaserBolt {
       gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00ff88);
       if (Math.random() < 0.5) {
         gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+      }
+    }
+
+    // Dynamic Tachyon Needle Trail for Void Reaper
+    if (this.projectileType === 'CRIT_DART' && gm && gm.particleManager) {
+      const pColor = this.isCritical ? 0xff00ff : 0xaa00ff;
+      gm.particleManager.spawnEngineParticle(this.meshGroup.position, pColor);
+      if (this.isCritical && Math.random() < 0.6) {
+        gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xffffff);
       }
     }
 
