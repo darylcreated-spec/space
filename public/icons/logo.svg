@@ -1,0 +1,60 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0b1b36"/>
+      <stop offset="70%" stop-color="#040914"/>
+      <stop offset="100%" stop-color="#02050b"/>
+    </radialGradient>
+    <linearGradient id="cyanGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8aebff"/>
+      <stop offset="50%" stop-color="#00f3ff"/>
+      <stop offset="100%" stop-color="#0066ff"/>
+    </linearGradient>
+    <linearGradient id="crimsonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff3366"/>
+      <stop offset="50%" stop-color="#ff0055"/>
+      <stop offset="100%" stop-color="#990033"/>
+    </linearGradient>
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff066"/>
+      <stop offset="50%" stop-color="#ffb700"/>
+      <stop offset="100%" stop-color="#ff7700"/>
+    </linearGradient>
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)" stroke="#00f3ff" stroke-width="4" opacity="0.95"/>
+  <circle cx="256" cy="256" r="248" fill="none" stroke="#00f3ff" stroke-width="1.5" stroke-dasharray="12 6" opacity="0.6"/>
+  <circle cx="256" cy="256" r="224" fill="none" stroke="rgba(0, 243, 255, 0.25)" stroke-width="2"/>
+
+  <line x1="256" y1="8" x2="256" y2="32" stroke="#00f3ff" stroke-width="4"/>
+  <line x1="256" y1="480" x2="256" y2="504" stroke="#00f3ff" stroke-width="4"/>
+  <line x1="8" y1="256" x2="32" y2="256" stroke="#00f3ff" stroke-width="4"/>
+  <line x1="480" y1="256" x2="504" y2="256" stroke="#00f3ff" stroke-width="4"/>
+
+  <ellipse cx="256" cy="270" rx="210" ry="75" fill="none" stroke="url(#goldGlow)" stroke-width="5" transform="rotate(-22 256 270)" opacity="0.85"/>
+  <ellipse cx="256" cy="270" rx="195" ry="68" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="8 6" transform="rotate(-22 256 270)" opacity="0.7"/>
+
+  <polygon points="256,60 410,380 340,390 256,330 172,390 102,380" fill="#061224" stroke="url(#crimsonGlow)" stroke-width="6"/>
+  <polygon points="256,90 380,360 325,365 256,310 187,365 132,360" fill="#0d2242" stroke="url(#cyanGlow)" stroke-width="4"/>
+  <polygon points="256,40 286,300 256,280 226,300" fill="url(#cyanGlow)" stroke="#ffffff" stroke-width="2"/>
+  <polygon points="256,150 330,240 256,220 182,240" fill="#143660" stroke="#00f3ff" stroke-width="2.5"/>
+
+  <polygon points="244,330 268,330 256,430" fill="url(#cyanGlow)" filter="url(#neonGlow)"/>
+  <polygon points="248,340 264,340 256,400" fill="#ffffff"/>
+  <polygon points="196,370 216,370 206,440" fill="url(#crimsonGlow)" opacity="0.9"/>
+  <polygon points="296,370 316,370 306,440" fill="url(#crimsonGlow)" opacity="0.9"/>
+
+  <circle cx="256" cy="220" r="24" fill="#040914" stroke="#00f3ff" stroke-width="3"/>
+  <circle cx="256" cy="220" r="14" fill="#00ff88" filter="url(#neonGlow)"/>
+  <circle cx="256" cy="220" r="6" fill="#ffffff"/>
+
+  <text x="256" y="475" text-anchor="middle" fill="#00f3ff" font-family="'Orbitron', 'Chakra Petch', monospace" font-size="20" font-weight="900" letter-spacing="8">STARBOUND</text>
+  <text x="256" y="495" text-anchor="middle" fill="#8aebff" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="4" opacity="0.85">AEROSPACE DEFENSE</text>
+</svg>

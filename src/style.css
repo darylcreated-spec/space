@@ -2194,3 +2194,297 @@ html, body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ==========================================================================
+   HIGH-TECH BOOT SEQUENCE // LOADING SCREEN WITH PILOT GAUGE
+   ========================================================================== */
+
+.loading-screen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 45%, #08162b 0%, #030814 70%, #010308 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.6s;
+}
+
+.loading-screen-overlay.fade-out {
+  opacity: 0;
+  transform: scale(1.05);
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  width: 90vw;
+  padding: 2rem 1.5rem;
+  background: rgba(4, 10, 22, 0.75);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 243, 255, 0.15), inset 0 0 25px rgba(0, 243, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.loading-logo-wrap {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px rgba(0, 243, 255, 0.8));
+  animation: logoBreathe 3s infinite ease-in-out;
+}
+
+@keyframes logoBreathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 14px rgba(0, 243, 255, 0.7)); }
+  50% { transform: scale(1.06); filter: drop-shadow(0 0 24px rgba(0, 243, 255, 1)); }
+}
+
+.loading-logo-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 243, 255, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.loading-title {
+  font-family: var(--font-header);
+  font-size: 1.6rem;
+  font-weight: 900;
+  letter-spacing: 5px;
+  color: #fff;
+  margin: 0;
+  text-shadow: 0 0 20px rgba(0, 243, 255, 0.7);
+}
+
+.loading-subtitle {
+  font-family: var(--font-code);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+  opacity: 0.85;
+  margin-top: 4px;
+  margin-bottom: 1.4rem;
+}
+
+/* ── Holographic Circular Progress Gauge ── */
+.loading-gauge-cluster {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.2rem;
+}
+
+.gauge-ring-wrap {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.gauge-bg-track {
+  fill: none;
+  stroke: rgba(0, 243, 255, 0.12);
+  stroke-width: 8;
+}
+
+.gauge-ticks {
+  fill: none;
+  stroke: rgba(0, 243, 255, 0.3);
+  stroke-width: 3;
+  stroke-dasharray: 4 6;
+  animation: rotateTicks 18s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes rotateTicks {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.gauge-progress-bar {
+  fill: none;
+  stroke: url(#cyanGlow);
+  stroke: var(--accent-cyan);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-dasharray: 515; /* 2 * PI * 82 ≈ 515.2 */
+  stroke-dashoffset: 515;
+  transition: stroke-dashoffset 0.15s ease-out;
+  filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.85));
+}
+
+.gauge-center-content {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-pct-num {
+  font-family: var(--font-header);
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
+}
+
+.gauge-status-tag {
+  font-family: var(--font-code);
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.12);
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
+/* Pilot Clearance Card with daryl.created@gmail.com */
+.loading-pilot-card {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.08) 0%, rgba(0, 102, 255, 0.05) 100%);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.05);
+}
+
+.loading-pilot-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pilot-auth-icon {
+  font-size: 0.75rem;
+}
+
+.pilot-auth-label {
+  font-family: var(--font-header);
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  letter-spacing: 1.2px;
+}
+
+.loading-pilot-email {
+  font-family: var(--font-code);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  word-break: break-all;
+}
+
+.loading-security-hash {
+  font-family: var(--font-code);
+  font-size: 0.56rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+.loading-security-hash span {
+  color: #00ff88;
+}
+
+/* Real-time Subsystem Log Box */
+.loading-log-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: rgba(2, 6, 14, 0.8);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 6px;
+  padding: 7px 12px;
+  margin-bottom: 0.8rem;
+  box-sizing: border-box;
+}
+
+.log-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 8px #00ff88;
+  animation: blinkDot 1s infinite alternate;
+}
+
+@keyframes blinkDot {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.loading-log-text {
+  font-family: var(--font-code);
+  font-size: 0.62rem;
+  color: #a8d5ff;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+/* Linear Progress Bar */
+.loading-linear-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(0, 243, 255, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading-linear-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #00f3ff, #00ff88);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+  transition: width 0.15s ease-out;
+}

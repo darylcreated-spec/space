@@ -42,8 +42,83 @@ class OrbitalVanguardApp {
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
 
-    // 4. Register PWA Service Worker
+    // 4. Run High-Tech Boot Sequence & Pilot Clearance Loader
+    this.runBootSequence();
+
+    // 5. Register PWA Service Worker
     this.registerServiceWorker();
+  }
+
+  runBootSequence() {
+    const loadingScreen = document.getElementById('game-loading-screen');
+    if (!loadingScreen) return;
+
+    const gaugeBar = document.getElementById('loading-gauge-bar');
+    const percentNum = document.getElementById('loading-percent-num');
+    const statusTag = document.getElementById('loading-status-tag');
+    const logText = document.getElementById('loading-log-text');
+    const linearFill = document.getElementById('loading-linear-fill');
+    const hashVal = document.getElementById('loading-hash-val');
+
+    const totalCircumference = 515; // 2 * PI * 82
+    let progress = 0;
+
+    const stages = [
+      { at: 15, log: 'SYNCHRONIZING ORBITAL TELEMETRY...', status: 'CONNECTING', tagColor: '#00f3ff' },
+      { at: 35, log: 'INITIALIZING THREE.JS WEBGL RENDER CORES...', status: 'RENDERING', tagColor: '#00f3ff' },
+      { at: 60, log: 'CALIBRATING UNREALBLOOM & HDR SHADERS...', status: 'CALIBRATING', tagColor: '#ffaa00' },
+      { at: 85, log: 'AUTHENTICATING PILOT CLEARANCE: daryl.created@gmail.com...', status: 'VERIFYING', tagColor: '#00ff88' },
+      { at: 100, log: 'SYSTEMS 100% OPERATIONAL // FLIGHT CLEARANCE GRANTED', status: 'READY', tagColor: '#00ff88' }
+    ];
+
+    const generateHash = () => {
+      const chars = '0123456789ABCDEF';
+      let h = '0x';
+      for (let i = 0; i < 4; i++) h += chars[Math.floor(Math.random() * chars.length)];
+      return h + '-OMEGA-99';
+    };
+
+    const interval = setInterval(() => {
+      // Advance progress
+      progress += Math.floor(Math.random() * 8) + 4;
+      if (progress > 100) progress = 100;
+
+      // Update Gauge Bar (stroke-dashoffset from 515 to 0)
+      if (gaugeBar) {
+        const offset = totalCircumference - (totalCircumference * (progress / 100));
+        gaugeBar.style.strokeDashoffset = offset;
+      }
+
+      if (percentNum) percentNum.textContent = `${progress}%`;
+      if (linearFill) linearFill.style.width = `${progress}%`;
+      if (hashVal && progress % 10 === 0) hashVal.textContent = generateHash();
+
+      // Update current stage log & status
+      for (let i = stages.length - 1; i >= 0; i--) {
+        if (progress >= stages[i].at) {
+          if (logText) logText.textContent = stages[i].log;
+          if (statusTag) {
+            statusTag.textContent = stages[i].status;
+            statusTag.style.color = stages[i].tagColor;
+            statusTag.style.borderColor = stages[i].tagColor;
+          }
+          break;
+        }
+      }
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          loadingScreen.classList.add('fade-out');
+          if (this.spaceAudio && this.spaceAudio.vibrate) {
+            this.spaceAudio.vibrate(20);
+          }
+          setTimeout(() => {
+            loadingScreen.style.display = 'none';
+          }, 650);
+        }, 350);
+      }
+    }, 45);
   }
 
   animate(timestamp) {
@@ -72,3 +147,4 @@ class OrbitalVanguardApp {
 }
 
 window.orbitalVanguardApp = new OrbitalVanguardApp();
+

@@ -31,7 +31,7 @@
   <title>STARBOUND // SPACE DEFENDER - AAA Sci-Fi Combat</title>
   
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23040814' stroke='%2300f3ff' stroke-width='4'/><path d='M15 70 Q 50 10 85 70' fill='none' stroke='%23ffffff' stroke-width='3'/><polygon points='50,20 75,70 25,70' fill='%230b1528' stroke='%23ff0055' stroke-width='3'/><circle cx='50' cy='50' r='10' fill='%2300f3ff'/></svg>" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
   <!-- Google Fonts: Orbitron, Chakra Petch, Rajdhani & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,6 +39,61 @@
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;600;700;800&family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- ==================== HIGH-TECH BOOT & LOADING SEQUENCE TERMINAL ==================== -->
+  <div id="game-loading-screen" class="loading-screen-overlay">
+    <div class="loading-container">
+      <!-- High-Resolution Rebuilt Starbound Logo -->
+      <div class="loading-logo-wrap">
+        <img src="/icons/logo.svg" alt="STARBOUND Logo" class="loading-logo-img" />
+        <div class="loading-logo-glow"></div>
+      </div>
+
+      <h1 class="loading-title">STARBOUND</h1>
+      <span class="loading-subtitle">ORBITAL DEFENSE NETWORK // BOOT LOADER</span>
+
+      <!-- Holographic Progress Radial Gauge -->
+      <div class="loading-gauge-cluster">
+        <div class="gauge-ring-wrap">
+          <svg class="gauge-svg" viewBox="0 0 200 200">
+            <!-- Background Arc Track -->
+            <circle cx="100" cy="100" r="82" class="gauge-bg-track" />
+            <!-- Segmented Dial Ticks -->
+            <circle cx="100" cy="100" r="72" class="gauge-ticks" />
+            <!-- Animated Progress Arc -->
+            <circle cx="100" cy="100" r="82" class="gauge-progress-bar" id="loading-gauge-bar" />
+          </svg>
+
+          <!-- Gauge Center Telemetry -->
+          <div class="gauge-center-content">
+            <span class="gauge-pct-num" id="loading-percent-num">0%</span>
+            <span class="gauge-status-tag" id="loading-status-tag">INITIALIZING</span>
+          </div>
+        </div>
+
+        <!-- Pilot Clearance Gauge Display Stating daryl.created@gmail.com -->
+        <div class="loading-pilot-card">
+          <div class="loading-pilot-badge">
+            <span class="pilot-auth-icon">🛡️</span>
+            <span class="pilot-auth-label">AUTHENTICATED PILOT CLEARANCE</span>
+          </div>
+          <div class="loading-pilot-email" id="loading-pilot-email-tag">daryl.created@gmail.com</div>
+          <div class="loading-security-hash">SEC-HASH: <span id="loading-hash-val">0x7F-OMEGA-99</span></div>
+        </div>
+      </div>
+
+      <!-- Real-time Subsystem Initialization Log Ticker -->
+      <div class="loading-log-box">
+        <div class="log-indicator-dot"></div>
+        <span class="loading-log-text" id="loading-log-text">SYNCHRONIZING ORBITAL TELEMETRY...</span>
+      </div>
+
+      <!-- Linear Loading Bar Track -->
+      <div class="loading-linear-track">
+        <div class="loading-linear-fill" id="loading-linear-fill"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- 3D Canvas Container -->
   <div id="canvas-container"></div>
 
@@ -300,14 +355,7 @@
       <!-- Holographic Pilot Identity Patch -->
       <div class="pilot-id-header">
         <div class="pilot-hologram-avatar">
-          <svg viewBox="0 0 100 100" width="64" height="64">
-            <circle cx="50" cy="50" r="46" fill="#040a18" stroke="#00f3ff" stroke-width="2.5" stroke-dasharray="4 2"/>
-            <polygon points="50,16 78,74 22,74" fill="#0b1a30" stroke="#00f3ff" stroke-width="2"/>
-            <polygon points="50,26 68,68 32,68" fill="#00f3ff" opacity="0.8"/>
-            <circle cx="50" cy="50" r="6" fill="#00ff66"/>
-            <line x1="50" y1="10" x2="50" y2="90" stroke="#00f3ff" stroke-width="0.8" opacity="0.4"/>
-            <line x1="10" y1="50" x2="90" y2="50" stroke="#00f3ff" stroke-width="0.8" opacity="0.4"/>
-          </svg>
+          <img src="/icons/logo.svg" alt="STARBOUND Emblem" width="58" height="58" class="loading-logo-img" />
           <div class="hologram-scanline-pulse"></div>
         </div>
         <div class="pilot-id-title-group">
@@ -404,21 +452,8 @@
       <div class="space-title-glow"></div>
       
       <!-- Aerospace Mission Patch Insignia SVG -->
-      <div class="space-logo">
-        <svg viewBox="0 0 120 120" width="84" height="84">
-          <defs>
-            <linearGradient id="patchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#00f3ff"/>
-              <stop offset="100%" stop-color="#0066ff"/>
-            </linearGradient>
-          </defs>
-          <circle cx="60" cy="60" r="54" fill="#040814" stroke="url(#patchGrad)" stroke-width="3"/>
-          <circle cx="60" cy="60" r="58" fill="none" stroke="#00f3ff" stroke-width="1.2" stroke-dasharray="6,4" opacity="0.6"/>
-          <path d="M 18 85 Q 60 15 102 85" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
-          <polygon points="60,22 88,80 32,80" fill="#0c182c" stroke="#ff0055" stroke-width="3"/>
-          <polygon points="60,32 78,74 42,74" fill="#00f3ff" opacity="0.85"/>
-          <circle cx="60" cy="60" r="10" fill="#00ff66"/>
-        </svg>
+      <div class="space-logo" style="margin-bottom: 0.6rem;">
+        <img src="/icons/logo.svg" alt="STARBOUND Logo" width="86" height="86" class="loading-logo-img" />
       </div>
 
       <div class="terminal-badge-line">

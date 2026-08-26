@@ -1,22 +1,25 @@
 {
-  "name": "STARBOUND SPACE DEFENDER",
+  "name": "STARBOUND // AEROSPACE COMBAT",
   "short_name": "STARBOUND",
-  "description": "AAA 3D Space Shooter Game - Defend Sector Alpha against Megastructure Bosses",
+  "description": "AAA 3D Aerospace Flight Combat Simulator - Defend Sector Alpha against Megastructure Bosses",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#060810",
-  "theme_color": "#060810",
+  "background_color": "#040814",
+  "theme_color": "#040814",
   "orientation": "any",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><circle cx='96' cy='96' r='90' fill='%23060810' stroke='%2300f3ff' stroke-width='6'/><path d='M30 140 Q 96 20 162 140' fill='none' stroke='%23ffffff' stroke-width='4'/><polygon points='96,40 140,130 52,130' fill='%230b1528' stroke='%23ff0055' stroke-width='5'/><circle cx='96' cy='96' r='20' fill='%2300f3ff'/></svg>",
+      "src": "/icons/icon-192.svg",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><circle cx='256' cy='256' r='240' fill='%23060810' stroke='%2300f3ff' stroke-width='14'/><path d='M80 370 Q 256 50 432 370' fill='none' stroke='%23ffffff' stroke-width='10'/><polygon points='256,100 380,350 132,350' fill='%230b1528' stroke='%23ff0055' stroke-width='12'/><circle cx='256' cy='256' r='50' fill='%2300f3ff'/></svg>",
+      "src": "/icons/icon-512.svg",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
+
