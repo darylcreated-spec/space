@@ -102,15 +102,29 @@ export class PostProcessing {
     this.scene = scene;
     this.camera = camera;
 
+    this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || 'ultra';
+    // Default mobile to 'high' (optimized half-res bloom) or 'ultra' on desktop
+    this.quality = savedQuality || (this.isMobile ? 'high' : 'ultra');
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;
     this.time = 0;
 
+    // Dynamic FPS Auto-Scaler to prevent frame sticking on budget devices
+    this.perfDropCount = 0;
+    this.autoScaleCooldown = 0;
+
     this._initComposer();
     window.addEventListener('resize', this.onResize.bind(this));
+  }
+
+  _getBloomScale() {
+    if (this.isMobile) return 0.5; // 50% resolution bloom on mobile = 4x less GPU fillrate with identical glow
+    if (this.quality === 'ultra') return 0.75;
+    if (this.quality === 'high') return 0.5;
+    return 0.35;
   }
 
   _initComposer() {
@@ -119,32 +133,34 @@ export class PostProcessing {
       const renderPass = new RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
-      const res = new THREE.Vector2(window.innerWidth, window.innerHeight);
+      const bloomScale = this._getBloomScale();
+      const bloomRes = new THREE.Vector2(
+        Math.max(256, Math.floor(window.innerWidth * bloomScale)),
+        Math.max(256, Math.floor(window.innerHeight * bloomScale))
+      );
 
-      // UnrealBloomPass: Vivid neon sci-fi bloom — strong enough to make lasers, engines & weapon fire glow
-      // threshold: 0.18 = anything brighter than ~18% max lum gets bloom (catches all neon emissives)
-      // strength:  1.2 ultra / 0.9 high / 0.6 medium — vivid without washing out structure
-      // radius:    0.85 = wide soft glow halo, real lens bloom character
-      const bloomStrength  = this.quality === 'ultra' ? 1.2  : (this.quality === 'high' ? 0.9  : 0.6);
-      const bloomRadius    = this.quality === 'ultra' ? 0.85 : (this.quality === 'high' ? 0.75 : 0.6);
-      const bloomThreshold = this.quality === 'ultra' ? 0.18 : (this.quality === 'high' ? 0.22 : 0.28);
+      // UnrealBloomPass: Half-resolution buffer cuts fill-rate by 75% while keeping smooth optical glow
+      const bloomStrength  = this.quality === 'ultra' ? 1.2  : (this.quality === 'high' ? 0.95 : 0.6);
+      const bloomRadius    = this.quality === 'ultra' ? 0.85 : (this.quality === 'high' ? 0.75 : 0.55);
+      const bloomThreshold = this.quality === 'ultra' ? 0.18 : (this.quality === 'high' ? 0.20 : 0.28);
 
-      this.bloomPass = new UnrealBloomPass(res, bloomStrength, bloomRadius, bloomThreshold);
+      this.bloomPass = new UnrealBloomPass(bloomRes, bloomStrength, bloomRadius, bloomThreshold);
       this.composer.addPass(this.bloomPass);
 
       // AAA Cinematic Shader Pass: chromatic aberration, anamorphic flares, film grain, vignette, boost warp
       this.cinemaPass = new ShaderPass(AAACinematicShader);
-      this.cinemaPass.uniforms.uQuality.value      = this.quality === 'ultra' ? 3.0 : (this.quality === 'high' ? 2.0 : 1.0);
-      this.cinemaPass.uniforms.uGrainIntensity.value = this.quality === 'ultra' ? 0.022 : (this.quality === 'high' ? 0.016 : 0.0);
-      this.cinemaPass.uniforms.uVignette.value     = 0.92;
-      this.cinemaPass.uniforms.uAberration.value   = 0.0028;
+      const shaderQuality = this.isMobile ? 1.0 : (this.quality === 'ultra' ? 3.0 : (this.quality === 'high' ? 2.0 : 1.0));
+      this.cinemaPass.uniforms.uQuality.value = shaderQuality;
+      this.cinemaPass.uniforms.uGrainIntensity.value = (this.isMobile || this.quality === 'low') ? 0.0 : (this.quality === 'ultra' ? 0.022 : 0.012);
+      this.cinemaPass.uniforms.uVignette.value = 0.92;
+      this.cinemaPass.uniforms.uAberration.value = this.isMobile ? 0.0015 : 0.0028;
       this.composer.addPass(this.cinemaPass);
 
       // Output Tone Mapping Pass
       const outputPass = new OutputPass();
       this.composer.addPass(outputPass);
 
-      console.log(`[PostFX] EffectComposer initialized — Bloom strength: ${bloomStrength}, radius: ${bloomRadius}, threshold: ${bloomThreshold}, quality: ${this.quality}`);
+      console.log(`[PostFX] EffectComposer initialized — Bloom res: ${bloomRes.x}x${bloomRes.y} (scale: ${bloomScale}), quality: ${this.quality}, mobile: ${this.isMobile}`);
     } catch (e) {
       console.warn('EffectComposer init fallback to direct WebGL render:', e);
       this.composer = null;
@@ -159,14 +175,20 @@ export class PostProcessing {
       if (!this.composer) {
         this._initComposer();
       } else {
+        const bloomScale = this._getBloomScale();
         if (this.bloomPass) {
-          this.bloomPass.strength   = level === 'ultra' ? 1.2  : (level === 'high' ? 0.9  : 0.6);
-          this.bloomPass.radius     = level === 'ultra' ? 0.85 : (level === 'high' ? 0.75 : 0.6);
-          this.bloomPass.threshold  = level === 'ultra' ? 0.18 : (level === 'high' ? 0.22 : 0.28);
+          this.bloomPass.resolution.set(
+            Math.max(256, Math.floor(window.innerWidth * bloomScale)),
+            Math.max(256, Math.floor(window.innerHeight * bloomScale))
+          );
+          this.bloomPass.strength  = level === 'ultra' ? 1.2  : (level === 'high' ? 0.95 : 0.6);
+          this.bloomPass.radius    = level === 'ultra' ? 0.85 : (level === 'high' ? 0.75 : 0.55);
+          this.bloomPass.threshold = level === 'ultra' ? 0.18 : (level === 'high' ? 0.20 : 0.28);
         }
         if (this.cinemaPass) {
-          this.cinemaPass.uniforms.uQuality.value       = level === 'ultra' ? 3.0 : (level === 'high' ? 2.0 : 1.0);
-          this.cinemaPass.uniforms.uGrainIntensity.value = level === 'ultra' ? 0.022 : (level === 'high' ? 0.016 : 0.0);
+          const shaderQuality = this.isMobile ? 1.0 : (level === 'ultra' ? 3.0 : (level === 'high' ? 2.0 : 1.0));
+          this.cinemaPass.uniforms.uQuality.value = shaderQuality;
+          this.cinemaPass.uniforms.uGrainIntensity.value = (this.isMobile || level === 'low') ? 0.0 : (level === 'ultra' ? 0.022 : 0.012);
         }
       }
     }
@@ -187,13 +209,34 @@ export class PostProcessing {
       this.cinemaPass.uniforms.uTime.value = this.time;
       this.cinemaPass.uniforms.uBoost.value = this.boostAmount;
     }
+
+    // Dynamic FPS Stutter Guard: If frame time exceeds 38ms (~26 FPS) consecutively, dynamically adapt
+    if (this.autoScaleCooldown > 0) {
+      this.autoScaleCooldown -= dt;
+    } else if (dt > 0.038 && this.composer && this.quality !== 'low') {
+      this.perfDropCount++;
+      if (this.perfDropCount > 60) { // ~2 seconds of low framerate
+        console.warn(`[PostFX] Low FPS detected (${(1/dt).toFixed(0)} FPS) — auto-adapting graphics quality for smooth frame pacing.`);
+        if (this.quality === 'ultra') this.setGraphicsQuality('high');
+        else if (this.quality === 'high') this.setGraphicsQuality('medium');
+        else this.setGraphicsQuality('low');
+        this.perfDropCount = 0;
+        this.autoScaleCooldown = 10.0; // Don't scale down again for 10s
+      }
+    } else if (dt < 0.020) {
+      this.perfDropCount = Math.max(0, this.perfDropCount - 1);
+    }
   }
 
   onResize() {
     if (this.composer) {
       this.composer.setSize(window.innerWidth, window.innerHeight);
       if (this.bloomPass) {
-        this.bloomPass.resolution.set(window.innerWidth, window.innerHeight);
+        const bloomScale = this._getBloomScale();
+        this.bloomPass.resolution.set(
+          Math.max(256, Math.floor(window.innerWidth * bloomScale)),
+          Math.max(256, Math.floor(window.innerHeight * bloomScale))
+        );
       }
     }
   }

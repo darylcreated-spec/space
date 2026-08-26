@@ -135,6 +135,12 @@ html, body {
   opacity: 0.65;
 }
 
+@media (max-width: 768px) {
+  .cockpit-hud-overlay .scanlines {
+    display: none !important; /* Save mobile GPU paint cycles */
+  }
+}
+
 .cockpit-hud-overlay .vignette {
   position: absolute;
   top: 0;
