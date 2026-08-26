@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 /**
  * Procedural Obsidian-Magma Composite Hull Texture for Titan Core Flagship
@@ -58,8 +58,8 @@ function generateTitanCoreHullTexture() {
 // TITAN CORE FLAGSHIP — Ancient Asteroid Core Alien War Vessel
 // Emerges from the shattered center of the Titan Asteroid Colossus!
 // 42m High-Speed Volcanic Assault Cruiser with Swept Delta Wings,
-// Twin Heavy Plasma Arc Cannons, Dorsal VLS Missile Silos,
-// and Glowing Magma Fusion Engine!
+// Twin Heavy Forward Plasma Cannons, Dorsal VLS Missile Silos,
+// and Rear Quad Magma Fusion Thrusters!
 // ============================================================
 export class TitanCoreShip {
   constructor(scene, particleManager, spawnPosition = null) {
@@ -67,7 +67,7 @@ export class TitanCoreShip {
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    const initPos = spawnPosition || new THREE.Vector3(0, 2, -50);
+    const initPos = spawnPosition ? spawnPosition.clone() : new THREE.Vector3(0, 2, -50);
     this.meshGroup.position.copy(initPos);
 
     // -- Telemetry & Boss Stats --
@@ -82,10 +82,9 @@ export class TitanCoreShip {
     this.targetZ = -38;
     this.speed = 14.0;
     this._time = 0;
-    this.fireTimer = 1.0;
-    this.missileTimer = 2.5;
+    this.fireTimer = 0.8;
+    this.missileTimer = 2.4;
     this.evasionTimer = 0;
-    this.rollAngle = 0;
     this.strafeTargetX = 0;
 
     // -- Subsystem Hardpoints --
@@ -93,7 +92,7 @@ export class TitanCoreShip {
     this.rightCannon = { id: 'right_cannon', name: 'STARBOARD PLASMA CANNON', hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null };
     this.missileSilo = { id: 'missile_silo', name: 'DORSAL VLS SILO', hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null };
 
-    this.turrets = []; // For generic collision scanning
+    this.turrets = [];
     this.machDiamondRings = [];
     this.engineExhaustPlumes = [];
     this.reticleMeshes = [];
@@ -115,7 +114,7 @@ export class TitanCoreShip {
     const magmaGlowMat = new THREE.MeshStandardMaterial({
       color: 0xff3300,
       emissive: 0xff5500,
-      emissiveIntensity: 2.2,
+      emissiveIntensity: 2.0,
       roughness: 0.1,
       metalness: 0.9
     });
@@ -126,113 +125,120 @@ export class TitanCoreShip {
       metalness: 0.9
     });
 
-    // 1. Central Fuselage Hull (Armored Needle Body)
-    const bodyGeo = new THREE.ConeGeometry(4.2, 28, 6);
+    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const glowCrimsonMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+
+    // ── 1. Central Fuselage Hull (Armored Needle Body pointing toward +Z Player) ──
+    // Cone apex points along +Y. rotateX(Math.PI / 2) -> apex points forward (+Z towards player)
+    const bodyGeo = new THREE.ConeGeometry(3.6, 26, 6);
+    bodyGeo.rotateX(Math.PI / 2);
     const bodyMesh = new THREE.Mesh(bodyGeo, hullMat);
-    bodyMesh.rotation.x = Math.PI / 2;
+    bodyMesh.position.set(0, 0, 0);
     bodyMesh.castShadow = true;
     bodyMesh.receiveShadow = true;
     this.meshGroup.add(bodyMesh);
 
-    // 2. Command Bridge Cockpit Canopy
-    const canopyGeo = new THREE.CylinderGeometry(1.2, 2.2, 8, 5);
+    // 2. Command Bridge Cockpit Canopy (Mounted forward toward +Z)
+    const canopyGeo = new THREE.CylinderGeometry(1.0, 1.8, 6, 5);
+    canopyGeo.rotateX(Math.PI / 2);
     const canopyMesh = new THREE.Mesh(canopyGeo, magmaGlowMat);
-    canopyMesh.rotation.x = Math.PI / 2;
-    canopyMesh.position.set(0, 1.8, -2);
+    canopyMesh.position.set(0, 1.6, 2.5);
     this.meshGroup.add(canopyMesh);
 
-    // 3. Swept Forward Delta Wings
+    // 3. Swept Delta Wings
     this.wingGroup = new THREE.Group();
-    const wingGeo = new THREE.BoxGeometry(32, 0.8, 14);
+    const wingGeo = new THREE.BoxGeometry(30, 0.8, 12);
     const wingMesh = new THREE.Mesh(wingGeo, hullMat);
-    wingMesh.position.set(0, 0, 2);
+    wingMesh.position.set(0, 0, -2);
     this.wingGroup.add(wingMesh);
 
-    // Wingtip Armor Fins (Canted Vertical Stabilizers)
-    const finGeo = new THREE.BoxGeometry(0.8, 6, 8);
+    // Wingtip Armor Fins (Canted Vertical Stabilizers at rear -Z)
+    const finGeo = new THREE.BoxGeometry(0.8, 5, 7);
     const leftFin = new THREE.Mesh(finGeo, darkMetalMat);
-    leftFin.position.set(-16, 2.5, 4);
+    leftFin.position.set(-15, 2.2, -4);
     leftFin.rotation.z = -0.2;
     this.wingGroup.add(leftFin);
 
     const rightFin = new THREE.Mesh(finGeo, darkMetalMat);
-    rightFin.position.set(16, 2.5, 4);
+    rightFin.position.set(15, 2.2, -4);
     rightFin.rotation.z = 0.2;
     this.wingGroup.add(rightFin);
 
     this.meshGroup.add(this.wingGroup);
 
-    // 4. Port & Starboard Heavy Plasma Cannons
-    const cannonGeo = new THREE.CylinderGeometry(0.8, 1.1, 9, 8);
-    const cannonGlowGeo = new THREE.CylinderGeometry(0.9, 0.9, 2, 8);
+    // ── 4. Port & Starboard Heavy Forward Plasma Cannons (Pointing Forward +Z) ──
+    const cannonGeo = new THREE.CylinderGeometry(0.7, 0.9, 8, 8);
+    cannonGeo.rotateX(Math.PI / 2); // Cylinders point along +Z
+    const cannonGlowGeo = new THREE.CylinderGeometry(0.8, 0.8, 2, 8);
+    cannonGlowGeo.rotateX(Math.PI / 2);
 
     const leftCannonMesh = new THREE.Mesh(cannonGeo, darkMetalMat);
-    leftCannonMesh.rotation.x = Math.PI / 2;
-    leftCannonMesh.position.set(-15, 0, -2);
+    leftCannonMesh.position.set(-14, 0, 4);
     const leftCannonGlow = new THREE.Mesh(cannonGlowGeo, magmaGlowMat);
-    leftCannonGlow.position.set(0, 3.5, 0);
+    leftCannonGlow.position.set(0, 0, 3);
     leftCannonMesh.add(leftCannonGlow);
     this.meshGroup.add(leftCannonMesh);
     this.leftCannon.mesh = leftCannonMesh;
 
     const rightCannonMesh = new THREE.Mesh(cannonGeo, darkMetalMat);
-    rightCannonMesh.rotation.x = Math.PI / 2;
-    rightCannonMesh.position.set(15, 0, -2);
+    rightCannonMesh.position.set(14, 0, 4);
     const rightCannonGlow = new THREE.Mesh(cannonGlowGeo, magmaGlowMat);
-    rightCannonGlow.position.set(0, 3.5, 0);
+    rightCannonGlow.position.set(0, 0, 3);
     rightCannonMesh.add(rightCannonGlow);
     this.meshGroup.add(rightCannonMesh);
     this.rightCannon.mesh = rightCannonMesh;
 
-    // 5. Dorsal VLS Missile Silo Pod
-    const siloGeo = new THREE.BoxGeometry(5.5, 2.2, 7.0);
+    // ── 5. Dorsal VLS Missile Silo Pod (Mounted along top center) ──
+    const siloGeo = new THREE.BoxGeometry(5.0, 1.8, 6.0);
     const siloMesh = new THREE.Mesh(siloGeo, darkMetalMat);
-    siloMesh.position.set(0, 2.4, 4);
+    siloMesh.position.set(0, 2.0, -1);
 
-    // 6 Silo Missile Tubes
     for (let row = -1; row <= 1; row++) {
       for (let col = -0.5; col <= 0.5; col += 1.0) {
-        const tubeGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 6);
+        const tubeGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.5, 6);
         const tube = new THREE.Mesh(tubeGeo, magmaGlowMat);
-        tube.position.set(col * 2.2, 1.15, row * 2.0);
+        tube.position.set(col * 2.0, 0.95, row * 1.8);
         siloMesh.add(tube);
       }
     }
     this.meshGroup.add(siloMesh);
     this.missileSilo.mesh = siloMesh;
 
-    // 6. Quad Heavy Fusion Engine Thrusters & Plumes
-    const engineGeo = new THREE.CylinderGeometry(1.2, 1.8, 4, 8);
-    const plumeGeo = new THREE.ConeGeometry(1.4, 10, 8);
-    const plumeMat = new THREE.MeshBasicMaterial({
-      color: 0xff3300,
-      transparent: true,
-      opacity: 0.85
-    });
-
+    // ── 6. 🔥 REAR QUAD FUSION THRUSTERS & EXHAUST PLUMES (Firing Straight Backwards -Z) ──
     const enginePositions = [
-      new THREE.Vector3(-3.2, 0, 14),
-      new THREE.Vector3( 3.2, 0, 14),
-      new THREE.Vector3(-7.5, -0.5, 12),
-      new THREE.Vector3( 7.5, -0.5, 12)
+      new THREE.Vector3(-3.0, 0, -13),
+      new THREE.Vector3( 3.0, 0, -13),
+      new THREE.Vector3(-7.5, -0.4, -11),
+      new THREE.Vector3( 7.5, -0.4, -11)
     ];
 
     enginePositions.forEach(ep => {
-      const eng = new THREE.Mesh(engineGeo, darkMetalMat);
-      eng.rotation.x = Math.PI / 2;
+      // Nacelle Housing
+      const nacelleGeo = new THREE.CylinderGeometry(1.2, 1.6, 3.5, 8);
+      nacelleGeo.rotateX(Math.PI / 2);
+      const eng = new THREE.Mesh(nacelleGeo, darkMetalMat);
       eng.position.copy(ep);
       this.meshGroup.add(eng);
 
-      const plume = new THREE.Mesh(plumeGeo, plumeMat);
-      plume.rotation.x = -Math.PI / 2;
-      plume.position.set(0, -6, 0);
-      eng.add(plume);
+      // Exhaust Plume Cone (Base at nozzle, apex extending backwards -Z into space)
+      const plumeGeo = new THREE.ConeGeometry(1.2, 8.0, 8);
+      plumeGeo.rotateX(-Math.PI / 2); // Points backward -Z
+      const plume = new THREE.Mesh(plumeGeo, glowCrimsonMat);
+      plume.position.set(ep.x, ep.y, ep.z - 4.5);
+      this.meshGroup.add(plume);
       this.engineExhaustPlumes.push(plume);
+
+      // Inner White-Hot Flame Core
+      const coreFlameGeo = new THREE.ConeGeometry(0.6, 5.5, 6);
+      coreFlameGeo.rotateX(-Math.PI / 2);
+      const coreFlame = new THREE.Mesh(coreFlameGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 }));
+      coreFlame.position.set(ep.x, ep.y, ep.z - 3.2);
+      this.meshGroup.add(coreFlame);
     });
 
-    // 7. Reticles for Subsystems
+    // 7. Reticles for Targetable Subsystems
     const createReticle = (parentMesh, colorHex) => {
-      const retGeo = new THREE.RingGeometry(2.4, 2.8, 16);
+      const retGeo = new THREE.RingGeometry(2.2, 2.6, 16);
       const retMat = new THREE.MeshBasicMaterial({
         color: colorHex,
         side: THREE.DoubleSide,
@@ -240,7 +246,7 @@ export class TitanCoreShip {
         opacity: 0.85
       });
       const ret = new THREE.Mesh(retGeo, retMat);
-      ret.position.set(0, 0, -1);
+      ret.position.set(0, 0, 2);
       parentMesh.add(ret);
       this.reticleMeshes.push(ret);
       return ret;
@@ -330,14 +336,25 @@ export class TitanCoreShip {
     }
   }
 
-  update(dt, playerShip, gameManager) {
+  update(dt, playerShipOrPos = null, gameManager = null) {
     if (this.isDead || !this.meshGroup) return false;
     this._time += dt;
 
-    const pos = this.meshGroup.position;
-    const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
+    const gm = gameManager || window.spaceGameManager;
 
-    // 1. Advance to battle station
+    // Resolve Player World Position reliably
+    let playerPos = new THREE.Vector3(0, 0, 0);
+    if (playerShipOrPos instanceof THREE.Vector3) {
+      playerPos.copy(playerShipOrPos);
+    } else if (playerShipOrPos && playerShipOrPos.meshGroup) {
+      playerPos.copy(playerShipOrPos.meshGroup.position);
+    } else if (gm && gm.playerShip && gm.playerShip.meshGroup) {
+      playerPos.copy(gm.playerShip.meshGroup.position);
+    }
+
+    const pos = this.meshGroup.position;
+
+    // 1. Advance to combat battle station
     if (pos.z < this.targetZ) {
       pos.z += this.speed * dt;
     }
@@ -357,7 +374,7 @@ export class TitanCoreShip {
     this.meshGroup.rotation.z += (targetRoll - this.meshGroup.rotation.z) * 4.0 * dt;
     this.meshGroup.rotation.y = Math.sin(this._time * 1.5) * 0.08;
 
-    // 3. Thruster shimmer
+    // 3. Rear Thruster Plume Shimmer
     const exhaustScale = 1.0 + Math.sin(this._time * 30.0) * 0.15;
     this.engineExhaustPlumes.forEach(p => p.scale.set(exhaustScale, exhaustScale, exhaustScale));
 
@@ -383,47 +400,53 @@ export class TitanCoreShip {
       return false;
     }
 
-    // 6. Twin Plasma Cannon Salvos
+    // 6. 🔥 ACTIVE COMBAT ATTACK LOOP: Twin Plasma Cannons Firing at Player
     this.fireTimer -= dt;
     const salvoPositions = [];
 
-    if (this.fireTimer <= 0 && pos.z >= this.targetZ - 8) {
+    if (this.fireTimer <= 0 && pos.z >= this.targetZ - 10) {
       this.fireTimer = 0.85;
 
       if (!this.leftCannon.isDead && this.leftCannon.mesh) {
         const wp = this.leftCannon.mesh.getWorldPosition(new THREE.Vector3());
         salvoPositions.push(wp);
-        if (gameManager && gameManager.spawnEnemyLaser) {
+        if (gm && gm.spawnLaser) {
           const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
-          gameManager.spawnEnemyLaser(wp, dir, 0xff5500, 52);
+          gm.spawnLaser(wp, 0xff3300, true, dir);
         }
       }
 
       if (!this.rightCannon.isDead && this.rightCannon.mesh) {
         const wp = this.rightCannon.mesh.getWorldPosition(new THREE.Vector3());
         salvoPositions.push(wp);
-        if (gameManager && gameManager.spawnEnemyLaser) {
+        if (gm && gm.spawnLaser) {
           const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
-          gameManager.spawnEnemyLaser(wp, dir, 0xff5500, 52);
+          gm.spawnLaser(wp, 0xff3300, true, dir);
         }
+      }
+
+      if (gm && gm.spaceAudio && salvoPositions.length > 0) {
+        gm.spaceAudio.playLaserPew();
       }
     }
 
-    // 7. Dorsal VLS Homing Missile Salvo
+    // 7. 🚀 DORSAL VLS HOMING MISSILE SALVOS
     this.missileTimer -= dt;
-    if (this.missileTimer <= 0 && !this.missileSilo.isDead && pos.z >= this.targetZ - 8) {
+    if (this.missileTimer <= 0 && !this.missileSilo.isDead && pos.z >= this.targetZ - 10) {
       this.missileTimer = 3.2;
-      const wp = this.missileSilo.mesh.getWorldPosition(new THREE.Vector3());
-      if (this.particleManager) {
-        this.particleManager.createExplosion(wp, 0xffaa00, 20, 1.0);
-      }
-      if (gameManager && gameManager.spawnEnemyMissile) {
-        gameManager.spawnEnemyMissile(wp, playerPos);
-        setTimeout(() => {
-          if (!this.isDead && gameManager.spawnEnemyMissile) {
-            gameManager.spawnEnemyMissile(wp, playerPos);
-          }
-        }, 300);
+      if (this.missileSilo.mesh) {
+        const wp = this.missileSilo.mesh.getWorldPosition(new THREE.Vector3());
+        if (this.particleManager) {
+          this.particleManager.createExplosion(wp, 0xffaa00, 20, 1.0);
+        }
+        if (gm && gm.spawnEnemyMissile) {
+          gm.spawnEnemyMissile(wp, playerPos);
+          setTimeout(() => {
+            if (!this.isDead && gm.spawnEnemyMissile) {
+              gm.spawnEnemyMissile(wp, playerPos);
+            }
+          }, 350);
+        }
       }
     }
 
@@ -442,3 +465,4 @@ export class TitanCoreShip {
     }
   }
 }
+
