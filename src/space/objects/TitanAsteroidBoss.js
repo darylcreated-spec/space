@@ -394,44 +394,13 @@ export class TitanAsteroidBoss {
   }
 
   /**
-   * Spawns physics debris chunks whose counts, sizes, and velocities
-   * scale proportionally with damage dealt!
+   * Spawns physics debris chunks whose counts and velocities
+   * scale proportionally with damage dealt using pre-cached zero-allocation pools!
    */
   spawnProportionalDebris(worldPos, damageAmount, isVolcanic = true) {
-    if (!this.particleManager) return;
-    const chunkCount = Math.max(3, Math.min(22, Math.round(damageAmount / 35)));
-    const baseSpeed = 4.0 + Math.min(24.0, damageAmount * 0.12);
-
-    for (let i = 0; i < chunkCount; i++) {
-      const scale = 0.3 + Math.random() * (damageAmount > 200 ? 1.4 : 0.7);
-      const debGeo = new THREE.DodecahedronGeometry(scale, 0);
-      const debMat = new THREE.MeshStandardMaterial({
-        color: isVolcanic ? (Math.random() < 0.5 ? 0x221626 : 0x4a1804) : 0x1f2e3d,
-        emissive: isVolcanic ? (Math.random() < 0.4 ? 0xff3300 : 0x000000) : 0x000000,
-        emissiveIntensity: 1.5,
-        roughness: 0.8,
-        metalness: 0.3
-      });
-      const mesh = new THREE.Mesh(debGeo, debMat);
-      mesh.position.copy(worldPos);
-      this.scene.add(mesh);
-
-      if (this.particleManager.metalDebris) {
-        this.particleManager.metalDebris.push({
-          mesh,
-          geo: debGeo,
-          mat: debMat,
-          vx: (Math.random() - 0.5) * baseSpeed * 1.5,
-          vy: 2.0 + (Math.random() - 0.5) * baseSpeed,
-          vz: (Math.random() - 0.5) * baseSpeed * 1.2,
-          rotSpeedX: (Math.random() - 0.5) * 8.0,
-          rotSpeedY: (Math.random() - 0.5) * 8.0,
-          rotSpeedZ: (Math.random() - 0.5) * 8.0,
-          life: 1.0,
-          decay: 0.18 + Math.random() * 0.1
-        });
-      }
-    }
+    if (!this.particleManager || !worldPos) return;
+    const chunkCount = Math.max(1, Math.min(4, Math.round(damageAmount / 80)));
+    this.particleManager.spawnMetalDebris(worldPos, chunkCount, isVolcanic ? 0xff5500 : 0x00f3ff);
   }
 
   /**

@@ -43,6 +43,33 @@ export class ParticleManager {
 
     // Shared Fireball Geometry & Materials
     this._fireballGeo = new THREE.IcosahedronGeometry(1.0, 2);
+
+    // ── High-Performance Pre-Cached Debris Mesh Pool (Zero Dynamic Allocations) ──
+    this._debrisGeos = [
+      new THREE.DodecahedronGeometry(0.5, 0),
+      new THREE.BoxGeometry(0.35, 0.35, 1.0),
+      new THREE.CylinderGeometry(0.12, 0.14, 0.9, 6),
+      new THREE.DodecahedronGeometry(0.8, 0)
+    ];
+
+    this._debrisMats = [
+      new THREE.MeshStandardMaterial({ color: 0x181224, metalness: 0.9, roughness: 0.3, transparent: true }),
+      new THREE.MeshStandardMaterial({ color: 0xe61c47, emissive: 0x66081e, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.3, transparent: true }),
+      new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0x442200, emissiveIntensity: 0.5, metalness: 0.9, roughness: 0.2, transparent: true }),
+      new THREE.MeshStandardMaterial({ color: 0x221812, emissive: 0xff3300, emissiveIntensity: 0.8, metalness: 0.6, roughness: 0.6, transparent: true }),
+      new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00aaff, emissiveIntensity: 0.8, metalness: 0.9, roughness: 0.2, transparent: true })
+    ];
+
+    this.maxDebrisCount = 45;
+    this.debrisMeshPool = [];
+    for (let i = 0; i < this.maxDebrisCount; i++) {
+      const geo = this._debrisGeos[i % this._debrisGeos.length];
+      const mat = this._debrisMats[i % this._debrisMats.length];
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this.debrisMeshPool.push(mesh);
+    }
   }
 
   _buildParticlePool(count, defaultSize) {
@@ -299,7 +326,7 @@ export class ParticleManager {
       }
     }
 
-    // ── Update Breakaway Metal Debris & Armor Shards ──
+    // ── Update Breakaway Metal Debris & Armor Shards (Zero-Allocation Pool) ──
     for (let i = this.metalDebris.length - 1; i >= 0; i--) {
       const d = this.metalDebris[i];
       d.life -= d.decay * dt;
@@ -312,102 +339,55 @@ export class ParticleManager {
       d.mesh.rotation.z += d.rotSpeedZ * dt;
 
       if (d.mesh.material && d.mesh.material.opacity !== undefined) {
-        d.mesh.material.transparent = true;
         d.mesh.material.opacity = Math.min(1.0, d.life * 2.0);
       }
 
       if (d.life <= 0 || d.mesh.position.z > 35 || d.mesh.position.length() > 220) {
-        this.scene.remove(d.mesh);
-        if (d.mesh.geometry) d.mesh.geometry.dispose();
-        if (d.mesh.material) d.mesh.material.dispose();
+        d.mesh.visible = false;
         this.metalDebris.splice(i, 1);
       }
     }
   }
 
   spawnMetalDebris(originPos, count = 4, defaultColorHex = null, baseVel = null) {
-    // 🎨 Varied Realistic Sci-Fi Material Palette
-    const palette = [
-      { color: 0x181224, metalness: 0.95, roughness: 0.22, emissive: 0x000000 },
-      { color: 0xe61c47, metalness: 0.88, roughness: 0.24, emissive: 0x66081e, emissiveInt: 0.7 },
-      { color: 0xffaa00, metalness: 0.96, roughness: 0.12, emissive: 0x442200, emissiveInt: 0.5 },
-      { color: 0x221812, metalness: 0.85, roughness: 0.65, emissive: 0xff3300, emissiveInt: 0.6 },
-      { color: 0x00f3ff, metalness: 0.90, roughness: 0.15, emissive: 0x00aaff, emissiveInt: 0.9 }
-    ];
+    if (!originPos) return;
+    const spawnNum = Math.min(count, 4);
 
-    for (let i = 0; i < count; i++) {
-      const typeChoice = Math.floor(Math.random() * 5);
-      let geo;
-
-      if (typeChoice === 0) {
-        // 1. Triangular / Trapezoidal Jagged Armor Shard
-        const shape = new THREE.Shape();
-        const w = 0.5 + Math.random() * 0.9;
-        const h = 0.4 + Math.random() * 0.8;
-        shape.moveTo(0, 0);
-        shape.lineTo(w, (Math.random() - 0.5) * 0.4);
-        shape.lineTo(w * 0.6, h);
-        shape.lineTo((Math.random() - 0.5) * 0.3, h * 0.8);
-        shape.closePath();
-        geo = new THREE.ExtrudeGeometry(shape, { depth: 0.12 + Math.random() * 0.18, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03 });
-      } else if (typeChoice === 1) {
-        // 2. Curved Hull Cowling / Sponson Flange Fragment
-        const arcLength = Math.PI * (0.3 + Math.random() * 0.5);
-        const radius = 0.8 + Math.random() * 1.2;
-        geo = new THREE.CylinderGeometry(radius, radius, 0.4 + Math.random() * 0.8, 8, 1, true, 0, arcLength);
-      } else if (typeChoice === 2) {
-        // 3. Structural Titanium Frame Girder / Ribbed Strut
-        const length = 1.0 + Math.random() * 1.8;
-        const thickness = 0.15 + Math.random() * 0.15;
-        geo = new THREE.BoxGeometry(thickness, thickness, length);
-      } else if (typeChoice === 3) {
-        // 4. Irregular Charred Polyhedron Slag Clunk
-        const radius = 0.35 + Math.random() * 0.55;
-        geo = new THREE.DodecahedronGeometry(radius, 0);
-      } else {
-        // 5. Glowing Severed Conduit Rod / Power Wire
-        const len = 0.8 + Math.random() * 1.2;
-        geo = new THREE.CylinderGeometry(0.08, 0.1, len, 6);
+    for (let i = 0; i < spawnNum; i++) {
+      // Find an available pooled mesh or recycle oldest
+      let mesh = this.debrisMeshPool.find(m => !m.visible);
+      if (!mesh) {
+        if (this.metalDebris.length > 0) {
+          const oldest = this.metalDebris.shift();
+          mesh = oldest.mesh;
+        } else {
+          continue;
+        }
       }
 
-      // Material with unique colors & molten glowing seams
-      const style = defaultColorHex && Math.random() < 0.4
-        ? { color: defaultColorHex, metalness: 0.9, roughness: 0.25, emissive: 0x330011, emissiveInt: 0.4 }
-        : palette[Math.floor(Math.random() * palette.length)];
-
-      const mat = new THREE.MeshStandardMaterial({
-        color: style.color,
-        metalness: style.metalness,
-        roughness: style.roughness,
-        emissive: style.emissive || 0x000000,
-        emissiveIntensity: style.emissiveInt || 0.4,
-        side: THREE.DoubleSide
-      });
-
-      const mesh = new THREE.Mesh(geo, mat);
+      const scale = 0.5 + Math.random() * 0.7;
+      mesh.scale.set(scale, scale, scale);
       mesh.position.copy(originPos);
-      mesh.position.x += (Math.random() - 0.5) * 2.4;
+      mesh.position.x += (Math.random() - 0.5) * 2.0;
       mesh.position.y += (Math.random() - 0.5) * 2.0;
-      mesh.position.z += (Math.random() - 0.5) * 2.4;
+      mesh.position.z += (Math.random() - 0.5) * 2.0;
+      mesh.visible = true;
 
-      const spread = 6.0 + Math.random() * 12.0;
+      const spread = 5.0 + Math.random() * 10.0;
       const vx = (Math.random() - 0.5) * spread + (baseVel ? baseVel.x * 0.3 : 0);
       const vy = 1.5 + (Math.random() - 0.5) * spread + (baseVel ? baseVel.y * 0.3 : 0);
-      const vz = 5.0 + Math.random() * 16.0; // Tumbles realistically backwards
+      const vz = 4.0 + Math.random() * 14.0;
 
-      const rotSpeedX = (Math.random() - 0.5) * 7.0;
-      const rotSpeedY = (Math.random() - 0.5) * 7.0;
-      const rotSpeedZ = (Math.random() - 0.5) * 7.0;
+      const rotSpeedX = (Math.random() - 0.5) * 6.0;
+      const rotSpeedY = (Math.random() - 0.5) * 6.0;
+      const rotSpeedZ = (Math.random() - 0.5) * 6.0;
 
-      this.scene.add(mesh);
       this.metalDebris.push({
         mesh,
-        geo,
-        mat,
         vx, vy, vz,
         rotSpeedX, rotSpeedY, rotSpeedZ,
         life: 1.0,
-        decay: 0.16 + Math.random() * 0.14 // Lasts 3.5 - 6.0s
+        decay: 0.28 + Math.random() * 0.15 // Lasts ~2.5 - 3.5s
       });
     }
   }
