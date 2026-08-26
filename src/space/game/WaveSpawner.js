@@ -21,15 +21,15 @@ export class WaveSpawner {
     this.bossSpawned = false;
 
     if (this.currentWave === 1) {
-      this.totalToSpawnInWave = 14; // Stage 1: Asteroid Perimeter Incursion -> Mid: Capital Cruiser -> Boss: Titan Asteroid Colossus
+      this.totalToSpawnInWave = 32; // Stage 1: Extended Opening -> Mid: Spacecraft Carrier & Drone Swarms -> Boss: Titan Asteroid Colossus
     } else if (this.currentWave === 2) {
-      this.totalToSpawnInWave = 20; // Stage 2: Halo Megastructure -> Mid: Supercarrier & Drones -> Boss: Halo Ring
+      this.totalToSpawnInWave = 24; // Stage 2: Halo Megastructure -> Mid: Supercarrier & Drones -> Boss: Halo Ring
     } else if (this.currentWave === 3) {
-      this.totalToSpawnInWave = 24; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
+      this.totalToSpawnInWave = 28; // Stage 3: Selene Moon Base -> Mid: Heavy Battleship -> Boss: Moon Base
     } else if (this.currentWave === 4) {
-      this.totalToSpawnInWave = 28; // Stage 4: Sanctuary-9 Cylinder -> Phase 1: Battleship -> Phase 2: Supercarrier -> Boss: Sanctuary Cylinder
+      this.totalToSpawnInWave = 34; // Stage 4: Sanctuary-9 Cylinder -> Phase 1: Battleship -> Phase 2: Supercarrier -> Boss: Sanctuary Cylinder
     } else if (this.currentWave === 5) {
-      this.totalToSpawnInWave = 42; // Stage 5: Grand Armada -> Phase 1: Battleship -> Phase 2: Supercarrier -> Phase 3: Dreadnought -> Boss: Mothership
+      this.totalToSpawnInWave = 46; // Stage 5: Grand Armada -> Phase 1: Battleship -> Phase 2: Supercarrier -> Phase 3: Dreadnought -> Boss: Mothership
     } else {
       this.totalToSpawnInWave = 36 + (this.currentWave - 5) * 8;
     }
@@ -38,7 +38,7 @@ export class WaveSpawner {
   }
 
   getWaveSubtitle() {
-    if (this.currentWave === 1) return 'STAGE 1: IRON MANTLE // ASTEROID BELT // BOSS: TITAN ASTEROID COLOSSUS';
+    if (this.currentWave === 1) return 'STAGE 1: IRON MANTLE // CARRIER ESCALATION & TITAN ASTEROID COLOSSUS';
     if (this.currentWave === 2) return 'STAGE 2: RING OF LIGHT // HALO MEGASTRUCTURE // MID: SUPERCARRIER';
     if (this.currentWave === 3) return 'STAGE 3: SELENE SHIELD // LUNAR CITADEL MOON BASE // MID: BATTLESHIP';
     if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // O\'NEILL CYLINDER CITADEL // MID: DUAL CAPITAL';
@@ -58,11 +58,11 @@ export class WaveSpawner {
 
       // ── Staged Capital Escalations (Spread arrivals for buttery-smooth 60fps gameplay) ──
       if (this.currentWave === 1) {
-        // Stage 1 Midpoint: Enemy Capital Cruiser Escort warps in to test defenses!
-        if (this.spawnedCount === 5) {
-          this.gameManager.spawnCapitalShip();
-        } else if (this.spawnedCount === 8) {
+        // Stage 1 Opening: Wave of Asteroids and Escorts -> Count 8: Spacecraft Carrier Warps In!
+        if (this.spawnedCount === 4) {
           this.gameManager.spawnStealthFighter();
+        } else if (this.spawnedCount === 8) {
+          this.gameManager.spawnCarrierBoss();
         }
       } else if (this.currentWave === 2) {
         // Stage 2 Midpoint: Gorgon Supercarrier (with drone launch wings)
@@ -84,45 +84,30 @@ export class WaveSpawner {
       } else if (this.currentWave === 5) {
         // Stage 5 Phased Armada: Spread arrivals smoothly before Mothership
         if (this.spawnedCount === 8) {
-          // Phase 1: Heavy Battleship Vanguard
           this.gameManager.spawnHeavyBattleship();
         } else if (this.spawnedCount === 20) {
-          // Phase 2: Supercarrier with Drone Interceptor Wings
           this.gameManager.spawnCarrierBoss();
         } else if (this.spawnedCount === 32) {
-          // Phase 3: Dreadnought Flagship & Escort Cruiser
           this.gameManager.spawnBoss();
           this.gameManager.spawnCapitalShip();
         }
-        // Phase 4 (at Count 42): Leviathan Command Mothership Apex Boss!
       }
 
-      // ── Standard Combat Patrol Spawning Rules ──
-      // Drones only spawn if Supercarrier is active on the field!
+      // ── Combat Patrol Spawning Rules ──
       const carrierActive = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
       const cometChance = this.currentWave === 1 ? 0.12 : 0.22;
 
-      if (this.currentWave === 1) {
-        // Stage 1: Asteroids & Shadow-Wraith Stealth Fighters (NO DRONES without carrier)
-        const roll = Math.random();
-        if (roll < 0.65) {
-          if (Math.random() < cometChance) {
-            this.gameManager.spawnAsteroid({ isComet: true });
-          } else {
-            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
-          }
-        } else {
-          this.gameManager.spawnStealthFighter();
-        }
+      const roll = Math.random();
+      // When Carrier is active, spawn launched drone interceptor squadrons!
+      if (carrierActive && roll < 0.45) {
+        this.gameManager.spawnDrone();
+      } else if (roll < 0.70) {
+        this.gameManager.spawnStealthFighter();
       } else {
-        // Stages 2-5: Stealth Fighters, Asteroids, and Carrier Drones (when Carrier is close)
-        const roll = Math.random();
-        if (carrierActive && roll < 0.45) {
-          this.gameManager.spawnDrone();
-        } else if (roll < 0.70) {
-          this.gameManager.spawnStealthFighter();
+        if (Math.random() < cometChance) {
+          this.gameManager.spawnAsteroid({ isComet: true });
         } else {
-          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.5 ? 'large' : 'medium' });
+          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
         }
       }
     }
