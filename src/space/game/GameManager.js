@@ -38,6 +38,7 @@ export class GameManager {
     this.upgradeSystem = new UpgradeSystem();
     this.voiceAnnouncer = new VoiceAnnouncer();
     this.achievementSystem = new AchievementSystem();
+    this.pilotProfile = null;
 
     // AAA Upgrade States
     this.selectedShipClass = 'INTERCEPTOR';

@@ -1688,3 +1688,509 @@ html, body {
     grid-column: 1 / -1;
   }
 }
+
+/* ==========================================================================
+   AERO-TACTICAL GUI SYSTEM // PILOT REGISTRATION, SLIDE DRAWERS & TACTICAL HUD
+   ========================================================================== */
+
+/* ── 1. Top Flight Telemetry & Pilot Status Bar ── */
+.hud-top-bar {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1.25rem;
+  pointer-events: none;
+  z-index: 25;
+}
+
+.hud-top-bar > * {
+  pointer-events: auto;
+}
+
+.pilot-identity-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(6, 14, 28, 0.88);
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 243, 255, 0.1);
+  padding: 5px 12px 5px 6px;
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pilot-identity-pill:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 25px rgba(0, 243, 255, 0.4), inset 0 0 16px rgba(0, 243, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.pilot-avatar-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 243, 255, 0.3) 0%, rgba(0, 102, 255, 0.8) 100%);
+  border: 1.5px solid var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+.pilot-info-col {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.pilot-callsign-text {
+  font-family: var(--font-header);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.pilot-email-text {
+  font-family: var(--font-code);
+  font-size: 0.58rem;
+  color: var(--accent-cyan);
+  opacity: 0.85;
+}
+
+.pilot-rank-tag {
+  font-family: var(--font-code);
+  font-size: 0.56rem;
+  font-weight: 800;
+  color: #051410;
+  background: #00ff88;
+  padding: 2px 7px;
+  border-radius: 12px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+}
+
+.top-nav-cluster {
+  display: flex;
+  gap: 8px;
+}
+
+.top-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(6, 14, 28, 0.85);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  color: #e2f1ff;
+  font-family: var(--font-header);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.top-action-btn:hover {
+  background: rgba(0, 243, 255, 0.2);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+}
+
+/* ── 2. Pilot Registration & Biometric Clearance Screen ── */
+.pilot-reg-card {
+  max-width: 540px;
+  width: 95vw;
+  background: rgba(4, 9, 20, 0.96);
+  border: 1.5px solid rgba(0, 243, 255, 0.5);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(0, 243, 255, 0.25);
+  border-radius: 16px;
+  padding: 2rem 2.2rem;
+  text-align: left;
+}
+
+.pilot-id-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 1.2rem 0 1.5rem 0;
+  width: 100%;
+}
+
+.pilot-hologram-avatar {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(0, 243, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hologram-scanline-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--accent-cyan);
+  animation: pulseHolo 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes pulseHolo {
+  0% { transform: scale(0.9); opacity: 0.9; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.pilot-id-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.pilot-reg-title {
+  font-family: var(--font-header);
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 2px;
+  margin: 0;
+  text-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+}
+
+.pilot-reg-subtitle {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+  margin-top: 4px;
+}
+
+.pilot-reg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: 100%;
+}
+
+.reg-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reg-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-header);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: 1px;
+}
+
+.required-tag {
+  font-family: var(--font-code);
+  font-size: 0.58rem;
+  color: var(--accent-crimson);
+  margin-left: auto;
+}
+
+.input-glow-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.reg-input {
+  width: 100%;
+  background: rgba(3, 8, 18, 0.9);
+  border: 1.5px solid rgba(0, 243, 255, 0.35);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  font-family: var(--font-code);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.reg-input:focus {
+  border-color: var(--accent-cyan);
+  background: rgba(4, 14, 30, 0.95);
+  box-shadow: 0 0 18px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.1);
+}
+
+.callsign-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 0.65rem;
+}
+
+.preview-label {
+  font-family: var(--font-code);
+  color: var(--text-muted);
+}
+
+.callsign-badge {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.12);
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 1px;
+}
+
+.input-hint-text {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Holographic Identity Card in Registration */
+.pilot-holographic-card {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.08) 0%, rgba(0, 102, 255, 0.04) 100%);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 0.4rem 0;
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.08);
+}
+
+.holo-header {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-code);
+  font-size: 0.62rem;
+  color: var(--accent-cyan);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.holo-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.holo-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.holo-lbl {
+  font-family: var(--font-header);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  letter-spacing: 0.8px;
+}
+
+.holo-val {
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.btn-authorize-flight {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 0.92rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #00f3ff 0%, #0066ff 100%);
+  color: #040c1a;
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-authorize-flight:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 45px rgba(0, 243, 255, 0.9);
+}
+
+/* ── 3. Mobile-First Slide Drawers & Bottom Sheets ── */
+.slide-drawer-panel {
+  position: fixed !important;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease !important;
+  max-height: 90vh !important;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+
+/* Bottom Sheet Drawer (Hangar / Upgrades) */
+.drawer-bottom {
+  bottom: 0 !important;
+  left: 50% !important;
+  transform: translate(-50%, 0) !important;
+  width: 100% !important;
+  max-width: 780px !important;
+  border-radius: 20px 20px 0 0 !important;
+  border-bottom: none !important;
+}
+
+.modal-overlay.hidden .drawer-bottom {
+  transform: translate(-50%, 105%) !important;
+}
+
+.drawer-drag-handle-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.drawer-handle-bar {
+  width: 48px;
+  height: 5px;
+  background: rgba(0, 243, 255, 0.4);
+  border-radius: 4px;
+  margin: 0 auto;
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+}
+
+.drawer-close-btn {
+  background: rgba(0, 243, 255, 0.1);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  color: var(--accent-cyan);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: absolute;
+  right: 18px;
+  top: 18px;
+}
+
+.drawer-close-btn:hover {
+  background: rgba(255, 0, 85, 0.25);
+  border-color: #ff0055;
+  color: #ff0055;
+  transform: scale(1.1);
+}
+
+/* Left Slide-In Drawer (Fleet Inspector & Codex) */
+.drawer-left {
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  max-width: 620px !important;
+  width: 90vw !important;
+  border-radius: 0 16px 16px 0 !important;
+  transform: translateX(0) !important;
+  overflow-y: auto !important;
+}
+
+.modal-overlay.hidden .drawer-left {
+  transform: translateX(-105%) !important;
+}
+
+/* Right Slide-In Drawer (Settings & Flight Config) */
+.drawer-right {
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  max-width: 520px !important;
+  width: 90vw !important;
+  border-radius: 16px 0 0 16px !important;
+  transform: translateX(0) !important;
+  overflow-y: auto !important;
+}
+
+.modal-overlay.hidden .drawer-right {
+  transform: translateX(105%) !important;
+}
+
+.drawer-header-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+/* ── 4. Tactical Action Buttons Enhancement ── */
+.action-btn {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  border-radius: 0 !important;
+  border: 1.5px solid rgba(0, 243, 255, 0.5) !important;
+  background: rgba(5, 14, 28, 0.88) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 243, 255, 0.15) !important;
+}
+
+.action-btn:hover {
+  box-shadow: 0 0 25px rgba(0, 243, 255, 0.7), inset 0 0 18px rgba(0, 243, 255, 0.3) !important;
+  border-color: var(--accent-cyan) !important;
+}
+
+.action-btn:active {
+  transform: scale(0.92) !important;
+  background: rgba(0, 243, 255, 0.35) !important;
+}
+
+@media (max-width: 600px) {
+  .hud-top-bar {
+    top: 4px;
+    padding: 0 8px;
+  }
+  .pilot-identity-pill {
+    padding: 4px 8px 4px 4px;
+    gap: 6px;
+  }
+  .pilot-email-text {
+    display: none;
+  }
+  .pilot-rank-tag {
+    display: none;
+  }
+  .top-action-btn span {
+    display: none;
+  }
+  .top-action-btn {
+    padding: 6px 8px;
+  }
+  .holo-content {
+    grid-template-columns: 1fr 1fr;
+  }
+}

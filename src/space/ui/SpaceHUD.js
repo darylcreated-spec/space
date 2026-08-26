@@ -112,8 +112,34 @@ export class SpaceHUD {
     this.btnSubmitGodmode = document.getElementById('btn-submit-godmode');
     this.godmodeActivePill = document.getElementById('godmode-active-pill');
 
+    // Pilot Registration & Profile Elements
+    this.modalPilotReg = document.getElementById('space-modal-pilot-reg');
+    this.formPilotReg = document.getElementById('form-pilot-registration');
+    this.inputPilotName = document.getElementById('input-pilot-name');
+    this.inputPilotEmail = document.getElementById('input-pilot-email');
+    this.previewPilotCallsign = document.getElementById('preview-pilot-callsign');
+    this.holoPilotName = document.getElementById('holo-pilot-name');
+    this.btnAuthorizePilot = document.getElementById('btn-authorize-pilot');
+    this.hudPilotCallsign = document.getElementById('hud-pilot-callsign');
+    this.hudPilotEmail = document.getElementById('hud-pilot-email');
+    this.hudPilotRank = document.getElementById('hud-pilot-rank');
+    this.btnOpenPilotProfile = document.getElementById('btn-open-pilot-profile');
+    this.btnReopenPilotReg = document.getElementById('btn-reopen-pilot-reg');
+    this.settingsPilotDisplay = document.getElementById('settings-pilot-display');
+
+    // Top Navigation Action Triggers
+    this.btnTopHangar = document.getElementById('btn-top-hangar');
+    this.btnTopFleet = document.getElementById('btn-top-fleet');
+    this.btnTopConfig = document.getElementById('btn-top-config');
+
+    // Drawer Top Close Buttons
+    this.btnCloseHangarTop = document.getElementById('btn-close-hangar-top');
+    this.btnCloseFleetTop = document.getElementById('btn-close-fleet-top');
+    this.btnCloseSettingsTop = document.getElementById('btn-close-settings-top');
+
     // Run platform detection & adjust UI settings for Vercel Web vs. Android Native
     this.configurePlatformUI();
+    this.initPilotProfile();
   }
 
   configurePlatformUI() {
@@ -489,6 +515,90 @@ export class SpaceHUD {
       }
     });
 
+    // ── Pilot Registration Event Bindings ──
+    if (this.inputPilotName) {
+      this.inputPilotName.addEventListener('input', (e) => {
+        const val = (e.target.value || '').trim().toUpperCase() || 'PILOT';
+        if (this.previewPilotCallsign) this.previewPilotCallsign.textContent = `VANGUARD // ${val}-01`;
+        if (this.holoPilotName) this.holoPilotName.textContent = val;
+      });
+    }
+
+    if (this.formPilotReg) {
+      this.formPilotReg.addEventListener('submit', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.savePilotRegistration();
+      });
+    }
+
+    if (this.btnAuthorizePilot) {
+      this.btnAuthorizePilot.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.savePilotRegistration();
+      });
+    }
+
+    if (this.btnOpenPilotProfile) {
+      this.btnOpenPilotProfile.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showPilotRegistrationModal();
+      });
+    }
+
+    if (this.btnReopenPilotReg) {
+      this.btnReopenPilotReg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeSettingsModal();
+        this.showPilotRegistrationModal();
+      });
+    }
+
+    // ── Top Navigation Triggers ──
+    if (this.btnTopHangar) {
+      this.btnTopHangar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
+      });
+    }
+
+    if (this.btnTopFleet) {
+      this.btnTopFleet.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showFleetModal();
+      });
+    }
+
+    if (this.btnTopConfig) {
+      this.btnTopConfig.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showSettingsModal();
+      });
+    }
+
+    // ── Drawer Close Buttons ──
+    if (this.btnCloseHangarTop) {
+      this.btnCloseHangarTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeHangarModal();
+      });
+    }
+
+    if (this.btnCloseFleetTop) {
+      this.btnCloseFleetTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeFleetModal();
+      });
+    }
+
+    if (this.btnCloseSettingsTop) {
+      this.btnCloseSettingsTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeSettingsModal();
+      });
+    }
+
     if (this.modalStart) {
       this.modalStart.addEventListener('pointerdown', (e) => {
         triggerStartIfInStartScreen();
@@ -524,6 +634,8 @@ export class SpaceHUD {
     stopCardProp('.hangar-card');
     stopCardProp('.perk-choice-card');
     stopCardProp('.space-gameover-card');
+    stopCardProp('.pilot-reg-card');
+    stopCardProp('.fleet-inspector-card');
 
     // Hangar Upgrade Buttons
     if (this.btnNextWave) {
@@ -838,7 +950,112 @@ export class SpaceHUD {
     }
   }
 
+  closeHangarModal() {
+    if (this.modalHangar) {
+      this.modalHangar.classList.add('hidden');
+    }
+    if (this.gameManager.state === 'HANGAR') {
+      this.gameManager.resumeFromHangar();
+    }
+  }
+
+  showPilotRegistrationModal() {
+    if (this.modalPilotReg) {
+      this.modalPilotReg.classList.remove('hidden');
+      if (this.inputPilotName) {
+        setTimeout(() => this.inputPilotName.focus(), 100);
+      }
+    }
+  }
+
+  closePilotRegistrationModal() {
+    if (this.modalPilotReg) {
+      this.modalPilotReg.classList.add('hidden');
+    }
+  }
+
+  initPilotProfile() {
+    let profile = null;
+    try {
+      const stored = localStorage.getItem('orbital_vanguard_pilot_profile');
+      if (stored) profile = JSON.parse(stored);
+    } catch(e) {}
+
+    const hasStored = !!(profile && profile.name);
+
+    if (!hasStored) {
+      profile = {
+        name: 'Daryl',
+        callsign: 'VANGUARD // DARYL-01',
+        email: 'daryl.created@gmail.com',
+        rank: 'COMMANDER'
+      };
+      if (this.modalPilotReg) this.modalPilotReg.classList.remove('hidden');
+      if (this.modalStart) this.modalStart.classList.add('hidden');
+    } else {
+      if (this.modalPilotReg) this.modalPilotReg.classList.add('hidden');
+      if (this.modalStart) this.modalStart.classList.remove('hidden');
+    }
+
+    this.currentPilotProfile = profile;
+    this.updatePilotDisplays(profile);
+  }
+
+  updatePilotDisplays(profile) {
+    if (!profile) return;
+    const name = (profile.name || 'DARYL').trim().toUpperCase();
+    const callsign = profile.callsign || `VANGUARD // ${name}-01`;
+    const email = profile.email || 'daryl.created@gmail.com';
+    const rank = profile.rank || 'COMMANDER';
+
+    if (this.inputPilotName) this.inputPilotName.value = profile.name || '';
+    if (this.inputPilotEmail) this.inputPilotEmail.value = email;
+    if (this.previewPilotCallsign) this.previewPilotCallsign.textContent = callsign;
+    if (this.holoPilotName) this.holoPilotName.textContent = name;
+    if (this.hudPilotCallsign) this.hudPilotCallsign.textContent = `CDR. ${name} // VG-01`;
+    if (this.hudPilotEmail) this.hudPilotEmail.textContent = email;
+    if (this.hudPilotRank) this.hudPilotRank.textContent = rank;
+    if (this.settingsPilotDisplay) {
+      this.settingsPilotDisplay.textContent = `Callsign: CDR. ${name} // ${email}`;
+    }
+
+    if (this.gameManager) {
+      this.gameManager.pilotProfile = profile;
+    }
+  }
+
+  savePilotRegistration() {
+    const rawName = this.inputPilotName ? this.inputPilotName.value.trim() : 'Daryl';
+    const name = rawName.length > 0 ? rawName : 'Daryl';
+    const cleanUpper = name.toUpperCase();
+    const callsign = `VANGUARD // ${cleanUpper}-01`;
+    const email = this.inputPilotEmail ? (this.inputPilotEmail.value.trim() || 'daryl.created@gmail.com') : 'daryl.created@gmail.com';
+
+    const profile = {
+      name: name,
+      callsign: callsign,
+      email: email,
+      rank: 'COMMANDER'
+    };
+
+    try {
+      localStorage.setItem('orbital_vanguard_pilot_profile', JSON.stringify(profile));
+    } catch(e) {}
+
+    this.currentPilotProfile = profile;
+    this.updatePilotDisplays(profile);
+
+    if (this.modalPilotReg) this.modalPilotReg.classList.add('hidden');
+    if (this.modalStart) this.modalStart.classList.remove('hidden');
+
+    if (this.gameManager && this.gameManager.spaceAudio) {
+      this.gameManager.spaceAudio.vibrate(25);
+    }
+    this.showRadioTransmission(`PILOT REGISTRATION CONFIRMED: Welcome aboard, Commander ${name}!`, "VANGUARD FLEET COMMAND", 5.0);
+  }
+
   hideAllModals() {
+    if (this.modalPilotReg) this.modalPilotReg.classList.add('hidden');
     if (this.modalStart) this.modalStart.classList.add('hidden');
     if (this.modalGameOver) this.modalGameOver.classList.add('hidden');
     if (this.modalHangar) this.modalHangar.classList.add('hidden');
