@@ -661,6 +661,23 @@ export class CollisionSystem {
                 }
               }
 
+              // 4C0. Check Orbiting Shield Asteroids (Titan Asteroid Colossus)
+              if (!hitRegistered && boss.orbitingAsteroids && Array.isArray(boss.orbitingAsteroids)) {
+                for (const oa of boss.orbitingAsteroids) {
+                  if (!oa.isDead && oa.mesh) {
+                    const oaPos = oa.mesh.getWorldPosition(this._tempVec1);
+                    if (lPos.distanceTo(oaPos) < 5.6) {
+                      if (!laser.hitEntities.has(`titan_orbit_${oa.id}`)) {
+                        laser.hitEntities.add(`titan_orbit_${oa.id}`);
+                        boss.takeOrbitingAsteroidDamage(oa.id, dmg);
+                        hitRegistered = true;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
               // 4C. Check Tectonic Armor Crust Plates (Titan Asteroid Colossus)
               if (!hitRegistered && boss.armorPlates && Array.isArray(boss.armorPlates)) {
                 for (const ap of boss.armorPlates) {

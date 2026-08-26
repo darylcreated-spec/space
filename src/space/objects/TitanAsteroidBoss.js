@@ -95,7 +95,24 @@ export class TitanAsteroidBoss {
     this.baseRotationSpeed = 0.15;
     this.rotationSpeed = this.baseRotationSpeed;
 
-    // ── 1. Four Heavy Tectonic Armor Crust Plates (Protecting the Core) ──
+    // ── 1. Six Orbiting Molten Shield Asteroids (Must be destroyed first!) ──
+    this.orbitingAsteroids = [];
+    for (let i = 0; i < 6; i++) {
+      this.orbitingAsteroids.push({
+        id: i,
+        name: `ORBITAL SHIELD ASTEROID ${i + 1}`,
+        hp: 450,
+        maxHp: 450,
+        isDead: false,
+        dist: 28.0 + (i % 2) * 6.0,
+        angle: (i / 6) * Math.PI * 2,
+        speed: 0.55 * (i % 2 === 0 ? 1 : -1),
+        mesh: null,
+        reticle: null
+      });
+    }
+
+    // ── 2. Four Heavy Tectonic Armor Crust Plates (Protecting the Core) ──
     this.armorPlates = [
       { id: 0, name: 'NORTH DORSAL TECTONIC CRUST',   relPos: new THREE.Vector3(  0,  18,  12), hp: 900, maxHp: 900, isDead: false, mesh: null, reticle: null },
       { id: 1, name: 'SOUTH VENTRAL TECTONIC CRUST',  relPos: new THREE.Vector3(  0, -18,  12), hp: 900, maxHp: 900, isDead: false, mesh: null, reticle: null },
@@ -103,7 +120,7 @@ export class TitanAsteroidBoss {
       { id: 3, name: 'STARBOARD FLANK TECTONIC CRUST', relPos: new THREE.Vector3( 18,   0,  12), hp: 900, maxHp: 900, isDead: false, mesh: null, reticle: null },
     ];
 
-    // ── 2. Four Ancient Crater Railgun Batteries (Cybernetic Upgrades) ──
+    // ── 3. Four Ancient Crater Railgun Batteries (Cybernetic Upgrades) ──
     this.turrets = [
       { id: 0, name: 'APEX CRATER RAILGUN',       relPos: new THREE.Vector3(  0,  20, -5), hp: 700, maxHp: 700, isDead: false, mesh: null, barrelGroup: null, reticle: null },
       { id: 1, name: 'PORT CRATER RAILGUN',       relPos: new THREE.Vector3(-22,   0, -5), hp: 700, maxHp: 700, isDead: false, mesh: null, barrelGroup: null, reticle: null },
@@ -111,7 +128,7 @@ export class TitanAsteroidBoss {
       { id: 3, name: 'VENTRAL CRATER RAILGUN',    relPos: new THREE.Vector3(  0, -20, -5), hp: 700, maxHp: 700, isDead: false, mesh: null, barrelGroup: null, reticle: null },
     ];
 
-    // ── 3. Four Volcanic Magma Eruption Calderas ──
+    // ── 4. Four Volcanic Magma Eruption Calderas ──
     this.calderas = [
       { id: 0, name: 'NORTH-WEST MAGMA CALDERA', relPos: new THREE.Vector3(-12,  12, 16), hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null },
       { id: 1, name: 'NORTH-EAST MAGMA CALDERA', relPos: new THREE.Vector3( 12,  12, 16), hp: 800, maxHp: 800, isDead: false, mesh: null, reticle: null },
@@ -130,6 +147,7 @@ export class TitanAsteroidBoss {
     this.magmaEruptTimer = 3.2;
     this.isDying = false;
     this.deathTimer = 0;
+    this.initialDeathTime = 6.5;
 
     this.buildTitanMesh();
     this.scene.add(this.meshGroup);
@@ -198,19 +216,23 @@ export class TitanAsteroidBoss {
 
     // Rotating Core Gyroscopic Energy Rings
     [8.5, 10.5].forEach((rRad, idx) => {
-      const ringGeo = new THREE.TorusGeometry(rRad, 0.4, 8, 32);
-      const rMat = new THREE.MeshBasicMaterial({ color: idx === 0 ? 0xffaa00 : 0x00f3ff, transparent: true, opacity: 0.85 });
-      const ring = new THREE.Mesh(ringGeo, rMat);
-      this.coreHousingGroup.add(ring);
-      this.coreGyroRings.push({ mesh: ring, speed: idx === 0 ? 2.0 : -1.6 });
+      const gyroGeo = new THREE.TorusGeometry(rRad, 0.45, 8, 32);
+      const gyroMesh = new THREE.Mesh(gyroGeo, idx === 0 ? glowCyanMat : glowAmberMat);
+      gyroMesh.rotation.x = idx * 0.8;
+      gyroMesh.rotation.y = idx * 1.2;
+      this.coreHousingGroup.add(gyroMesh);
+      this.coreGyroRings.push({ mesh: gyroMesh, speed: idx === 0 ? 1.8 : -2.4 });
     });
 
-    this.coreLight = new THREE.PointLight(0xff5500, 20.0, 90);
+    this.coreLight = new THREE.PointLight(0xff5500, 25.0, 100);
     this.coreHousingGroup.add(this.coreLight);
     this.meshGroup.add(this.coreHousingGroup);
 
-    // ── 3. Four Fracturing Tectonic Armor Crust Plates ──
-    const plateGeo = new THREE.BoxGeometry(14, 14, 4.5);
+    // ── 3. Four Heavy Tectonic Armor Crust Plates ──
+    const plateGeo = new THREE.BoxGeometry(16, 12, 3.5);
+    const plateWireGeo = new THREE.EdgesGeometry(plateGeo);
+    const plateWireMat = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.8 });
+
     this.armorPlates.forEach(ap => {
       const pGroup = new THREE.Group();
       pGroup.position.copy(ap.relPos);
@@ -218,18 +240,13 @@ export class TitanAsteroidBoss {
       const plate = new THREE.Mesh(plateGeo, cyberArmorMat);
       pGroup.add(plate);
 
-      // Coolant pipes on plate
-      const pipeGeo = new THREE.CylinderGeometry(0.35, 0.35, 13, 6);
-      pipeGeo.rotateZ(Math.PI / 2);
-      const pipe = new THREE.Mesh(pipeGeo, glowCyanMat);
-      pipe.position.set(0, 0, 2.4);
-      pGroup.add(pipe);
+      const pWire = new THREE.LineSegments(plateWireGeo, plateWireMat);
+      pGroup.add(pWire);
 
-      // Target reticle
-      const reticleGeo = new THREE.RingGeometry(2.4, 3.0, 16);
+      const reticleGeo = new THREE.RingGeometry(2.8, 3.4, 16);
       const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 0, 3.5);
+      reticle.position.set(0, 0, 2.2);
       pGroup.add(reticle);
 
       this.meshGroup.add(pGroup);
@@ -239,11 +256,11 @@ export class TitanAsteroidBoss {
     });
 
     // ── 4. Four Ancient Cybernetic Crater Railgun Batteries ──
-    const barbetteGeo = new THREE.CylinderGeometry(2.4, 3.2, 1.4, 8);
-    const houseGeo = new THREE.BoxGeometry(3.2, 1.8, 4.0);
-    const barrelGeo = new THREE.CylinderGeometry(0.24, 0.32, 6.0, 8);
+    const barbetteGeo = new THREE.CylinderGeometry(2.6, 3.2, 1.2, 8);
+    const houseGeo = new THREE.BoxGeometry(3.0, 1.6, 3.6);
+    const barrelGeo = new THREE.CylinderGeometry(0.24, 0.3, 5.2, 8);
     barrelGeo.rotateX(Math.PI / 2);
-    const coilGeo = new THREE.TorusGeometry(0.4, 0.1, 6, 12);
+    const coilGeo = new THREE.TorusGeometry(0.48, 0.08, 6, 16);
 
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
@@ -310,16 +327,30 @@ export class TitanAsteroidBoss {
       this.reticleMeshes.push(reticle);
     });
 
-    // ── 6. Twelve Orbiting Satellite Debris Boulders (Shield Ring Cloud) ──
-    for (let i = 0; i < 12; i++) {
-      const debGeo = new THREE.DodecahedronGeometry(1.8 + Math.random() * 1.5, 1);
+    // ── 6. Six Orbiting Molten Shield Asteroids (Targetable Debris Ring) ──
+    this.orbitingAsteroids.forEach(oa => {
+      const debGeo = new THREE.DodecahedronGeometry(2.4 + (oa.id % 3) * 0.6, 1);
       const debMesh = new THREE.Mesh(debGeo, basaltMat);
-      const dist = 32.0 + (i % 3) * 6.0;
-      const angle = (i / 12) * Math.PI * 2;
-      debMesh.position.set(Math.cos(angle) * dist, Math.sin(angle) * dist, (Math.random() - 0.5) * 12);
+
+      // Molten magma vein on orbiting boulder
+      const lavaBand = new THREE.Mesh(new THREE.TorusGeometry(2.0, 0.18, 6, 16), moltenCoreMat);
+      debMesh.add(lavaBand);
+
+      // Targeting reticle on each shield asteroid
+      const retGeo = new THREE.RingGeometry(2.2, 2.7, 16);
+      const retMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      const ret = new THREE.Mesh(retGeo, retMat);
+      ret.position.set(0, 0, 2.2);
+      debMesh.add(ret);
+
+      debMesh.position.set(Math.cos(oa.angle) * oa.dist, Math.sin(oa.angle) * oa.dist, (Math.random() - 0.5) * 8);
       this.meshGroup.add(debMesh);
-      this.orbitingDebris.push({ mesh: debMesh, dist: dist, angle: angle, speed: 0.4 + (i % 2 === 0 ? 0.3 : -0.3) });
-    }
+
+      oa.mesh = debMesh;
+      oa.reticle = ret;
+      this.reticleMeshes.push(ret);
+      this.orbitingDebris.push(oa);
+    });
 
     // ── 7. Four Thermal Plasma Geyser Rock Thrusters with Mach Shock Diamonds ──
     const shockMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
@@ -349,23 +380,161 @@ export class TitanAsteroidBoss {
 
       // Mach Shock Diamonds
       [-4.0, -7.5].forEach((zD, sIdx) => {
-        const diamondGeo = new THREE.TorusGeometry(1.5 - sIdx * 0.35, 0.18, 6, 16);
+        const diamondGeo = new THREE.TorusGeometry(1.6 - sIdx * 0.35, 0.16, 6, 16);
         const diamond = new THREE.Mesh(diamondGeo, shockMat);
         diamond.position.set(gx, gy, gz + zD);
         this.meshGroup.add(diamond);
         this.machDiamondRings.push({ mesh: diamond, baseScale: 1.0 - sIdx * 0.2 });
       });
 
-      const gLight = new THREE.PointLight(0xff5500, 8.0, 50);
+      const gLight = new THREE.PointLight(0xff5500, 4.5, 25);
       gLight.position.set(gx, gy, gz - 3.0);
       this.meshGroup.add(gLight);
     });
   }
 
+  /**
+   * Spawns physics debris chunks whose counts, sizes, and velocities
+   * scale proportionally with damage dealt!
+   */
+  spawnProportionalDebris(worldPos, damageAmount, isVolcanic = true) {
+    if (!this.particleManager) return;
+    const chunkCount = Math.max(3, Math.min(22, Math.round(damageAmount / 35)));
+    const baseSpeed = 4.0 + Math.min(24.0, damageAmount * 0.12);
+
+    for (let i = 0; i < chunkCount; i++) {
+      const scale = 0.3 + Math.random() * (damageAmount > 200 ? 1.4 : 0.7);
+      const debGeo = new THREE.DodecahedronGeometry(scale, 0);
+      const debMat = new THREE.MeshStandardMaterial({
+        color: isVolcanic ? (Math.random() < 0.5 ? 0x221626 : 0x4a1804) : 0x1f2e3d,
+        emissive: isVolcanic ? (Math.random() < 0.4 ? 0xff3300 : 0x000000) : 0x000000,
+        emissiveIntensity: 1.5,
+        roughness: 0.8,
+        metalness: 0.3
+      });
+      const mesh = new THREE.Mesh(debGeo, debMat);
+      mesh.position.copy(worldPos);
+      this.scene.add(mesh);
+
+      if (this.particleManager.metalDebris) {
+        this.particleManager.metalDebris.push({
+          mesh,
+          geo: debGeo,
+          mat: debMat,
+          vx: (Math.random() - 0.5) * baseSpeed * 1.5,
+          vy: 2.0 + (Math.random() - 0.5) * baseSpeed,
+          vz: (Math.random() - 0.5) * baseSpeed * 1.2,
+          rotSpeedX: (Math.random() - 0.5) * 8.0,
+          rotSpeedY: (Math.random() - 0.5) * 8.0,
+          rotSpeedZ: (Math.random() - 0.5) * 8.0,
+          life: 1.0,
+          decay: 0.18 + Math.random() * 0.1
+        });
+      }
+    }
+  }
+
+  /**
+   * Recalculates remaining mass as exact ratio of all remaining structures.
+   * Accelerates rotational spin and structural jitter as mass is stripped away!
+   */
+  updateMass() {
+    const orbitersHp = this.orbitingAsteroids.reduce((sum, a) => sum + (a.isDead ? 0 : a.hp), 0);
+    const platesHp = this.armorPlates.reduce((sum, p) => sum + (p.isDead ? 0 : p.hp), 0);
+    const calderasHp = this.calderas.reduce((sum, c) => sum + (c.isDead ? 0 : c.hp), 0);
+    const turretsHp = this.turrets.reduce((sum, t) => sum + (t.isDead ? 0 : t.hp), 0);
+
+    const currentTotal = Math.max(0, this.coreHp) + orbitersHp + platesHp + calderasHp + turretsHp;
+    const maxTotal = this.maxCoreHp + (6 * 450) + (4 * 900) + (4 * 800) + (4 * 700);
+
+    this.massRatio = Math.max(0.12, currentTotal / maxTotal);
+    this.mass = Math.round(this.baseMass * this.massRatio);
+
+    // Conservation of Angular Momentum: Loss of mass increases spin speed!
+    this.rotationSpeed = this.baseRotationSpeed * (1.0 / Math.sqrt(this.massRatio));
+  }
+
+  hasActiveOrbitingShield() {
+    return this.orbitingAsteroids.some(a => !a.isDead);
+  }
+
+  takeOrbitingAsteroidDamage(asteroidId, amount) {
+    const oa = this.orbitingAsteroids.find(a => a.id === asteroidId);
+    if (!oa || oa.isDead) return false;
+    oa.hp -= amount;
+
+    const wp = oa.mesh ? oa.mesh.getWorldPosition(new THREE.Vector3()) : this.meshGroup.position;
+    this.spawnProportionalDebris(wp, amount, true);
+
+    if (oa.reticle && oa.reticle.material) {
+      const pct = oa.hp / oa.maxHp;
+      oa.reticle.material.color.setHex(pct > 0.5 ? 0x00f3ff : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+    }
+
+    if (oa.hp <= 0) {
+      oa.isDead = true;
+      if (oa.reticle) oa.reticle.visible = false;
+
+      if (oa.mesh && oa.mesh.parent) {
+        oa.mesh.parent.remove(oa.mesh);
+        oa.mesh.position.copy(wp);
+        this.scene.add(oa.mesh);
+
+        if (this.particleManager && this.particleManager.metalDebris) {
+          this.particleManager.metalDebris.push({
+            mesh: oa.mesh,
+            geo: oa.mesh.geometry,
+            mat: oa.mesh.material,
+            vx: (Math.random() - 0.5) * 18.0,
+            vy: 4.0 + (Math.random() - 0.5) * 12.0,
+            vz: 8.0 + Math.random() * 16.0,
+            rotSpeedX: (Math.random() - 0.5) * 6.0,
+            rotSpeedY: (Math.random() - 0.5) * 6.0,
+            rotSpeedZ: (Math.random() - 0.5) * 6.0,
+            life: 1.0,
+            decay: 0.14
+          });
+        }
+      }
+
+      this.particleManager.createExplosion(wp, 0x00f3ff, 120, 3.5);
+      this.particleManager.createExplosion(wp, 0xff5500, 90, 2.8);
+      this.particleManager.createEmpShockwave(wp, 45);
+
+      this.updateMass();
+
+      const aliveOrbiters = this.orbitingAsteroids.filter(a => !a.isDead).length;
+      if (aliveOrbiters > 0) {
+        window.spaceGameManager?.voiceAnnouncer?.speak(`Orbital shield asteroid destroyed! ${aliveOrbiters} shield asteroids remain!`, false);
+      } else {
+        window.spaceGameManager?.voiceAnnouncer?.speak("ORBITAL DEBRIS SHIELD SHATTERED! TECTONIC CRUST EXPOSED!", true);
+        if (window.spaceGameManager?.spaceHUD) {
+          window.spaceGameManager.spaceHUD.showRadioTransmission("DEBRIS SHIELD DOWN: Orbiting asteroids obliterated! Concentrate fire on the 4 Tectonic Armor Plates!", "STARBOUND COMMAND", 7.0);
+        }
+      }
+    }
+    return oa.isDead;
+  }
+
   takeArmorPlateDamage(plateId, amount) {
     const ap = this.armorPlates.find(p => p.id === plateId);
     if (!ap || ap.isDead) return false;
+
+    // If orbiting shield asteroids are alive, redirect damage to shield ring first!
+    if (this.hasActiveOrbitingShield()) {
+      const activeOrbiter = this.orbitingAsteroids.find(a => !a.isDead);
+      if (activeOrbiter) {
+        this.takeOrbitingAsteroidDamage(activeOrbiter.id, amount);
+        if (this.particleManager) {
+          this.particleManager.createEmpShockwave(this.meshGroup.position, 25);
+        }
+        return false;
+      }
+    }
+
     ap.hp -= amount;
+    const wp = ap.mesh ? ap.mesh.getWorldPosition(new THREE.Vector3()) : this.meshGroup.position;
+    this.spawnProportionalDebris(wp, amount, false);
 
     if (ap.reticle && ap.reticle.material) {
       const pct = ap.hp / ap.maxHp;
@@ -376,24 +545,9 @@ export class TitanAsteroidBoss {
       ap.isDead = true;
       if (ap.reticle) ap.reticle.visible = false;
 
-      // ⚖️ Dynamically Reduce Asteroid Planetoid Mass as Crust Plates Shatter!
-      this.mass = Math.max(this.baseMass * 0.35, this.mass - 200000);
-      this.massRatio = this.mass / this.baseMass;
-      this.rotationSpeed = this.baseRotationSpeed * (1.0 + (1.0 - this.massRatio) * 1.6);
-
-      const wp = new THREE.Vector3();
       if (ap.mesh && ap.mesh.parent) {
-        ap.mesh.getWorldPosition(wp);
-        const wq = new THREE.Quaternion();
-        const ws = new THREE.Vector3();
-        ap.mesh.getWorldQuaternion(wq);
-        ap.mesh.getWorldScale(ws);
-
-        // Detach plate and tumble through 3D space
         ap.mesh.parent.remove(ap.mesh);
         ap.mesh.position.copy(wp);
-        ap.mesh.quaternion.copy(wq);
-        ap.mesh.scale.copy(ws);
         this.scene.add(ap.mesh);
 
         if (this.particleManager && this.particleManager.metalDebris) {
@@ -417,6 +571,8 @@ export class TitanAsteroidBoss {
       this.particleManager.createExplosion(wp, 0xff5500, 100, 3.0);
       this.particleManager.createEmpShockwave(wp, 50);
 
+      this.updateMass();
+
       const alivePlates = this.armorPlates.filter(p => !p.isDead).length;
       if (alivePlates > 0) {
         window.spaceGameManager?.voiceAnnouncer?.speak(`Tectonic Armor Crust fractured! ${alivePlates} crust plates remain!`, true);
@@ -435,6 +591,9 @@ export class TitanAsteroidBoss {
     if (!t || t.isDead) return false;
     t.hp -= amount;
 
+    const wp = t.mesh ? t.mesh.getWorldPosition(new THREE.Vector3()) : this.meshGroup.position;
+    this.spawnProportionalDebris(wp, amount, false);
+
     if (t.reticle && t.reticle.material) {
       const pct = t.hp / t.maxHp;
       t.reticle.material.color.setHex(pct > 0.5 ? 0xffaa00 : (pct > 0.25 ? 0xff5500 : 0xff0000));
@@ -442,11 +601,11 @@ export class TitanAsteroidBoss {
 
     if (t.hp <= 0) {
       t.isDead = true;
-      t.mesh.visible = false;
+      if (t.mesh) t.mesh.visible = false;
       if (t.reticle) t.reticle.visible = false;
-      const wp = t.mesh.getWorldPosition(new THREE.Vector3());
       this.particleManager.createExplosion(wp, 0xffaa00, 100, 3.2);
       this.particleManager.createEmpShockwave(wp, 35);
+      this.updateMass();
     }
     return t.isDead;
   }
@@ -456,6 +615,9 @@ export class TitanAsteroidBoss {
     if (!c || c.isDead) return false;
     c.hp -= amount;
 
+    const wp = c.mesh ? c.mesh.getWorldPosition(new THREE.Vector3()) : this.meshGroup.position;
+    this.spawnProportionalDebris(wp, amount, true);
+
     if (c.reticle && c.reticle.material) {
       const pct = c.hp / c.maxHp;
       c.reticle.material.color.setHex(pct > 0.5 ? 0xff3300 : (pct > 0.25 ? 0xffaa00 : 0xff0000));
@@ -463,11 +625,11 @@ export class TitanAsteroidBoss {
 
     if (c.hp <= 0) {
       c.isDead = true;
-      c.mesh.visible = false;
+      if (c.mesh) c.mesh.visible = false;
       if (c.reticle) c.reticle.visible = false;
-      const wp = c.mesh.getWorldPosition(new THREE.Vector3());
-      this.particleManager.createExplosion(wp, 0xff5500, 120, 3.8);
-      this.particleManager.createExplosion(wp, 0xffaa00, 80, 2.5);
+      this.particleManager.createExplosion(wp, 0xff3300, 120, 3.8);
+      this.particleManager.createEmpShockwave(wp, 45);
+      this.updateMass();
     }
     return c.isDead;
   }
@@ -477,22 +639,36 @@ export class TitanAsteroidBoss {
 
     let finalDmg = isCrit ? amount * 2.5 : amount;
 
-    // Check if any tectonic armor plates are alive
+    // 1. Orbiting shield takes precedence
+    if (this.hasActiveOrbitingShield()) {
+      const activeOrbiter = this.orbitingAsteroids.find(a => !a.isDead);
+      if (activeOrbiter) {
+        this.takeOrbitingAsteroidDamage(activeOrbiter.id, finalDmg);
+        if (this.particleManager) {
+          this.particleManager.createEmpShockwave(this.meshGroup.position, 30);
+        }
+        return false;
+      }
+    }
+
+    // 2. Check tectonic armor plates
     const alivePlates = this.armorPlates.filter(p => !p.isDead);
     if (alivePlates.length > 0) {
-      // Direct damage to the first living tectonic armor plate so player shots always wear down the armor!
       const targetPlate = alivePlates[0];
       this.takeArmorPlateDamage(targetPlate.id, finalDmg);
-      // Also apply 25% bleedthrough damage to the core
       this.coreHp = Math.max(1, this.coreHp - finalDmg * 0.25);
     } else {
-      // Armor broken! Full direct core damage
       this.coreHp -= finalDmg;
     }
 
+    const pos = this.meshGroup.position;
+    this.spawnProportionalDebris(pos, finalDmg, true);
+
     if (this.particleManager) {
-      this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xff5500);
+      this.particleManager.createLaserImpact(pos, new THREE.Vector3(0, 0, 1), 0xff5500);
     }
+
+    this.updateMass();
 
     if (this.coreHp <= 0 && !this.isDying) {
       this.triggerDeathSequence();
@@ -507,20 +683,23 @@ export class TitanAsteroidBoss {
   }
 
   getHealthRatio() {
+    const orbitersHp = this.orbitingAsteroids ? this.orbitingAsteroids.reduce((acc, a) => acc + (a.isDead ? 0 : a.hp), 0) : 0;
+    const maxOrbitersHp = this.orbitingAsteroids ? this.orbitingAsteroids.reduce((acc, a) => acc + a.maxHp, 0) : 0;
     const totalPlatesHp = this.armorPlates ? this.armorPlates.reduce((acc, p) => acc + (p.isDead ? 0 : p.hp), 0) : 0;
     const maxPlatesHp = this.armorPlates ? this.armorPlates.reduce((acc, p) => acc + p.maxHp, 0) : 0;
-    const currentTotal = Math.max(0, this.coreHp) + totalPlatesHp;
-    const maxTotal = this.maxCoreHp + maxPlatesHp;
+
+    const currentTotal = Math.max(0, this.coreHp) + orbitersHp + totalPlatesHp;
+    const maxTotal = this.maxCoreHp + maxOrbitersHp + maxPlatesHp;
     return Math.max(0, currentTotal / maxTotal);
   }
 
   triggerDeathSequence() {
     this.isDying = true;
-    this.deathTimer = 3.2;
+    this.deathTimer = this.initialDeathTime; // 6.5s prolonged cinematic multi-stage cataclysm
 
     window.spaceGameManager?.voiceAnnouncer?.speak("PLANETOID SHELL FRACTURING! CRUST COLLAPSING!", true, "STARBOUND COMMAND");
     if (window.spaceGameManager?.spaceHUD) {
-      window.spaceGameManager.spaceHUD.showRadioTransmission("PLANETOID BREACHED! Outer tectonic shell is detonating! Prepare for emergency core emergence!", "STARBOUND COMMAND", 5.0);
+      window.spaceGameManager.spaceHUD.showRadioTransmission("PLANETOID CRITICAL FRACTURE! Structural collapse underway! Massive energy surge detected from within!", "STARBOUND COMMAND", 6.5);
     }
   }
 
@@ -539,35 +718,34 @@ export class TitanAsteroidBoss {
     // 2. Planetoid tumbling rotation (accelerates as mass sheds)
     if (this.rockBodyMesh) {
       this.rockBodyMesh.rotation.y += this.rotationSpeed * dt;
-      this.rockBodyMesh.rotation.x += (this.rotationSpeed * 0.55) * dt;
+      this.rockBodyMesh.rotation.x += this.rotationSpeed * 0.6 * dt;
+
+      // Structural jitter increases as mass ratio drops
+      const jitter = (1.0 - this.massRatio) * 0.35;
+      if (jitter > 0.05) {
+        this.rockBodyMesh.position.set(
+          (Math.random() - 0.5) * jitter,
+          (Math.random() - 0.5) * jitter,
+          (Math.random() - 0.5) * jitter
+        );
+      }
     }
 
-    // 3. Orbiting Satellite Debris Boulders
+    // 3. Orbiting Shield Asteroids Movement
     if (this.orbitingDebris) {
       this.orbitingDebris.forEach(deb => {
-        deb.angle += deb.speed * dt;
-        deb.mesh.position.x = Math.cos(deb.angle) * deb.dist;
-        deb.mesh.position.y = Math.sin(deb.angle) * deb.dist;
-        deb.mesh.rotation.x += 0.5 * dt;
-        deb.mesh.rotation.y += 0.7 * dt;
+        if (!deb.isDead && deb.mesh) {
+          deb.angle += deb.speed * dt * (1.0 / Math.sqrt(this.massRatio));
+          deb.mesh.position.x = Math.cos(deb.angle) * deb.dist;
+          deb.mesh.position.y = Math.sin(deb.angle) * deb.dist * 0.85;
+          deb.mesh.position.z = Math.sin(deb.angle * 2.0) * 4.0;
+          deb.mesh.rotation.x += 1.5 * dt;
+          deb.mesh.rotation.y += 2.0 * dt;
+        }
       });
     }
 
-    // 4. AAA Plasma Geyser Thruster Shimmer & Mach Shock Diamonds
-    const exhaustShudder = 1.0 + Math.sin(this._time * 28.0) * 0.14;
-    if (this.engineExhaustPlumes) {
-      this.engineExhaustPlumes.forEach(p => {
-        p.scale.set(exhaustShudder, exhaustShudder, 1.0 + Math.sin(this._time * 32.0) * 0.18);
-      });
-    }
-    if (this.machDiamondRings) {
-      this.machDiamondRings.forEach(d => {
-        const sc = d.baseScale * (1.0 + Math.sin(this._time * 24.0) * 0.16);
-        d.mesh.scale.set(sc, sc, sc);
-      });
-    }
-
-    // 5. Rotate Core Gyro-Rings
+    // 4. Rotate Core Gyro Rings
     if (this.coreGyroRings) {
       this.coreGyroRings.forEach(cg => {
         cg.mesh.rotation.x += cg.speed * dt;
@@ -575,26 +753,58 @@ export class TitanAsteroidBoss {
       });
     }
 
-    // 6. 3D Reticles Rotation
+    // 5. Plasma Thruster Plume Shimmer
+    const exhaustShudder = 1.0 + Math.sin(this._time * 26.0) * 0.15;
+    if (this.engineExhaustPlumes) {
+      this.engineExhaustPlumes.forEach(p => {
+        p.scale.set(exhaustShudder, exhaustShudder, 1.0 + Math.sin(this._time * 28.0) * 0.18);
+      });
+    }
+
+    // 6. Reticles Rotation
     if (this.reticleMeshes) {
       this.reticleMeshes.forEach(ret => {
         if (ret && ret.visible) ret.rotation.z += 2.2 * dt;
       });
     }
 
-    // 7. Death Sequence & Cascading Planetoid Detonations
+    // 7. 🔥 SLOWED DOWN CINEMATIC MULTI-STAGE PLANETOID CATACLYSM (6.5s)
     if (this.isDying) {
       this.deathTimer -= dt;
+      const progress = 1.0 - (this.deathTimer / this.initialDeathTime); // 0.0 -> 1.0
 
-      if (Math.random() < 0.9 && this.particleManager) {
-        const offset = new THREE.Vector3((Math.random() - 0.5) * 45, (Math.random() - 0.5) * 45, (Math.random() - 0.5) * 45);
-        this.particleManager.createExplosion(pos.clone().add(offset), 0xff5500, 60, 3.2);
-        this.particleManager.createExplosion(pos.clone().add(offset), 0xffffff, 45, 2.5);
+      // Multi-Stage Visual Escalation:
+      if (progress < 0.4) {
+        // Stage 1 (0 -> 40%): Internal magma explosions & surface rifts
+        if (Math.random() < 0.75 && this.particleManager) {
+          const offset = new THREE.Vector3((Math.random() - 0.5) * 45, (Math.random() - 0.5) * 45, (Math.random() - 0.5) * 45);
+          this.particleManager.createExplosion(pos.clone().add(offset), 0xff3300, 50, 2.5);
+          this.spawnProportionalDebris(pos.clone().add(offset), 80, true);
+        }
+        this.meshGroup.rotation.z += 0.3 * dt;
+        this.meshGroup.rotation.y += 0.4 * dt;
+      } else if (progress < 0.75) {
+        // Stage 2 (40% -> 75%): Violent tectonic crust detachment & shockwaves
+        if (Math.random() < 0.9 && this.particleManager) {
+          const offset = new THREE.Vector3((Math.random() - 0.5) * 55, (Math.random() - 0.5) * 55, (Math.random() - 0.5) * 55);
+          this.particleManager.createExplosion(pos.clone().add(offset), 0xff5500, 90, 4.0);
+          this.particleManager.createEmpShockwave(pos.clone().add(offset), 45);
+          this.spawnProportionalDebris(pos.clone().add(offset), 160, true);
+        }
+        this.meshGroup.rotation.z += 0.7 * dt;
+        this.meshGroup.rotation.y += 0.8 * dt;
+        pos.y -= 0.8 * dt;
+      } else {
+        // Stage 3 (75% -> 100%): Core meltdown supernova & blinding flashes
+        if (this.particleManager) {
+          const offset = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 35, (Math.random() - 0.5) * 35);
+          this.particleManager.createExplosion(pos.clone().add(offset), 0xffffff, 140, 5.5);
+          this.particleManager.createExplosion(pos.clone().add(offset), 0xff0055, 120, 4.5);
+        }
+        this.meshGroup.rotation.z += 1.2 * dt;
+        this.meshGroup.rotation.y += 1.4 * dt;
+        pos.y -= 1.6 * dt;
       }
-
-      this.meshGroup.rotation.z += 0.2 * dt;
-      this.meshGroup.rotation.y += 0.3 * dt;
-      pos.y -= 1.2 * dt;
 
       if (this.deathTimer <= 0) {
         this.destroy();
