@@ -257,34 +257,114 @@ export class TitanAsteroidBoss {
     this.coreHousingGroup.add(this.coreLight);
     this.meshGroup.add(this.coreHousingGroup);
 
-    // ── 3. Four Heavy Mirror-Shaded Tectonic Armor Crust Plates ──
-    const plateGeo = new THREE.BoxGeometry(16, 12, 3.5);
-    const bevelGeo = new THREE.BoxGeometry(16.6, 12.6, 0.8);
-    const plateWireGeo = new THREE.EdgesGeometry(plateGeo);
-    const plateWireMat = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.85 });
+    // ── 3. Four Heavy AAA Curved Tectonic Carapace Crust Plates ──
+    const hexShape = new THREE.Shape();
+    const hw = 6.2, hh = 5.0;
+    hexShape.moveTo(0, hh);
+    hexShape.lineTo(hw, hh * 0.55);
+    hexShape.lineTo(hw, -hh * 0.55);
+    hexShape.lineTo(0, -hh);
+    hexShape.lineTo(-hw, -hh * 0.55);
+    hexShape.lineTo(-hw, hh * 0.55);
+    hexShape.closePath();
+
+    const hexGeo = new THREE.ExtrudeGeometry(hexShape, {
+      depth: 1.8,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      steps: 1,
+      bevelSize: 0.6,
+      bevelThickness: 0.5
+    });
+
+    const subMantleGeo = new THREE.CylinderGeometry(14, 15, 12, 12, 2, false, -Math.PI / 5, (2 * Math.PI) / 5);
+    subMantleGeo.rotateX(Math.PI / 2);
+
+    const wingShape = new THREE.Shape();
+    wingShape.moveTo(0, hh * 0.5);
+    wingShape.lineTo(4.5, hh * 0.2);
+    wingShape.lineTo(4.2, -hh * 0.4);
+    wingShape.lineTo(0, -hh * 0.5);
+    wingShape.closePath();
+    const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 1.4, bevelEnabled: true, bevelSize: 0.4, bevelThickness: 0.4 });
+
+    const clampGeo = new THREE.CylinderGeometry(0.7, 0.9, 3.2, 8);
+    const clampSleeveGeo = new THREE.CylinderGeometry(1.1, 1.1, 1.4, 8);
+    const clampRingGeo = new THREE.TorusGeometry(0.95, 0.15, 6, 12);
+    const gillGeo = new THREE.BoxGeometry(7.0, 0.25, 0.6);
+    const reticleGeo = new THREE.RingGeometry(3.5, 4.2, 20);
+    const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
 
     this.armorPlates.forEach(ap => {
       const pGroup = new THREE.Group();
       pGroup.position.copy(ap.relPos);
+      pGroup.lookAt(new THREE.Vector3(ap.relPos.x * 2, ap.relPos.y * 2, ap.relPos.z * 2));
 
-      // Primary Mirror Armor Plate
-      const plate = new THREE.Mesh(plateGeo, mirrorPlateMat);
-      pGroup.add(plate);
+      ap.shards = [];
 
-      // Specular Chrome Mirror Bevel Rim
-      const bevel = new THREE.Mesh(bevelGeo, chromeBevelMat);
-      bevel.position.set(0, 0, 1.8);
-      pGroup.add(bevel);
+      // A. Heavy Basalt Obsidian Under-Mantle Substrate (Curved Base)
+      const subMesh = new THREE.Mesh(subMantleGeo, basaltMat);
+      subMesh.position.set(0, 0, -1.2);
+      pGroup.add(subMesh);
 
-      // Cyan circuit wireframe
-      const pWire = new THREE.LineSegments(plateWireGeo, plateWireMat);
-      pWire.position.set(0, 0, 1.9);
-      pGroup.add(pWire);
+      // B. Central Hex-Facet Mirror Carapace Shield (Main Upper Layer)
+      const hexMesh = new THREE.Mesh(hexGeo, mirrorPlateMat);
+      hexMesh.position.set(0, 0, 0.4);
+      pGroup.add(hexMesh);
+      ap.shards.push({ mesh: hexMesh, dir: new THREE.Vector3(0, 0, 1.2) });
 
-      const reticleGeo = new THREE.RingGeometry(2.8, 3.4, 16);
-      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+      // Specular Chrome Facet Trim Ring
+      const trimGeo = new THREE.EdgesGeometry(hexGeo);
+      const trimMesh = new THREE.LineSegments(trimGeo, new THREE.LineBasicMaterial({ color: 0x00f3ff }));
+      trimMesh.position.set(0, 0, 0.45);
+      pGroup.add(trimMesh);
+
+      // C. Flanking Winglet Armor Slabs (Left & Right Chevron Slabs)
+      [-1, 1].forEach(side => {
+        const wingMesh = new THREE.Mesh(wingGeo, mirrorPlateMat);
+        wingMesh.position.set(side * 6.6, 0, 0.1);
+        if (side === -1) wingMesh.scale.x = -1;
+        pGroup.add(wingMesh);
+        ap.shards.push({ mesh: wingMesh, dir: new THREE.Vector3(side * 1.5, (Math.random() - 0.5), 0.8) });
+
+        const wingTrim = new THREE.LineSegments(new THREE.EdgesGeometry(wingGeo), new THREE.LineBasicMaterial({ color: 0xffffff }));
+        wingTrim.position.copy(wingMesh.position);
+        wingTrim.scale.copy(wingMesh.scale);
+        pGroup.add(wingTrim);
+      });
+
+      // D. Four Cybernetic Hydraulic Mantle Clamp Pistons
+      [
+        { x: -6.8, y: 5.2 },
+        { x: 6.8, y: 5.2 },
+        { x: -6.8, y: -5.2 },
+        { x: 6.8, y: -5.2 }
+      ].forEach(cPos => {
+        const cPiston = new THREE.Mesh(clampGeo, chromeBevelMat);
+        cPiston.position.set(cPos.x, cPos.y, -0.4);
+        pGroup.add(cPiston);
+
+        const cSleeve = new THREE.Mesh(clampSleeveGeo, darkAlloyMat);
+        cSleeve.position.set(cPos.x, cPos.y, 0.4);
+        pGroup.add(cSleeve);
+
+        const ringMesh = new THREE.Mesh(clampRingGeo, glowAmberMat);
+        ringMesh.position.set(cPos.x, cPos.y, 0.4);
+        pGroup.add(ringMesh);
+
+        ap.shards.push({ mesh: cPiston, dir: new THREE.Vector3(cPos.x * 0.2, cPos.y * 0.2, 0.6) });
+      });
+
+      // E. Magma Thermal Expansion Vent Gills
+      [-2.8, 0, 2.8].forEach(yG => {
+        const gillMesh = new THREE.Mesh(gillGeo, moltenCoreMat);
+        gillMesh.position.set(0, yG, 1.35);
+        pGroup.add(gillMesh);
+      });
+
+      // F. 3D Holographic Targeting Reticle
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 0, 2.4);
+      reticle.position.set(0, 0, 2.6);
       pGroup.add(reticle);
 
       this.meshGroup.add(pGroup);
@@ -552,31 +632,55 @@ export class TitanAsteroidBoss {
       ap.isDead = true;
       if (ap.reticle) ap.reticle.visible = false;
 
-      if (ap.mesh && ap.mesh.parent) {
-        ap.mesh.parent.remove(ap.mesh);
-        ap.mesh.position.copy(wp);
-        this.scene.add(ap.mesh);
+      // ── 💥 AAA Multi-Fragment Cinematic Detachment Physics ──
+      if (ap.mesh) {
+        const plateWorldPos = ap.mesh.getWorldPosition(new THREE.Vector3());
+        const plateWorldQuat = ap.mesh.getWorldQuaternion(new THREE.Quaternion());
 
-        if (this.particleManager && this.particleManager.metalDebris) {
-          this.particleManager.metalDebris.push({
-            mesh: ap.mesh,
-            geo: ap.mesh.geometry,
-            mat: ap.mesh.material,
-            vx: (Math.random() - 0.5) * 16.0,
-            vy: 4.0 + (Math.random() - 0.5) * 10.0,
-            vz: 10.0 + Math.random() * 20.0,
-            rotSpeedX: (Math.random() - 0.5) * 6.0,
-            rotSpeedY: (Math.random() - 0.5) * 6.0,
-            rotSpeedZ: (Math.random() - 0.5) * 6.0,
-            life: 1.0,
-            decay: 0.16
+        // Multi-layered explosive shockwaves & magma blowout
+        if (this.particleManager) {
+          this.particleManager.createExplosion(plateWorldPos, 0x00f3ff, 180, 5.0);
+          this.particleManager.createExplosion(plateWorldPos, 0xff5500, 140, 4.2);
+          this.particleManager.createVolumetricFireball(plateWorldPos, 18.0, 0xff3300);
+          this.particleManager.createEmpShockwave(plateWorldPos, 60);
+        }
+
+        // Detach each modular structural shard into an independent physics projectile!
+        if (ap.shards && ap.shards.length > 0) {
+          ap.shards.forEach((shardData) => {
+            const shardMesh = shardData.mesh;
+            if (shardMesh && shardMesh.parent) {
+              const shardWorldPos = shardMesh.getWorldPosition(new THREE.Vector3());
+              shardMesh.parent.remove(shardMesh);
+              shardMesh.position.copy(shardWorldPos);
+              shardMesh.quaternion.copy(plateWorldQuat);
+              this.scene.add(shardMesh);
+
+              const outDir = shardData.dir.clone().applyQuaternion(plateWorldQuat).normalize();
+              const ejectSpeed = 14.0 + Math.random() * 20.0;
+
+              if (this.particleManager && this.particleManager.metalDebris) {
+                this.particleManager.metalDebris.push({
+                  mesh: shardMesh,
+                  geo: shardMesh.geometry,
+                  mat: shardMesh.material,
+                  vx: outDir.x * ejectSpeed + (Math.random() - 0.5) * 8.0,
+                  vy: outDir.y * ejectSpeed + (Math.random() - 0.5) * 8.0,
+                  vz: outDir.z * ejectSpeed + 10.0 + Math.random() * 16.0,
+                  rotSpeedX: (Math.random() - 0.5) * 12.0,
+                  rotSpeedY: (Math.random() - 0.5) * 12.0,
+                  rotSpeedZ: (Math.random() - 0.5) * 12.0,
+                  life: 1.0,
+                  decay: 0.12 // Long tumbling arc
+                });
+              }
+            }
           });
         }
-      }
 
-      this.particleManager.createExplosion(wp, 0x00f3ff, 140, 4.0);
-      this.particleManager.createExplosion(wp, 0xff5500, 100, 3.0);
-      this.particleManager.createEmpShockwave(wp, 50);
+        // Hide remaining base frame
+        ap.mesh.visible = false;
+      }
 
       this.updateMass();
 
