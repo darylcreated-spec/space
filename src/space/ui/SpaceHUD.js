@@ -218,6 +218,12 @@ export class SpaceHUD {
     bindShipSelect(this.btnSelectSentinel, 'SENTINEL');
 
     if (this.btnDodgeRoll) {
+      this.btnDodgeRoll.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerStartIfInStartScreen();
+        this.gameManager.triggerDodgeRoll();
+      });
       this.btnDodgeRoll.addEventListener('click', (e) => {
         e.stopPropagation();
         this.gameManager.triggerDodgeRoll();
