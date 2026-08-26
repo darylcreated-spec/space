@@ -127,6 +127,47 @@ export class SpaceScene {
     this.dynamicFlashLight = new THREE.PointLight(0x00f3ff, 0, 50);
     this.dynamicFlashLight.position.set(0, 0, 10);
     this.scene.add(this.dynamicFlashLight);
+
+    // ── 🌌 High-Fidelity HDR Environment Map for Mirror Metallic Reflections ──
+    try {
+      const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+      pmremGenerator.compileEquirectangularShader();
+
+      const envCanvas = document.createElement('canvas');
+      envCanvas.width = 512;
+      envCanvas.height = 256;
+      const envCtx = envCanvas.getContext('2d');
+
+      const envGrad = envCtx.createLinearGradient(0, 0, 512, 256);
+      envGrad.addColorStop(0.0, '#040b18');
+      envGrad.addColorStop(0.3, '#10254c');
+      envGrad.addColorStop(0.6, '#381044');
+      envGrad.addColorStop(0.85, '#0a2238');
+      envGrad.addColorStop(1.0, '#030610');
+      envCtx.fillStyle = envGrad;
+      envCtx.fillRect(0, 0, 512, 256);
+
+      // Specular Star Clusters & Glistening Nebula Points
+      for (let i = 0; i < 70; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 256;
+        const r = 1.0 + Math.random() * 2.5;
+        envCtx.beginPath();
+        envCtx.arc(x, y, r, 0, Math.PI * 2);
+        envCtx.fillStyle = Math.random() < 0.5 ? '#00f3ff' : (Math.random() < 0.75 ? '#ffffff' : '#ff0077');
+        envCtx.shadowColor = envCtx.fillStyle;
+        envCtx.shadowBlur = 6;
+        envCtx.fill();
+      }
+
+      const envTexture = new THREE.CanvasTexture(envCanvas);
+      envTexture.mapping = THREE.EquirectangularReflectionMapping;
+      const envMap = pmremGenerator.fromEquirectangular(envTexture).texture;
+      this.scene.environment = envMap;
+      pmremGenerator.dispose();
+    } catch(e) {
+      console.warn('Could not generate PMREM envMap:', e);
+    }
   }
 
   triggerDynamicLightFlash(pos, colorHex = 0x00f3ff, intensity = 4.5, duration = 0.12) {

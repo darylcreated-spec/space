@@ -165,12 +165,41 @@ export class TitanAsteroidBoss {
       flatShading: true
     });
 
+    // ── 🪞 ULTRA-GLOSS MIRROR-SHADED METALLIC ARMOR MATERIAL ──
+    const mirrorPlateMat = new THREE.MeshPhysicalMaterial({
+      color: 0xc8ddf0, // Polished titanium chrome mirror
+      metalness: 1.0,  // Pure reflective metal
+      roughness: 0.02, // Ultra-smooth glass mirror finish
+      clearcoat: 1.0,  // Protective optical lacquer layer
+      clearcoatRoughness: 0.01,
+      reflectivity: 1.0,
+      emissive: 0x0a1c2e,
+      emissiveIntensity: 0.25,
+      envMapIntensity: 3.2
+    });
+
+    const chromeBevelMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, // Pure specular white-chrome bevel
+      metalness: 1.0,
+      roughness: 0.005,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.0,
+      reflectivity: 1.0,
+      envMapIntensity: 4.0
+    });
+
     const cyberArmorMat = new THREE.MeshStandardMaterial({
       color: 0x1f2e3d,
       metalness: 0.95,
       roughness: 0.2,
       emissive: 0x091420,
       emissiveIntensity: 0.3
+    });
+
+    const darkAlloyMat = new THREE.MeshStandardMaterial({
+      color: 0x141a22,
+      metalness: 0.92,
+      roughness: 0.3
     });
 
     const moltenCoreMat = new THREE.MeshStandardMaterial({
@@ -228,25 +257,34 @@ export class TitanAsteroidBoss {
     this.coreHousingGroup.add(this.coreLight);
     this.meshGroup.add(this.coreHousingGroup);
 
-    // ── 3. Four Heavy Tectonic Armor Crust Plates ──
+    // ── 3. Four Heavy Mirror-Shaded Tectonic Armor Crust Plates ──
     const plateGeo = new THREE.BoxGeometry(16, 12, 3.5);
+    const bevelGeo = new THREE.BoxGeometry(16.6, 12.6, 0.8);
     const plateWireGeo = new THREE.EdgesGeometry(plateGeo);
-    const plateWireMat = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.8 });
+    const plateWireMat = new THREE.LineBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.85 });
 
     this.armorPlates.forEach(ap => {
       const pGroup = new THREE.Group();
       pGroup.position.copy(ap.relPos);
 
-      const plate = new THREE.Mesh(plateGeo, cyberArmorMat);
+      // Primary Mirror Armor Plate
+      const plate = new THREE.Mesh(plateGeo, mirrorPlateMat);
       pGroup.add(plate);
 
+      // Specular Chrome Mirror Bevel Rim
+      const bevel = new THREE.Mesh(bevelGeo, chromeBevelMat);
+      bevel.position.set(0, 0, 1.8);
+      pGroup.add(bevel);
+
+      // Cyan circuit wireframe
       const pWire = new THREE.LineSegments(plateWireGeo, plateWireMat);
+      pWire.position.set(0, 0, 1.9);
       pGroup.add(pWire);
 
       const reticleGeo = new THREE.RingGeometry(2.8, 3.4, 16);
       const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 0, 2.2);
+      reticle.position.set(0, 0, 2.4);
       pGroup.add(reticle);
 
       this.meshGroup.add(pGroup);
