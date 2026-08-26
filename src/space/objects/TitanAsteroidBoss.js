@@ -516,11 +516,11 @@ export class TitanAsteroidBoss {
 
   triggerDeathSequence() {
     this.isDying = true;
-    this.deathTimer = 4.5;
+    this.deathTimer = 3.2;
 
-    window.spaceGameManager?.voiceAnnouncer?.speak("TITAN ASTEROID COLOSSUS CATACLYSMIC IMPLOSION! SECTOR CLEARED!", true);
+    window.spaceGameManager?.voiceAnnouncer?.speak("PLANETOID SHELL FRACTURING! CRUST COLLAPSING!", true, "STARBOUND COMMAND");
     if (window.spaceGameManager?.spaceHUD) {
-      window.spaceGameManager.spaceHUD.showRadioTransmission("PLANETOID FRACTURED! THE TITAN COLOSSUS IS COLLAPSING INTO A SUPERNOVA DEBRIS FIELD!", "STARBOUND COMMAND", 8.0);
+      window.spaceGameManager.spaceHUD.showRadioTransmission("PLANETOID BREACHED! Outer tectonic shell is detonating! Prepare for emergency core emergence!", "STARBOUND COMMAND", 5.0);
     }
   }
 
@@ -653,13 +653,23 @@ export class TitanAsteroidBoss {
 
   destroy() {
     this.isDead = true;
+    const pos = this.meshGroup ? this.meshGroup.position.clone() : new THREE.Vector3(0, 0, -45);
+    
     if (this.particleManager) {
-      this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 300, 8.0);
-      this.particleManager.createExplosion(this.meshGroup.position, 0xff5500, 250, 6.5);
-      this.particleManager.createEmpShockwave(this.meshGroup.position, 220);
+      this.particleManager.createExplosion(pos, 0xffffff, 350, 9.0);
+      this.particleManager.createExplosion(pos, 0xff5500, 300, 7.5);
+      this.particleManager.createEmpShockwave(pos, 250);
+      if (this.particleManager.spawnSonicBoomDisc) {
+        this.particleManager.spawnSonicBoomDisc(pos, 0xff3300);
+      }
     }
     if (this.meshGroup && this.meshGroup.parent) {
       this.meshGroup.parent.remove(this.meshGroup);
+    }
+
+    // 🚀 SPAWN THE INNER SHIP: Titan Core Flagship emerging from the fractured asteroid!
+    if (window.spaceGameManager && window.spaceGameManager.spawnAsteroidCoreFlagship) {
+      window.spaceGameManager.spawnAsteroidCoreFlagship(pos);
     }
   }
 }

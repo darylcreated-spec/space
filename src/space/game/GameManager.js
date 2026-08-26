@@ -5,6 +5,7 @@ import { EnemyDrone } from '../objects/EnemyDrone.js';
 import { PowerUp } from '../objects/PowerUp.js';
 import { BossDreadnought } from '../objects/BossDreadnought.js';
 import { TitanAsteroidBoss } from '../objects/TitanAsteroidBoss.js';
+import { TitanCoreShip } from '../objects/TitanCoreShip.js';
 import { MoonBase } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { SanctuaryCylinderBoss } from '../objects/SanctuaryCylinderBoss.js';
@@ -369,6 +370,10 @@ export class GameManager {
   spawnTitanBoss() {
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
     this.voiceAnnouncer.speak("Warning! Titan Asteroid Colossus Approaching!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner("BOSS BATTLE", "TITAN ASTEROID COLOSSUS");
+      this.spaceHUD.updateBossHealth(1.0, "TITAN ASTEROID COLOSSUS // VOLCANIC PLANETOID");
+    }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
 
     // Deploy Enemy Capital Cruiser to protect the Titan Asteroid Boss!
@@ -377,6 +382,21 @@ export class GameManager {
         this.spawnCapitalShip(new THREE.Vector3(18, 2, -65));
       }
     }, 1800);
+  }
+
+  spawnAsteroidCoreFlagship(spawnPos = null) {
+    this.activeBoss = new TitanCoreShip(this.spaceScene.scene, this.particleManager, spawnPos);
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner("PHASE 2 ALERT", "TITAN CORE FLAGSHIP EMERGED!");
+      this.spaceHUD.updateBossHealth(1.0, "TITAN CORE FLAGSHIP // ANCIENT WAR VESSEL");
+    }
+    this.voiceAnnouncer.speak("WARNING: Planetoid shell shattered! Enemy Core Flagship emerging from the molten crater! All squadrons attack!", true, "STARBOUND COMMAND");
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("ALERT: The asteroid was an armored disguise! Destroy the core flagship to secure Sector Alpha!", "STARBOUND COMMAND", 8.0);
+    }
+    if (this.spaceScene) {
+      this.spaceScene.triggerBossIntroCamera();
+    }
   }
 
   spawnCarrierBoss() {
@@ -1519,7 +1539,7 @@ export class GameManager {
               ? Math.max(0, this.carrierBoss.coreHp / this.carrierBoss.maxCoreHp) 
               : null)),
         bossTitle: (this.activeBoss && !this.activeBoss.isDead) 
-          ? (this.activeBoss.armorPlates ? "⚠️ TITAN ASTEROID COLOSSUS ⚠️" : (this.activeBoss.aegisFrigates ? "⚠️ LEVIATHAN COMMAND MOTHERSHIP ⚠️" : (this.activeBoss.generators ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : (this.activeBoss.framingNodes ? "⚠️ HALO MEGASTRUCTURE RING ⚠️" : (this.activeBoss.satellites ? "⚠️ SANCTUARY-9 CYLINDER CITADEL ⚠️" : "⚠️ ENEMY MEGASTRUCTURE ⚠️")))))
+          ? (this.activeBoss.leftCannon ? "⚠️ TITAN CORE FLAGSHIP // ANCIENT WAR VESSEL ⚠️" : (this.activeBoss.armorPlates ? "⚠️ TITAN ASTEROID COLOSSUS ⚠️" : (this.activeBoss.aegisFrigates ? "⚠️ LEVIATHAN COMMAND MOTHERSHIP ⚠️" : (this.activeBoss.generators ? "⚠️ ORBITAL ALPHA MOON BASE ⚠️" : (this.activeBoss.framingNodes ? "⚠️ HALO MEGASTRUCTURE RING ⚠️" : (this.activeBoss.satellites ? "⚠️ SANCTUARY-9 CYLINDER CITADEL ⚠️" : "⚠️ ENEMY MEGASTRUCTURE ⚠️"))))))
           : ((this.heavyBattleships && this.heavyBattleships.length > 0 && !this.heavyBattleships[0].isDead)
             ? "⚠️ GOLIATH HEAVY BATTLESHIP DREADNOUGHT ⚠️"
             : ((this.carrierBoss && !this.carrierBoss.isDead) 

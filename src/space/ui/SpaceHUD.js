@@ -934,6 +934,20 @@ export class SpaceHUD {
     }
   }
 
+  updateBossHealth(ratio, title = null) {
+    if (this.bossBarContainer && this.bossHpFill) {
+      if (ratio !== null && ratio > 0) {
+        this.bossBarContainer.classList.remove('hidden');
+        this.bossHpFill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+        if (this.bossTitleElem && title) {
+          this.bossTitleElem.textContent = title;
+        }
+      } else {
+        this.bossBarContainer.classList.add('hidden');
+      }
+    }
+  }
+
   showFleetModal() {
     if (this.modalFleet) {
       if (this.fleetGodBtnText) {
