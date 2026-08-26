@@ -463,11 +463,11 @@ export class PlayerShip {
       this.meshGroup.add(pylonGroup);
     });
 
-    // ── 7. Triple Rapid-Pulse Laser Muzzles ──
+    // ── 7. Triple Rapid-Pulse Laser Muzzles (Focused Precision Hardpoints) ──
     this.muzzleOffsets = [
-      new THREE.Vector3(-2.6, 0, 0.0),
+      new THREE.Vector3(-1.3, 0, -1.0),
       new THREE.Vector3(0, -0.15, -3.2),
-      new THREE.Vector3(2.6, 0, 0.0)
+      new THREE.Vector3(1.3, 0, -1.0)
     ];
     this.muzzleOffsets.forEach(pos => {
       const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), edgeMat);
@@ -712,10 +712,10 @@ export class PlayerShip {
 
     // ── 6. 🚀 Heavy Missile Muzzle Offsets (Shoulder Pods + Torpedo Tubes) ──
     this.muzzleOffsets = [
-      new THREE.Vector3(-1.85, 0.45, -2.3),
-      new THREE.Vector3(1.85, 0.45, -2.3),
-      new THREE.Vector3(-0.75, -0.3, -3.4),
-      new THREE.Vector3(0.75, -0.3, -3.4)
+      new THREE.Vector3(-1.2, 0.4, -2.3),
+      new THREE.Vector3(1.2, 0.4, -2.3),
+      new THREE.Vector3(-0.5, -0.2, -3.4),
+      new THREE.Vector3(0.5, -0.2, -3.4)
     ];
 
     // ── 7. 🔥 QUAD HEAVY PROPULSION THRUSTERS (Firing Straight Backwards +Z) ──
@@ -937,10 +937,10 @@ export class PlayerShip {
 
     // ── 6. 🚀 Weapon Muzzle Offsets (Quantum Cannons + Torpedo Tubes) ──
     this.muzzleOffsets = [
-      new THREE.Vector3(-2.2, -0.25, -3.0),
-      new THREE.Vector3(2.2, -0.25, -3.0),
-      new THREE.Vector3(-0.5, -0.3, -3.2),
-      new THREE.Vector3(0.5, -0.3, -3.2)
+      new THREE.Vector3(-1.3, -0.2, -3.0),
+      new THREE.Vector3(1.3, -0.2, -3.0),
+      new THREE.Vector3(-0.45, -0.2, -3.2),
+      new THREE.Vector3(0.45, -0.2, -3.2)
     ];
 
     // ── 7. 🔥 TWIN VECTOR PROPULSION THRUSTERS (Straight +Z) ──
@@ -1113,10 +1113,10 @@ export class PlayerShip {
     });
 
     this.muzzleOffsets = [
-      new THREE.Vector3(-2.4, -0.05, -1.3),
-      new THREE.Vector3(2.4, -0.05, -1.3),
-      new THREE.Vector3(-0.55, -0.2, -3.4),
-      new THREE.Vector3(0.55, -0.2, -3.4)
+      new THREE.Vector3(-1.2, -0.05, -1.3),
+      new THREE.Vector3(1.2, -0.05, -1.3),
+      new THREE.Vector3(-0.4, -0.2, -3.4),
+      new THREE.Vector3(0.4, -0.2, -3.4)
     ];
 
     // ── 5. 💡 Wingtip Optical Camo Pods & Flashing Strobe Lights ──
@@ -1320,10 +1320,10 @@ export class PlayerShip {
 
     // ── 6. 🚀 Weapon Muzzle Offsets (Tuning Prongs + Wingtip Hardpoints) ──
     this.muzzleOffsets = [
-      new THREE.Vector3(-1.0, 0, -4.3),
-      new THREE.Vector3(1.0, 0, -4.3),
-      new THREE.Vector3(-2.6, -0.1, -1.6),
-      new THREE.Vector3(2.6, -0.1, -1.6)
+      new THREE.Vector3(-0.75, 0, -4.3),
+      new THREE.Vector3(0.75, 0, -4.3),
+      new THREE.Vector3(-1.35, -0.1, -1.6),
+      new THREE.Vector3(1.35, -0.1, -1.6)
     ];
 
     // ── 7. 🔥 TWIN HEAVY ION PULSE THRUSTERS (Straight +Z) ──

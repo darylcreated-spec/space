@@ -1,28 +1,29 @@
 import * as THREE from 'three';
 
-// â”€â”€ Shared Cache for LaserBolt Geometries & Materials â”€â”€
+// ── Shared Cache for LaserBolt Geometries & Materials ──
 const laserGeoCache = {};
 const laserMatCache = {};
 
 function getLaserGeometries(type = 'STANDARD', isEnemy = false) {
   const key = `${type}_${isEnemy ? 'enemy' : 'player'}`;
   if (!laserGeoCache[key]) {
-    let len = isEnemy ? 2.8 : 3.6;
-    let radius = isEnemy ? 0.16 : 0.13;
-    let glowRadius = isEnemy ? 0.42 : 0.32;
+    // Sleek, refined, aerodynamic laser bolts (precision energy darts)
+    let len = isEnemy ? 2.6 : 3.4;
+    let radius = isEnemy ? 0.065 : 0.055;
+    let glowRadius = isEnemy ? 0.13 : 0.11;
 
     if (type === 'FLAK') {
-      len = 2.4;
-      radius = 0.45;
-      glowRadius = 0.95;
-    } else if (type === 'CRIT_DART') {
-      len = 4.8;
-      radius = 0.08;
-      glowRadius = 0.22;
-    } else if (type === 'HOMING') {
       len = 2.2;
-      radius = 0.22;
-      glowRadius = 0.55;
+      radius = 0.10;
+      glowRadius = 0.20;
+    } else if (type === 'CRIT_DART') {
+      len = 4.0;
+      radius = 0.038;
+      glowRadius = 0.08;
+    } else if (type === 'HOMING') {
+      len = 2.0;
+      radius = 0.065;
+      glowRadius = 0.12;
     }
     
     const beamGeo = new THREE.CylinderGeometry(radius, radius, len, 8);
@@ -34,7 +35,7 @@ function getLaserGeometries(type = 'STANDARD', isEnemy = false) {
     const coreGeo = new THREE.CylinderGeometry(radius * 0.45, radius * 0.45, len * 1.1, 6);
     coreGeo.rotateX(Math.PI / 2);
 
-    const muzzleGeo = new THREE.SphereGeometry(radius * 1.5, 8, 8);
+    const muzzleGeo = new THREE.SphereGeometry(radius * 1.3, 8, 8);
 
     laserGeoCache[key] = { beamGeo, glowGeo, coreGeo, muzzleGeo, len };
   }
@@ -44,16 +45,15 @@ function getLaserGeometries(type = 'STANDARD', isEnemy = false) {
 function getLaserMaterial(colorHex, transparent = false, opacity = 1.0) {
   const key = `${colorHex}_${transparent}_${opacity}`;
   if (!laserMatCache[key]) {
-    // MeshStandardMaterial with high emissive so UnrealBloomPass picks up the neon glow
     laserMatCache[key] = new THREE.MeshStandardMaterial({
       color: colorHex,
       emissive: colorHex,
-      emissiveIntensity: transparent ? 0.8 : 2.8, // core beam is super bright for bloom
+      emissiveIntensity: transparent ? 0.35 : 1.35,
       transparent,
       opacity,
-      roughness: 0.0,
+      roughness: 0.1,
       metalness: 0.0,
-      toneMapped: false    // bypass tone mapping so emissive values exceed 1.0 for bloom threshold
+      toneMapped: false
     });
   }
   return laserMatCache[key];
@@ -423,13 +423,13 @@ let plasmaMatCache = null;
 function getPlasmaResources() {
   if (!plasmaGeoCache) {
     plasmaGeoCache = {
-      orbGeo: new THREE.SphereGeometry(1.8, 20, 20),
-      haloGeo: new THREE.SphereGeometry(3.2, 16, 16),
-      ringGeo: new THREE.TorusGeometry(2.6, 0.22, 10, 30),
-      centerGeo: new THREE.SphereGeometry(0.9, 12, 12),
+      orbGeo: new THREE.SphereGeometry(0.9, 16, 16),
+      haloGeo: new THREE.SphereGeometry(1.6, 14, 14),
+      ringGeo: new THREE.TorusGeometry(1.3, 0.12, 8, 24),
+      centerGeo: new THREE.SphereGeometry(0.45, 10, 10),
     };
     plasmaMatCache = {
-      haloMat: new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.18 }),
+      haloMat: new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.14 }),
       rMat1: new THREE.MeshBasicMaterial({ color: 0xff00cc }),
       rMat2: new THREE.MeshBasicMaterial({ color: 0x00f3ff }),
       rMat3: new THREE.MeshBasicMaterial({ color: 0x8800ff }),
@@ -455,8 +455,8 @@ export class PlasmaPulse {
     this.orbMat = new THREE.MeshStandardMaterial({
       color: 0x00f3ff,
       emissive: 0x00f3ff,
-      emissiveIntensity: 4.0,
-      roughness: 0.0,
+      emissiveIntensity: 1.8,
+      roughness: 0.1,
       metalness: 0.0,
     });
     this.orbMesh = new THREE.Mesh(geos.orbGeo, this.orbMat);
@@ -475,7 +475,7 @@ export class PlasmaPulse {
 
     this.meshGroup.add(new THREE.Mesh(geos.centerGeo, mats.centerMat));
 
-    this.light = new THREE.PointLight(0x00f3ff, 8.0, 24);
+    this.light = new THREE.PointLight(0x00f3ff, 2.2, 14);
     this.meshGroup.add(this.light);
   }
 
