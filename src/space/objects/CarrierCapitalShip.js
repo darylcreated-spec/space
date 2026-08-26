@@ -3,37 +3,43 @@ import { HomingMissile } from './HomingMissile.js';
 
 /**
  * High-Resolution 1024x1024 Procedural PBR Diffuse, Normal & Emissive Map Generator
+ * (Vorn Vanguard Reddish/Crimson-Obsidian Heavy Fleet Palette)
  */
 function generateCarrierTextures() {
   const diffCanvas = document.createElement('canvas');
   diffCanvas.width = 1024; diffCanvas.height = 1024;
   const dCtx = diffCanvas.getContext('2d');
   
-  dCtx.fillStyle = '#223854';
+  // Dark charred obsidian base
+  dCtx.fillStyle = '#1c0d10';
   dCtx.fillRect(0, 0, 1024, 1024);
 
+  // Checkerboard armored crimson plates
   for (let x = 0; x < 1024; x += 128) {
     for (let y = 0; y < 1024; y += 128) {
-      const shade = ((x / 128 + y / 128) % 2 === 0) ? '#2b4466' : '#1e324a';
+      const shade = ((x / 128 + y / 128) % 2 === 0) ? '#2e1116' : '#220b0e';
       dCtx.fillStyle = shade;
       dCtx.fillRect(x + 4, y + 4, 120, 120);
       
-      dCtx.strokeStyle = '#0f1a26';
+      dCtx.strokeStyle = '#100406';
       dCtx.lineWidth = 3;
       dCtx.strokeRect(x + 2, y + 2, 124, 124);
     }
   }
 
-  dCtx.fillStyle = '#d8e5f2';
+  // Heavy scarlet armor slab insets
+  dCtx.fillStyle = '#6e1925';
   for (let y = 64; y < 1024; y += 256) {
     dCtx.fillRect(64, y, 160, 80);
     dCtx.fillRect(800, y, 160, 80);
   }
 
-  dCtx.fillStyle = '#162233';
+  // Central runway dark charcoal deck
+  dCtx.fillStyle = '#14080a';
   dCtx.fillRect(360, 0, 304, 1024);
 
-  dCtx.fillStyle = '#ffd000';
+  // Magma-orange landing approach chevrons
+  dCtx.fillStyle = '#ff4400';
   for (let i = 0; i < 20; i++) {
     const cy = i * 52;
     dCtx.beginPath();
@@ -51,10 +57,11 @@ function generateCarrierTextures() {
     dCtx.fill();
   }
 
-  dCtx.fillStyle = '#ffd700';
+  // Bold Crimson Fleet Decal
+  dCtx.fillStyle = '#ff2244';
   dCtx.font = 'bold 36px monospace';
-  dCtx.fillText('CV-99 HYPERION', 410, 480);
-  dCtx.fillText('FLEET FLAGSHIP', 416, 520);
+  dCtx.fillText('GORGON CV-01', 416, 480);
+  dCtx.fillText('HEAVY CARRIER', 412, 520);
 
   const diffuseMap = new THREE.CanvasTexture(diffCanvas);
   diffuseMap.wrapS = diffuseMap.wrapT = THREE.RepeatWrapping;
@@ -84,13 +91,14 @@ function generateCarrierTextures() {
   const normalMap = new THREE.CanvasTexture(normCanvas);
   normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
 
+  // Emissive Map for Magma-Red Runway Guidance Lines
   const emissCanvas = document.createElement('canvas');
   emissCanvas.width = 1024; emissCanvas.height = 1024;
   const eCtx = emissCanvas.getContext('2d');
   eCtx.fillStyle = '#000000';
   eCtx.fillRect(0, 0, 1024, 1024);
 
-  eCtx.strokeStyle = '#00f3ff';
+  eCtx.strokeStyle = '#ff2200';
   eCtx.lineWidth = 8;
   eCtx.beginPath(); eCtx.moveTo(410, 0); eCtx.lineTo(410, 1024); eCtx.stroke();
   eCtx.beginPath(); eCtx.moveTo(614, 0); eCtx.lineTo(614, 1024); eCtx.stroke();
@@ -136,7 +144,6 @@ export class CarrierCapitalShip {
     this.catapultDrones = [];
 
     // ── 🛡️ Raised Outboard Sponson Superfiring Turret Mounts ──
-    // Placed outboard on sponsons with stepped heights so line-of-fire is completely clear of the nose
     this.turrets = [
       { id: 0, name: 'FWD PORT BATTERY', relPos: new THREE.Vector3(-17.5, 6.8, 14.0), hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
       { id: 1, name: 'FWD STBD BATTERY', relPos: new THREE.Vector3(17.5, 6.8, 14.0),  hp: 850, maxHp: 850, isDead: false, mesh: null, barrelGroup: null, barrelTips: [], reticle: null },
@@ -168,36 +175,38 @@ export class CarrierCapitalShip {
   _build() {
     const { diffuseMap, normalMap, emissiveMap } = generateCarrierTextures();
 
-    // ── Unified Primary Steel-Blue Titanium Composite Hull Material ──
+    // ── 🔴 Unified Wave 1 Crimson-Obsidian Composite Hull Material ──
     this.hullMat = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       map: diffuseMap,
       roughness: 0.28,
       metalness: 0.85,
       normalMap: normalMap,
-      emissive: 0x0f2238,
+      emissive: 0x330810,
       emissiveIntensity: 0.45
     });
 
     this.armorPlateMat = new THREE.MeshStandardMaterial({
-      color: 0x3d5a80,
+      color: 0x7e1c28,
       roughness: 0.22,
       metalness: 0.90,
+      emissive: 0x24060c,
+      emissiveIntensity: 0.35,
       normalMap: normalMap
     });
 
     this.keelMat = new THREE.MeshStandardMaterial({
-      color: 0x1b2838,
+      color: 0x180b0f,
       roughness: 0.35,
       metalness: 0.92,
       normalMap: normalMap
     });
 
     this.trimGoldMat = new THREE.MeshStandardMaterial({
-      color: 0xffd700,
-      metalness: 0.95,
+      color: 0xff2244,
+      metalness: 0.96,
       roughness: 0.15,
-      emissive: 0x553e00,
+      emissive: 0x660814,
       emissiveIntensity: 0.6
     });
 
@@ -207,16 +216,16 @@ export class CarrierCapitalShip {
       roughness: 0.32,
       metalness: 0.82,
       emissiveMap: emissiveMap,
-      emissive: 0x00f3ff,
-      emissiveIntensity: 0.65,
+      emissive: 0xff2200,
+      emissiveIntensity: 0.85,
       normalMap: normalMap
     });
 
-    // ── 🪟 High-Clarity Armored Glass Material ──
+    // ── 🪟 Smoked Ruby/Obsidian Armored Glass ──
     this.glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0x66ddff,
+      color: 0xff1133,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.35,
       roughness: 0.02,
       metalness: 0.92,
       transmission: 0.90,
@@ -225,29 +234,29 @@ export class CarrierCapitalShip {
       depthWrite: false
     });
 
-    // ── Bold Structural Titanium Framing Beams ──
+    // ── Structural Charred Titanium Framing Beams ──
     this.titaniumBeamMat = new THREE.MeshStandardMaterial({
-      color: 0x06121f,
+      color: 0x14060a,
       metalness: 0.98,
       roughness: 0.12,
-      emissive: 0x00f3ff,
-      emissiveIntensity: 0.6
+      emissive: 0xff2200,
+      emissiveIntensity: 0.65
     });
 
-    // ── Dedicated Carrier Key & Deck Lights ──
-    const keyLight = new THREE.PointLight(0xffffff, 1.8, 90);
+    // ── Dedicated Carrier Red/Magma Deck & Key Lights ──
+    const keyLight = new THREE.PointLight(0xffe0e0, 1.8, 90);
     keyLight.position.set(0, 28.0, 5.0);
     this.meshGroup.add(keyLight);
 
-    const deckLight = new THREE.PointLight(0x00f3ff, 3.5, 60);
+    const deckLight = new THREE.PointLight(0xff3300, 3.5, 60);
     deckLight.position.set(0, 12.0, 0);
     this.meshGroup.add(deckLight);
 
-    const bridgeLight = new THREE.PointLight(0x00f3ff, 2.8, 40);
+    const bridgeLight = new THREE.PointLight(0xff1133, 2.8, 40);
     bridgeLight.position.set(0, 14.0, -4.0);
     this.meshGroup.add(bridgeLight);
 
-    const engineLight = new THREE.PointLight(0x00f3ff, 5.0, 60);
+    const engineLight = new THREE.PointLight(0xff4400, 5.0, 60);
     engineLight.position.set(0, 6.0, -38.0);
     this.meshGroup.add(engineLight);
 
@@ -337,22 +346,22 @@ export class CarrierCapitalShip {
     // C. Interior Staging Deck Floor Inside the Nose
     const interiorFloorGeo = new THREE.BoxGeometry(18.0, 0.6, 20.0);
     const interiorFloorMat = new THREE.MeshStandardMaterial({
-      color: 0x081626,
+      color: 0x140609,
       metalness: 0.95,
       roughness: 0.2,
-      emissive: 0x002d4d,
+      emissive: 0x33060c,
       emissiveIntensity: 0.9
     });
     const interiorFloor = new THREE.Mesh(interiorFloorGeo, interiorFloorMat);
     interiorFloor.position.set(0, -1.2, 0);
     noseGroup.add(interiorFloor);
 
-    // D. Bright Interior Spotlights
-    const intCyanLight = new THREE.PointLight(0x00f3ff, 8.0, 36);
+    // D. Bright Interior Red-Alert Spotlights
+    const intCyanLight = new THREE.PointLight(0xff2200, 8.0, 36);
     intCyanLight.position.set(0, 3.5, 2.0);
     noseGroup.add(intCyanLight);
 
-    const intAmberLight = new THREE.PointLight(0xffbb00, 5.0, 25);
+    const intAmberLight = new THREE.PointLight(0xff4400, 5.0, 25);
     intAmberLight.position.set(0, 1.5, -4.0);
     noseGroup.add(intAmberLight);
 
@@ -371,10 +380,10 @@ export class CarrierCapitalShip {
 
       const padGeo = new THREE.CylinderGeometry(2.4, 2.7, 0.35, 16);
       const padMat = new THREE.MeshStandardMaterial({
-        color: 0x142438,
+        color: 0x220c12,
         metalness: 0.92,
         roughness: 0.25,
-        emissive: 0xffaa00,
+        emissive: 0xff3300,
         emissiveIntensity: 0.6
       });
       const pad = new THREE.Mesh(padGeo, padMat);
@@ -382,7 +391,7 @@ export class CarrierCapitalShip {
       craftGroup.add(pad);
 
       const ringGeo = new THREE.TorusGeometry(2.2, 0.14, 8, 24);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
       const padRing = new THREE.Mesh(ringGeo, ringMat);
       padRing.rotation.x = Math.PI / 2;
       padRing.position.set(0, 0.05, 0);
@@ -392,23 +401,23 @@ export class CarrierCapitalShip {
       fuseGeo.rotateX(Math.PI / 2);
       fuseGeo.scale(1.25, 0.7, 1.0);
       const fuseMat = new THREE.MeshStandardMaterial({
-        color: 0x274366,
+        color: 0x6e1925,
         metalness: 0.95,
         roughness: 0.16,
-        emissive: 0x0a1e36
+        emissive: 0x24060c
       });
       const fuse = new THREE.Mesh(fuseGeo, fuseMat);
       fuse.position.set(0, 0.65, 0);
       craftGroup.add(fuse);
 
       const wingGeo = new THREE.BoxGeometry(4.6, 0.14, 2.2);
-      const wingMat = new THREE.MeshStandardMaterial({ color: 0x182c44, metalness: 0.92, roughness: 0.2 });
+      const wingMat = new THREE.MeshStandardMaterial({ color: 0x3d0c14, metalness: 0.92, roughness: 0.2 });
       const wing = new THREE.Mesh(wingGeo, wingMat);
       wing.position.set(0, 0.6, -0.4);
       craftGroup.add(wing);
 
       const canopyGeo = new THREE.BoxGeometry(0.65, 0.5, 1.4);
-      const canopyMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const canopyMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
       const canopy = new THREE.Mesh(canopyGeo, canopyMat);
       canopy.position.set(0, 1.0, 0.5);
       craftGroup.add(canopy);
@@ -416,14 +425,14 @@ export class CarrierCapitalShip {
       [-0.5, 0.5].forEach(ex => {
         const engGeo = new THREE.CylinderGeometry(0.22, 0.26, 0.65, 8);
         engGeo.rotateX(Math.PI / 2);
-        const engMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+        const engMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
         const eng = new THREE.Mesh(engGeo, engMat);
         eng.position.set(ex, 0.65, -2.0);
         craftGroup.add(eng);
       });
 
       const gantryGeo = new THREE.BoxGeometry(0.22, 2.0, 0.22);
-      const gantryMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95 });
+      const gantryMat = new THREE.MeshStandardMaterial({ color: 0xff2244, metalness: 0.95 });
       const gantry = new THREE.Mesh(gantryGeo, gantryMat);
       gantry.position.set(2.0, 0.75, -0.6);
       craftGroup.add(gantry);
@@ -449,24 +458,23 @@ export class CarrierCapitalShip {
 
     const botSillBeamGeo = new THREE.BoxGeometry(winWidth + 1.2, 0.9, 0.9);
     const botSillBeam = new THREE.Mesh(botSillBeamGeo, this.titaniumBeamMat);
-    botSillBeam.position.set(0, -1.2, 10.9);
+    botSillBeam.position.set(0, -1.2, 10.8);
     noseGroup.add(botSillBeam);
 
-    [-winWidth / 2, winWidth / 2].forEach(px => {
-      const postGeo = new THREE.BoxGeometry(0.85, winHeight + 0.6, 0.85);
-      const post = new THREE.Mesh(postGeo, this.titaniumBeamMat);
-      post.position.set(px, 1.8, 10.5);
-      post.rotation.x = -0.15;
-      post.rotation.y = px > 0 ? -0.22 : 0.22;
-      noseGroup.add(post);
+    [-winWidth / 2, winWidth / 2].forEach(pX => {
+      const pGeo = new THREE.BoxGeometry(0.9, winHeight, 0.9);
+      const pMesh = new THREE.Mesh(pGeo, this.titaniumBeamMat);
+      pMesh.position.set(pX, 1.8, 10.5);
+      pMesh.rotation.x = -0.15;
+      noseGroup.add(pMesh);
     });
 
-    [-5.8, 5.8].forEach(vx => {
-      const vMullGeo = new THREE.BoxGeometry(0.55, winHeight, 0.55);
-      const vMull = new THREE.Mesh(vMullGeo, this.titaniumBeamMat);
-      vMull.position.set(vx, 1.8, 10.55);
-      vMull.rotation.x = -0.15;
-      noseGroup.add(vMull);
+    [-5.8, 0, 5.8].forEach(mX => {
+      const mGeo = new THREE.BoxGeometry(0.7, winHeight, 0.7);
+      const mMesh = new THREE.Mesh(mGeo, this.titaniumBeamMat);
+      mMesh.position.set(mX, 1.8, 10.5);
+      mMesh.rotation.x = -0.15;
+      noseGroup.add(mMesh);
     });
 
     const hMullGeo = new THREE.BoxGeometry(winWidth, 0.55, 0.55);
@@ -483,11 +491,11 @@ export class CarrierCapitalShip {
     flightDeckMesh.position.set(0, 5.4, -10.0);
     this.meshGroup.add(flightDeckMesh);
 
-    // Sequenced LED Runway Approach Beacons
+    // Sequenced LED Runway Approach Beacons (Magma Amber & Flame Red)
     [-8.0, 8.0].forEach(laneX => {
       for (let z = -28; z <= 10; z += 4.8) {
         const lightGeo = new THREE.SphereGeometry(0.28, 8, 8);
-        const lightMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+        const lightMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
         const light = new THREE.Mesh(lightGeo, lightMat);
         light.position.set(laneX, 6.2, z);
         this.meshGroup.add(light);
@@ -506,8 +514,8 @@ export class CarrierCapitalShip {
 
     const cupolaGeo = new THREE.BoxGeometry(9.0, 3.2, 10.0);
     const cupolaMat = new THREE.MeshStandardMaterial({
-      color: 0x00f3ff,
-      emissive: 0x00f3ff,
+      color: 0xff1133,
+      emissive: 0xff2244,
       emissiveIntensity: 2.5,
       roughness: 0.1,
       metalness: 0.95
@@ -522,7 +530,7 @@ export class CarrierCapitalShip {
     bridgeSpine.add(upperDeck);
 
     const radomeGeo = new THREE.CylinderGeometry(2.4, 2.4, 0.8, 16);
-    const radomeMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95, roughness: 0.15, emissive: 0x553e00 });
+    const radomeMat = new THREE.MeshStandardMaterial({ color: 0xff2244, metalness: 0.95, roughness: 0.15, emissive: 0x660814 });
     this.radarDish = new THREE.Mesh(radomeGeo, radomeMat);
     this.radarDish.position.set(0, 9.2, -3.0);
     bridgeSpine.add(this.radarDish);
@@ -557,17 +565,17 @@ export class CarrierCapitalShip {
 
     const tailEdgeGeo = new THREE.BoxGeometry(0.6, 14.0, 1.2);
     tailEdgeGeo.rotateX(-0.4);
-    const tailEdgeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const tailEdgeMat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
     const tailEdge = new THREE.Mesh(tailEdgeGeo, tailEdgeMat);
     tailEdge.position.set(0, 8.0, 4.5);
     tailGroup.add(tailEdge);
 
     const tailStrobeGeo = new THREE.SphereGeometry(0.5, 8, 8);
-    const tailStrobeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const tailStrobeMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
     const tailStrobe = new THREE.Mesh(tailStrobeGeo, tailStrobeMat);
     tailStrobe.position.set(0, 15.0, -2.0);
     tailGroup.add(tailStrobe);
-    this.navStrobes.push({ mesh: tailStrobe, color: 0xffffff });
+    this.navStrobes.push({ mesh: tailStrobe, color: 0xff4400 });
 
     this.meshGroup.add(tailGroup);
 
@@ -597,8 +605,8 @@ export class CarrierCapitalShip {
       const bellGeo = new THREE.CylinderGeometry(3.2, 4.0, 3.0, 16, 1, true);
       bellGeo.rotateX(Math.PI / 2);
       const bellMat = new THREE.MeshStandardMaterial({
-        color: 0xffd700,
-        emissive: 0x00f3ff,
+        color: 0xff2244,
+        emissive: 0xff4400,
         emissiveIntensity: 3.5,
         roughness: 0.1,
         metalness: 0.95
@@ -610,7 +618,7 @@ export class CarrierCapitalShip {
       const flareGeo = new THREE.ConeGeometry(2.8, 8.0, 16);
       flareGeo.rotateX(-Math.PI / 2);
       const flareMat = new THREE.MeshBasicMaterial({
-        color: 0x00f3ff,
+        color: 0xff3300,
         transparent: true,
         opacity: 0.85,
         blending: THREE.AdditiveBlending
@@ -635,7 +643,7 @@ export class CarrierCapitalShip {
       barbettePed.position.set(0, -0.6, 0);
       turretGroup.add(barbettePed);
 
-      // Golden Turret Ring Barbette
+      // Crimson Turret Ring Barbette
       const barbetteGeo = new THREE.CylinderGeometry(2.4, 2.7, 0.8, 16);
       const barbette = new THREE.Mesh(barbetteGeo, this.trimGoldMat);
       barbette.position.set(0, 0.6, 0);
@@ -659,7 +667,7 @@ export class CarrierCapitalShip {
 
         const tipGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.8, 8);
         tipGeo.rotateX(Math.PI / 2);
-        const tipMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+        const tipMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
         const tip = new THREE.Mesh(tipGeo, tipMat);
         tip.position.set(bx, 0, 6.6);
         barrelGroup.add(tip);
@@ -675,7 +683,7 @@ export class CarrierCapitalShip {
 
       const reticleGeo = new THREE.RingGeometry(3.0, 3.5, 16);
       const reticleMat = new THREE.MeshBasicMaterial({
-        color: 0x00ff66,
+        color: 0xff2244,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.85
@@ -703,7 +711,7 @@ export class CarrierCapitalShip {
         else ffGeo.rotateY(Math.PI / 2);
 
         const ffMat = new THREE.MeshBasicMaterial({
-          color: 0x00f3ff,
+          color: 0xff1144,
           transparent: true,
           opacity: 0.65,
           side: THREE.DoubleSide,
@@ -734,7 +742,7 @@ export class CarrierCapitalShip {
 
       const sRetGeo = new THREE.RingGeometry(3.4, 3.9, 16);
       const sRetMat = new THREE.MeshBasicMaterial({
-        color: sub.id.includes('hangar') ? 0x00f3ff : 0xff0044,
+        color: 0xff2244,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.88
@@ -807,7 +815,7 @@ export class CarrierCapitalShip {
     if (this.particleManager && Math.random() < 0.85) {
       this.thrusterPositions.forEach(relP => {
         const wp = this.meshGroup.localToWorld(relP.clone());
-        this.particleManager.spawnEngineParticle(wp, 0x00f3ff);
+        this.particleManager.spawnEngineParticle(wp, 0xff3300);
       });
     }
 
@@ -892,7 +900,7 @@ export class CarrierCapitalShip {
             vz: 11.0 + Math.random() * 4.0
           });
           if (this.particleManager) {
-            this.particleManager.spawnSonicBoomDisc(wp, 0x00f3ff);
+            this.particleManager.spawnSonicBoomDisc(wp, 0xff2244);
           }
         });
         result.droneLaunches = launches;
@@ -940,7 +948,7 @@ export class CarrierCapitalShip {
 
         // Leave charred scorched barbette stump on carrier
         const stumpGeo = new THREE.CylinderGeometry(1.6, 2.0, 0.6, 8);
-        const stumpMat = new THREE.MeshStandardMaterial({ color: 0x100a18, metalness: 0.98, roughness: 0.85, emissive: 0x003344, emissiveIntensity: 0.7 });
+        const stumpMat = new THREE.MeshStandardMaterial({ color: 0x100a18, metalness: 0.98, roughness: 0.85, emissive: 0x330011, emissiveIntensity: 0.7 });
         const stump = new THREE.Mesh(stumpGeo, stumpMat);
         stump.position.copy(t.relPos);
         this.meshGroup.add(stump);
@@ -962,9 +970,9 @@ export class CarrierCapitalShip {
         }
 
         if (this.particleManager) {
-          this.particleManager.createExplosion(wp, 0x00ff88, 50, 3.0);
+          this.particleManager.createExplosion(wp, 0xff2244, 50, 3.0);
           this.particleManager.createEmpShockwave(wp, 20);
-          this.particleManager.spawnMetalDebris(wp, 4, 0x00f3ff);
+          this.particleManager.spawnMetalDebris(wp, 4, 0xff3300);
         }
       }
     }
@@ -1039,7 +1047,7 @@ export class CarrierCapitalShip {
   _explode() {
     const pos = this.meshGroup.position;
     if (this.particleManager) {
-      this.particleManager.createExplosion(pos, 0x00f3ff, 400, 8.0);
+      this.particleManager.createExplosion(pos, 0xff2244, 400, 8.0);
       this.particleManager.createExplosion(pos, 0xff6600, 300, 7.0);
       this.particleManager.createEmpShockwave(pos, 150);
       this.particleManager.createEmpShockwave(pos, 220);
