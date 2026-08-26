@@ -36,7 +36,7 @@ export class GameManager {
 
     // Systems
     this.upgradeSystem = new UpgradeSystem();
-    this.voiceAnnouncer = new VoiceAnnouncer();
+    this.voiceAnnouncer = new VoiceAnnouncer(this.spaceAudio);
     this.achievementSystem = new AchievementSystem();
     this.pilotProfile = null;
 
@@ -125,6 +125,9 @@ export class GameManager {
 
   setHUD(hud) {
     this.spaceHUD = hud;
+    if (this.voiceAnnouncer) {
+      this.voiceAnnouncer.setDependencies(this.spaceAudio, this.spaceHUD);
+    }
     if (this.spaceHUD) {
       this.spaceHUD.updateHighScore(this.highScore);
       this.spaceHUD.updateScrap(this.upgradeSystem.scrap);
