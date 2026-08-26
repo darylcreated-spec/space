@@ -140,6 +140,12 @@
           </svg>
           <span>FLEET</span>
         </button>
+        <button id="btn-top-autopilot" class="top-action-btn" title="Toggle AI Auto-Pilot Spectator Mode (Key: P)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/><circle cx="12" cy="12" r="2" fill="currentColor"/>
+          </svg>
+          <span>AUTOPILOT</span>
+        </button>
         <button id="btn-top-config" class="top-action-btn" title="Open Configuration Drawer">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -147,6 +153,12 @@
           <span>CONFIG</span>
         </button>
       </div>
+    </div>
+
+    <!-- AI Auto-Pilot Spectator Banner -->
+    <div id="hud-autopilot-banner" class="autopilot-banner hidden">
+      <span class="autopilot-pulse-dot"></span>
+      <span class="autopilot-banner-text">🤖 AI AUTO-PILOT ENGAGED // SPECTATING WAVE 1 // PRESS [P] OR CLICK TO RESUME MANUAL</span>
     </div>
 
     <!-- Boss Dreadnought / Moon Base Health Telemetry Visor -->

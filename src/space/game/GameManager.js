@@ -78,6 +78,7 @@ export class GameManager {
     this.showcaseBosses = [];
     this.isGodMode = false;
     this.freezeFleetAI = false;
+    this.isAutoPilot = false;
 
     // Active Power-Up Timers
     this.overchargeTimer = 0;
@@ -175,8 +176,63 @@ export class GameManager {
     if (!direction) {
       direction = Math.random() < 0.5 ? 'left' : 'right';
     }
-    this.playerShip.triggerDodge(direction);
     this.spaceAudio.playDodgeSound();
+  }
+
+  toggleAutoPilot() {
+    this.isAutoPilot = !this.isAutoPilot;
+    if (this.isAutoPilot) {
+      this.isGodMode = true; // Protect spectator from hull destruction
+      this.voiceAnnouncer.speak("AI Auto-Pilot Engaged. Spectating Wave 1.", true);
+      if (this.spaceHUD) {
+        this.spaceHUD.showWaveBanner("AUTO-PILOT", "AI SPECTATOR MODE ONLINE");
+      }
+    } else {
+      this.voiceAnnouncer.speak("Manual Flight Controls Restored.", true);
+      if (this.spaceHUD) {
+        this.spaceHUD.showWaveBanner("MANUAL", "COMMAND RESTORED");
+      }
+    }
+    if (this.spaceHUD) {
+      this.spaceHUD.updateAutoPilotUI(this.isAutoPilot);
+    }
+    return this.isAutoPilot;
+  }
+
+  calculateAutoPilotInput(dt) {
+    if (!this.playerShip || !this.playerShip.meshGroup) return { x: 0, y: 0 };
+    const pPos = this.playerShip.meshGroup.position;
+    const t = (this.gameTime || (performance.now() * 0.001));
+    let targetX = 0;
+    let targetY = 0;
+
+    if (this.activeBoss && !this.activeBoss.isDead && this.activeBoss.meshGroup) {
+      const bPos = this.activeBoss.meshGroup.position;
+      // Weave across the boss targets with dynamic strafing
+      const sweep = Math.sin(t * 2.0) * 10.0;
+      targetX = bPos.x + sweep;
+      targetY = Math.max(-3, Math.min(5, bPos.y + Math.cos(t * 1.2) * 2.5));
+    } else if (this.asteroids.length > 0) {
+      const closestRock = this.asteroids.find(r => r && !r.isDead && r.meshGroup && r.meshGroup.position.z < pPos.z);
+      if (closestRock) {
+        targetX = closestRock.meshGroup.position.x;
+        targetY = closestRock.meshGroup.position.y;
+      }
+    } else if (this.drones.length > 0) {
+      const drone = this.drones.find(d => d && !d.isDead && d.meshGroup);
+      if (drone && drone.meshGroup) {
+        targetX = drone.meshGroup.position.x;
+        targetY = drone.meshGroup.position.y;
+      }
+    }
+
+    const dx = targetX - pPos.x;
+    const dy = targetY - pPos.y;
+
+    const moveX = Math.max(-1, Math.min(1, dx * 0.45));
+    const moveY = Math.max(-1, Math.min(1, dy * 0.45));
+
+    return { x: moveX, y: moveY };
   }
 
   resetState() {
@@ -1203,11 +1259,25 @@ export class GameManager {
     const effectiveDt = dt * timeScale;
 
     // 1. Update Controls & Player Ship Movement
-    const inputDir = this.controlsManager.getInputVector();
+    let inputDir = this.controlsManager.getInputVector();
     const pendingDodge = this.controlsManager.getPendingDodge();
     if (pendingDodge) {
       this.triggerDodgeRoll(pendingDodge);
     }
+
+    // AI Auto-Pilot Spectator Logic
+    if (this.isAutoPilot) {
+      inputDir = this.calculateAutoPilotInput(dt);
+
+      // Auto-trigger secondary tactical weapons when ready
+      if (this.playerShip.pulseCooldown <= 0) {
+        this.firePlasmaPulse();
+      }
+      if (this.swarmMissilesReady && Math.random() < 0.05) {
+        this.firePlayerSwarmMissiles();
+      }
+    }
+
     this.playerShip.update(dt, inputDir);
 
     // DEFAULT WEAPON AUTO-FIRE: Rapid Lasers fire continuously while playing

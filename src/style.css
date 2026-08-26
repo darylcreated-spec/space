@@ -2488,3 +2488,53 @@ html, body {
   box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
   transition: width 0.15s ease-out;
 }
+
+/* 🤖 AI Auto-Pilot Spectator UI Styles */
+.top-action-btn.autopilot-active {
+  background: rgba(0, 255, 136, 0.25) !important;
+  border-color: #00ff88 !important;
+  color: #00ff88 !important;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.6) !important;
+}
+
+.autopilot-banner {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(4, 16, 28, 0.88);
+  border: 1px solid #00ff88;
+  border-radius: 20px;
+  padding: 8px 18px;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), inset 0 0 10px rgba(0, 255, 136, 0.15);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  cursor: pointer;
+  animation: pulseGlowBanner 2s infinite alternate;
+}
+
+.autopilot-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 10px #00ff88;
+  animation: blinkDot 0.8s infinite alternate;
+}
+
+.autopilot-banner-text {
+  font-family: var(--font-header);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #00ff88;
+  letter-spacing: 1px;
+}
+
+@keyframes pulseGlowBanner {
+  0% { box-shadow: 0 0 12px rgba(0, 255, 136, 0.3); }
+  100% { box-shadow: 0 0 24px rgba(0, 255, 136, 0.7); }
+}

@@ -130,7 +130,9 @@ export class SpaceHUD {
     // Top Navigation Action Triggers
     this.btnTopHangar = document.getElementById('btn-top-hangar');
     this.btnTopFleet = document.getElementById('btn-top-fleet');
+    this.btnTopAutoPilot = document.getElementById('btn-top-autopilot');
     this.btnTopConfig = document.getElementById('btn-top-config');
+    this.hudAutoPilotBanner = document.getElementById('hud-autopilot-banner');
 
     // Drawer Top Close Buttons
     this.btnCloseHangarTop = document.getElementById('btn-close-hangar-top');
@@ -506,6 +508,9 @@ export class SpaceHUD {
       if (e.code === 'KeyH' || e.key === 'h' || e.key === 'H') {
         this.showHangarModal(this.gameManager.waveSpawner.currentWave, this.gameManager.upgradeSystem);
       }
+      if (e.code === 'KeyP' || e.key === 'p' || e.key === 'P') {
+        this.gameManager.toggleAutoPilot();
+      }
       if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
         this.gameManager.spaceAudio.vibrate(10);
         this.gameManager.spaceScene.toggleCameraMode();
@@ -573,6 +578,20 @@ export class SpaceHUD {
       this.btnTopFleet.addEventListener('click', (e) => {
         e.stopPropagation();
         this.showFleetModal();
+      });
+    }
+
+    if (this.btnTopAutoPilot) {
+      this.btnTopAutoPilot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.toggleAutoPilot();
+      });
+    }
+
+    if (this.hudAutoPilotBanner) {
+      this.hudAutoPilotBanner.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.toggleAutoPilot();
       });
     }
 
@@ -944,6 +963,23 @@ export class SpaceHUD {
         }
       } else {
         this.bossBarContainer.classList.add('hidden');
+      }
+    }
+  }
+
+  updateAutoPilotUI(isActive) {
+    if (this.btnTopAutoPilot) {
+      if (isActive) {
+        this.btnTopAutoPilot.classList.add('autopilot-active');
+      } else {
+        this.btnTopAutoPilot.classList.remove('autopilot-active');
+      }
+    }
+    if (this.hudAutoPilotBanner) {
+      if (isActive) {
+        this.hudAutoPilotBanner.classList.remove('hidden');
+      } else {
+        this.hudAutoPilotBanner.classList.add('hidden');
       }
     }
   }
