@@ -1384,11 +1384,29 @@ export class PlayerShip {
     if (this.shipClass === 'DREADNOUGHT') {
       finalAmount *= 0.65;
     }
+    if (this.shieldLevel && this.shieldLevel >= 2) {
+      finalAmount *= Math.max(0.70, 1.0 - this.shieldLevel * 0.05); // Up to 25% progressive kinetic damage mitigation!
+    }
 
     this.shield = Math.max(0, this.shield - finalAmount);
     this.shieldRippleTimer = 1.0; // Bring up shield display for 1.0 second
     if (this.shieldMat) this.shieldMat.opacity = 1.0;
     if (this.shieldMesh) this.shieldMesh.visible = true;
+
+    // ── 🛡️ Level 5 Apex: Emergency Aegis Shield Reboot ──
+    if (this.shield <= 0 && this.hasEmergencyAegisReboot && !this._aegisUsed) {
+      this._aegisUsed = true;
+      this.shield = this.maxShield * 0.55;
+      this.triggerInvulnerability(2.5);
+      if (this.particleManager) {
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 50);
+      }
+      window.spaceGameManager?.voiceAnnouncer?.speak("EMERGENCY AEGIS SHIELD REBOOT TRIGGERED!", true);
+      if (window.spaceGameManager?.spaceHUD) {
+        window.spaceGameManager.spaceHUD.showRadioTransmission("AEGIS PROTOCOL: Emergency shield rebooted at 55% power! 2.5s invulnerability active!", "SHIP COMPUTER", 4.0);
+      }
+      return false;
+    }
 
     if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
       window.spaceGameManager.spaceHUD.flashShieldImpact();
@@ -1470,11 +1488,17 @@ export class PlayerShip {
     if (this._dodgeBoostTimer > 0) this._dodgeBoostTimer -= dt;
 
     // Hyper-Boost Energy Management
+    const rechargeRate = this.boostRechargeRate || 20.0;
     if (this.isBoosting && this.boostEnergy > 0) {
       this.boostEnergy = Math.max(0, this.boostEnergy - dt * 40.0);
       if (this.boostEnergy <= 0) this.isBoosting = false;
     } else if (!this.isBoosting && this.boostEnergy < this.maxBoostEnergy) {
-      this.boostEnergy = Math.min(this.maxBoostEnergy, this.boostEnergy + dt * 20.0);
+      this.boostEnergy = Math.min(this.maxBoostEnergy, this.boostEnergy + dt * rechargeRate);
+    }
+
+    // ── 🛡️ Progressive Passive Shield Auto-Regeneration ──
+    if (this.shieldRegenRate && this.shieldRegenRate > 0 && this.shield < this.maxShield) {
+      this.shield = Math.min(this.maxShield, this.shield + this.shieldRegenRate * dt);
     }
 
     const currentSpeed = this.speed * (this.isBoosting ? 2.0 : 1.0);

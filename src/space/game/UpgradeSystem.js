@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export class UpgradeSystem {
   constructor() {
     let parsedScrap = parseInt(localStorage.getItem('ov_scrap') || '0', 10);
@@ -32,6 +34,52 @@ export class UpgradeSystem {
     return Math.round(this.baseCost * Math.pow(1.6, lvl));
   }
 
+  getTierName(type, level) {
+    const tiers = {
+      thrust: [
+        'Standard Ion Drive',
+        'Turbo Plasma Drive',
+        'Dual Afterburners',
+        'Vector-Gimbal Thrusters',
+        'Sub-Warp Injectors',
+        'Quantum Sub-Light Drive'
+      ],
+      shield: [
+        'Standard Deflector',
+        'Kinetic Shield Lattice',
+        'Ablative Nanite Armor',
+        'Hard-Light Energy Barrier',
+        'Reactive Matrix Nanites',
+        'Aegis Bastion Overdrive'
+      ],
+      lasers: [
+        'Twin Blasters',
+        'Dual Plasma Repeaters',
+        'Tri-Cannon Array',
+        'Quad-Linked Heavy Blasters',
+        'Penta-Spread Cannons',
+        'Quantum Disruptor Array'
+      ],
+      emp: [
+        'Standard EMP Pulse',
+        'Expanded Shockwave',
+        'Missile Intercept Surge',
+        'Turret EMP Disruptor',
+        'Resonance Sonic Disc',
+        'Supernova EMP Nova'
+      ],
+      magnet: [
+        'Manual Scavenger',
+        'Tractor Beam (12m)',
+        'Dual Magnetic Harvester',
+        'Vortex Scavenger (25m)',
+        'Nanite Gravity Well (34m)',
+        'Global Scrap Harvester (45m)'
+      ]
+    };
+    return (tiers[type] && tiers[type][level]) ? tiers[type][level] : `Tier ${level}`;
+  }
+
   buyUpgrade(type) {
     const cost = this.getCost(type);
     const lvl = this.upgrades[type] || 0;
@@ -57,24 +105,76 @@ export class UpgradeSystem {
   }
 
   applyUpgradesToShip(playerShip) {
-    let tLvl = this.upgrades.thrust;
-    if (typeof tLvl !== 'number' || isNaN(tLvl)) tLvl = 0;
-    playerShip.speed = 28 + tLvl * 4;
+    if (!playerShip) return;
 
-    let sLvl = this.upgrades.shield;
-    if (typeof sLvl !== 'number' || isNaN(sLvl)) sLvl = 0;
-    playerShip.maxShield = 100 + sLvl * 25;
+    // 1. Thrusters & Mobility Progression
+    let tLvl = this.upgrades.thrust || 0;
+    playerShip.thrustLevel = tLvl;
+    playerShip.speed = 32 + tLvl * 5; // 32 to 57
+    playerShip.boostRechargeRate = 16 + tLvl * 6;
+    playerShip.dodgeInvulnDuration = 0.45 + tLvl * 0.08;
 
-    let lLvl = this.upgrades.lasers;
-    if (typeof lLvl !== 'number' || isNaN(lLvl)) lLvl = 0;
-    playerShip.laserFireDelay = Math.max(0.06, 0.12 - lLvl * 0.012);
+    // 2. Shield & Nanite Armor Progression
+    let sLvl = this.upgrades.shield || 0;
+    playerShip.shieldLevel = sLvl;
+    playerShip.maxShield = 100 + sLvl * 35; // 100 to 275 HP
+    playerShip.shield = playerShip.maxShield;
+    playerShip.shieldRegenRate = sLvl * 2.5; // Passive auto-regen
+    playerShip.hasEmergencyAegisReboot = sLvl >= 5;
 
-    let eLvl = this.upgrades.emp;
-    if (typeof eLvl !== 'number' || isNaN(eLvl)) eLvl = 0;
-    playerShip.maxPulseCD = Math.max(3.5, 8.0 - eLvl * 0.9);
+    // 3. Laser Weapon Systems & Progressive Muzzle Cannon Array
+    let lLvl = this.upgrades.lasers || 0;
+    playerShip.laserLevel = lLvl;
+    playerShip.laserFireDelay = Math.max(0.045, 0.10 - lLvl * 0.011);
+    
+    if (lLvl === 0) {
+      playerShip.muzzleOffsets = [new THREE.Vector3(-1.4, 0, -1), new THREE.Vector3(1.4, 0, -1)];
+    } else if (lLvl === 1) {
+      // Enhanced Twin Plasma Cannons
+      playerShip.muzzleOffsets = [new THREE.Vector3(-1.8, 0, -1.2), new THREE.Vector3(1.8, 0, -1.2)];
+    } else if (lLvl === 2) {
+      // Tri-Cannon Array (Center heavy + twin wingtip)
+      playerShip.muzzleOffsets = [new THREE.Vector3(-1.9, 0, -1.2), new THREE.Vector3(0, 0.4, -2.2), new THREE.Vector3(1.9, 0, -1.2)];
+    } else if (lLvl === 3) {
+      // Quad-Linked Heavy Blasters
+      playerShip.muzzleOffsets = [
+        new THREE.Vector3(-2.2, 0, -1.0),
+        new THREE.Vector3(-0.9, 0.2, -1.8),
+        new THREE.Vector3(0.9, 0.2, -1.8),
+        new THREE.Vector3(2.2, 0, -1.0)
+      ];
+    } else if (lLvl === 4) {
+      // Penta-Spread Cannon Array
+      playerShip.muzzleOffsets = [
+        new THREE.Vector3(-2.4, 0, -0.8),
+        new THREE.Vector3(-1.2, 0.2, -1.6),
+        new THREE.Vector3(0, 0.5, -2.4),
+        new THREE.Vector3(1.2, 0.2, -1.6),
+        new THREE.Vector3(2.4, 0, -0.8)
+      ];
+    } else {
+      // Level 5 Apex: Quantum Particle Disruptor Hex Array
+      playerShip.muzzleOffsets = [
+        new THREE.Vector3(-2.6, 0, -0.8),
+        new THREE.Vector3(-1.4, 0.2, -1.6),
+        new THREE.Vector3(-0.5, 0.5, -2.4),
+        new THREE.Vector3(0.5, 0.5, -2.4),
+        new THREE.Vector3(1.4, 0.2, -1.6),
+        new THREE.Vector3(2.6, 0, -0.8)
+      ];
+      playerShip.hasQuantumOvercharge = true;
+    }
 
-    let mLvl = this.upgrades.magnet;
-    if (typeof mLvl !== 'number' || isNaN(mLvl)) mLvl = 0;
+    // 4. Tactical EMP Shockwave
+    let eLvl = this.upgrades.emp || 0;
+    playerShip.empLevel = eLvl;
+    playerShip.maxPulseCD = Math.max(3.0, 7.5 - eLvl * 0.9);
+    playerShip.empRadius = 25 + eLvl * 8; // 25m to 65m radius
+
+    // 5. Magnetic Tractor Beam & Scrap Harvester
+    let mLvl = this.upgrades.magnet || 0;
     playerShip.tractorBeamLevel = mLvl;
+    playerShip.magnetRadius = 8 + mLvl * 7; // 8m to 43m collection radius
+    playerShip.scrapMultiplier = 1.0 + mLvl * 0.15; // Up to +75% bonus scrap
   }
 }

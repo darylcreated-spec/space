@@ -798,21 +798,23 @@ export class SpaceHUD {
     const updateBtn = (btn, lvlSpan, type) => {
       const lvl = upgradeSystem.upgrades[type] || 0;
       const cost = upgradeSystem.getCost(type);
+      const tierName = upgradeSystem.getTierName(type, lvl);
+      const nextTierName = upgradeSystem.getTierName(type, Math.min(5, lvl + 1));
 
       if (lvlSpan) {
-        let pipsHtml = `<div class="upgrade-pips" title="Lvl ${lvl} / 5">`;
+        let pipsHtml = `<div class="upgrade-pips" title="${tierName} (Lvl ${lvl} / 5)">`;
         for (let i = 1; i <= 5; i++) {
           pipsHtml += `<span class="upg-pip ${i <= lvl ? 'active' : ''}"></span>`;
         }
-        pipsHtml += '</div>';
+        pipsHtml += `<span class="upg-tier-label" style="font-size:0.65rem; color:var(--accent-cyan); margin-left:6px; font-weight:700; text-transform:uppercase;">${tierName}</span></div>`;
         lvlSpan.innerHTML = pipsHtml;
       }
       if (btn) {
         if (lvl >= upgradeSystem.maxLevel) {
-          btn.textContent = 'MAX REFIT';
+          btn.textContent = 'MAX REFIT ⚡';
           btn.disabled = true;
         } else {
-          btn.textContent = `REFIT (${cost} CR)`;
+          btn.textContent = `UPGRADE TO ${nextTierName.toUpperCase()} (${cost} CR)`;
           btn.disabled = upgradeSystem.scrap < cost;
         }
       }
