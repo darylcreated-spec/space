@@ -539,6 +539,18 @@ export class SpaceScene {
           bPos.y * 0.6,
           bPos.z * 0.8
         );
+      } else if (activeBoss.constructor && activeBoss.constructor.name === 'CommandMothership' && !activeBoss.hasPlasmaShield) {
+        // ── 🚀 Cinematic Trench Run & Reactor Vault Infiltration Camera ──
+        this.targetCameraPos.set(
+          pPos.x * 0.7,
+          3.8 + pPos.y * 0.35,
+          pPos.z + 15.0
+        );
+        this.targetLookAt.set(
+          pPos.x * 0.5,
+          pPos.y * 0.35,
+          pPos.z - 40.0
+        );
       } else {
         // Dynamic Cinematic Boss Duel Tracking Mode:
         // Wide-angle majestic third-person framing that keeps both the capital boss and dogfight sector in full view

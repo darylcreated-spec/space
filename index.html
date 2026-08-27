@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <script>
     window.addEventListener('error', (event) => {
+      if (!event.error && (!event.message || event.message === 'Script error.')) return;
       const errDiv = document.createElement('div');
       errDiv.style.position = 'fixed';
       errDiv.style.top = '10px';
