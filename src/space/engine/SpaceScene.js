@@ -581,16 +581,16 @@ export class SpaceScene {
           );
         }
       } else if (activeBoss.constructor && activeBoss.constructor.name === 'CommandMothership' && !activeBoss.hasPlasmaShield) {
-        // ── 🚀 Cinematic Trench Run & Reactor Vault Infiltration Camera ──
+        // ── 🚀 Cinematic Open-Top Canyon & Couplings Assault Camera ──
         this.targetCameraPos.set(
-          pPos.x * 0.7,
-          3.8 + pPos.y * 0.35,
-          pPos.z + 15.0
+          pPos.x * 0.55,
+          10.5 + pPos.y * 0.3,
+          pPos.z + 22.0
         );
         this.targetLookAt.set(
-          pPos.x * 0.5,
-          pPos.y * 0.35,
-          pPos.z - 40.0
+          pPos.x * 0.45,
+          pPos.y * 0.3,
+          pPos.z - 35.0
         );
       } else {
         // Dynamic Cinematic Boss Duel Tracking Mode:

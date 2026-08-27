@@ -483,69 +483,18 @@ export class CommandMothership {
       this.meshGroup.add(cond);
     }
 
-    // ── 3. Mechanical Interior Trench Ceiling (Top) — 56m Wide, 200m Long ──
-    const roofGeo = new THREE.BoxGeometry(56, 4.0, 200);
-    const roofMesh = new THREE.Mesh(roofGeo, hullMat);
-    roofMesh.position.set(0, 14.0, -40);
-    this.meshGroup.add(roofMesh);
+    // ── 3. Open-Top Trench Canyon Lateral Catwalks (Crystal-Clear Unobstructed View) ──
+    [-28, 28].forEach(cx => {
+      const catwalkGeo = new THREE.BoxGeometry(6.0, 1.8, 200);
+      const catwalk = new THREE.Mesh(catwalkGeo, mechanicalTrussMat);
+      catwalk.position.set(cx, 8.0, -40);
+      this.meshGroup.add(catwalk);
 
-    // Overhead Structural Steel Trusses & Girders
-    for (let z = -135; z <= 50; z += 18) {
-      const trussGroup = new THREE.Group();
-      trussGroup.position.set(0, 11.5, z);
-
-      const tBeamGeo = new THREE.BoxGeometry(55.5, 2.0, 2.8);
-      const tBeam = new THREE.Mesh(tBeamGeo, mechanicalTrussMat);
-      trussGroup.add(tBeam);
-
-      const cableGeo = new THREE.CylinderGeometry(0.3, 0.3, 54, 6);
-      cableGeo.rotateZ(Math.PI / 2);
-      const cable = new THREE.Mesh(cableGeo, glowAmberMat);
-      cable.position.set(0, -1.2, 0);
-      trussGroup.add(cable);
-
-      this.meshGroup.add(trussGroup);
-    }
-
-    // 6 Animated Rotating Ventilation Turbines in Ceiling (Targetable!)
-    this.turbines.forEach(t => {
-      const tGroup = new THREE.Group();
-      tGroup.position.set(0, 12.0, t.z);
-
-      const turbineCowlGeo = new THREE.CylinderGeometry(5.5, 5.5, 2.5, 16);
-      turbineCowlGeo.rotateX(Math.PI / 2);
-      const turbineCowl = new THREE.Mesh(turbineCowlGeo, mechanicalTrussMat);
-      tGroup.add(turbineCowl);
-
-      const fanGroup = new THREE.Group();
-      fanGroup.position.set(0, -0.2, 0);
-      for (let f = 0; f < 6; f++) {
-        const fAng = (f / 6) * Math.PI * 2;
-        const bladeGeo = new THREE.BoxGeometry(0.5, 4.8, 0.25);
-        const blade = new THREE.Mesh(bladeGeo, mechanicalTrussMat);
-        blade.position.set(Math.cos(fAng) * 2.4, Math.sin(fAng) * 2.4, 0);
-        blade.rotation.z = fAng + 0.3;
-        fanGroup.add(blade);
-      }
-      tGroup.add(fanGroup);
-      this.turbineFans.push(fanGroup);
-
-      const tLight = new THREE.PointLight(0xff5500, 4.0, 40);
-      tLight.position.set(0, -1.5, 0);
-      tGroup.add(tLight);
-
-      // Target reticle
-      const reticleGeo = new THREE.RingGeometry(2.0, 2.5, 16);
-      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff5500, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
-      const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, -1.8, 2.5);
-      tGroup.add(reticle);
-
-      this.meshGroup.add(tGroup);
-      t.cowlMesh = tGroup;
-      t.fanGroup = fanGroup;
-      t.reticle = reticle;
-      this.reticleMeshes.push(reticle);
+      const edgeRailGeo = new THREE.CylinderGeometry(0.3, 0.3, 200, 6);
+      edgeRailGeo.rotateX(Math.PI / 2);
+      const edgeRail = new THREE.Mesh(edgeRailGeo, glowAmberMat);
+      edgeRail.position.set(cx < 0 ? cx + 2.8 : cx - 2.8, 9.2, -40);
+      this.meshGroup.add(edgeRail);
     });
 
     // ── 3B. Internal Obstacle: Laser Tripwire Barrier Grids (Targetable Hubs!) ──
@@ -750,11 +699,11 @@ export class CommandMothership {
     this.meshGroup.add(this.coreHousingGroup);
 
     // ── 8. 4 Heavy Magnetic Suspension Couplings / Clamp Pylons ──
-    const clampArmGeo = new THREE.BoxGeometry(3.2, 3.2, 8.0);
-    const clampLockGeo = new THREE.CylinderGeometry(2.0, 2.6, 3.5, 8);
+    const clampArmGeo = new THREE.BoxGeometry(3.6, 3.6, 9.0);
+    const clampLockGeo = new THREE.CylinderGeometry(2.4, 3.0, 4.0, 8);
     clampLockGeo.rotateX(Math.PI / 2);
 
-    this.coreCouplings.forEach(c => {
+    this.coreCouplings.forEach((c, idx) => {
       const cGroup = new THREE.Group();
       cGroup.position.copy(c.relPos);
 
@@ -765,21 +714,32 @@ export class CommandMothership {
       lockHub.position.set(0, 0, 3.2);
       cGroup.add(lockHub);
 
-      const lockRing = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.35, 6, 18), glowCyanMat);
+      const lockRing = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.45, 8, 24), glowCyanMat);
       lockRing.position.set(0, 0, 4.5);
       cGroup.add(lockRing);
 
-      const reticleGeo = new THREE.RingGeometry(2.8, 3.5, 16);
-      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+      // High-Visibility Primary Targeting Ring
+      const reticleGeo = new THREE.RingGeometry(3.6, 4.6, 24);
+      const reticleMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-      reticle.position.set(0, 0, 5.2);
+      reticle.position.set(0, 0, 5.5);
       cGroup.add(reticle);
+
+      // Holographic Diamond Target Brackets
+      const diamondGeo = new THREE.RingGeometry(5.2, 5.8, 4);
+      diamondGeo.rotateZ(Math.PI / 4);
+      const diamondMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+      const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+      diamond.position.set(0, 0, 5.6);
+      cGroup.add(diamond);
 
       this.meshGroup.add(cGroup);
       c.mesh = cGroup;
       c.clampArm = arm;
       c.reticle = reticle;
+      c.diamond = diamond;
       this.reticleMeshes.push(reticle);
+      this.reticleMeshes.push(diamond);
     });
 
     // ── 9. Rear Fusion Thrust Array ──
