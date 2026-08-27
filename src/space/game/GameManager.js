@@ -370,6 +370,66 @@ export class GameManager {
     }
   }
 
+  // ── ⚖️ Dynamic Stage HP & Shield Scaling Multiplier ──
+  getWaveHpMultiplier() {
+    const wave = this.waveSpawner ? this.waveSpawner.currentWave : 1;
+    if (wave <= 1) return 1.0;
+    if (wave === 2) return 1.25;
+    if (wave === 3) return 1.55;
+    if (wave === 4) return 1.90;
+    if (wave === 5) return 2.30;
+    return 2.30 + (wave - 5) * 0.15;
+  }
+
+  applyEnemyHpScaling(enemy) {
+    if (!enemy) return;
+    const mult = this.getWaveHpMultiplier();
+    if (mult === 1.0) return;
+
+    if (enemy.hp !== undefined) {
+      enemy.hp = Math.round(enemy.hp * mult);
+      if (enemy.maxHp !== undefined) enemy.maxHp = Math.round(enemy.maxHp * mult);
+    }
+    if (enemy.coreHp !== undefined) {
+      enemy.coreHp = Math.round(enemy.coreHp * mult);
+      if (enemy.maxCoreHp !== undefined) enemy.maxCoreHp = Math.round(enemy.maxCoreHp * mult);
+    }
+
+    // Scale modular subsystems (turrets, hangars, generators, armor plates)
+    if (Array.isArray(enemy.turrets)) {
+      enemy.turrets.forEach(t => {
+        if (t.hp !== undefined) {
+          t.hp = Math.round(t.hp * mult);
+          if (t.maxHp !== undefined) t.maxHp = Math.round(t.maxHp * mult);
+        }
+      });
+    }
+    if (Array.isArray(enemy.subsystems)) {
+      enemy.subsystems.forEach(s => {
+        if (s.hp !== undefined) {
+          s.hp = Math.round(s.hp * mult);
+          if (s.maxHp !== undefined) s.maxHp = Math.round(s.maxHp * mult);
+        }
+      });
+    }
+    if (Array.isArray(enemy.armorPlates)) {
+      enemy.armorPlates.forEach(p => {
+        if (p.hp !== undefined) {
+          p.hp = Math.round(p.hp * mult);
+          if (p.maxHp !== undefined) p.maxHp = Math.round(p.maxHp * mult);
+        }
+      });
+    }
+    if (Array.isArray(enemy.generators)) {
+      enemy.generators.forEach(g => {
+        if (g.hp !== undefined) {
+          g.hp = Math.round(g.hp * mult);
+          if (g.maxHp !== undefined) g.maxHp = Math.round(g.maxHp * mult);
+        }
+      });
+    }
+  }
+
   spawnAsteroid(options = {}) {
     options.particleManager = this.particleManager;
 
@@ -384,6 +444,7 @@ export class GameManager {
     }
 
     const rock = new Asteroid(this.spaceScene.scene, options);
+    this.applyEnemyHpScaling(rock);
     this.asteroids.push(rock);
   }
 
@@ -400,12 +461,14 @@ export class GameManager {
     }
     const opts = spawnPos ? (spawnPos.isVector3 ? { x: spawnPos.x, y: spawnPos.y, z: spawnPos.z } : spawnPos) : {};
     const drone = new EnemyDrone(this.spaceScene.scene, opts);
+    this.applyEnemyHpScaling(drone);
     this.drones.push(drone);
     return drone;
   }
 
   spawnCapitalShip(spawnOffset = null) {
     const ship = new CapitalShip(this.spaceScene.scene, this.particleManager, spawnOffset);
+    this.applyEnemyHpScaling(ship);
     this.capitalShips.push(ship);
     this.voiceAnnouncer.speak("Warning! Enemy Capital Cruiser Escort Arrived!", true);
     if (this.spaceHUD) {
@@ -419,12 +482,14 @@ export class GameManager {
 
   spawnBoss() {
     this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Sector Dreadnought Approaching!", true);
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnTitanBoss() {
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Titan Asteroid Colossus Approaching!", true);
     if (this.spaceHUD) {
       this.spaceHUD.showWaveBanner("BOSS BATTLE", "TITAN ASTEROID COLOSSUS");
@@ -442,6 +507,7 @@ export class GameManager {
 
   spawnAsteroidCoreFlagship(spawnPos = null) {
     this.activeBoss = new TitanCoreShip(this.spaceScene.scene, this.particleManager, spawnPos);
+    this.applyEnemyHpScaling(this.activeBoss);
     if (this.spaceHUD) {
       this.spaceHUD.showWaveBanner("PHASE 2 ALERT", "TITAN CORE FLAGSHIP EMERGED!");
       this.spaceHUD.updateBossHealth(1.0, "TITAN CORE FLAGSHIP // ANCIENT WAR VESSEL");
@@ -457,6 +523,7 @@ export class GameManager {
 
   spawnCarrierBoss() {
     this.carrierBoss = new CarrierCapitalShip(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.carrierBoss);
     this.voiceAnnouncer.speak("Alert! Heavy Enemy Spacecraft Carrier Detected! Interceptors Launching!", true);
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("ALERT: Heavy Enemy Spacecraft Carrier detected! Target its flight decks & missile pods!", "STARBOUND COMMAND", 5.5);
@@ -469,6 +536,7 @@ export class GameManager {
 
   spawnSpaceStation() {
     this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Orbital Alpha Moon Base Approaching! Destroy Shield Generators!", true);
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("WARNING: Orbital Alpha Moon Base arriving! Destroy its equatorial shield generators to expose the thermal core!", "STARBOUND COMMAND", 5.5);
@@ -481,12 +549,14 @@ export class GameManager {
 
   spawnHaloBoss() {
     this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Halo Megastructure Ring Approaching!", true);
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 
   spawnSanctuaryCylinderBoss() {
     this.activeBoss = new SanctuaryCylinderBoss(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Sanctuary-9 Industrial Cylinder Approaching!", true);
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("WARNING: Sanctuary-9 O'Neill Cylinder Habitat arriving! Protect civilian evacuation corridors and neutralize siege batteries!", "STARBOUND COMMAND", 5.5);
@@ -497,12 +567,14 @@ export class GameManager {
 
   spawnStealthFighter(spawnPos = null) {
     const fighter = new StealthFighter(this.spaceScene.scene, this.particleManager, spawnPos);
+    this.applyEnemyHpScaling(fighter);
     this.stealthFighters.push(fighter);
     return fighter;
   }
 
   spawnHeavyBattleship() {
     const battleship = new HeavyBattleship(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(battleship);
     this.heavyBattleships.push(battleship);
     this.voiceAnnouncer.speak("Warning! Goliath Heavy Dreadnought Battleship Entering Sector!", true);
     if (this.spaceHUD) {
@@ -515,6 +587,7 @@ export class GameManager {
 
   spawnCommandMothership() {
     this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Leviathan Command Mothership Approaching! Destroy Entrance Shield Generators to Breach Trench!", true);
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("FINAL SIEGE: Leviathan Command Mothership detected! Destroy the dual Shield Generators at the entrance pylons to lower the Plasma Shield, then fly inside and sever the 4 Magnetic Couplings!", "STARBOUND COMMAND", 8.0);
