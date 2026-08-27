@@ -607,10 +607,10 @@ export class GameManager {
     if (this.activeBoss.meshGroup) {
       this.activeBoss.meshGroup.position.set(0, 5, -140);
     }
-    this.voiceAnnouncer.speak("Priority Alpha! Leviathan Command Mothership emerging from subspace! Look at the sheer size of that titan! Target entrance shield pylons to breach the trench!", true);
+    this.voiceAnnouncer.speak("Priority Alpha! Leviathan Command Mothership emerging from subspace! Target entrance shield pylons to breach the trench!", true);
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Command Mothership warp detected! Look at the sheer size of that 150m Titan! Target the dual Shield Generators at the entrance pylons to lower the Plasma Shield!", "STARBOUND COMMAND", 8.5);
-      this.spaceHUD.showWaveBanner("COLOSSAL APEX SIEGE", "LEVIATHAN COMMAND MOTHERSHIP (150M TITAN)");
+      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Command Mothership detected! Target the dual Shield Generators at the entrance pylons to lower the Plasma Shield!", "STARBOUND COMMAND", 8.0);
+      this.spaceHUD.showWaveBanner("COLOSSAL APEX SIEGE", "LEVIATHAN COMMAND MOTHERSHIP");
     }
     if (this.spaceScene) {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -140));
