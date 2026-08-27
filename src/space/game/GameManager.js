@@ -547,6 +547,7 @@ export class GameManager {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
       this.spaceScene.triggerBossIntroCamera();
     }
+    return this.carrierBoss;
   }
 
   spawnSpaceStation() {

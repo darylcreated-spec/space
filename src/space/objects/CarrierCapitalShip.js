@@ -781,11 +781,45 @@ export class CarrierCapitalShip {
     if (!arrived) {
       this.meshGroup.position.z += this.speed * dt;
     } else {
-      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.22, dt * 2.0);
-      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, Math.sin(this._time * 0.4) * 0.25, dt * 2.0);
-      this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -Math.sin(this._time * 0.4) * 0.08, dt * 2.0);
-      this.meshGroup.position.x = Math.sin(this._time * 0.4) * 14.0;
-      this.meshGroup.position.y = 8.0 + Math.cos(this._time * 0.3) * 2.5;
+      // ── ⚡ Carrier Tactical Micro-Warp Relocation & Combat Surge Maneuvers ──
+      this.warpTimer = (this.warpTimer || 9.0) - dt;
+      if (this.warpTimer <= 0) {
+        this.warpTimer = 11.0 + Math.random() * 4.0;
+        // Tactical Micro-Warp Ambush
+        if (this.particleManager) {
+          this.particleManager.createEmpShockwave(this.meshGroup.position, 70);
+          this.particleManager.createExplosion(this.meshGroup.position, 0xff0055, 60, 3.0);
+        }
+        this.meshGroup.position.x = -this.meshGroup.position.x; // Invert flank!
+        this.meshGroup.position.y = 9.0 + (Math.random() - 0.5) * 4.0;
+        this.droneLaunchTimer = 0.1; // Instant scramble!
+      }
+
+      this.surgeTimer = (this.surgeTimer || 6.0) - dt;
+      if (this.surgeTimer <= 0) {
+        this.surgeTimer = 8.0 + Math.random() * 3.0;
+        this.isSurging = true;
+        this.surgeProgress = 0;
+      }
+
+      if (this.isSurging) {
+        this.surgeProgress += dt * 1.5;
+        this.meshGroup.position.z = this.targetZ + Math.sin(this.surgeProgress * Math.PI) * 22.0;
+        this.meshGroup.rotation.x = 0.22 + Math.sin(this.surgeProgress * Math.PI) * 0.25;
+        if (this.particleManager && Math.random() < 0.6) {
+          this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0xff3300);
+        }
+        if (this.surgeProgress >= 1.0) {
+          this.isSurging = false;
+          this.meshGroup.position.z = this.targetZ;
+        }
+      } else {
+        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.22, dt * 2.0);
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, Math.sin(this._time * 0.4) * 0.25, dt * 2.0);
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -Math.sin(this._time * 0.4) * 0.08, dt * 2.0);
+        this.meshGroup.position.x = Math.sin(this._time * 0.4) * 14.0;
+        this.meshGroup.position.y = 8.0 + Math.cos(this._time * 0.3) * 2.5;
+      }
     }
 
     if (this.radarDish) this.radarDish.rotation.y += 2.4 * dt;

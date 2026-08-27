@@ -99,6 +99,13 @@ export class CapitalShip {
     this.breakCooldown = 0; // Paced detachment cooldown (prevents rapid-fire part drop-offs)
     this.activeRuptureSockets = []; // Active exposed damaged hull sockets
 
+    // ── ⚡ Special Combat Maneuvers State Machine ──
+    this.maneuverState = 'CRUISE'; // 'CRUISE', 'FLANK_DIVE', 'RAM_CHARGE', 'BROADSIDE_SWEEP'
+    this.maneuverTimer = 3.2 + Math.random() * 2.0;
+    this.maneuverProgress = 0;
+    this.maneuverDuration = 2.4;
+    this.chargeTargetX = 0;
+
     this.buildMesh();
     this.scene.add(this.meshGroup);
   }
@@ -800,12 +807,101 @@ export class CapitalShip {
       this.meshGroup.position.y += (targetFlankY - this.meshGroup.position.y) * dt * agilityRate;
       this.meshGroup.position.z += (targetFlankZ - this.meshGroup.position.z) * dt * agilityRate;
     } else {
-      // Standard aggressive battle cruise
-      if (this.meshGroup.position.z < this.targetZ) {
-        this.meshGroup.position.z += this.speed * dt;
+      // ── ⚡ Special Tactical Combat Maneuvers ──
+      this.maneuverTimer -= dt;
+      if (this.maneuverTimer <= 0 && this.maneuverState === 'CRUISE' && this.meshGroup.position.z >= -60 && this.meshGroup.position.z <= 10) {
+        const roll = Math.random();
+        if (roll < 0.35) {
+          this.maneuverState = 'FLANK_DIVE';
+          this.maneuverDuration = 2.2;
+          this.maneuverProgress = 0;
+        } else if (roll < 0.70) {
+          this.maneuverState = 'RAM_CHARGE';
+          this.maneuverDuration = 2.0;
+          this.maneuverProgress = 0;
+          this.chargeTargetX = playerPos ? playerPos.x : 0;
+          if (this.particleManager) {
+            this.particleManager.createEmpShockwave(this.meshGroup.position, 35);
+          }
+        } else {
+          this.maneuverState = 'BROADSIDE_SWEEP';
+          this.maneuverDuration = 2.5;
+          this.maneuverProgress = 0;
+        }
+      }
+
+      if (this.maneuverState === 'FLANK_DIVE') {
+        this.maneuverProgress += dt / this.maneuverDuration;
+        const prog = Math.min(1.0, this.maneuverProgress);
+        
+        // Steep 55 deg banking roll & swoop dive
+        const bankAngle = Math.sin(prog * Math.PI) * (this.flankSide * 0.95);
+        this.meshGroup.rotation.z = bankAngle;
+        this.meshGroup.rotation.x = Math.sin(prog * Math.PI) * 0.35;
+        
+        // Lateral curved strafe crossing player flight line
+        this.meshGroup.position.x += Math.cos(prog * Math.PI) * (-this.flankSide * 16.0) * dt;
+        this.meshGroup.position.y += Math.sin(prog * Math.PI * 2) * 2.5 * dt;
+        this.meshGroup.position.z += (this.speed * 1.5) * dt;
+
+        if (this.particleManager && Math.random() < 0.6) {
+          this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xff4400, 12);
+        }
+
+        if (prog >= 1.0) {
+          this.maneuverState = 'CRUISE';
+          this.maneuverTimer = 4.0 + Math.random() * 2.5;
+          this.meshGroup.rotation.z = 0;
+          this.meshGroup.rotation.x = 0;
+        }
+      } else if (this.maneuverState === 'RAM_CHARGE') {
+        this.maneuverProgress += dt / this.maneuverDuration;
+        const prog = Math.min(1.0, this.maneuverProgress);
+
+        if (prog < 0.3) {
+          // Wind-up: align with player & charge afterburners
+          this.meshGroup.position.x += (this.chargeTargetX - this.meshGroup.position.x) * dt * 4.0;
+          if (this.particleManager && Math.random() < 0.5) {
+            this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 1, 0), 0xff2200, 8);
+          }
+        } else {
+          // Overdrive Ram Thrust!
+          this.meshGroup.position.z += (this.speed * 2.8) * dt;
+          this.meshGroup.rotation.x = -0.15;
+          if (this.particleManager && Math.random() < 0.7) {
+            this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0xff3300);
+          }
+        }
+
+        if (prog >= 1.0) {
+          this.maneuverState = 'CRUISE';
+          this.maneuverTimer = 5.0 + Math.random() * 3.0;
+          this.meshGroup.rotation.x = 0;
+        }
+      } else if (this.maneuverState === 'BROADSIDE_SWEEP') {
+        this.maneuverProgress += dt / this.maneuverDuration;
+        const prog = Math.min(1.0, this.maneuverProgress);
+
+        // Pivot 65 deg broadside to unmask heavy batteries
+        const targetYaw = Math.sin(prog * Math.PI) * (this.flankSide * 1.15);
+        this.meshGroup.rotation.y = targetYaw;
+        this.meshGroup.position.x += Math.cos(this._time * 2.0) * 1.2 * dt;
+
+        if (prog >= 1.0) {
+          this.maneuverState = 'CRUISE';
+          this.maneuverTimer = 4.5 + Math.random() * 2.5;
+          this.meshGroup.rotation.y = 0;
+        }
       } else {
-        this.meshGroup.position.z += Math.sin(this._time * this.strafeFreq) * 0.8 * dt;
-        this.meshGroup.position.x += Math.cos(this._time * (this.strafeFreq * 0.8)) * 1.8 * dt;
+        // Standard aggressive battle cruise
+        this.meshGroup.rotation.z = Math.sin(this._time * this.strafeFreq) * 0.15;
+        this.meshGroup.rotation.y = Math.cos(this._time * (this.strafeFreq * 0.6)) * 0.08;
+        if (this.meshGroup.position.z < this.targetZ) {
+          this.meshGroup.position.z += this.speed * dt;
+        } else {
+          this.meshGroup.position.z += Math.sin(this._time * this.strafeFreq) * 0.8 * dt;
+          this.meshGroup.position.x += Math.cos(this._time * (this.strafeFreq * 0.8)) * 2.2 * dt;
+        }
       }
     }
 
