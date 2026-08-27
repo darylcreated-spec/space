@@ -460,6 +460,7 @@ export class GameManager {
     const rock = new Asteroid(this.spaceScene.scene, options);
     this.applyEnemyHpScaling(rock);
     this.asteroids.push(rock);
+    return rock;
   }
 
   spawnAsteroidFragments(fragments) {
