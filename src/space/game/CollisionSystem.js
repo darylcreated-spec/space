@@ -178,6 +178,31 @@ export class CollisionSystem {
 
         if (hit) continue;
 
+        // ── ⭐ Player Lasers vs Cloaked Data Courier Drone (3-Star Mastery) ──
+        if (gameManager.dataCourierDrone && !gameManager.dataCourierDrone.isDead && gameManager.dataCourierDrone.meshGroup) {
+          const courier = gameManager.dataCourierDrone;
+          const dist = lPos.distanceTo(courier.meshGroup.position);
+          if (dist < 2.5) {
+            const dead = courier.takeDamage(laser.isCritical ? 100 : 35);
+            this.particleManager.createExplosion(lPos, 0xffea00, 20);
+            if (dead) {
+              gameManager.dataCoresCollectedInWave = true;
+              gameManager.addScore(25000);
+              gameManager.upgradeSystem.addScrap(500);
+              if (gameManager.spaceHUD) {
+                gameManager.spaceHUD.showRadioTransmission("3-STAR MASTERY: Vorn Black Box Data Core Recovered! (+500 CR)", "STARBOUND COMMAND", 6.0);
+                gameManager.spaceHUD.updateScrap(gameManager.upgradeSystem.scrap);
+              }
+              gameManager.hapticsManager.triggerStarEarned();
+            }
+            if (!gameManager.activePerks.has('piercing') && !laser.isAoe) {
+              laser.destroy();
+              gameManager.lasers.splice(i, 1);
+              continue;
+            }
+          }
+        }
+
         // Player Lasers vs Enemy Drones
         for (let j = gameManager.drones.length - 1; j >= 0; j--) {
           const drone = gameManager.drones[j];

@@ -739,6 +739,45 @@ export class SpaceHUD {
         }
       });
     }
+
+    // 🤖 Wingman Deployment Handler
+    const btnWingman = document.getElementById('btn-deploy-wingman');
+    if (btnWingman) {
+      btnWingman.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.hasWingmanActive) {
+          this.gameManager.despawnWingmanDrones();
+          this.updateHangarUI(this.gameManager.upgradeSystem);
+          return;
+        }
+        const cost = 400;
+        if (this.gameManager.upgradeSystem.scrap >= cost) {
+          this.gameManager.upgradeSystem.scrap -= cost;
+          this.gameManager.spawnWingmanDrones();
+          this.gameManager.spaceAudio.playPowerUpSound();
+          this.gameManager.voiceAnnouncer.speak("Striker Wingmen Deployed!", true);
+          this.updateHangarUI(this.gameManager.upgradeSystem);
+          this.updateScrap(this.gameManager.upgradeSystem.scrap);
+        } else {
+          this.gameManager.spaceAudio.playExplosion();
+        }
+      });
+    }
+
+    // 🎨 Laser Optics Swatches Handler
+    const swatches = document.querySelectorAll('.optics-swatch-btn');
+    swatches.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const hexStr = btn.getAttribute('data-color');
+        const color = parseInt(hexStr, 16);
+        this.gameManager.setLaserTracerColor(color);
+        swatches.forEach(s => s.classList.remove('active'));
+        btn.classList.add('active');
+        this.gameManager.spaceAudio.playLaserPew();
+        this.showRadioTransmission(`OPTICS CALIBRATED: Laser beam tinted to #${hexStr.toUpperCase()}`, "OPTICS BAY", 3.0);
+      });
+    });
   }
 
   showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 2.2) {
@@ -780,11 +819,12 @@ export class SpaceHUD {
     }
   }
 
-  showHangarModal(completedWaveNum, upgradeSystem) {
+  showHangarModal(completedWaveNum, upgradeSystem, starsEarned = 0) {
     try {
       if (this.modalHangar) {
         this.gameManager.state = 'HANGAR';
-        this.updateHangarUI(upgradeSystem);
+        this.currentHangarWave = completedWaveNum;
+        this.updateHangarUI(upgradeSystem, starsEarned);
         this.modalHangar.classList.remove('hidden');
       }
     } catch (err) {
@@ -792,8 +832,36 @@ export class SpaceHUD {
     }
   }
 
-  updateHangarUI(upgradeSystem) {
+  updateHangarUI(upgradeSystem, starsEarned = null) {
     if (this.hangarScrapVal) this.hangarScrapVal.textContent = upgradeSystem.scrap;
+
+    // Render 3-Star Mastery Rating
+    const waveNum = this.currentHangarWave || this.gameManager.waveSpawner.currentWave;
+    const stageStars = starsEarned !== null ? starsEarned : this.gameManager.getStageStars(waveNum);
+    const starContainer = document.getElementById('hangar-stars-row');
+    if (starContainer) {
+      starContainer.innerHTML = `
+        <div class="stage-star-badge" style="display:flex; align-items:center; gap:8px; margin:4px 0 10px 0; background:rgba(0,243,255,0.08); padding:6px 12px; border-radius:6px; border:1px solid rgba(0,243,255,0.3);">
+          <span style="font-size:0.75rem; color:var(--accent-cyan); font-weight:700; letter-spacing:1px;">STAGE ${waveNum} MASTERY:</span>
+          <span style="font-size:1.1rem; color:#ffea00; letter-spacing:4px;">
+            ${'★'.repeat(Math.max(1, stageStars))}${'☆'.repeat(Math.max(0, 3 - Math.max(1, stageStars)))}
+          </span>
+          <span style="font-size:0.65rem; color:#88aabb; margin-left:auto;">${stageStars === 3 ? 'ALL DATA CORES SECURED' : 'DATA CORE PENDING'}</span>
+        </div>
+      `;
+    }
+
+    // Render Daily Incursion Status
+    const dailyContainer = document.getElementById('hangar-daily-banner');
+    if (dailyContainer && this.gameManager.dailyIncursionSystem) {
+      const daily = this.gameManager.dailyIncursionSystem.activeModifier;
+      dailyContainer.innerHTML = `
+        <div style="background:rgba(255,170,0,0.12); border:1px solid rgba(255,170,0,0.4); padding:6px 12px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.75rem; font-weight:800; color:#ffaa00; letter-spacing:1px;">⚡ DAILY INCURSION: ${daily.name}</span>
+          <span style="font-size:0.65rem; color:#ffdd88;">${daily.desc}</span>
+        </div>
+      `;
+    }
 
     const updateBtn = (btn, lvlSpan, type) => {
       const lvl = upgradeSystem.upgrades[type] || 0;

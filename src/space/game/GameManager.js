@@ -9,6 +9,9 @@ import { TitanCoreShip } from '../objects/TitanCoreShip.js';
 import { MoonBase } from '../objects/SpaceStation.js';
 import { HaloRingBoss } from '../objects/HaloRingBoss.js';
 import { SanctuaryCylinderBoss } from '../objects/SanctuaryCylinderBoss.js';
+import { HeliosSolarBoss } from '../objects/HeliosSolarBoss.js';
+import { WingmanDrone } from '../objects/WingmanDrone.js';
+import { DataCourierDrone } from '../objects/DataCourierDrone.js';
 import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
 import { PlayerSwarmMissile } from '../objects/PlayerSwarmMissile.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
@@ -21,6 +24,8 @@ import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
 import { VoiceAnnouncer } from '../audio/VoiceAnnouncer.js';
 import { AchievementSystem } from './AchievementSystem.js';
+import { HapticsManager } from '../engine/HapticsManager.js';
+import { DailyIncursionSystem } from './DailyIncursionSystem.js';
 
 export class GameManager {
   constructor(spaceScene, postProcessing, particleManager, spaceAudio, controlsManager) {
@@ -39,7 +44,16 @@ export class GameManager {
     this.upgradeSystem = new UpgradeSystem();
     this.voiceAnnouncer = new VoiceAnnouncer(this.spaceAudio);
     this.achievementSystem = new AchievementSystem();
+    this.hapticsManager = new HapticsManager();
+    this.dailyIncursionSystem = new DailyIncursionSystem();
     this.pilotProfile = null;
+
+    // Tactical Wingman & Data Courier Support
+    this.wingmanDrones = [];
+    this.hasWingmanActive = false;
+    this.dataCourierDrone = null;
+    this.dataCoresCollectedInWave = false;
+    this.laserTracerColor = localStorage.getItem('ov_optics_color') ? parseInt(localStorage.getItem('ov_optics_color'), 16) : 0x00f3ff;
 
     // AAA Upgrade States
     this.selectedShipClass = 'INTERCEPTOR';
@@ -599,6 +613,61 @@ export class GameManager {
     }
   }
 
+  spawnHeliosSolarBoss() {
+    this.activeBoss = new HeliosSolarBoss(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
+    this.voiceAnnouncer.speak("Warning! Helios Solar Siphon Colossus Approaching! Protect Hull from Solar Flares!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("STAGE 6 CRITICAL: Helios Solar Siphon Colossus approaching in the solar corona! Target its 6 Dyson collector petals to expose the fusion siphon core!", "STARBOUND COMMAND", 8.0);
+      this.spaceHUD.showWaveBanner("SOLAR FORGE SIEGE", "HELIOS SOLAR SIPHON COLOSSUS");
+      this.spaceHUD.updateBossHealth(1.0, "HELIOS SOLAR SIPHON // DYSON MEGA-FORGE");
+    }
+    if (this.spaceScene) {
+      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
+      this.spaceScene.triggerBossIntroCamera();
+    }
+  }
+
+  spawnWingmanDrones() {
+    this.despawnWingmanDrones();
+    this.wingmanDrones.push(new WingmanDrone(this.spaceScene.scene, this.particleManager, 'LEFT'));
+    this.wingmanDrones.push(new WingmanDrone(this.spaceScene.scene, this.particleManager, 'RIGHT'));
+    this.hasWingmanActive = true;
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("TACTICAL SQUADRON: Allied Striker Wingman Drones deployed in formation!", "WING COMMAND", 4.0);
+    }
+  }
+
+  despawnWingmanDrones() {
+    this.wingmanDrones.forEach(d => d.destroy());
+    this.wingmanDrones = [];
+    this.hasWingmanActive = false;
+  }
+
+  spawnDataCourierDrone() {
+    if (this.dataCourierDrone && !this.dataCourierDrone.isDead) return;
+    this.dataCourierDrone = new DataCourierDrone(this.spaceScene.scene, this.particleManager);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("TACTICAL RECON: Cloaked Vorn Data Courier Drone detected traversing sector! Shoot it down to recover the 3-Star Black Box Data Core!", "RECON COMMS", 6.0);
+    }
+  }
+
+  setLaserTracerColor(hexColor) {
+    this.laserTracerColor = hexColor;
+    localStorage.setItem('ov_optics_color', hexColor.toString(16));
+  }
+
+  getStageStars(stageNum) {
+    return parseInt(localStorage.getItem(`ov_stars_stage_${stageNum}`) || '0', 10);
+  }
+
+  saveStageStars(stageNum, count) {
+    const existing = this.getStageStars(stageNum);
+    if (count > existing) {
+      localStorage.setItem(`ov_stars_stage_${stageNum}`, count.toString());
+    }
+  }
+
   // ══════════════════════════════════════════════════════════════════════════════
   // ADMIRALTY FLEET INSPECTOR & SHOWCASE MATRIX
   // ══════════════════════════════════════════════════════════════════════════════
@@ -1008,7 +1077,7 @@ export class GameManager {
 
     const shipClass = this.playerShip.shipClass || 'INTERCEPTOR';
     let projectileType = 'STANDARD';
-    let color = 0x00f3ff;
+    let color = this.laserTracerColor || 0x00f3ff;
 
     if (shipClass === 'DREADNOUGHT') {
       projectileType = 'FLAK';
@@ -1027,6 +1096,7 @@ export class GameManager {
     }
 
     if (this.overchargeTimer > 0) color = 0xffea00;
+    if (this.hapticsManager) this.hapticsManager.triggerLaser();
 
     const muzzles = this.playerShip.muzzleOffsets && this.playerShip.muzzleOffsets.length > 0
       ? this.playerShip.muzzleOffsets
@@ -1208,6 +1278,22 @@ export class GameManager {
       this.spaceAudio.playVictoryArpeggio();
       this.voiceAnnouncer.speak(`Wave ${completedWaveNum} Cleared!`, true);
 
+      // ── ⭐ 3-Star Mastery Evaluation ──
+      let starsEarned = 1; // Star 1: Sector Cleared
+      if (this.playerShip && (this.playerShip.shield / this.playerShip.maxShield) >= 0.65) {
+        starsEarned++; // Star 2: Ace Pilot
+      }
+      if (this.dataCoresCollectedInWave) {
+        starsEarned++; // Star 3: Data Core Recovered
+      }
+      this.saveStageStars(completedWaveNum, starsEarned);
+      if (this.hapticsManager) this.hapticsManager.triggerStarEarned();
+
+      if (this.dailyIncursionSystem) {
+        this.dailyIncursionSystem.markDailyCompleted();
+      }
+
+      this.dataCoresCollectedInWave = false;
       this.pendingNextWaveNum = completedWaveNum + 1;
 
       // Automatically open the Hangar Upgrade Modal so player can upgrade craft before next wave!
@@ -1215,7 +1301,7 @@ export class GameManager {
         try {
           if (this.state === 'PLAYING') {
             if (this.spaceHUD) {
-              this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem);
+              this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem, starsEarned);
             }
           }
         } catch (innerErr) {
@@ -1365,6 +1451,25 @@ export class GameManager {
     );
 
     // 3. Update Entities
+    // 3A. Tactical Wingman Drones
+    for (let i = this.wingmanDrones.length - 1; i >= 0; i--) {
+      const wDrone = this.wingmanDrones[i];
+      if (wDrone.isDead) {
+        this.wingmanDrones.splice(i, 1);
+      } else {
+        wDrone.update(effectiveDt, this.playerShip, this);
+      }
+    }
+
+    // 3B. Cloaked Data Courier Drone (3-Star Mastery)
+    if (this.dataCourierDrone) {
+      if (this.dataCourierDrone.isDead) {
+        this.dataCourierDrone = null;
+      } else {
+        this.dataCourierDrone.update(effectiveDt, this.playerShip, this);
+      }
+    }
+
     for (let i = this.asteroids.length - 1; i >= 0; i--) {
       const rock = this.asteroids[i];
       if (!rock || !rock.meshGroup) { this.asteroids.splice(i, 1); continue; }

@@ -755,6 +755,9 @@
         </div>
       </div>
 
+      <div id="hangar-stars-row"></div>
+      <div id="hangar-daily-banner"></div>
+
       <div class="hangar-layout-row">
         <!-- Left Column: CORE UPGRADES -->
         <div class="hangar-column">
@@ -900,6 +903,51 @@
             <p class="premium-desc">Fractures destroyed asteroids into tumbling mineral shards yielding high-density ore crystals & bonus tech scrap rewards.</p>
           </div>
           <button id="btn-buy-mining-addon" class="btn-primary premium-buy-btn">UNLOCK DRILL (500 CR)</button>
+        </div>
+      </div>
+
+      <!-- 🤖 Tactical Wingman Squadron Card -->
+      <div class="premium-addon-card" id="wingman-squadron-card" style="margin-top: 10px; border-color: rgba(0, 243, 255, 0.4);">
+        <div class="premium-badge-row">
+          <span class="premium-badge" style="background: rgba(0, 243, 255, 0.2); color: var(--accent-cyan);">TACTICAL SQUADRON</span>
+          <span class="premium-status" id="wingman-status">ONLINE</span>
+        </div>
+        <div class="premium-body">
+          <div class="premium-info">
+            <h4 class="premium-title" style="color: var(--accent-cyan);">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent-cyan)" stroke-width="2" style="vertical-align: text-bottom; margin-right: 6px;">
+                <polygon points="12 2 19 21 12 17 5 21 12 2"/>
+              </svg>
+              ALLIED STRIKER WINGMAN DRONES
+            </h4>
+            <p class="premium-desc">Deploys dual autonomous escort drones that fly in close wing formation, intercept hostile projectiles, and fire synchronized twin-blaster bursts.</p>
+          </div>
+          <button id="btn-deploy-wingman" class="btn-primary premium-buy-btn" style="background: linear-gradient(135deg, #0088aa, #00f3ff); color: #000; font-weight: 800;">DEPLOY WINGMEN (400 CR)</button>
+        </div>
+      </div>
+
+      <!-- 🎨 Laser Tracer Optics Customizer Card -->
+      <div class="premium-addon-card" id="laser-optics-card" style="margin-top: 10px; border-color: rgba(255, 0, 128, 0.4);">
+        <div class="premium-badge-row">
+          <span class="premium-badge" style="background: rgba(255, 0, 128, 0.2); color: #ff0080;">OPTICS CUSTOMIZER</span>
+          <span class="premium-status" id="optics-status">CALIBRATED</span>
+        </div>
+        <div class="premium-body">
+          <div class="premium-info">
+            <h4 class="premium-title" style="color: #ff55aa;">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ff55aa" stroke-width="2" style="vertical-align: text-bottom; margin-right: 6px;">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+              </svg>
+              LASER TRACER BEAM PALETTE
+            </h4>
+            <div id="optics-swatches" style="display: flex; gap: 8px; margin-top: 8px;">
+              <button class="optics-swatch-btn active" data-color="00f3ff" style="background: #00f3ff; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #fff; cursor: pointer;" title="Neon Cyan"></button>
+              <button class="optics-swatch-btn" data-color="ff0055" style="background: #ff0055; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #555; cursor: pointer;" title="Crimson Magma"></button>
+              <button class="optics-swatch-btn" data-color="00ff88" style="background: #00ff88; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #555; cursor: pointer;" title="Emerald Plasma"></button>
+              <button class="optics-swatch-btn" data-color="aa00ff" style="background: #aa00ff; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #555; cursor: pointer;" title="Amethyst Tachyon"></button>
+              <button class="optics-swatch-btn" data-color="ffea00" style="background: #ffea00; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #555; cursor: pointer;" title="Golden Sunfire"></button>
+            </div>
+          </div>
         </div>
       </div>
 

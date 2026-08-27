@@ -32,6 +32,8 @@ export class WaveSpawner {
       this.totalToSpawnInWave = 40; // Stage 4: Heavy Strike Fleet -> Battleship + Supercarrier Dual Capital -> Sanctuary Cylinder
     } else if (this.currentWave === 5) {
       this.totalToSpawnInWave = 50; // Stage 5: Grand Armada Escalation (Cruisers + Battleships + Supercarrier) -> Leviathan Mothership
+    } else if (this.currentWave === 6) {
+      this.totalToSpawnInWave = 54; // Stage 6: Dyson Swarm Mega-Forge -> Helios Solar Siphon Colossus
     } else {
       this.totalToSpawnInWave = 40 + (this.currentWave - 5) * 8;
     }
@@ -45,6 +47,7 @@ export class WaveSpawner {
     if (this.currentWave === 3) return 'STAGE 3: SELENE SHIELD // LUNAR CITADEL & HEAVY BATTLESHIP';
     if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // O\'NEILL CYLINDER & DUAL CAPITAL FLEET';
     if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA ESCALATION & COMMAND MOTHERSHIP';
+    if (this.currentWave === 6) return 'STAGE 6: DYSON SWARM FORGE // SOLAR MEGA-FORGE & HELIOS COLOSSUS';
     return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
 
@@ -74,6 +77,11 @@ export class WaveSpawner {
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
       this.spawnedCount++;
+
+      // ── ⭐ 3-Star Mastery: Cloaked Data Courier Drone Incursion ──
+      if (this.spawnedCount === 6) {
+        this.gameManager.spawnDataCourierDrone();
+      }
 
       // ── 🚀 Staged Fleet Escalations Utilizing ALL Non-Boss Warships ──
       if (this.currentWave === 1) {
@@ -127,6 +135,14 @@ export class WaveSpawner {
           this.gameManager.spawnBoss(); // Dreadnought
           this.gameManager.spawnCapitalShip();
         }
+      } else if (this.currentWave === 6) {
+        // Stage 6 Dyson Swarm Solar Incursion:
+        if (this.spawnedCount === 8) {
+          this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnStealthFighter();
+        } else if (this.spawnedCount === 22) {
+          this.gameManager.spawnCarrierBoss();
+        }
       }
 
       // ── Standard Combat Patrol Spawning ──
@@ -165,9 +181,12 @@ export class WaveSpawner {
       } else if (this.currentWave === 4) {
         // Stage 4 Apex Boss: 🪐 Sanctuary-9 Industrial Rotating Cylinder Citadel
         this.gameManager.spawnSanctuaryCylinderBoss();
-      } else {
+      } else if (this.currentWave === 5) {
         // Stage 5 Final Apex Boss: 👑 The Vorn Hive Command Mothership
         this.gameManager.spawnCommandMothership();
+      } else {
+        // Stage 6 Apex Boss: ☀️ Helios Solar Siphon Colossus
+        this.gameManager.spawnHeliosSolarBoss();
       }
     }
   }
