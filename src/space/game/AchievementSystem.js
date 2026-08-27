@@ -61,6 +61,10 @@ export class AchievementSystem {
     this.unlock('dreadnought_slayer');
   }
 
+  recordBossKill() {
+    this.recordBossKilled();
+  }
+
   recordWaveReached(waveNum) {
     if (waveNum >= 5) {
       this.unlock('homeworld_guardian');

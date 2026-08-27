@@ -1273,12 +1273,14 @@ export class CommandMothership {
   destroy() {
     this.isDead = true;
     const gm = window.spaceGameManager;
-    if (gm) {
-      gm.addScore(this.scoreValue || 75000);
-      gm.addScrap(500);
-      gm.achievementSystem?.recordBossKill();
+    if (gm && gm.achievementSystem) {
+      if (typeof gm.achievementSystem.recordBossKilled === 'function') {
+        gm.achievementSystem.recordBossKilled();
+      } else if (typeof gm.achievementSystem.recordBossKill === 'function') {
+        gm.achievementSystem.recordBossKill();
+      }
     }
-    if (this.particleManager) {
+    if (this.particleManager && this.meshGroup) {
       this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 300, 8.0);
       this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 6.0);
       this.particleManager.createEmpShockwave(this.meshGroup.position, 280);
