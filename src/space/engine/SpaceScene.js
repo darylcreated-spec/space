@@ -452,8 +452,9 @@ export class SpaceScene {
     }, 20);
   }
 
-  triggerBossIntroCamera() {
-    this.bossIntroTimer = 2.2;
+  triggerBossIntroCamera(duration = 2.2) {
+    this.bossIntroTimer = duration;
+    this.bossIntroDuration = duration;
   }
 
   triggerKillCam(targetPos, duration = 2.4) {
@@ -478,14 +479,9 @@ export class SpaceScene {
   }
 
   toggleCameraMode() {
-    if (this.cameraMode === 'isometric') {
-      this.setCameraMode('chase');
-    } else if (this.cameraMode === 'chase') {
-      this.setCameraMode('topdown');
-    } else {
-      this.setCameraMode('isometric');
-    }
-    return this.cameraMode;
+    if (this.cameraMode === 'isometric') this.setCameraMode('chase');
+    else if (this.cameraMode === 'chase') this.setCameraMode('topdown');
+    else this.setCameraMode('isometric');
   }
 
   addScreenShake(amount = 0.8) {
@@ -527,18 +523,63 @@ export class SpaceScene {
       const bPos = activeBoss.meshGroup.position;
 
       if (this.bossIntroTimer > 0) {
-        // Dramatic Intro Zoom: Low behind player ship pointing at boss core
-        const progress = 1.0 - (this.bossIntroTimer / 2.2);
-        this.targetCameraPos.set(
-          pPos.x * 0.4,
-          10.0 + (1.0 - progress) * 8.0,
-          pPos.z + 24.0 - (1.0 - progress) * 10.0
-        );
-        this.targetLookAt.set(
-          bPos.x * 0.6,
-          bPos.y * 0.6,
-          bPos.z * 0.8
-        );
+        const totalDuration = this.bossIntroDuration || 2.2;
+        const progress = 1.0 - (this.bossIntroTimer / totalDuration);
+
+        if (activeBoss.constructor && activeBoss.constructor.name === 'CommandMothership') {
+          // ── 👑 Grand Cinematic Scale Approach for Leviathan Command Mothership ──
+          if (progress < 0.45) {
+            // High Orbital Vantage: Show massive silhouette towering over the small player starfighter
+            const p1 = progress / 0.45;
+            this.targetCameraPos.set(
+              pPos.x * 0.3 + Math.sin(p1 * Math.PI) * 14.0,
+              42.0 - p1 * 16.0,
+              38.0 - p1 * 8.0
+            );
+            this.targetLookAt.set(
+              bPos.x * 0.4,
+              bPos.y * 0.4 + 4.0,
+              bPos.z * 0.7
+            );
+          } else if (progress < 0.85) {
+            // Low Bow Prow Flyby: Sweeping across the armored trench entrance and shield pylons
+            const p2 = (progress - 0.45) / 0.40;
+            this.targetCameraPos.set(
+              pPos.x * 0.4 + (1.0 - p2) * 10.0,
+              16.0 - p2 * 6.0,
+              28.0 - p2 * 4.0
+            );
+            this.targetLookAt.set(
+              bPos.x * 0.5,
+              bPos.y * 0.4,
+              bPos.z * 0.8 + 15.0
+            );
+          } else {
+            // Smooth hand-off back to player combat chase
+            this.targetCameraPos.set(
+              pPos.x * 0.48,
+              18.0 + pPos.y * 0.35,
+              pPos.z + 32.0
+            );
+            this.targetLookAt.set(
+              pPos.x * 0.4 + bPos.x * 0.35,
+              pPos.y * 0.35 + bPos.y * 0.3,
+              bPos.z * 0.45
+            );
+          }
+        } else {
+          // Standard Dramatic Intro Zoom for other bosses
+          this.targetCameraPos.set(
+            pPos.x * 0.4,
+            10.0 + (1.0 - progress) * 8.0,
+            pPos.z + 24.0 - (1.0 - progress) * 10.0
+          );
+          this.targetLookAt.set(
+            bPos.x * 0.6,
+            bPos.y * 0.6,
+            bPos.z * 0.8
+          );
+        }
       } else if (activeBoss.constructor && activeBoss.constructor.name === 'CommandMothership' && !activeBoss.hasPlasmaShield) {
         // ── 🚀 Cinematic Trench Run & Reactor Vault Infiltration Camera ──
         this.targetCameraPos.set(

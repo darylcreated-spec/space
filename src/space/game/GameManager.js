@@ -604,14 +604,17 @@ export class GameManager {
   spawnCommandMothership() {
     this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
-    this.voiceAnnouncer.speak("Warning! Leviathan Command Mothership Approaching! Destroy Entrance Shield Generators to Breach Trench!", true);
+    if (this.activeBoss.meshGroup) {
+      this.activeBoss.meshGroup.position.set(0, 5, -140);
+    }
+    this.voiceAnnouncer.speak("Priority Alpha! Leviathan Command Mothership emerging from subspace! Look at the sheer size of that titan! Target entrance shield pylons to breach the trench!", true);
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("FINAL SIEGE: Leviathan Command Mothership detected! Destroy the dual Shield Generators at the entrance pylons to lower the Plasma Shield, then fly inside and sever the 4 Magnetic Couplings!", "STARBOUND COMMAND", 8.0);
-      this.spaceHUD.showWaveBanner("APEX COMMAND SIEGE", "LEVIATHAN COMMAND MOTHERSHIP");
+      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Command Mothership warp detected! Look at the sheer size of that 150m Titan! Target the dual Shield Generators at the entrance pylons to lower the Plasma Shield!", "STARBOUND COMMAND", 8.5);
+      this.spaceHUD.showWaveBanner("COLOSSAL APEX SIEGE", "LEVIATHAN COMMAND MOTHERSHIP (150M TITAN)");
     }
     if (this.spaceScene) {
-      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
-      this.spaceScene.triggerBossIntroCamera();
+      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -140));
+      this.spaceScene.triggerBossIntroCamera(4.5);
     }
   }
 
