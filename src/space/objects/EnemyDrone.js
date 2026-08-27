@@ -75,59 +75,59 @@ export class EnemyDrone {
   buildDroneMesh() {
     const armorTex = generateDroneArmorTexture();
 
-    // ── High-Definition High-Contrast Alloy Materials ──
+    // ── High-Definition High-Contrast Alloy Materials (Stage 1 Crimson Magma Fleet) ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x6a7b99,
-      metalness: 0.85,
-      roughness: 0.2,
+      color: 0x220c12,
+      metalness: 0.88,
+      roughness: 0.22,
       bumpMap: armorTex,
-      bumpScale: 0.12,
-      emissive: 0x1f2438,
+      bumpScale: 0.14,
+      emissive: 0x3d0810,
       emissiveIntensity: 0.4
     });
 
     this.armorPlateMat = new THREE.MeshStandardMaterial({
-      color: 0xb8cbdf,
-      metalness: 0.95,
-      roughness: 0.12,
+      color: 0x941c28,
+      metalness: 0.92,
+      roughness: 0.16,
       bumpMap: armorTex,
-      bumpScale: 0.15,
-      emissive: 0x303b54,
-      emissiveIntensity: 0.3
-    });
-
-    this.trimMat = new THREE.MeshStandardMaterial({
-      color: 0xff4466,
-      metalness: 0.75,
-      roughness: 0.18,
-      emissive: 0x880022,
+      bumpScale: 0.18,
+      emissive: 0x600a14,
       emissiveIntensity: 0.5
     });
 
+    this.trimMat = new THREE.MeshStandardMaterial({
+      color: 0xff4400,
+      metalness: 0.85,
+      roughness: 0.14,
+      emissive: 0x992200,
+      emissiveIntensity: 0.6
+    });
+
     this.titaniumTrimMat = new THREE.MeshStandardMaterial({
-      color: 0xeef4fc,
+      color: 0xffaa00,
       metalness: 0.98,
-      roughness: 0.05,
-      emissive: 0x445577,
-      emissiveIntensity: 0.25
+      roughness: 0.08,
+      emissive: 0x552200,
+      emissiveIntensity: 0.35
     });
 
     this.redGlowMat = new THREE.MeshBasicMaterial({
-      color: 0xff0044,
+      color: 0xff0033,
       transparent: true,
       opacity: 1.0
     });
     this.glowMaterials.push(this.redGlowMat);
 
     this.accentGlowMat = new THREE.MeshBasicMaterial({
-      color: 0xff2266,
+      color: 0xff5500,
       transparent: true,
       opacity: 0.95
     });
     this.glowMaterials.push(this.accentGlowMat);
 
     this.thrusterGlowMat = new THREE.MeshBasicMaterial({
-      color: 0xc844ff,
+      color: 0xff3300,
       transparent: true,
       opacity: 0.95
     });

@@ -9,12 +9,12 @@ function generateCruiserArmorTexture() {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
 
-  // Base metallic deep obsidian-charcoal alloy
-  ctx.fillStyle = '#160d20';
+  // Base metallic deep obsidian-crimson alloy
+  ctx.fillStyle = '#16080c';
   ctx.fillRect(0, 0, 256, 256);
 
   // Crimson & fiery magma geometric panel seams
-  ctx.strokeStyle = '#e61c47';
+  ctx.strokeStyle = '#e61c32';
   ctx.lineWidth = 2.4;
   for (let x = 0; x < 256; x += 32) {
     ctx.strokeRect(x, 0, 32, 256);
@@ -24,7 +24,7 @@ function generateCruiserArmorTexture() {
   }
 
   // Radiant Imperial Gold micro-rivets along armor boundaries
-  ctx.fillStyle = '#ffbb00';
+  ctx.fillStyle = '#ffaa00';
   for (let y = 4; y < 256; y += 16) {
     for (let x = 4; x < 256; x += 32) {
       ctx.beginPath();
@@ -33,15 +33,15 @@ function generateCruiserArmorTexture() {
     }
   }
 
-  // Glowing neon magenta and electric purple energized circuit conduits
-  ctx.strokeStyle = '#ff0055';
-  ctx.lineWidth = 2.0;
+  // Glowing magma-orange and fiery crimson energized circuit conduits
+  ctx.strokeStyle = '#ff4400';
+  ctx.lineWidth = 2.2;
   ctx.beginPath();
   ctx.moveTo(0, 128); ctx.lineTo(64, 128); ctx.lineTo(96, 96); ctx.lineTo(256, 96);
   ctx.stroke();
 
-  ctx.strokeStyle = '#c800ff';
-  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = '#ff0033';
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.moveTo(0, 64); ctx.lineTo(128, 64); ctx.lineTo(160, 32); ctx.lineTo(256, 32);
   ctx.stroke();
@@ -72,11 +72,11 @@ export class CapitalShip {
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
 
     this.targetZ = -15; // Hover and strafe in combat
-    this.baseSpeed = 16;
+    this.baseSpeed = 24; // Aggressive closing speed
     this.speed = this.baseSpeed;
-    this.baseStrafeFreq = 1.1;
+    this.baseStrafeFreq = 1.5;
     this.strafeFreq = this.baseStrafeFreq;
-    this.fireTimer = 1.4;
+    this.fireTimer = 0.5; // Rapid initial attack
     this._time = Math.random() * 100;
 
     // ── Dynamic Mass & Inertia Reduction Physics ──
@@ -92,7 +92,7 @@ export class CapitalShip {
       { id: 1, relPos: new THREE.Vector3( 3.2, 1.2, -0.5), pedestalH: 1.6, hp: 220, maxHp: 220, isDead: false, mesh: null, barrelGroup: null }
     ];
     this.underwingMissiles = [];
-    this.missileTimer = 3.0;
+    this.missileTimer = 2.0; // Rapid missile salvos
     this.thrusters = [];
     this.breakableParts = [];
     this.detachedPartsCount = 0;
@@ -108,38 +108,38 @@ export class CapitalShip {
 
     // ── Vibrant AAA Sci-Fi Materials (Obsidian, Crimson Magma, Imperial Gold, Radiant Neon) ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1f1128,
+      color: 0x1a0c10,
       bumpMap: this.armorTexture,
       bumpScale: 0.18,
       metalness: 0.94,
       roughness: 0.26,
-      emissive: 0x440822,
-      emissiveIntensity: 0.38
+      emissive: 0x3d0810,
+      emissiveIntensity: 0.4
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0xe61c47,
+      color: 0x9e1a28,
       metalness: 0.88,
       roughness: 0.22,
       bumpMap: this.armorTexture,
       bumpScale: 0.22,
-      emissive: 0x880e28,
-      emissiveIntensity: 0.75
+      emissive: 0x6e0e1a,
+      emissiveIntensity: 0.8
     });
 
     this.goldTrimMat = new THREE.MeshStandardMaterial({
       color: 0xffaa00,
       metalness: 0.96,
       roughness: 0.12,
-      emissive: 0x552a00,
+      emissive: 0x662a00,
       emissiveIntensity: 0.6
     });
 
     this.darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x181024,
+      color: 0x14080a,
       metalness: 0.95,
       roughness: 0.28,
-      emissive: 0x220515,
+      emissive: 0x1f0408,
       emissiveIntensity: 0.35
     });
 
@@ -837,13 +837,13 @@ export class CapitalShip {
       }
     }
 
-    // Heavy Crimson Plasma Railgun Firing logic
+    // Heavy Crimson Plasma Railgun Firing logic (Rapid High-Intensity Salvos)
     this.fireTimer -= dt;
     let shouldFire = false;
     const out = [];
 
-    if (this.fireTimer <= 0 && this.meshGroup.position.z >= -45 && this.meshGroup.position.z < 25) {
-      this.fireTimer = 1.3 + Math.random() * 0.4;
+    if (this.fireTimer <= 0 && this.meshGroup.position.z >= -65 && this.meshGroup.position.z < 35) {
+      this.fireTimer = 0.65 + Math.random() * 0.35; // Rapid aggressive 0.65s - 1.0s bursts!
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
           out.push(t.mesh.getWorldPosition(new THREE.Vector3()));

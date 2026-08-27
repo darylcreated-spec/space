@@ -9,12 +9,12 @@ function generateBattleshipArmorTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  // Base arctic white ceramic composite
-  ctx.fillStyle = '#e8eef6';
+  // Base metallic deep obsidian-crimson composite
+  ctx.fillStyle = '#16080c';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Precision titanium armor plate seams
-  ctx.strokeStyle = '#8da2be';
+  // Precision crimson armor plate seams
+  ctx.strokeStyle = '#e61c32';
   ctx.lineWidth = 2.8;
   for (let x = 0; x < 512; x += 64) {
     ctx.strokeRect(x, 0, 64, 512);
@@ -23,8 +23,8 @@ function generateBattleshipArmorTexture() {
     ctx.strokeRect(0, y, 512, 64);
   }
 
-  // Pure white micro-rivets along armor boundaries
-  ctx.fillStyle = '#ffffff';
+  // Radiant Imperial Gold micro-rivets along armor boundaries
+  ctx.fillStyle = '#ffaa00';
   for (let y = 8; y < 512; y += 32) {
     for (let x = 8; x < 512; x += 64) {
       ctx.beginPath();
@@ -33,8 +33,8 @@ function generateBattleshipArmorTexture() {
     }
   }
 
-  // High-contrast orange/graphite hazard chevron stripes
-  ctx.fillStyle = '#ff6600';
+  // High-contrast magma-orange hazard chevron stripes
+  ctx.fillStyle = '#ff4400';
   for (let i = 0; i < 4; i++) {
     const xOff = 384 + i * 28;
     ctx.beginPath();
@@ -47,7 +47,7 @@ function generateBattleshipArmorTexture() {
   }
 
   // Neon crimson power conduits
-  ctx.strokeStyle = '#ff0044';
+  ctx.strokeStyle = '#ff0033';
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(0, 256); ctx.lineTo(128, 256); ctx.lineTo(192, 192); ctx.lineTo(512, 192);
@@ -98,24 +98,24 @@ export class HeavyBattleship {
       { id: 1, name: 'DORSAL MID-FORE APEX BATTERY',         relPos: new THREE.Vector3(  0, 12.0,  16), pedestalH: 7.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
       { id: 2, name: 'DORSAL MID-AFT APEX BATTERY',          relPos: new THREE.Vector3(  0, 12.0,  -8), pedestalH: 7.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
       { id: 3, name: 'DORSAL STERN SUPERFIRING BATTERY',     relPos: new THREE.Vector3(  0,  9.2, -26), pedestalH: 4.2, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 4, name: 'PORT FLANK OUTRIGGER BATTERY',        relPos: new THREE.Vector3(-24,  4.5,   4), pedestalH: 4.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 5, name: 'STARBOARD FLANK OUTRIGGER BATTERY',   relPos: new THREE.Vector3( 24,  4.5,   4), pedestalH: 4.0, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 6, name: 'VENTRAL FORE KEEL BATTERY',            relPos: new THREE.Vector3(  0, -8.0,  22), pedestalH: 3.5, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
-      { id: 7, name: 'VENTRAL AFT KEEL BATTERY',             relPos: new THREE.Vector3(  0, -8.0, -14), pedestalH: 3.5, hp: 750, maxHp: 750, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 4, name: 'VENTRAL BOW BATTERY',                 relPos: new THREE.Vector3(  0, -4.5,  28), pedestalH: 3.5, hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 5, name: 'VENTRAL STERN BATTERY',               relPos: new THREE.Vector3(  0, -4.5, -20), pedestalH: 3.5, hp: 650, maxHp: 650, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 6, name: 'PORT BROADSIDE WING BATTERY',         relPos: new THREE.Vector3(-22,  3.5,   2), pedestalH: 3.0, hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null },
+      { id: 7, name: 'STARBOARD BROADSIDE WING BATTERY',    relPos: new THREE.Vector3( 22,  3.5,   2), pedestalH: 3.0, hp: 600, maxHp: 600, isDead: false, mesh: null, barrelGroup: null, reticle: null }
     ];
 
-    // ── 3. Four Heavy Vertical-Launch Missile Silo Pods ──
+    // ── 3. Four Heavy Guided Missile Silos ──
     this.missilePods = [
-      { id: 0, name: 'PORT FORE MISSILE POD',      relPos: new THREE.Vector3(-15, 3.8,  22), hp: 650, maxHp: 650, isDead: false, mesh: null, reticle: null },
-      { id: 1, name: 'STARBOARD FORE MISSILE POD', relPos: new THREE.Vector3( 15, 3.8,  22), hp: 650, maxHp: 650, isDead: false, mesh: null, reticle: null },
-      { id: 2, name: 'PORT AFT MISSILE POD',       relPos: new THREE.Vector3(-15, 3.8, -16), hp: 650, maxHp: 650, isDead: false, mesh: null, reticle: null },
-      { id: 3, name: 'STARBOARD AFT MISSILE POD',   relPos: new THREE.Vector3( 15, 3.8, -16), hp: 650, maxHp: 650, isDead: false, mesh: null, reticle: null },
+      { id: 0, name: 'PORT FORWARD MISSILE SILO',      relPos: new THREE.Vector3(-12.5, 7.5,  22), hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null },
+      { id: 1, name: 'STARBOARD FORWARD MISSILE SILO', relPos: new THREE.Vector3( 12.5, 7.5,  22), hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null },
+      { id: 2, name: 'PORT AFT MISSILE SILO',          relPos: new THREE.Vector3(-12.5, 7.5, -14), hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null },
+      { id: 3, name: 'STARBOARD AFT MISSILE SILO',     relPos: new THREE.Vector3( 12.5, 7.5, -14), hp: 550, maxHp: 550, isDead: false, mesh: null, reticle: null }
     ];
 
     this.reticleMeshes = [];
     this.thrusters = [];
     this.engineExhaustPlumes = [];
-    this.machDiamondRings = [];
+    this.machDiamonds = [];
 
     // Weapon Timers
     this.railgunTimer = 2.8;
@@ -137,42 +137,46 @@ export class HeavyBattleship {
   buildShip() {
     this.armorTexture = generateBattleshipArmorTexture();
 
-    // ── High-Definition Arctic / Pearl White Armor Materials ──
+    // ── High-Definition Crimson-Obsidian Alloy Armor Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0xecf3f9,
+      color: 0x1f0d14,
       bumpMap: this.armorTexture,
       bumpScale: 0.14,
-      metalness: 0.85,
-      roughness: 0.18,
-      emissive: 0x1c2536,
-      emissiveIntensity: 0.25
+      metalness: 0.88,
+      roughness: 0.22,
+      emissive: 0x3d0810,
+      emissiveIntensity: 0.35
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0xfcfdff,
-      metalness: 0.94,
-      roughness: 0.10,
+      color: 0x941c28,
+      metalness: 0.92,
+      roughness: 0.16,
       bumpMap: this.armorTexture,
-      bumpScale: 0.08
+      bumpScale: 0.16,
+      emissive: 0x600a14,
+      emissiveIntensity: 0.5
     });
 
     this.darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x2e3848,
-      metalness: 0.92,
-      roughness: 0.20
+      color: 0x14080a,
+      metalness: 0.95,
+      roughness: 0.26,
+      emissive: 0x1a0408,
+      emissiveIntensity: 0.3
     });
 
     this.glowRedMat = new THREE.MeshBasicMaterial({
-      color: 0xff0044,
+      color: 0xff0033,
       transparent: true,
       opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
 
     this.glowOrangeMat = new THREE.MeshBasicMaterial({
-      color: 0xff7700,
+      color: 0xff4400,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
 

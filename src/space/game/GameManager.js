@@ -492,6 +492,7 @@ export class GameManager {
     if (this.spaceScene) {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(ship.meshGroup.position.x, ship.meshGroup.position.y, -100));
     }
+    return ship;
   }
 
   spawnBoss() {

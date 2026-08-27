@@ -9,12 +9,12 @@ function generateStealthArmorTexture() {
   canvas.height = 256;
   const ctx = canvas.getContext('2d');
 
-  // Rich metallic obsidian-violet base
-  ctx.fillStyle = '#2a1e42';
+  // Rich metallic obsidian-crimson base
+  ctx.fillStyle = '#1c0c10';
   ctx.fillRect(0, 0, 256, 256);
 
-  // Carbon-fiber hexagonal nano-mesh
-  ctx.strokeStyle = '#473269';
+  // Carbon-fiber hexagonal nano-mesh in deep crimson
+  ctx.strokeStyle = '#801424';
   ctx.lineWidth = 1.4;
   const hexRadius = 14;
   const h = hexRadius * Math.sqrt(3);
@@ -26,8 +26,8 @@ function generateStealthArmorTexture() {
     }
   }
 
-  // Angled stealth panel facet seams
-  ctx.strokeStyle = '#7c58ab';
+  // Angled stealth panel facet seams in scarlet
+  ctx.strokeStyle = '#e61c32';
   ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(0, 40); ctx.lineTo(256, 120);
@@ -35,8 +35,8 @@ function generateStealthArmorTexture() {
   ctx.moveTo(80, 0); ctx.lineTo(140, 256);
   ctx.stroke();
 
-  // Violet circuit conduits
-  ctx.strokeStyle = '#df44ff';
+  // Magma-orange circuit conduits
+  ctx.strokeStyle = '#ff4400';
   ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.moveTo(30, 0); ctx.lineTo(30, 80); ctx.lineTo(90, 140);
@@ -96,9 +96,9 @@ export class StealthFighter {
   buildMesh() {
     this.armorTexture = generateStealthArmorTexture();
 
-    // 1. Primary Stealth RAM Composite (Metallic Violet-Gunmetal)
+    // 1. Primary Stealth RAM Composite (Metallic Crimson-Obsidian)
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x584478,
+      color: 0x481820,
       map: this.armorTexture,
       metalness: 0.88,
       roughness: 0.22,
@@ -107,36 +107,36 @@ export class StealthFighter {
       blending: THREE.NormalBlending
     });
 
-    // 2. Secondary Titanium-Tungsten Edge Armor (Specular High-Contrast)
+    // 2. Secondary Titanium-Tungsten Edge Armor (Specular High-Contrast Crimson)
     this.titaniumMat = new THREE.MeshStandardMaterial({
-      color: 0xa488cc,
+      color: 0xa83848,
       metalness: 0.94,
       roughness: 0.15,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 3. Violet Plasma Conduit Emissive Material
+    // 3. Magma Plasma Conduit Emissive Material
     this.conduitMat = new THREE.MeshStandardMaterial({
-      color: 0x5a188c,
-      emissive: 0xbf00ff,
-      emissiveIntensity: 1.8,
+      color: 0x8c1822,
+      emissive: 0xff2200,
+      emissiveIntensity: 2.2,
       metalness: 0.85,
       roughness: 0.2,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 4. Optical Predator Oculus Material
+    // 4. Optical Predator Oculus Material (Ruby Red)
     this.oculusMat = new THREE.MeshBasicMaterial({
-      color: 0xff00bb,
+      color: 0xff1133,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 5. Thruster Plasma Glow Material
+    // 5. Thruster Plasma Glow Material (Magma Orange)
     this.glowMat = new THREE.MeshBasicMaterial({
-      color: 0xdf44ff,
+      color: 0xff4400,
       transparent: true,
       opacity: this.cloakOpacity,
       blending: THREE.AdditiveBlending
