@@ -711,4 +711,45 @@ export class SpaceScene {
       this.shakeIntensity *= 0.88;
     }
   }
+
+  setSectorEnvironment(sectorId = 'SECTOR_ALPHA') {
+    this.currentSector = sectorId;
+
+    if (sectorId === 'SOLAR_HELIOS') {
+      // Stage 7: Golden-Amber Sunlight & Plasma Prominences
+      if (this.sunLight) this.sunLight.color.setHex(0xffaa44);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0xff5500);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0xffdd00);
+    } else if (sectorId === 'SINGULARITY') {
+      // Stage 8: Relativistic Violet Void
+      if (this.sunLight) this.sunLight.color.setHex(0x9944ff);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00f3ff);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0xff0088);
+    } else if (sectorId === 'CRYO_BOREAS') {
+      // Stage 9: Emerald-Turquoise Ice Belt
+      if (this.sunLight) this.sunLight.color.setHex(0x88ffff);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00ff88);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0x0088ff);
+    } else if (sectorId === 'NULL_VOID') {
+      // Stage 10: Midnight Electric Violet
+      if (this.sunLight) this.sunLight.color.setHex(0x6600cc);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00ffff);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0x220044);
+    } else if (sectorId === 'DYSON_NEXUS') {
+      // Stage 11: High-Tech Industrial Cyan & Gold
+      if (this.sunLight) this.sunLight.color.setHex(0x00f3ff);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0xffaa00);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0x00ffcc);
+    } else if (sectorId === 'STARGATE_APEX') {
+      // Stage 12: Iridescent Quantum Rainbow
+      if (this.sunLight) this.sunLight.color.setHex(0xffffff);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00f3ff);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0xff00cc);
+    } else {
+      // Default: Deep Celestial Sapphire
+      if (this.sunLight) this.sunLight.color.setHex(0xffffff);
+      if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00f3ff);
+      if (this.warmBackLight) this.warmBackLight.color.setHex(0xff0066);
+    }
+  }
 }

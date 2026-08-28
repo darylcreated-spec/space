@@ -21,6 +21,8 @@ import { ECMJammerCorvette } from '../objects/ECMJammerCorvette.js';
 import { PhaseShiftInterceptor } from '../objects/PhaseShiftInterceptor.js';
 import { HeavyBattleship } from '../objects/HeavyBattleship.js';
 import { CommandMothership } from '../objects/CommandMothership.js';
+import { SolarTitan } from '../objects/SolarTitan.js';
+import { SingularityHarbinger } from '../objects/SingularityHarbinger.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -666,6 +668,40 @@ export class GameManager {
     this.applyEnemyHpScaling(inter);
     this.phaseInterceptors.push(inter);
     return inter;
+  }
+
+  spawnSolarTitan(spawnPos = null) {
+    this.activeBoss = new SolarTitan(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
+    if (spawnPos && this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.copy(spawnPos);
+    this.voiceAnnouncer.speak("Warning! Ignis Titan Solar Devourer Approaching!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner("APEX BOSS BATTLE", "IGNIS TITAN // SOLAR DEVOURER");
+      this.spaceHUD.updateBossHealth(1.0, "IGNIS TITAN // SOLAR DEVOURER");
+      this.spaceHUD.showRadioTransmission("WARNING: Solar Devourer flagship siphoning coronal plasma! Strike the core when radiators vent!", "STARBOUND COMMAND", 6.0);
+    }
+    if (this.spaceScene) {
+      this.spaceScene.setSectorEnvironment('SOLAR_HELIOS');
+      this.spaceScene.triggerBossIntroCamera();
+    }
+    return this.activeBoss;
+  }
+
+  spawnSingularityHarbinger(spawnPos = null) {
+    this.activeBoss = new SingularityHarbinger(this.spaceScene.scene, this.particleManager);
+    this.applyEnemyHpScaling(this.activeBoss);
+    if (spawnPos && this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.copy(spawnPos);
+    this.voiceAnnouncer.speak("Alert! Singularity Cradle Flagship Detected at Event Horizon!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner("APEX BOSS BATTLE", "OBLIVION HARBINGER // SINGULARITY CRADLE");
+      this.spaceHUD.updateBossHealth(1.0, "OBLIVION HARBINGER // SINGULARITY CRADLE");
+      this.spaceHUD.showRadioTransmission("ALERT: Black hole singularity core detected! Beware of gravitational well pulls and spacetime collapse waves!", "STARBOUND COMMAND", 6.0);
+    }
+    if (this.spaceScene) {
+      this.spaceScene.setSectorEnvironment('SINGULARITY');
+      this.spaceScene.triggerBossIntroCamera();
+    }
+    return this.activeBoss;
   }
 
   spawnHeavyBattleship() {
@@ -1909,6 +1945,27 @@ export class GameManager {
                   this.spawnStealthFighter(new THREE.Vector3(s.x, s.y, s.z));
                 });
                 this.voiceAnnouncer.speak("Alert! Stealth Fighters deployed from dreadnought catapults!", true);
+              }
+              // D. Solar Lance Flare Prominences (Solar Titan)
+              if (salvo.solarLances && Array.isArray(salvo.solarLances)) {
+                salvo.solarLances.forEach(origin => {
+                  for (let a = -0.4; a <= 0.4; a += 0.2) {
+                    const dir = new THREE.Vector3(a, 0, 1).normalize();
+                    this.spawnLaser(origin, 0xff7700, true, dir);
+                  }
+                });
+                if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();
+              }
+
+              // E. Graviton Spacetime Waves (Singularity Harbinger)
+              if (salvo.gravitonWaves && Array.isArray(salvo.gravitonWaves)) {
+                salvo.gravitonWaves.forEach(origin => {
+                  for (let a = -0.5; a <= 0.5; a += 0.25) {
+                    const dir = new THREE.Vector3(a, Math.sin(a * 3) * 0.2, 1).normalize();
+                    this.spawnLaser(origin, 0xaa00ff, true, dir);
+                  }
+                });
+                if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();
               }
             }
           }

@@ -31,11 +31,23 @@ export class WaveSpawner {
     } else if (this.currentWave === 4) {
       this.totalToSpawnInWave = 40; // Stage 4: Heavy Strike Fleet -> Battleship + Supercarrier Dual Capital -> Sanctuary Cylinder
     } else if (this.currentWave === 5) {
-      this.totalToSpawnInWave = 50; // Stage 5: Grand Armada Escalation (Cruisers + Battleships + Supercarrier) -> Leviathan Mothership
+      this.totalToSpawnInWave = 50; // Stage 5: Grand Armada Escalation -> Leviathan Mothership
     } else if (this.currentWave === 6) {
-      this.totalToSpawnInWave = 54; // Stage 6: Dyson Swarm Mega-Forge -> Helios Solar Siphon Colossus
+      this.totalToSpawnInWave = 54; // Stage 6: Dyson Swarm Mega-Forge -> Helios Solar Siphon
+    } else if (this.currentWave === 7) {
+      this.totalToSpawnInWave = 52; // Stage 7: Solar Forge of Helios-9 -> Ignis Titan Solar Devourer
+    } else if (this.currentWave === 8) {
+      this.totalToSpawnInWave = 56; // Stage 8: Event Horizon Singularity -> Oblivion Harbinger
+    } else if (this.currentWave === 9) {
+      this.totalToSpawnInWave = 60; // Stage 9: Crystalline Abyss of Boreas -> Glacial Cryo-Armada
+    } else if (this.currentWave === 10) {
+      this.totalToSpawnInWave = 62; // Stage 10: Null-Sector Ghost Nebula -> Chrono-Phantom Carrier
+    } else if (this.currentWave === 11) {
+      this.totalToSpawnInWave = 66; // Stage 11: Ruined Dyson Megastructure -> Arch-Constructor Nexus
+    } else if (this.currentWave === 12) {
+      this.totalToSpawnInWave = 70; // Stage 12: Gateway of the Ancients -> Sovereign Apex Finale
     } else {
-      this.totalToSpawnInWave = 40 + (this.currentWave - 5) * 8;
+      this.totalToSpawnInWave = 50 + (this.currentWave - 12) * 10;
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
@@ -52,6 +64,12 @@ export class WaveSpawner {
     if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // O\'NEILL CYLINDER & DUAL CAPITAL FLEET';
     if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA ESCALATION & COMMAND MOTHERSHIP';
     if (this.currentWave === 6) return 'STAGE 6: DYSON SWARM FORGE // SOLAR MEGA-FORGE & HELIOS COLOSSUS';
+    if (this.currentWave === 7) return 'STAGE 7: SOLAR FORGE // CORONAL HARVEST & IGNIS TITAN DEVOURER';
+    if (this.currentWave === 8) return 'STAGE 8: EVENT HORIZON // SINGULARITY CRADLE & OBLIVION HARBINGER';
+    if (this.currentWave === 9) return 'STAGE 9: CRYO ABYSS // BOREAS METHANE ICE-BELT & FROST PHANTOMS';
+    if (this.currentWave === 10) return 'STAGE 10: NULL SECTOR // ELECTROMAGNETIC GHOST NEBULA';
+    if (this.currentWave === 11) return 'STAGE 11: DYSON NEXUS // ANCIENT MEGASTRUCTURE ASSEMBLY TRENCH';
+    if (this.currentWave === 12) return 'STAGE 12: HYPER-GATEWAY // SOVEREIGN APEX & THE FIRST INTELLIGENCE';
     return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
 
@@ -200,11 +218,31 @@ export class WaveSpawner {
         // Stage 4 Apex Boss: 🪐 Sanctuary-9 Industrial Rotating Cylinder Citadel
         this.gameManager.spawnSanctuaryCylinderBoss();
       } else if (this.currentWave === 5) {
-        // Stage 5 Final Apex Boss: 👑 The Vorn Hive Command Mothership
+        // Stage 5 Apex Boss: 👑 The Vorn Hive Command Mothership
         this.gameManager.spawnCommandMothership();
-      } else {
+      } else if (this.currentWave === 6) {
         // Stage 6 Apex Boss: ☀️ Helios Solar Siphon Colossus
         this.gameManager.spawnHeliosSolarBoss();
+      } else if (this.currentWave === 7) {
+        // Stage 7 Apex Boss: 🔥 Ignis Titan Solar Devourer
+        this.gameManager.spawnSolarTitan();
+      } else if (this.currentWave === 8) {
+        // Stage 8 Apex Boss: 🕳️ Oblivion Harbinger Singularity Cradle
+        this.gameManager.spawnSingularityHarbinger();
+      } else if (this.currentWave === 9) {
+        // Stage 9 Apex Boss: 🧊 Glacial Archon Cryo-Dreadnought Fleet
+        this.gameManager.spawnHeavyBattleship();
+        this.gameManager.spawnCarrierBoss();
+      } else if (this.currentWave === 10) {
+        // Stage 10 Apex Boss: ⚡ Chrono-Phantom Ghost Carrier
+        this.gameManager.spawnCommandMothership();
+      } else if (this.currentWave === 11) {
+        // Stage 11 Apex Boss: 🪐 Arch-Constructor Dyson Omega Nexus
+        this.gameManager.spawnSanctuaryCylinderBoss();
+      } else {
+        // Stage 12 Grand Finale: 🌌 Sovereign Apex // The First Intelligence
+        this.gameManager.spawnCommandMothership();
+        this.gameManager.spawnSolarTitan();
       }
     }
   }
