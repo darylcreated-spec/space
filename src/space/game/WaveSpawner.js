@@ -39,6 +39,10 @@ export class WaveSpawner {
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
+    if (this.gameManager.spaceAudio) {
+      this.gameManager.spaceAudio.startSoundtrack();
+      this.gameManager.spaceAudio.setSoundtrackTheme('COMBAT');
+    }
   }
 
   getWaveSubtitle() {
@@ -168,6 +172,9 @@ export class WaveSpawner {
     if (this.spawnedCount >= this.totalToSpawnInWave && !this.bossSpawned) {
       this.bossSpawned = true;
       this.waveState = 'WAITING_CLEAR';
+      if (this.gameManager.spaceAudio) {
+        this.gameManager.spaceAudio.setSoundtrackTheme('BOSS');
+      }
 
       if (this.currentWave === 1) {
         // Stage 1 Apex Boss: ☄️ Titan Asteroid Colossus

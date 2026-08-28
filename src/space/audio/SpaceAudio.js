@@ -1,7 +1,10 @@
+import { AdaptiveSoundtrack } from './AdaptiveSoundtrack.js';
+
 export class SpaceAudio {
   constructor() {
     this.ctx = null;
     this.isInitialized = false;
+    this.soundtrack = null;
 
     // Drone audio nodes
     this.droneOsc = null;
@@ -14,10 +17,26 @@ export class SpaceAudio {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
+      this.soundtrack = new AdaptiveSoundtrack(this.ctx);
+      this.soundtrack.init();
       this.setupSpaceDrone();
       this.isInitialized = true;
     } catch (e) {
       console.warn('Web Audio API not supported', e);
+    }
+  }
+
+  startSoundtrack() {
+    this.ensureContext();
+    if (this.soundtrack) {
+      this.soundtrack.start();
+    }
+  }
+
+  setSoundtrackTheme(theme) {
+    this.ensureContext();
+    if (this.soundtrack) {
+      this.soundtrack.setTheme(theme);
     }
   }
 

@@ -26,6 +26,7 @@ import { VoiceAnnouncer } from '../audio/VoiceAnnouncer.js';
 import { AchievementSystem } from './AchievementSystem.js';
 import { HapticsManager } from '../engine/HapticsManager.js';
 import { DailyIncursionSystem } from './DailyIncursionSystem.js';
+import { FleetHangarUI } from '../ui/FleetHangarUI.js';
 
 export class GameManager {
   constructor(spaceScene, postProcessing, particleManager, spaceAudio, controlsManager) {
@@ -34,6 +35,8 @@ export class GameManager {
     this.particleManager = particleManager;
     this.spaceAudio = spaceAudio;
     this.controlsManager = controlsManager;
+
+    this.fleetHangarUI = new FleetHangarUI(this);
 
     this.state = 'START'; // 'START', 'PLAYING', 'HANGAR', 'GAME_OVER'
 
