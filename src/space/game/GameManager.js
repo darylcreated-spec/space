@@ -568,6 +568,11 @@ export class GameManager {
     this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Halo Megastructure Ring Approaching!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("TACTICAL ALERT: Ancient Forerunner Megastructure Ring active! Target central Index citadel and perimeter batteries!", "STARBOUND COMMAND", 5.5);
+      this.spaceHUD.showWaveBanner("BOSS BATTLE", "HALO MEGASTRUCTURE RING");
+      this.spaceHUD.updateBossHealth(1.0, "HALO MEGASTRUCTURE // FORERUNNER RING CITADEL");
+    }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
 

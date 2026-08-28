@@ -118,15 +118,16 @@ export class HaloRingBoss {
     this.meshGroup.position.set(0, 0, -130);
     this.meshGroup.rotation.x = Math.PI / 5.5; // dramatic tilt to show ring face
 
-    this.targetZ = -88;
-    this.speed = 7.5;
+    this.targetZ = -70;
+    this.speed = 10.0;
 
     // Megastructure Health is directly bound to Framing Structure Integrity
     this.coreHp = 4400;
     this.maxCoreHp = 4400;
     this.scoreValue = 50000;
     this.isDead = false;
-    this.hitRadius = 54;
+    this.hitRadius = 58.0;
+    this.bossTitle = "HALO MEGASTRUCTURE // FORERUNNER RING CITADEL";
 
     this.fireTimer = 0.8;
     this.sentinelFireTimer = 1.2;
@@ -543,17 +544,36 @@ export class HaloRingBoss {
   }
 
   takeCoreDamage(amount) {
-    // If framing nodes are still active, direct attacks on core are deflected!
+    if (this.isDead) return false;
+
+    this.coreHp = Math.max(0, this.coreHp - amount);
+
+    // Distribute damage to framing anchors
     const activeFraming = this.framingNodes.filter(n => !n.isDead);
     if (activeFraming.length > 0) {
-      if (this.coreMat) {
-        this.coreMat.emissiveIntensity = 8.0;
-        setTimeout(() => { if (this.coreMat) this.coreMat.emissiveIntensity = 3.5; }, 80);
-      }
-      return false; // Immune to direct core fire while framing structure is intact!
+      const slice = amount / activeFraming.length;
+      activeFraming.forEach(n => {
+        n.hp = Math.max(0, n.hp - slice);
+        if (n.reticle && n.reticle.material) {
+          const pct = n.hp / n.maxHp;
+          n.reticle.material.color.setHex(pct > 0.5 ? 0x00f3ff : (pct > 0.25 ? 0xffaa00 : 0xff0044));
+        }
+        if (n.hp <= 0 && !n.isDead) {
+          n.isDead = true;
+          if (n.reticle) n.reticle.visible = false;
+          if (n.mesh) {
+            const wp = n.mesh.getWorldPosition(new THREE.Vector3());
+            this.particleManager.createExplosion(wp, 0x00f3ff, 150, 4.0);
+          }
+        }
+      });
     }
 
-    this.coreHp -= amount;
+    if (this.coreMat) {
+      this.coreMat.emissiveIntensity = 8.0;
+      setTimeout(() => { if (this.coreMat) this.coreMat.emissiveIntensity = 3.5; }, 80);
+    }
+
     if (this.coreHp <= 0 && !this.isDead) {
       this.isDead = true;
       this._explode();
