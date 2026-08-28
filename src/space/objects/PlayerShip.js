@@ -1,68 +1,5 @@
 import * as THREE from 'three';
-
-// â”€â”€ Procedural PBR Hull Texture Generator â”€â”€
-let cachedHullTexture = null;
-function getProceduralHullTexture() {
-  if (!cachedHullTexture) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-
-    // Dark titanium base
-    ctx.fillStyle = '#101726';
-    ctx.fillRect(0, 0, 512, 512);
-
-    // Carbon weave micro-pattern
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-    for (let x = 0; x < 512; x += 8) {
-      for (let y = 0; y < 512; y += 8) {
-        if ((x + y) % 16 === 0) {
-          ctx.fillRect(x, y, 4, 4);
-        }
-      }
-    }
-
-    // Panel lines
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(32, 32, 216, 216);
-    ctx.strokeRect(264, 32, 216, 216);
-    ctx.strokeRect(32, 264, 216, 216);
-    ctx.strokeRect(264, 264, 216, 216);
-
-    // Panel edge highlights
-    ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(34, 34, 212, 212);
-    ctx.strokeRect(266, 34, 212, 212);
-    ctx.strokeRect(34, 266, 212, 212);
-    ctx.strokeRect(266, 266, 212, 212);
-
-    // Rivet dots
-    ctx.fillStyle = 'rgba(200, 220, 255, 0.4)';
-    const drawRivets = (rx, ry, rw, rh) => {
-      for (let i = rx + 8; i < rx + rw; i += 24) {
-        ctx.beginPath(); ctx.arc(i, ry + 4, 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(i, ry + rh - 4, 1.5, 0, Math.PI * 2); ctx.fill();
-      }
-      for (let j = ry + 8; j < ry + rh; j += 24) {
-        ctx.beginPath(); ctx.arc(rx + 4, j, 1.5, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(rx + rw - 4, j, 1.5, 0, Math.PI * 2); ctx.fill();
-      }
-    };
-    drawRivets(32, 32, 216, 216);
-    drawRivets(264, 32, 216, 216);
-    drawRivets(32, 264, 216, 216);
-    drawRivets(264, 264, 216, 216);
-
-    cachedHullTexture = new THREE.CanvasTexture(canvas);
-    cachedHullTexture.wrapS = THREE.RepeatWrapping;
-    cachedHullTexture.wrapT = THREE.RepeatWrapping;
-    cachedHullTexture.repeat.set(2, 2);
-  }
-  return cachedHullTexture;
-}
+import { getPBRMaterialSet } from '../engine/PBRTextureGenerator.js';
 
 export class PlayerShip {
   constructor(scene, particleManager) {
@@ -255,16 +192,20 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 1.2;
     this.maxSwarmCD = 3.0;
 
-    const hullTex = getProceduralHullTexture();
+    const pbr = getPBRMaterialSet('INTERCEPTOR');
 
     // ── High-Tech Materials ──
     const bodyMat = new THREE.MeshStandardMaterial({
-      map: hullTex,
-      color: 0x0c182c,
-      metalness: 0.95,
-      roughness: 0.14,
-      emissive: 0x002244,
-      emissiveIntensity: 0.35,
+      map: pbr.map,
+      bumpMap: pbr.bumpMap,
+      bumpScale: pbr.bumpScale,
+      roughnessMap: pbr.roughnessMap,
+      emissiveMap: pbr.emissiveMap,
+      color: 0x0e1c34,
+      metalness: pbr.metalness,
+      roughness: pbr.roughness,
+      emissive: pbr.emissive,
+      emissiveIntensity: pbr.emissiveIntensity
     });
 
     const armorTrussMat = new THREE.MeshStandardMaterial({
@@ -318,7 +259,7 @@ export class PlayerShip {
     this.buildCockpitInterior(this.meshGroup, 0x00f3ff);
 
     // ── 3. Swept Delta Wings (Port & Starboard Symmetrical) ──
-    const wingMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x14243d, metalness: 0.92, roughness: 0.18 });
+    const wingMat = new THREE.MeshStandardMaterial({ map: pbr.map, color: 0x14243d, metalness: 0.92, roughness: 0.18 });
 
     // Right Wing Base Shape (Counter-Clockwise)
     const rightWingShape = new THREE.Shape();
@@ -531,16 +472,20 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 2.4;
     this.maxSwarmCD = 5.0;
 
-    const hullTex = getProceduralHullTexture();
+    const pbr = getPBRMaterialSet('DREADNOUGHT');
 
     // ── High-Tech Heavy Armor Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
-      map: hullTex,
-      color: 0x181014,
-      metalness: 0.95,
-      roughness: 0.28,
-      emissive: 0x22060b,
-      emissiveIntensity: 0.35
+      map: pbr.map,
+      bumpMap: pbr.bumpMap,
+      bumpScale: pbr.bumpScale,
+      roughnessMap: pbr.roughnessMap,
+      emissiveMap: pbr.emissiveMap,
+      color: 0x221218,
+      metalness: pbr.metalness,
+      roughness: pbr.roughness,
+      emissive: pbr.emissive,
+      emissiveIntensity: pbr.emissiveIntensity
     });
 
     const armorTrussMat = new THREE.MeshStandardMaterial({
@@ -655,7 +600,7 @@ export class PlayerShip {
 
     // ── 4. Heavy Armored Sloped Wings with Wingtip Bulkheads ──
     const armGeo = new THREE.BoxGeometry(2.4, 0.35, 3.6);
-    const armMat = new THREE.MeshStandardMaterial({ map: hullTex, color: 0x160c10, metalness: 0.92, roughness: 0.3 });
+    const armMat = new THREE.MeshStandardMaterial({ map: pbr.map, color: 0x160c10, metalness: 0.92, roughness: 0.3 });
 
     const armR = new THREE.Mesh(armGeo, armMat);
     armR.position.set(2.4, -0.05, 0.4);
@@ -783,16 +728,20 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 1.6;
     this.maxSwarmCD = 4.5;
 
-    const hullTex = getProceduralHullTexture();
+    const pbr = getPBRMaterialSet('TACTICIAN');
 
     // ── High-Tech Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
-      map: hullTex,
-      color: 0x0a1f16,
-      metalness: 0.94,
-      roughness: 0.22,
-      emissive: 0x003318,
-      emissiveIntensity: 0.4
+      map: pbr.map,
+      bumpMap: pbr.bumpMap,
+      bumpScale: pbr.bumpScale,
+      roughnessMap: pbr.roughnessMap,
+      emissiveMap: pbr.emissiveMap,
+      color: 0x0c281e,
+      metalness: pbr.metalness,
+      roughness: pbr.roughness,
+      emissive: pbr.emissive,
+      emissiveIntensity: pbr.emissiveIntensity
     });
 
     const armorTrussMat = new THREE.MeshStandardMaterial({
@@ -994,16 +943,20 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 1.4;
     this.maxSwarmCD = 4.0;
 
-    const hullTex = getProceduralHullTexture();
+    const pbr = getPBRMaterialSet('REAPER');
 
     // ── High-Tech Stealth Materials ──
     this.reaperBodyMat = new THREE.MeshStandardMaterial({
-      map: hullTex,
-      color: 0x12081e,
-      metalness: 0.98,
-      roughness: 0.14,
-      emissive: 0x300052,
-      emissiveIntensity: 0.5,
+      map: pbr.map,
+      bumpMap: pbr.bumpMap,
+      bumpScale: pbr.bumpScale,
+      roughnessMap: pbr.roughnessMap,
+      emissiveMap: pbr.emissiveMap,
+      color: 0x1e0b2e,
+      metalness: pbr.metalness,
+      roughness: pbr.roughness,
+      emissive: pbr.emissive,
+      emissiveIntensity: pbr.emissiveIntensity,
       transparent: true,
       opacity: 1.0
     });
@@ -1192,16 +1145,20 @@ export class PlayerShip {
     this.dodgeMaxCooldown = 1.4;
     this.maxSwarmCD = 3.5;
 
-    const hullTex = getProceduralHullTexture();
+    const pbr = getPBRMaterialSet('SENTINEL');
 
     // ── High-Tech Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
-      map: hullTex,
-      color: 0x0c1b2c,
-      metalness: 0.95,
-      roughness: 0.18,
-      emissive: 0x003b5c,
-      emissiveIntensity: 0.4
+      map: pbr.map,
+      bumpMap: pbr.bumpMap,
+      bumpScale: pbr.bumpScale,
+      roughnessMap: pbr.roughnessMap,
+      emissiveMap: pbr.emissiveMap,
+      color: 0x2c2612,
+      metalness: pbr.metalness,
+      roughness: pbr.roughness,
+      emissive: pbr.emissive,
+      emissiveIntensity: pbr.emissiveIntensity
     });
 
     const armorTrussMat = new THREE.MeshStandardMaterial({
