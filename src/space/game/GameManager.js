@@ -1690,13 +1690,18 @@ export class GameManager {
               if (salvo.lasers && Array.isArray(salvo.lasers)) {
                 salvo.lasers.forEach(tPos => {
                   const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-                  this.spawnLaser(tPos, 0xff0055, true, targetDir);
+                  this.spawnLaser(tPos, 0xff0044, true, targetDir);
                 });
-                this.spaceAudio.playLaserPew();
+                if (salvo.noseLaserFired) {
+                  if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();
+                  if (this.spaceScene) this.spaceScene.addScreenShake(2.5);
+                } else {
+                  this.spaceAudio.playLaserPew();
+                }
               } else if (Array.isArray(salvo)) {
                 salvo.forEach(tPos => {
                   const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-                  this.spawnLaser(tPos, 0xff0055, true, targetDir);
+                  this.spawnLaser(tPos, 0xff0044, true, targetDir);
                 });
                 this.spaceAudio.playLaserPew();
               } else if (salvo !== false && this.activeBoss.meshGroup && this.activeBoss.meshGroup.position) {
