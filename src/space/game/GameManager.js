@@ -211,6 +211,11 @@ export class GameManager {
     if (!direction) {
       direction = Math.random() < 0.5 ? 'left' : 'right';
     }
+
+    // Trigger player ship 3D barrel roll & lateral dodge physics
+    const dodged = this.playerShip ? this.playerShip.dodgeRoll(direction) : true;
+    if (dodged === false) return; // Cooldown active
+
     this.spaceAudio.playDodgeSound();
 
     // Check for Perfect Dodge (enemy laser within 7.0m)
