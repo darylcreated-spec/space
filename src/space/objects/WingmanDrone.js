@@ -174,9 +174,20 @@ export class WingmanDrone {
       if (this.particleManager) {
         this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 50, 2.5);
       }
-      if (this.meshGroup.parent) {
-        this.meshGroup.parent.remove(this.meshGroup);
-      }
+      this.destroy();
+    }
+  }
+
+  destroy() {
+    this.isDead = true;
+    if (this.meshGroup && this.meshGroup.parent) {
+      this.meshGroup.parent.remove(this.meshGroup);
+    }
+    if (this.meshGroup) {
+      this.meshGroup.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+      });
     }
   }
 }
