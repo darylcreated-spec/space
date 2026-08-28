@@ -407,11 +407,20 @@ export class CollisionSystem {
             if (!bPos) continue;
 
             const distB = lPos.distanceTo(bPos);
-            const bossHitRadius = boss.hitRadius || 42.0;
+            const bossHitRadius = boss.hitRadius || 55.0;
+
+            // Also check cylindrical bounding volume for elongated bosses (SanctuaryCylinderBoss, etc.)
+            let inBossZone = distB < bossHitRadius;
+            if (!inBossZone && boss.meshGroup) {
+              const localPos = boss.meshGroup.worldToLocal(lPos.clone());
+              if (Math.abs(localPos.x) < 26.0 && Math.abs(localPos.y) < 26.0 && Math.abs(localPos.z) < 52.0) {
+                inBossZone = true;
+              }
+            }
 
             laser.hitEntities = laser.hitEntities || new Set();
 
-            if (distB < bossHitRadius) {
+            if (inBossZone) {
               let dmg = 25;
               if (laser.isCritical) {
                 dmg *= 3;
@@ -760,6 +769,14 @@ export class CollisionSystem {
               }
 
               if (hitRegistered) {
+                if (gameManager.spaceHUD) {
+                  const maxHp = boss.maxCoreHp || boss.maxHp || 6000;
+                  const currentHp = Math.max(0, boss.coreHp !== undefined ? boss.coreHp : (boss.hp !== undefined ? boss.hp : maxHp));
+                  const ratio = currentHp / maxHp;
+                  const title = boss.bossTitle || (boss.constructor ? boss.constructor.name : 'BOSS TARGET');
+                  gameManager.spaceHUD.updateBossHealth(ratio, title);
+                }
+
                 if (dead || boss.isDead) {
                   gameManager.addScore(boss.scoreValue);
                   gameManager.addScrap(500);

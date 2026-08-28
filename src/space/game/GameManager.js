@@ -578,6 +578,7 @@ export class GameManager {
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("WARNING: Sanctuary-9 O'Neill Cylinder Habitat arriving! Protect civilian evacuation corridors and neutralize siege batteries!", "STARBOUND COMMAND", 5.5);
       this.spaceHUD.showWaveBanner("BOSS BATTLE", "SANCTUARY-9 CYLINDER CITADEL");
+      this.spaceHUD.updateBossHealth(1.0, "SANCTUARY-9 CYLINDER // HABITAT CITADEL");
     }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
   }
@@ -1693,6 +1694,15 @@ export class GameManager {
 
               this.spaceAudio.playLaserPew();
             }
+          }
+
+          // Real-time HUD Boss Health Bar Sync
+          if (this.spaceHUD && !this.activeBoss.isDead) {
+            const maxHp = this.activeBoss.maxCoreHp || this.activeBoss.maxHp || 6000;
+            const currentHp = Math.max(0, this.activeBoss.coreHp !== undefined ? this.activeBoss.coreHp : (this.activeBoss.hp !== undefined ? this.activeBoss.hp : maxHp));
+            const ratio = currentHp / maxHp;
+            const title = this.activeBoss.bossTitle || (this.activeBoss.constructor ? this.activeBoss.constructor.name : 'BOSS TARGET');
+            this.spaceHUD.updateBossHealth(ratio, title);
           }
         } catch(e) {
           console.warn('Boss update error (suppressed):', e);

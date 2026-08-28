@@ -70,14 +70,15 @@ export class SanctuaryCylinderBoss {
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 0, -135);
 
-    this.targetZ = -92;
-    this.speed = 6.5;
+    this.targetZ = -75;
+    this.speed = 10.0;
 
     this.coreHp = 6000;
     this.maxCoreHp = 6000;
     this.scoreValue = 60000;
     this.isDead = false;
-    this.hitRadius = 40;
+    this.hitRadius = 65.0;
+    this.bossTitle = "SANCTUARY-9 CYLINDER // HABITAT CITADEL";
 
     this.fireTimer = 0.7;
     this.satelliteFireTimer = 1.0;
@@ -449,10 +450,19 @@ export class SanctuaryCylinderBoss {
   }
 
   takeCoreDamage(amount) {
-    if (this.phaseShieldTimer > 0) return false;
+    if (this.isDead) return false;
+
+    // If in phase transition shield, absorb 50% damage with visual shield flare
+    let effectiveDmg = amount;
+    if (this.phaseShieldTimer > 0) {
+      effectiveDmg *= 0.5;
+      if (this.particleManager && this.meshGroup) {
+        this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 8, 1.2);
+      }
+    }
 
     const prevPhase = this.phase;
-    this.coreHp -= amount;
+    this.coreHp = Math.max(0, this.coreHp - effectiveDmg);
 
     if (this.coreMat) {
       this.coreMat.emissiveIntensity = 12.0;
@@ -468,7 +478,7 @@ export class SanctuaryCylinderBoss {
     if (hpRatio < 0.25 && this.phase === 2) { this.phase = 3; }
 
     if (this.phase > prevPhase) {
-      this.phaseShieldTimer = 3.0; // 3 seconds phase protection
+      this.phaseShieldTimer = 1.0; // Brief 1.0s phase transition
       this.justPhaseTransitioned = true;
     }
 
