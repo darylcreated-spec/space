@@ -814,12 +814,13 @@ export class TitanAsteroidBoss {
     }
   }
 
-  update(dt, playerShip, gameManager) {
+  update(dt, arg2, arg3, arg4) {
     if (this.isDead || !this.meshGroup) return;
     this._time += dt;
 
     const pos = this.meshGroup.position;
-    const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
+    const playerPos = (arg2 && arg2.isVector3) ? arg2 : (arg2 && arg2.meshGroup ? arg2.meshGroup.position : (arg4 && arg4.meshGroup ? arg4.meshGroup.position : (window.spaceGameManager?.playerShip?.meshGroup?.position || new THREE.Vector3(0, 0, 0))));
+    const gm = arg3 || (arg2 && arg2.spawnLaser ? arg2 : window.spaceGameManager);
 
     // 1. Advance to battle station
     if (pos.z < this.targetZ) {
@@ -941,9 +942,9 @@ export class TitanAsteroidBoss {
         if (!t.isDead && t.mesh && Math.random() < 0.8) {
           const wp = t.mesh.getWorldPosition(new THREE.Vector3());
           out.push(wp);
-          if (gameManager && gameManager.spawnEnemyLaser) {
+          if (gm && gm.spawnEnemyLaser) {
             const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
-            gameManager.spawnEnemyLaser(wp, dir, 0xffaa00, 48);
+            gm.spawnEnemyLaser(wp, dir, 0xffaa00, 48);
           }
         }
       });

@@ -258,11 +258,15 @@ export class GameManager {
     this.totalKills = 0;
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
+    this.freezeFleetAI = false;
+    this.isGodMode = false;
     this.specialWeaponActive = false;
     this.pendingNukeOnWaveStart = false;
     this.activePerks.clear();
     if (this.playerShip) {
       this.playerShip.activePerks.clear();
+      this.playerShip.isInvulnerable = false;
+      this.playerShip.isInspectingSolo = false;
     }
     this.playerShip.reset();
     this.waveSpawner.reset();
@@ -627,6 +631,7 @@ export class GameManager {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 0, -140));
       this.spaceScene.triggerBossIntroCamera(3.5);
     }
+    return this.activeBoss;
   }
 
   spawnHeliosSolarBoss() {
@@ -642,6 +647,7 @@ export class GameManager {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -120));
       this.spaceScene.triggerBossIntroCamera();
     }
+    return this.activeBoss;
   }
 
   spawnWingmanDrones() {
@@ -1002,8 +1008,10 @@ export class GameManager {
     }
   }
 
-  spawnEnemyLaser(origin, dir, color = 0xff0044, speed = 40) {
-    this.spawnLaser(origin, color, true, dir, speed);
+  spawnEnemyLaser(origin, dir, color = 0xff0044, speed = 46) {
+    const bolt = this.spawnLaser(origin, color, true, dir, false, 'STANDARD');
+    if (bolt && speed) bolt.speed = speed;
+    return bolt;
   }
 
   spawnPowerUp(pos) {
@@ -1498,6 +1506,7 @@ export class GameManager {
 
     const pPos = this.playerShip.meshGroup.position;
 
+    // 1. Update Drones
     for (let i = 0; i < this.drones.length; i++) {
       const drone = this.drones[i];
       if (!drone || drone.isDead || !drone.meshGroup) continue;
@@ -1505,10 +1514,17 @@ export class GameManager {
         drone.meshGroup.rotation.y += 0.005;
       } else {
         const firePlasma = drone.update(effectiveDt, pPos);
-        if (firePlasma && drone.meshGroup) {
-          const dPos = drone.meshGroup.position;
-          const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
-          this.spawnLaser(dPos, 0xff0055, true, targetDir);
+        if (firePlasma) {
+          if (Array.isArray(firePlasma)) {
+            firePlasma.forEach(dPos => {
+              const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
+              this.spawnLaser(dPos, 0xff0055, true, targetDir);
+            });
+          } else if (drone.meshGroup) {
+            const dPos = drone.meshGroup.position;
+            const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
+            this.spawnLaser(dPos, 0xff0055, true, targetDir);
+          }
           this.spaceAudio.playLaserPew();
         }
       }
@@ -1524,14 +1540,21 @@ export class GameManager {
       }
     }
 
-    // Update Shadow-Wraith Stealth Fighters
+    // 2. Update Shadow-Wraith Stealth Fighters
     for (let i = 0; i < this.stealthFighters.length; i++) {
       const fighter = this.stealthFighters[i];
       if (!fighter || fighter.isDead || !fighter.meshGroup) continue;
       if (this.freezeFleetAI) {
         fighter.meshGroup.rotation.y += 0.005;
       } else {
-        fighter.update(effectiveDt, this.playerShip, this);
+        const stealthFire = fighter.update(effectiveDt, pPos);
+        if (stealthFire && Array.isArray(stealthFire)) {
+          stealthFire.forEach(sPos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, sPos).normalize();
+            this.spawnLaser(sPos, 0xff0055, true, targetDir);
+          });
+          this.spaceAudio.playLaserPew();
+        }
       }
     }
 
@@ -1545,7 +1568,7 @@ export class GameManager {
       }
     }
 
-    // Update Enemy Capital Cruiser Escorts
+    // 3. Update Enemy Capital Cruiser Escorts
     for (let i = 0; i < this.capitalShips.length; i++) {
       const ship = this.capitalShips[i];
       if (!ship || ship.isDead || !ship.meshGroup) continue;
@@ -1554,13 +1577,20 @@ export class GameManager {
       } else {
         const fireData = ship.update(effectiveDt, pPos);
 
-        if (fireData && fireData.origins && Array.isArray(fireData.origins)) {
-          fireData.origins.forEach(tPos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-            // Enemy Cruiser fires crimson-gold heavy plasma bolts at the player
-            this.spawnEnemyLaser(tPos, targetDir, 0xff2244, 46);
-          });
-          this.spaceAudio.playLaserPew();
+        if (fireData) {
+          if (fireData.origins && Array.isArray(fireData.origins)) {
+            fireData.origins.forEach(tPos => {
+              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+              this.spawnEnemyLaser(tPos, targetDir, 0xff2244, 46);
+            });
+            this.spaceAudio.playLaserPew();
+          } else if (Array.isArray(fireData)) {
+            fireData.forEach(tPos => {
+              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+              this.spawnEnemyLaser(tPos, targetDir, 0xff2244, 46);
+            });
+            this.spaceAudio.playLaserPew();
+          }
         }
       }
     }
@@ -1575,7 +1605,7 @@ export class GameManager {
       }
     }
 
-    // Update Goliath Heavy Battleships
+    // 4. Update Goliath Heavy Battleships
     for (let i = 0; i < this.heavyBattleships.length; i++) {
       const battleship = this.heavyBattleships[i];
       if (!battleship || battleship.isDead || !battleship.meshGroup) continue;
@@ -1596,7 +1626,7 @@ export class GameManager {
       }
     }
 
-    // Update Carrier Capital Ship (Mission 1 Mid-Boss)
+    // 5. Update Carrier Capital Ship (Mid-Boss)
     if (this.carrierBoss) {
       if (this.carrierBoss.isDead) {
         this.carrierBoss.destroy();
@@ -1608,7 +1638,7 @@ export class GameManager {
         if (this.freezeFleetAI) {
           if (this.carrierBoss.meshGroup) this.carrierBoss.meshGroup.rotation.y += 0.002;
         } else {
-          const carrierStatus = this.carrierBoss.update(effectiveDt, this.playerShip);
+          const carrierStatus = this.carrierBoss.update(effectiveDt, this.playerShip, this);
           if (carrierStatus && carrierStatus.lasers && Array.isArray(carrierStatus.lasers)) {
             carrierStatus.lasers.forEach(tPos => {
               const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
@@ -1665,6 +1695,7 @@ export class GameManager {
       this.destroySentinelDrone();
     }
 
+    // 6. Update Active Apex Boss
     if (this.activeBoss) {
       if (this.activeBoss.isDead) {
         // Boss just died — destroy and null immediately so nothing accesses disposed materials
@@ -1673,7 +1704,7 @@ export class GameManager {
         this.clearAllThreats();
       } else {
         try {
-          const salvo = this.activeBoss.update(effectiveDt, pPos);
+          const salvo = this.activeBoss.update(effectiveDt, pPos, this, this.playerShip);
 
           if (this.freezeFleetAI) {
             if (this.activeBoss.meshGroup) {

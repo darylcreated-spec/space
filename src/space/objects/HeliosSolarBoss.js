@@ -117,8 +117,10 @@ export class HeliosSolarBoss {
     }
   }
 
-  update(dt, playerShip, gameManager) {
+  update(dt, arg2, arg3, arg4) {
     if (this.isDead || !this.meshGroup) return;
+
+    const gm = arg3 || (arg2 && arg2.spawnLaser ? arg2 : window.spaceGameManager);
 
     // Warp-in approach
     if (!this.introFinished) {
@@ -143,9 +145,9 @@ export class HeliosSolarBoss {
 
     // Solar Arc Turret Fire
     this.pulseTimer += dt;
-    if (this.pulseTimer >= 1.8 && gameManager && gameManager.state === 'PLAYING') {
+    if (this.pulseTimer >= 1.8 && gm && gm.state === 'PLAYING') {
       this.pulseTimer = 0;
-      this.fireSolarArcs(gameManager);
+      this.fireSolarArcs(gm);
     }
   }
 
@@ -157,7 +159,11 @@ export class HeliosSolarBoss {
       if (c.isDead || !c.mesh) return;
       const muzzle = c.mesh.localToWorld(new THREE.Vector3(0, 0, -2.0));
       const targetDir = new THREE.Vector3().subVectors(pPos, muzzle).normalize();
-      gameManager.spawnLaser(muzzle, 0xffaa00, true, targetDir, 42);
+      if (gameManager.spawnEnemyLaser) {
+        gameManager.spawnEnemyLaser(muzzle, targetDir, 0xffaa00, 48);
+      } else {
+        gameManager.spawnLaser(muzzle, 0xffaa00, true, targetDir);
+      }
     });
   }
 
