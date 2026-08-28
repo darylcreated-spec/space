@@ -208,32 +208,100 @@ export class CapitalShip {
       opacity: 0.95
     });
 
-    // ── 1. Central Wedged Dreadnought Hull with Gold Spine ──
-    const mainHullGeo = new THREE.BoxGeometry(3.6, 1.4, 8.4);
+function createSmoothCapitalShipHullGeo() {
+  const geom = new THREE.BufferGeometry();
+  const zSlices = 24;
+  const radSegments = 24;
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let i = 0; i <= zSlices; i++) {
+    const v = i / zSlices;
+    // z from +6.5 (nose) to -5.5 (stern)
+    const z = 6.5 - v * 12.0;
+
+    let halfWidth, halfHeight, yCenter;
+    if (z > 2.5) {
+      const t = (z - 2.5) / 4.0;
+      halfWidth = THREE.MathUtils.lerp(3.2, 0.6, Math.pow(t, 0.85));
+      halfHeight = THREE.MathUtils.lerp(1.5, 0.45, Math.pow(t, 0.85));
+      yCenter = THREE.MathUtils.lerp(0.1, 0.02, t);
+    } else if (z > -2.0) {
+      const t = (z - (-2.0)) / 4.5;
+      halfWidth = THREE.MathUtils.lerp(4.0, 3.2, Math.sin(t * Math.PI * 0.5));
+      halfHeight = THREE.MathUtils.lerp(1.7, 1.5, Math.sin(t * Math.PI * 0.5));
+      yCenter = 0.1;
+    } else {
+      const t = (z - (-5.5)) / 3.5;
+      halfWidth = THREE.MathUtils.lerp(2.8, 4.0, Math.pow(t, 0.7));
+      halfHeight = THREE.MathUtils.lerp(1.2, 1.7, Math.pow(t, 0.7));
+      yCenter = THREE.MathUtils.lerp(0.02, 0.1, t);
+    }
+
+    for (let j = 0; j <= radSegments; j++) {
+      const u = j / radSegments;
+      const theta = u * Math.PI * 2;
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+
+      const chine = Math.pow(Math.abs(cosT), 2.5) * 0.8;
+      const x = cosT * (halfWidth + chine);
+      const y = yCenter + sinT * halfHeight;
+
+      positions.push(x, y, z);
+      uvs.push(u, v);
+    }
+  }
+
+  for (let i = 0; i < zSlices; i++) {
+    for (let j = 0; j < radSegments; j++) {
+      const a = i * (radSegments + 1) + j;
+      const b = (i + 1) * (radSegments + 1) + j;
+      const c = (i + 1) * (radSegments + 1) + (j + 1);
+      const d = i * (radSegments + 1) + (j + 1);
+
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  return geom;
+}
+
+    // ── 1. Central Continuous Smooth Sculpted Lifting-Body Hull ──
+    const mainHullGeo = createSmoothCapitalShipHullGeo();
     const mainHull = new THREE.Mesh(mainHullGeo, this.hullMat);
     mainHull.position.set(0, 0, 0);
     this.meshGroup.add(mainHull);
 
     // Radiant Gold Keel Spine & Underlying Rupture Socket
-    const keelGeo = new THREE.BoxGeometry(0.5, 0.4, 8.6);
+    const keelGeo = new THREE.CapsuleGeometry(0.25, 8.6, 6, 16);
+    keelGeo.rotateX(Math.PI / 2);
     const keel = new THREE.Mesh(keelGeo, this.goldTrimMat);
     keel.position.set(0, -0.75, 0);
     this.meshGroup.add(keel);
 
     const keelSocket = new THREE.Group();
     keelSocket.position.set(0, -0.65, 0);
-    const kSkel = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.22, 8.2), this.scorchedSkeletonMat);
+    const kSkel = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 8.2, 6, 12), this.scorchedSkeletonMat);
+    kSkel.rotateX(Math.PI / 2);
     keelSocket.add(kSkel);
     keelSocket.visible = false;
     this.meshGroup.add(keelSocket);
     this.breakableParts.push({ id: 'keel', mesh: keel, socketMesh: keelSocket, name: 'Gold Keel Spine' });
 
-    // Chisel-head bow prow (Vibrant Magma Crimson) & Underlying Damaged Framework
-    const prowGeo = new THREE.ConeGeometry(2.2, 4.2, 4);
+    // Chisel-head bow prow armor plate (Smooth Sculpted Cap)
+    const prowGeo = new THREE.CapsuleGeometry(1.2, 3.4, 8, 16);
     prowGeo.rotateX(Math.PI / 2);
-    prowGeo.scale(1.2, 0.45, 1.0);
+    prowGeo.scale(1.4, 0.45, 1.0);
     const prow = new THREE.Mesh(prowGeo, this.armorPlatesMat);
-    prow.position.set(0, 0, 5.2);
+    prow.position.set(0, 0.1, 4.2);
     this.meshGroup.add(prow);
 
     const prowSocket = new THREE.Group();

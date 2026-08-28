@@ -304,9 +304,21 @@ export class CarrierCapitalShip {
     midHullMesh.position.set(0, 2.5, -12.0);
     this.meshGroup.add(midHullMesh);
 
-    // Lateral Armor Sponsons
+    // Smooth Sculpted Lateral Catamaran Armor Sponsons
     [-18.0, 18.0].forEach(sideX => {
-      const sponsonGeo = new THREE.BoxGeometry(4.8, 6.8, 48.0);
+      const spShape = new THREE.Shape();
+      spShape.moveTo(0, 24);
+      spShape.bezierCurveTo(2.4, 20, 2.4, -20, 0, -24);
+      spShape.lineTo(-2.4, -22);
+      spShape.bezierCurveTo(-2.4, -20, -2.4, 20, -2.4, 22);
+      spShape.closePath();
+
+      const spExtrude = { depth: 6.5, bevelEnabled: true, bevelSize: 0.9, bevelThickness: 0.9, bevelSegments: 3 };
+      const sponsonGeo = new THREE.ExtrudeGeometry(spShape, spExtrude);
+      sponsonGeo.rotateY(Math.PI / 2);
+      sponsonGeo.center();
+      sponsonGeo.computeVertexNormals();
+
       const sponson = new THREE.Mesh(sponsonGeo, this.hullMat);
       sponson.position.set(sideX, 0.2, -6.0);
       sponson.rotation.z = sideX > 0 ? -0.12 : 0.12;
@@ -326,17 +338,21 @@ export class CarrierCapitalShip {
     noseRoofShape.lineTo(-6, 7);
     noseRoofShape.closePath();
 
-    const noseRoofExtrude = { depth: 1.6, bevelEnabled: true, bevelSize: 0.6, bevelThickness: 0.6 };
+    const noseRoofExtrude = { depth: 1.6, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8, bevelSegments: 3 };
     const noseRoofGeo = new THREE.ExtrudeGeometry(noseRoofShape, noseRoofExtrude);
     noseRoofGeo.rotateX(-Math.PI / 2);
     noseRoofGeo.center();
+    noseRoofGeo.computeVertexNormals();
     const noseRoofMesh = new THREE.Mesh(noseRoofGeo, this.hullMat);
     noseRoofMesh.position.set(0, 5.2, 0);
     noseGroup.add(noseRoofMesh);
 
     // B. Sweeping Armored Flank Chines (Port & Starboard Outer Hull)
     [-1, 1].forEach(side => {
-      const chineGeo = new THREE.BoxGeometry(2.4, 7.5, 21.0);
+      const chineGeo = new THREE.CapsuleGeometry(1.2, 19.0, 8, 16);
+      chineGeo.rotateX(Math.PI / 2);
+      chineGeo.scale(1.0, 3.0, 1.0);
+      chineGeo.computeVertexNormals();
       const chine = new THREE.Mesh(chineGeo, this.hullMat);
       chine.position.set(side * 11.5, 1.2, 0);
       chine.rotation.y = side * -0.22;

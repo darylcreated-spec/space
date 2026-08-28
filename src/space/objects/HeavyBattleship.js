@@ -116,6 +116,7 @@ export class HeavyBattleship {
     this.thrusters = [];
     this.engineExhaustPlumes = [];
     this.machDiamonds = [];
+    this.machDiamondRings = [];
 
     // Weapon Timers
     this.railgunTimer = 2.8;
@@ -187,23 +188,102 @@ export class HeavyBattleship {
       blending: THREE.AdditiveBlending
     });
 
-    // ── 1. Colossal 110m Angular Dreadnought Hull Prow & Fuselage ──
-    const mainHullGeo = new THREE.BoxGeometry(26, 9.0, 72);
+function createSmoothBattleshipHullGeo() {
+  const geom = new THREE.BufferGeometry();
+  const zSlices = 28;
+  const radSegments = 28;
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let i = 0; i <= zSlices; i++) {
+    const v = i / zSlices;
+    // z ranges from +55.0 (prow apex) to -45.0 (aft engines)
+    const z = 55.0 - v * 100.0;
+
+    let halfWidth, halfHeight, yCenter;
+    if (z > 20.0) {
+      const t = (z - 20.0) / 35.0;
+      halfWidth = THREE.MathUtils.lerp(15.0, 2.2, Math.pow(t, 0.85));
+      halfHeight = THREE.MathUtils.lerp(5.5, 1.8, Math.pow(t, 0.85));
+      yCenter = THREE.MathUtils.lerp(0.8, 0.2, t);
+    } else if (z > -20.0) {
+      const t = (z - (-20.0)) / 40.0;
+      halfWidth = THREE.MathUtils.lerp(18.0, 15.0, Math.sin(t * Math.PI * 0.5));
+      halfHeight = THREE.MathUtils.lerp(6.5, 5.5, Math.sin(t * Math.PI * 0.5));
+      yCenter = 0.8;
+    } else {
+      const t = (z - (-45.0)) / 25.0;
+      halfWidth = THREE.MathUtils.lerp(13.0, 18.0, Math.pow(t, 0.7));
+      halfHeight = THREE.MathUtils.lerp(4.8, 6.5, Math.pow(t, 0.7));
+      yCenter = THREE.MathUtils.lerp(0.3, 0.8, t);
+    }
+
+    for (let j = 0; j <= radSegments; j++) {
+      const u = j / radSegments;
+      const theta = u * Math.PI * 2;
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+
+      const chine = Math.pow(Math.abs(cosT), 2.5) * 2.5;
+      const x = cosT * (halfWidth + chine);
+      const y = yCenter + sinT * halfHeight;
+
+      positions.push(x, y, z);
+      uvs.push(u, v);
+    }
+  }
+
+  for (let i = 0; i < zSlices; i++) {
+    for (let j = 0; j < radSegments; j++) {
+      const a = i * (radSegments + 1) + j;
+      const b = (i + 1) * (radSegments + 1) + j;
+      const c = (i + 1) * (radSegments + 1) + (j + 1);
+      const d = i * (radSegments + 1) + (j + 1);
+
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  return geom;
+}
+
+    // ── 1. Colossal 110m Smooth Sculpted Dreadnought Lifting-Body Fuselage ──
+    const mainHullGeo = createSmoothBattleshipHullGeo();
     const mainHull = new THREE.Mesh(mainHullGeo, this.hullMat);
-    mainHull.position.set(0, 0, -4);
+    mainHull.position.set(0, 0, 0);
     this.meshGroup.add(mainHull);
 
-    // Chisel-head kinetic ram prow
-    const prowGeo = new THREE.ConeGeometry(16, 36, 4);
+    // Chisel-head kinetic ram prow cap
+    const prowGeo = new THREE.CapsuleGeometry(3.5, 14.0, 8, 16);
     prowGeo.rotateX(Math.PI / 2);
-    prowGeo.scale(1.2, 0.45, 1.0);
+    prowGeo.scale(1.8, 0.55, 1.0);
+    prowGeo.computeVertexNormals();
     const prow = new THREE.Mesh(prowGeo, this.armorPlatesMat);
-    prow.position.set(0, 0, 44);
+    prow.position.set(0, 0.4, 40);
     this.meshGroup.add(prow);
 
     // ── 2. Beveled Titanium Chined Sponson Armor Wings (Beam: 48m) ──
     [-19, 19].forEach(sx => {
-      const sponsonGeo = new THREE.BoxGeometry(12, 4.5, 58);
+      const spShape = new THREE.Shape();
+      spShape.moveTo(0, 28);
+      spShape.bezierCurveTo(4.0, 24, 4.0, -24, 0, -28);
+      spShape.lineTo(-4.0, -26);
+      spShape.bezierCurveTo(-4.0, -24, -4.0, 24, -4.0, 26);
+      spShape.closePath();
+
+      const spExtrude = { depth: 4.5, bevelEnabled: true, bevelSize: 0.8, bevelThickness: 0.8, bevelSegments: 3 };
+      const sponsonGeo = new THREE.ExtrudeGeometry(spShape, spExtrude);
+      sponsonGeo.rotateY(Math.PI / 2);
+      sponsonGeo.center();
+      sponsonGeo.computeVertexNormals();
+
       const sponsonMesh = new THREE.Mesh(sponsonGeo, this.armorPlatesMat);
       sponsonMesh.position.set(sx, 0.5, -4);
       this.meshGroup.add(sponsonMesh);
