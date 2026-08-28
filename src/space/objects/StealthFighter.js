@@ -1,62 +1,116 @@
 import * as THREE from 'three';
 
-/**
- * Procedural Radar-Absorbent Material (RAM) Composite Texture for Stealth Armor
- */
+// Procedural normal map generator for radar-absorbent stealth RAM plating
 function generateStealthArmorTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  // Rich metallic obsidian-crimson base
-  ctx.fillStyle = '#1c0c10';
-  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillStyle = '#1c0a10';
+  ctx.fillRect(0, 0, 512, 512);
 
-  // Carbon-fiber hexagonal nano-mesh in deep crimson
-  ctx.strokeStyle = '#801424';
-  ctx.lineWidth = 1.4;
-  const hexRadius = 14;
-  const h = hexRadius * Math.sqrt(3);
-
-  for (let y = -h; y < 256 + h; y += h) {
-    for (let x = -hexRadius * 3; x < 256 + hexRadius * 3; x += hexRadius * 3) {
-      drawHex(ctx, x, y, hexRadius);
-      drawHex(ctx, x + hexRadius * 1.5, y + h / 2, hexRadius);
+  // Carbon hex micro-weave
+  ctx.strokeStyle = '#3d0c16';
+  ctx.lineWidth = 1.0;
+  for (let x = 0; x < 512; x += 16) {
+    for (let y = 0; y < 512; y += 16) {
+      ctx.strokeRect(x, y, 14, 14);
     }
   }
 
-  // Angled stealth panel facet seams in scarlet
-  ctx.strokeStyle = '#e61c32';
-  ctx.lineWidth = 2.4;
-  ctx.beginPath();
-  ctx.moveTo(0, 40); ctx.lineTo(256, 120);
-  ctx.moveTo(0, 180); ctx.lineTo(256, 220);
-  ctx.moveTo(80, 0); ctx.lineTo(140, 256);
-  ctx.stroke();
-
-  // Magma-orange circuit conduits
-  ctx.strokeStyle = '#ff4400';
+  // Smooth flow lines
+  ctx.strokeStyle = '#5a1222';
   ctx.lineWidth = 1.8;
+  for (let y = 32; y < 512; y += 64) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.bezierCurveTo(170, y - 10, 340, y + 10, 512, y);
+    ctx.stroke();
+  }
+
+  // Magma circuit conduits
+  ctx.strokeStyle = '#ff2200';
+  ctx.lineWidth = 2.0;
   ctx.beginPath();
-  ctx.moveTo(30, 0); ctx.lineTo(30, 80); ctx.lineTo(90, 140);
-  ctx.moveTo(226, 0); ctx.lineTo(226, 80); ctx.lineTo(166, 140);
+  ctx.moveTo(64, 0); ctx.lineTo(64, 200); ctx.lineTo(180, 256); ctx.lineTo(180, 512);
+  ctx.moveTo(448, 0); ctx.lineTo(448, 200); ctx.lineTo(332, 256); ctx.lineTo(332, 512);
   ctx.stroke();
 
-  return new THREE.CanvasTexture(canvas);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
 }
 
-function drawHex(ctx, x, y, r) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i;
-    const hx = x + r * Math.cos(angle);
-    const hy = y + r * Math.sin(angle);
-    if (i === 0) ctx.moveTo(hx, hy);
-    else ctx.lineTo(hx, hy);
+/**
+ * Continuous Smooth Aerodynamic Lifting-Body for Phantom Stealth Fighter
+ */
+function createSmoothStealthFuselageGeo() {
+  const geom = new THREE.BufferGeometry();
+  const zSlices = 24;
+  const radSegments = 28;
+
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let i = 0; i <= zSlices; i++) {
+    const v = i / zSlices;
+    // z ranges from +3.2 (nose prow) to -2.8 (aft engine)
+    const z = 3.2 - v * 6.0;
+
+    let halfWidth, halfHeight, yCenter;
+    if (z > 1.2) {
+      const t = (z - 1.2) / 2.0;
+      halfWidth = THREE.MathUtils.lerp(1.6, 0.35, Math.pow(t, 0.85));
+      halfHeight = THREE.MathUtils.lerp(0.85, 0.25, Math.pow(t, 0.85));
+      yCenter = THREE.MathUtils.lerp(0.12, 0.04, t);
+    } else if (z > -1.2) {
+      const t = (z - (-1.2)) / 2.4;
+      halfWidth = THREE.MathUtils.lerp(2.2, 1.6, Math.sin(t * Math.PI * 0.5));
+      halfHeight = THREE.MathUtils.lerp(0.95, 0.85, Math.sin(t * Math.PI * 0.5));
+      yCenter = 0.12;
+    } else {
+      const t = (z - (-2.8)) / 1.6;
+      halfWidth = THREE.MathUtils.lerp(1.5, 2.2, Math.pow(t, 0.7));
+      halfHeight = THREE.MathUtils.lerp(0.65, 0.95, Math.pow(t, 0.7));
+      yCenter = THREE.MathUtils.lerp(0.04, 0.12, t);
+    }
+
+    for (let j = 0; j <= radSegments; j++) {
+      const u = j / radSegments;
+      const theta = u * Math.PI * 2;
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+
+      const chine = Math.pow(Math.abs(cosT), 2.5) * 0.5;
+      const x = cosT * (halfWidth + chine);
+      const y = yCenter + sinT * halfHeight;
+
+      positions.push(x, y, z);
+      uvs.push(u, v);
+    }
   }
-  ctx.closePath();
-  ctx.stroke();
+
+  for (let i = 0; i < zSlices; i++) {
+    for (let j = 0; j < radSegments; j++) {
+      const a = i * (radSegments + 1) + j;
+      const b = (i + 1) * (radSegments + 1) + j;
+      const c = (i + 1) * (radSegments + 1) + (j + 1);
+      const d = i * (radSegments + 1) + (j + 1);
+
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  return geom;
 }
 
 export class StealthFighter {
@@ -74,11 +128,10 @@ export class StealthFighter {
     this.scoreValue = 400;
 
     // AI & Cloaking State Machine
-    // 'CLOAKED_APPROACH' -> 'UNCLOAK_AMBUSH' -> 'STRAFING_FIRE' -> 'EVASIVE_DASH' -> 'RE_CLOAK'
     this.state = 'CLOAKED_APPROACH';
     this.stateTimer = 2.5;
-    this.cloakOpacity = 0.08;
-    this.targetCloakOpacity = 0.08;
+    this.cloakOpacity = 0.12;
+    this.targetCloakOpacity = 0.12;
     this.isCloaked = true;
 
     this.speed = 30;
@@ -96,27 +149,27 @@ export class StealthFighter {
   buildMesh() {
     this.armorTexture = generateStealthArmorTexture();
 
-    // 1. Primary Stealth RAM Composite (Metallic Crimson-Obsidian)
+    // 1. Primary Stealth RAM Composite
     this.hullMat = new THREE.MeshStandardMaterial({
       color: 0x481820,
       map: this.armorTexture,
-      metalness: 0.88,
-      roughness: 0.22,
+      metalness: 0.92,
+      roughness: 0.18,
       transparent: true,
       opacity: this.cloakOpacity,
       blending: THREE.NormalBlending
     });
 
-    // 2. Secondary Titanium-Tungsten Edge Armor (Specular High-Contrast Crimson)
+    // 2. Secondary Titanium Edge Armor
     this.titaniumMat = new THREE.MeshStandardMaterial({
       color: 0xa83848,
-      metalness: 0.94,
-      roughness: 0.15,
+      metalness: 0.96,
+      roughness: 0.12,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 3. Magma Plasma Conduit Emissive Material
+    // 3. Magma Plasma Conduit
     this.conduitMat = new THREE.MeshStandardMaterial({
       color: 0x8c1822,
       emissive: 0xff2200,
@@ -127,14 +180,14 @@ export class StealthFighter {
       opacity: this.cloakOpacity
     });
 
-    // 4. Optical Predator Oculus Material (Ruby Red)
+    // 4. Optical Oculus Material
     this.oculusMat = new THREE.MeshBasicMaterial({
       color: 0xff1133,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 5. Thruster Plasma Glow Material (Magma Orange)
+    // 5. Thruster Plasma Glow
     this.glowMat = new THREE.MeshBasicMaterial({
       color: 0xff4400,
       transparent: true,
@@ -142,457 +195,179 @@ export class StealthFighter {
       blending: THREE.AdditiveBlending
     });
 
-    // --- MAIN FUSELAGE: Faceted Diamond Stealth Lifting Body ---
-    const fuselageGeo = new THREE.BufferGeometry();
-    const fVerts = new Float32Array([
-      // Prow Nose (Facing +Z forward)
-      0.0, 0.0, 2.6,     0.0, 0.55, 0.4,  -0.8, 0.25, 0.4,  // Top Left Front
-      0.0, 0.0, 2.6,     0.8, 0.25, 0.4,   0.0, 0.55, 0.4,  // Top Right Front
-      0.0, 0.0, 2.6,    -0.8, -0.15, 0.4,  0.0, -0.45, 0.4, // Bottom Left Front
-      0.0, 0.0, 2.6,     0.0, -0.45, 0.4,  0.8, -0.15, 0.4, // Bottom Right Front
-
-      // Mid Dorsal Carapace
-      0.0, 0.55, 0.4,   -1.2, 0.15, -1.8, -0.8, 0.25, 0.4,
-      0.0, 0.55, 0.4,    0.0, 0.45, -2.0, -1.2, 0.15, -1.8,
-      0.0, 0.55, 0.4,    1.2, 0.15, -1.8,  0.0, 0.45, -2.0,
-      0.0, 0.55, 0.4,    0.8, 0.25, 0.4,   1.2, 0.15, -1.8,
-
-      // Mid Ventral Keel
-      0.0, -0.45, 0.4,  -0.8, -0.15, 0.4, -1.2, -0.1, -1.8,
-      0.0, -0.45, 0.4,  -1.2, -0.1, -1.8,  0.0, -0.35, -2.0,
-      0.0, -0.45, 0.4,   0.0, -0.35, -2.0,  1.2, -0.1, -1.8,
-      0.0, -0.45, 0.4,   1.2, -0.1, -1.8,  0.8, -0.15, 0.4,
-
-      // Stern Transom Backplate
-      0.0, 0.45, -2.0,  -1.2, -0.1, -1.8, -1.2, 0.15, -1.8,
-      0.0, 0.45, -2.0,   0.0, -0.35, -2.0, -1.2, -0.1, -1.8,
-      0.0, 0.45, -2.0,   1.2, -0.1, -1.8,  0.0, -0.35, -2.0,
-      0.0, 0.45, -2.0,   1.2, 0.15, -1.8,  1.2, -0.1, -1.8
-    ]);
-    fuselageGeo.setAttribute('position', new THREE.BufferAttribute(fVerts, 3));
-    fuselageGeo.computeVertexNormals();
+    // ── 1. Smooth Continuous Lifting-Body Fuselage ──
+    const fuselageGeo = createSmoothStealthFuselageGeo();
     this.fuselageMesh = new THREE.Mesh(fuselageGeo, this.hullMat);
     this.meshGroup.add(this.fuselageMesh);
 
-    // Dorsal Stealth Spine Armor
-    const spineGeo = new THREE.BoxGeometry(0.35, 0.25, 3.2);
-    const spineMesh = new THREE.Mesh(spineGeo, this.titaniumMat);
-    spineMesh.position.set(0, 0.38, -0.4);
-    this.meshGroup.add(spineMesh);
+    // ── 2. Smooth Curved Cockpit Canopy ──
+    const canopyGeo = new THREE.CapsuleGeometry(0.35, 1.4, 8, 16);
+    canopyGeo.rotateX(Math.PI / 2);
+    const canopy = new THREE.Mesh(canopyGeo, this.titaniumMat);
+    canopy.position.set(0, 0.45, 0.2);
+    this.meshGroup.add(canopy);
 
-    // --- FORWARD ATTACK CANARDS ---
-    const canardGeoL = new THREE.BufferGeometry();
-    const canardVertsL = new Float32Array([
-      -0.4, 0.1, 1.6,   -0.6, 0.1, 0.6,   -1.4, 0.05, 0.8,
-      -1.4, 0.05, 0.8,  -0.6, 0.1, 0.6,   -0.4, 0.1, 1.6
-    ]);
-    canardGeoL.setAttribute('position', new THREE.BufferAttribute(canardVertsL, 3));
-    canardGeoL.computeVertexNormals();
-    this.meshGroup.add(new THREE.Mesh(canardGeoL, this.titaniumMat));
+    // ── 3. Smooth Swept Delta Wings with Rounded Leading Edges ──
+    [-1, 1].forEach(side => {
+      const wingShape = new THREE.Shape();
+      wingShape.moveTo(0, 0.4);
+      wingShape.bezierCurveTo(side * 1.6, 0.2, side * 3.2, 1.2, side * 3.6, 0.8);
+      wingShape.bezierCurveTo(side * 3.8, 0.5, side * 3.5, 0.1, side * 3.2, -0.2);
+      wingShape.bezierCurveTo(side * 2.0, -0.8, side * 0.8, -1.4, 0, -1.8);
+      wingShape.closePath();
 
-    const canardGeoR = new THREE.BufferGeometry();
-    const canardVertsR = new Float32Array([
-      0.4, 0.1, 1.6,    1.4, 0.05, 0.8,    0.6, 0.1, 0.6,
-      0.6, 0.1, 0.6,    1.4, 0.05, 0.8,    0.4, 0.1, 1.6
-    ]);
-    canardGeoR.setAttribute('position', new THREE.BufferAttribute(canardVertsR, 3));
-    canardGeoR.computeVertexNormals();
-    this.meshGroup.add(new THREE.Mesh(canardGeoR, this.titaniumMat));
+      const extrudeSettings = {
+        depth: 0.14,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        steps: 1,
+        bevelSize: 0.06,
+        bevelThickness: 0.06
+      };
+      const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
+      wingGeo.rotateX(-Math.PI / 2);
+      const wing = new THREE.Mesh(wingGeo, this.hullMat);
+      wing.position.set(0, 0.05, 0);
+      this.meshGroup.add(wing);
 
-    // --- FORWARD-SWEPT DAGGER WINGS ---
-    const wingGeo = new THREE.BufferGeometry();
-    const wingVerts = new Float32Array([
-      // Left Wing Upper
-      -0.6, 0.15, 0.2,  -1.0, 0.1, -1.8,  -3.6, -0.1, 1.6,
-      -0.6, 0.15, 0.2,  -3.6, -0.1, 1.6,  -3.4, -0.05, 2.0,
-      // Left Wing Lower
-      -0.6, -0.1, 0.2,  -3.6, -0.1, 1.6,  -1.0, -0.1, -1.8,
-
-      // Right Wing Upper
-      0.6, 0.15, 0.2,    3.6, -0.1, 1.6,   1.0, 0.1, -1.8,
-      0.6, 0.15, 0.2,    3.4, -0.05, 2.0,  3.6, -0.1, 1.6,
-      // Right Wing Lower
-      0.6, -0.1, 0.2,    1.0, -0.1, -1.8,  3.6, -0.1, 1.6
-    ]);
-    wingGeo.setAttribute('position', new THREE.BufferAttribute(wingVerts, 3));
-    wingGeo.computeVertexNormals();
-    this.wingMesh = new THREE.Mesh(wingGeo, this.hullMat);
-    this.meshGroup.add(this.wingMesh);
-
-    // Titanium Leading Edge Slats
-    const edgeGeoL = new THREE.CylinderGeometry(0.05, 0.05, 3.8, 4);
-    edgeGeoL.rotateZ(Math.PI * 0.38);
-    const edgeMeshL = new THREE.Mesh(edgeGeoL, this.titaniumMat);
-    edgeMeshL.position.set(-2.0, 0.02, 0.95);
-    this.meshGroup.add(edgeMeshL);
-
-    const edgeGeoR = new THREE.CylinderGeometry(0.05, 0.05, 3.8, 4);
-    edgeGeoR.rotateZ(-Math.PI * 0.38);
-    const edgeMeshR = new THREE.Mesh(edgeGeoR, this.titaniumMat);
-    edgeMeshR.position.set(2.0, 0.02, 0.95);
-    this.meshGroup.add(edgeMeshR);
-
-    // Wing Inset Plasma Conduit Filaments (Glowing Violet)
-    const conduitGeoL = new THREE.BoxGeometry(0.08, 0.04, 2.6);
-    conduitGeoL.rotateY(-0.4);
-    const conduitMeshL = new THREE.Mesh(conduitGeoL, this.conduitMat);
-    conduitMeshL.position.set(-1.8, 0.12, 0.4);
-    this.meshGroup.add(conduitMeshL);
-
-    const conduitGeoR = new THREE.BoxGeometry(0.08, 0.04, 2.6);
-    conduitGeoR.rotateY(0.4);
-    const conduitMeshR = new THREE.Mesh(conduitGeoR, this.conduitMat);
-    conduitMeshR.position.set(1.8, 0.12, 0.4);
-    this.meshGroup.add(conduitMeshR);
-
-    // --- CANTED V-TAIL STABILIZERS ---
-    const vTailGeoL = new THREE.BoxGeometry(0.08, 1.1, 1.2);
-    vTailGeoL.rotateZ(-0.45);
-    const vTailMeshL = new THREE.Mesh(vTailGeoL, this.titaniumMat);
-    vTailMeshL.position.set(-0.95, 0.65, -1.6);
-    this.meshGroup.add(vTailMeshL);
-
-    const vTailGeoR = new THREE.BoxGeometry(0.08, 1.1, 1.2);
-    vTailGeoR.rotateZ(0.45);
-    const vTailMeshR = new THREE.Mesh(vTailGeoR, this.titaniumMat);
-    vTailMeshR.position.set(0.95, 0.65, -1.6);
-    this.meshGroup.add(vTailMeshR);
-
-    // V-Tail Violet Navigation Markers
-    const navLightGeo = new THREE.SphereGeometry(0.07, 8, 8);
-    const navL = new THREE.Mesh(navLightGeo, this.glowMat);
-    navL.position.set(-1.3, 1.1, -1.6);
-    this.meshGroup.add(navL);
-
-    const navR = new THREE.Mesh(navLightGeo, this.glowMat);
-    navR.position.set(1.3, 1.1, -1.6);
-    this.meshGroup.add(navR);
-
-    // --- TWIN PLASMA SIPHON AUTOCANNONS (Destructible!) ---
-    this.cannons = [];
-    [-1.5, 1.5].forEach((x, idx) => {
-      const sideName = x < 0 ? 'left' : 'right';
-      const gunPod = new THREE.Group();
-      gunPod.position.set(x, -0.15, 0.6);
-
-      // Heavy Gun Shroud
-      const shroudGeo = new THREE.CylinderGeometry(0.12, 0.14, 1.6, 6);
-      shroudGeo.rotateX(Math.PI / 2);
-      gunPod.add(new THREE.Mesh(shroudGeo, this.titaniumMat));
-
-      // Gun Barrel Core
-      const barrelGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.9, 6);
-      barrelGeo.rotateX(Math.PI / 2);
-      barrelGeo.translate(0, 0, 0.3);
-      const barrel = new THREE.Mesh(barrelGeo, this.conduitMat);
-      gunPod.add(barrel);
-
-      // Muzzle Lens Ring
-      const muzzleLens = new THREE.Mesh(new THREE.RingGeometry(0.04, 0.09, 8), this.oculusMat);
-      muzzleLens.position.set(0, 0, 1.25);
-      gunPod.add(muzzleLens);
-
-      this.meshGroup.add(gunPod);
-
-      this.cannons.push({
-        id: sideName,
-        hp: 50,
-        maxHp: 50,
-        isDead: false,
-        mesh: gunPod,
-        muzzle: muzzleLens
-      });
+      // Glowing Wing Edge Conduit
+      const edgeGeo = new THREE.CylinderGeometry(0.06, 0.06, 3.2, 8);
+      edgeGeo.rotateZ(Math.PI / 2);
+      edgeGeo.rotateY(side * -0.35);
+      const edge = new THREE.Mesh(edgeGeo, this.conduitMat);
+      edge.position.set(side * 2.0, 0.12, 0.3);
+      this.meshGroup.add(edge);
     });
 
-    // --- PREDATOR SENSOR OCULUS (Front Brow Slit) ---
-    const oculusGeo = new THREE.BoxGeometry(0.42, 0.1, 0.15);
-    const oculus = new THREE.Mesh(oculusGeo, this.oculusMat);
-    oculus.position.set(0, 0.18, 1.8);
-    this.meshGroup.add(oculus);
-
-    // --- TWIN 2D VECTORING STEALTH ION ENGINES ---
-    this.thrusters = [];
+    // ── 4. Smooth Rounded Twin Thruster Bells ──
     [-0.55, 0.55].forEach(x => {
-      const nacelle = new THREE.Group();
-      nacelle.position.set(x, 0.05, -1.9);
+      const bellGeo = new THREE.CylinderGeometry(0.32, 0.44, 0.8, 16);
+      bellGeo.rotateX(Math.PI / 2);
+      const bell = new THREE.Mesh(bellGeo, this.titaniumMat);
+      bell.position.set(x, 0.08, -2.8);
+      this.meshGroup.add(bell);
 
-      // Rectangular Stealth Nozzle Box
-      const nozzleGeo = new THREE.BoxGeometry(0.5, 0.35, 0.6);
-      nacelle.add(new THREE.Mesh(nozzleGeo, this.titaniumMat));
-
-      // Glowing Ion Core
-      const coreGeo = new THREE.PlaneGeometry(0.38, 0.25);
-      coreGeo.rotateY(Math.PI);
-      const coreMesh = new THREE.Mesh(coreGeo, this.glowMat);
-      coreMesh.position.set(0, 0, -0.32);
-      nacelle.add(coreMesh);
-
-      // Mach Shock Diamond
-      const coneGeo = new THREE.ConeGeometry(0.18, 0.8, 6);
-      coneGeo.rotateX(-Math.PI / 2);
-      const shockDiamond = new THREE.Mesh(coneGeo, this.glowMat);
-      shockDiamond.position.set(0, 0, -0.7);
-      nacelle.add(shockDiamond);
-      this.thrusters.push(shockDiamond);
-
-      this.meshGroup.add(nacelle);
+      const flameGeo = new THREE.ConeGeometry(0.36, 1.8, 16);
+      flameGeo.rotateX(-Math.PI / 2);
+      const flame = new THREE.Mesh(flameGeo, this.glowMat);
+      flame.position.set(x, 0.08, -3.6);
+      this.meshGroup.add(flame);
+      this.thrusters.push(flame);
     });
 
-    // --- ACTIVE OPTICAL CAMOUFLAGE SHIMMER LATTICE & CLOAK GENERATOR ---
-    const shimmerGeo = new THREE.IcosahedronGeometry(2.8, 1);
-    this.shimmerMat = new THREE.MeshBasicMaterial({
-      color: 0xbf00ff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.12,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    this.shimmerMesh = new THREE.Mesh(shimmerGeo, this.shimmerMat);
-    this.meshGroup.add(this.shimmerMesh);
-
-    // Dorsal Cloak Generator Module
-    const cloakModGeo = new THREE.BoxGeometry(0.6, 0.25, 0.9);
-    this.cloakModMesh = new THREE.Mesh(cloakModGeo, this.titaniumMat);
-    this.cloakModMesh.position.set(0, 0.45, -0.5);
-    this.meshGroup.add(this.cloakModMesh);
-
-    this.cloakGenerator = {
-      hp: 60,
-      maxHp: 60,
-      isDead: false,
-      mesh: this.cloakModMesh
-    };
-
-    // --- DEDICATED SPECULAR KEY LIGHT ---
-    this.keyLight = new THREE.PointLight(0xd8b4fe, 2.2, 12);
-    this.keyLight.position.set(0, 2.5, 1.0);
-    this.meshGroup.add(this.keyLight);
+    // Integrated Nose Oculus Lens
+    const oculusGeo = new THREE.SphereGeometry(0.22, 16, 16);
+    const oculus = new THREE.Mesh(oculusGeo, this.oculusMat);
+    oculus.position.set(0, 0.12, 3.1);
+    this.meshGroup.add(oculus);
   }
 
-  takeCannonDamage(sideName, amount) {
-    const cannon = this.cannons.find(c => c.id === sideName);
-    if (!cannon || cannon.isDead) return false;
-    cannon.hp -= amount;
-
-    if (cannon.muzzle && cannon.muzzle.material) {
-      const pct = cannon.hp / cannon.maxHp;
-      if (pct <= 0.5) {
-        cannon.muzzle.material = new THREE.MeshBasicMaterial({ color: 0xff5500 });
-      }
-    }
-
-    if (cannon.hp <= 0) {
-      cannon.isDead = true;
-      if (cannon.mesh) cannon.mesh.visible = false;
-      const wp = cannon.mesh.getWorldPosition(new THREE.Vector3());
-      if (this.particleManager) {
-        this.particleManager.createExplosion(wp, 0xdf44ff, 25, 1.2);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  update(dt, playerShip, gameManager) {
-    if (this.isDead || !this.meshGroup) return;
-
-    this.stateTimer -= dt;
-
-    // Pulsing Ion Thruster Shock Diamonds
-    if (this.thrusters && this.thrusters.length > 0) {
-      const pulse = 0.85 + Math.sin(Date.now() * 0.02) * 0.25;
-      this.thrusters.forEach(t => {
-        if (t && t.scale) t.scale.set(pulse, pulse, pulse * 1.2);
-      });
-    }
-
-    // Smooth Cloak Opacity Transition
-    this.cloakOpacity += (this.targetCloakOpacity - this.cloakOpacity) * 5.0 * dt;
-    if (this.hullMat) this.hullMat.opacity = this.cloakOpacity;
-    if (this.titaniumMat) this.titaniumMat.opacity = this.cloakOpacity;
-    if (this.conduitMat) this.conduitMat.opacity = this.cloakOpacity;
-    if (this.oculusMat) this.oculusMat.opacity = this.isCloaked ? 0.05 : 0.95;
-    if (this.glowMat) this.glowMat.opacity = this.isCloaked ? 0.05 : 0.9;
-    if (this.keyLight) this.keyLight.intensity = this.isCloaked ? 0.2 : 2.2;
-
-    if (this.shimmerMesh) {
-      this.shimmerMesh.visible = this.isCloaked;
-      if (this.isCloaked) {
-        this.shimmerMesh.rotation.y += 2.0 * dt;
-        this.shimmerMesh.rotation.z += 1.5 * dt;
-        this.shimmerMat.opacity = 0.08 + Math.sin(Date.now() * 0.008) * 0.06;
-      }
-    }
-
-    const pos = this.meshGroup.position;
-    const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
-
-    // -- State Machine Logic --
-    switch (this.state) {
-      case 'CLOAKED_APPROACH':
-        this.isCloaked = true;
-        this.targetCloakOpacity = 0.08;
-        // Infiltrate along flanks with sinus weaving
-        pos.z += this.speed * 0.8 * dt;
-        pos.x += Math.sin(Date.now() * 0.002) * 12.0 * dt;
-        pos.y += Math.cos(Date.now() * 0.002) * 6.0 * dt;
-
-        if (this.stateTimer <= 0 || pos.z > -45) {
-          this.state = 'UNCLOAK_AMBUSH';
-          this.stateTimer = 0.6;
-          this.targetCloakOpacity = 1.0;
-          this.isCloaked = false;
-          if (this.particleManager) {
-            this.particleManager.createExplosion(pos, 0xbf00ff, 20, 0.9);
-            this.particleManager.spawnSparks(pos, new THREE.Vector3(0, 0, 1), 0xdf44ff, 16);
-          }
-        }
-        break;
-
-      case 'UNCLOAK_AMBUSH':
-        this.isCloaked = false;
-        this.targetCloakOpacity = 1.0;
-        // Look directly at player with menacing pitch
-        this.meshGroup.lookAt(playerPos.x, playerPos.y, playerPos.z + 10);
-        pos.z += this.speed * 0.5 * dt;
-
-        if (this.stateTimer <= 0) {
-          this.state = 'STRAFING_FIRE';
-          this.stateTimer = 1.8;
-          this.burstCount = 0;
-          this.fireTimer = 0;
-        }
-        break;
-
-      case 'STRAFING_FIRE':
-        this.isCloaked = false;
-        this.targetCloakOpacity = 1.0;
-        // High-speed lateral strafing run across player horizon
-        pos.x += this.strafeDirection * 22.0 * dt;
-        pos.z += this.speed * 0.4 * dt;
-        this.meshGroup.rotation.z = -this.strafeDirection * 0.5;
-
-        // Twin Plasma Dart Fire
-        this.fireTimer -= dt;
-        if (this.fireTimer <= 0 && this.burstCount < this.maxBurst) {
-          this.fireTimer = this.fireInterval;
-          this.burstCount++;
-          this.fireTwinDarts(gameManager, playerPos);
-        }
-
-        if (this.stateTimer <= 0 || Math.abs(pos.x) > 18) {
-          this.state = 'EVASIVE_DASH';
-          this.stateTimer = 1.2;
-          this.strafeDirection *= -1; // Reverse for next run
-          if (this.particleManager) {
-            this.particleManager.spawnSonicBoomDisc(pos, 0xbf00ff);
-            this.particleManager.spawnSparks(pos, new THREE.Vector3(this.strafeDirection, 0, 0), 0xff00bb, 14);
-          }
-        }
-        break;
-
-      case 'EVASIVE_DASH':
-        this.targetCloakOpacity = 0.25;
-        // High-G evasive barrel roll diving backward/outward
-        pos.z -= 18.0 * dt;
-        pos.x += this.strafeDirection * 15.0 * dt;
-        this.meshGroup.rotation.z += 6.0 * dt;
-
-        if (this.stateTimer <= 0) {
-          this.state = 'CLOAKED_APPROACH';
-          this.stateTimer = 3.0;
-          this.isCloaked = true;
-          this.targetCloakOpacity = 0.08;
-        }
-        break;
-    }
-
-    // Engine Warp Trail Emitter
-    if (!this.isCloaked && Math.random() < 0.45 && this.particleManager) {
-      const trailPos = pos.clone().add(new THREE.Vector3(0, 0, -1.9));
-      this.particleManager.createLaserImpact(trailPos, new THREE.Vector3(0, 0, -1), 0xbf00ff);
-    }
-
-    // Wrap around if overshot screen
-    if (pos.z > 25) {
-      pos.z = -100;
-      pos.x = (Math.random() - 0.5) * 26;
-      pos.y = (Math.random() - 0.5) * 10;
-      this.state = 'CLOAKED_APPROACH';
-      this.stateTimer = 2.5;
-    }
-  }
-
-  fireTwinDarts(gameManager, playerPos) {
-    if (!gameManager) return;
-    const pos = this.meshGroup.position;
-    const dir = new THREE.Vector3().subVectors(playerPos, pos).normalize();
-
-    if (this.cannons) {
-      this.cannons.forEach(c => {
-        if (!c.isDead && c.mesh) {
-          const spawnWorld = c.mesh.getWorldPosition(new THREE.Vector3());
-          if (gameManager.spawnEnemyLaser) {
-            gameManager.spawnEnemyLaser(spawnWorld, dir, 0xbf00ff, 44);
-          }
-        }
-      });
-    }
-
-    if (gameManager.spaceAudio && gameManager.spaceAudio.playEnemyLaser) {
-      gameManager.spaceAudio.playEnemyLaser();
-    }
-  }
-
-  takeDamage(amount, hitPos = null) {
-    if (this.isDead) return false;
-
-    // Check localized weapon hits
-    if (hitPos && this.cannons) {
-      for (const cannon of this.cannons) {
-        if (!cannon.isDead && cannon.mesh) {
-          const cPos = cannon.mesh.getWorldPosition(new THREE.Vector3());
-          if (hitPos.distanceTo(cPos) < 1.4) {
-            this.takeCannonDamage(cannon.id, amount * 1.5);
-            break;
-          }
-        }
-      }
-    }
-
-    // Cloaked stealth gives 30% evasion/damage deflection
-    const actualDmg = this.isCloaked ? amount * 0.7 : amount;
-    this.hp -= actualDmg;
+  takeDamage(amount) {
+    if (this.isDead) return;
+    this.hp -= amount;
 
     // Disrupt cloak on hit
-    this.isCloaked = false;
-    this.targetCloakOpacity = 1.0;
-    this.cloakOpacity = 1.0;
-
-    if (this.particleManager) {
-      this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xbf00ff);
-      this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xdf44ff, 12);
+    if (this.isCloaked) {
+      this.isCloaked = false;
+      this.state = 'UNCLOAK_AMBUSH';
+      this.stateTimer = 3.0;
+      this.targetCloakOpacity = 1.0;
     }
 
     if (this.hp <= 0) {
       this.isDead = true;
-      this.destroy();
-      return true;
+      if (this.particleManager) {
+        this.particleManager.createExplosion(this.meshGroup.position, 0xff0055, 120, 3.5);
+      }
     }
-    return false;
   }
 
   destroy() {
     this.isDead = true;
-    if (this.particleManager) {
-      this.particleManager.createExplosion(this.meshGroup.position, 0xbf00ff, 40, 1.8);
-      this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xff00bb, 22);
-      this.particleManager.createEmpShockwave(this.meshGroup.position, 28);
-    }
     if (this.meshGroup && this.meshGroup.parent) {
       this.meshGroup.parent.remove(this.meshGroup);
     }
+    this.meshGroup.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
+    });
+  }
+
+  update(dt, playerPos) {
+    if (this.isDead) return false;
+
+    // Smooth Cloak Transition
+    this.cloakOpacity = THREE.MathUtils.lerp(this.cloakOpacity, this.targetCloakOpacity, dt * 5.0);
+    [this.hullMat, this.titaniumMat, this.conduitMat, this.oculusMat, this.glowMat].forEach(m => {
+      if (m) m.opacity = this.cloakOpacity;
+    });
+
+    // Pulse Thruster Flames
+    this.thrusters.forEach((th, i) => {
+      const s = (0.8 + Math.sin(Date.now() * 0.015 + i) * 0.2) * (this.isCloaked ? 0.3 : 1.0);
+      th.scale.set(s, s, s);
+    });
+
+    // AI Flight State Machine
+    this.stateTimer -= dt;
+
+    if (this.state === 'CLOAKED_APPROACH') {
+      this.targetCloakOpacity = 0.12;
+      this.meshGroup.position.z += this.speed * dt;
+      if (playerPos) {
+        this.meshGroup.position.x += Math.sin(Date.now() * 0.003) * 8.0 * dt;
+      }
+      if (this.stateTimer <= 0 || this.meshGroup.position.z >= -35) {
+        this.state = 'UNCLOAK_AMBUSH';
+        this.stateTimer = 2.8;
+        this.targetCloakOpacity = 1.0;
+        this.isCloaked = false;
+        if (this.particleManager) {
+          this.particleManager.createExplosion(this.meshGroup.position, 0xff0055, 30, 2.0);
+        }
+      }
+    } else if (this.state === 'UNCLOAK_AMBUSH') {
+      this.targetCloakOpacity = 1.0;
+      this.meshGroup.position.z += this.speed * 0.6 * dt;
+
+      // Ambush firing
+      this.fireTimer -= dt;
+      if (this.fireTimer <= 0 && this.burstCount < this.maxBurst) {
+        this.fireTimer = this.fireInterval;
+        this.burstCount++;
+        const p = this.meshGroup.position.clone();
+        return [
+          new THREE.Vector3(p.x - 1.2, p.y, p.z + 1.0),
+          new THREE.Vector3(p.x + 1.2, p.y, p.z + 1.0)
+        ];
+      }
+
+      if (this.stateTimer <= 0) {
+        this.state = 'EVASIVE_DASH';
+        this.stateTimer = 2.0;
+        this.burstCount = 0;
+      }
+    } else if (this.state === 'EVASIVE_DASH') {
+      this.meshGroup.position.x += this.strafeDirection * 22.0 * dt;
+      this.meshGroup.rotation.z = this.strafeDirection * -0.45;
+      this.meshGroup.position.z += this.speed * 0.8 * dt;
+
+      if (this.stateTimer <= 0) {
+        this.state = 'RE_CLOAK';
+        this.stateTimer = 3.0;
+        this.targetCloakOpacity = 0.12;
+        this.isCloaked = true;
+        this.strafeDirection *= -1;
+      }
+    } else if (this.state === 'RE_CLOAK') {
+      this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, 0, dt * 3.0);
+      this.meshGroup.position.z += this.speed * dt;
+      if (this.stateTimer <= 0) {
+        this.state = 'CLOAKED_APPROACH';
+        this.stateTimer = 3.5;
+      }
+    }
+
+    return false;
   }
 }
-

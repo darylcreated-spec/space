@@ -21,26 +21,49 @@ export class DataCourierDrone {
   }
 
   buildMesh() {
-    // Golden Courier Pod Model
-    const coreGeo = new THREE.OctahedronGeometry(1.1, 1);
+    // ── Golden Courier Pod: Smooth Aerodynamic Lifting Torpedo ──
+    const coreGeo = new THREE.CapsuleGeometry(0.75, 1.8, 12, 24);
+    coreGeo.rotateX(Math.PI / 2);
     const coreMat = new THREE.MeshStandardMaterial({
       color: 0xffea00,
-      metalness: 0.95,
-      roughness: 0.15,
+      metalness: 0.96,
+      roughness: 0.12,
       emissive: 0xffaa00,
       emissiveIntensity: 0.6
     });
     this.coreMesh = new THREE.Mesh(coreGeo, coreMat);
     this.meshGroup.add(this.coreMesh);
 
-    // Glowing Data Rings
-    const ringGeo = new THREE.TorusGeometry(1.6, 0.08, 8, 24);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffea00, wireframe: true });
+    // Rounded Aerodynamic Lateral Fins
+    [-1, 1].forEach(side => {
+      const finShape = new THREE.Shape();
+      finShape.moveTo(0, 0.4);
+      finShape.bezierCurveTo(side * 0.4, 0.2, side * 0.9, -0.2, side * 1.1, -0.4);
+      finShape.bezierCurveTo(side * 1.15, -0.55, side * 0.9, -0.6, side * 0.7, -0.5);
+      finShape.bezierCurveTo(side * 0.3, -0.3, 0, -0.4, 0, -0.4);
+      finShape.closePath();
+
+      const finGeo = new THREE.ExtrudeGeometry(finShape, { depth: 0.08, bevelEnabled: true, bevelSize: 0.03, bevelSegments: 2 });
+      finGeo.rotateX(-Math.PI / 2);
+      const fin = new THREE.Mesh(finGeo, coreMat);
+      this.meshGroup.add(fin);
+    });
+
+    // Glowing Data Gyro-Rings
+    const ringGeo = new THREE.TorusGeometry(1.5, 0.06, 12, 32);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffea00, transparent: true, opacity: 0.85 });
     this.ring1 = new THREE.Mesh(ringGeo, ringMat);
     this.ring2 = new THREE.Mesh(ringGeo, ringMat);
     this.ring2.rotation.x = Math.PI / 2;
     this.meshGroup.add(this.ring1);
     this.meshGroup.add(this.ring2);
+
+    // Glowing Data Core Apex Sphere
+    const apexGeo = new THREE.SphereGeometry(0.35, 16, 16);
+    const apexMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const apex = new THREE.Mesh(apexGeo, apexMat);
+    apex.position.set(0, 0, -1.3);
+    this.meshGroup.add(apex);
   }
 
   update(dt, playerShip, gameManager) {
@@ -63,8 +86,8 @@ export class DataCourierDrone {
     if (this.hp <= 0 && !this.isDead) {
       this.isDead = true;
       if (this.particleManager) {
-        this.particleManager.createExplosion(this.meshGroup.position, 1.8);
-        this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0xffea00);
+        this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 100, 3.0);
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 40);
       }
       this.destroy();
       return true;

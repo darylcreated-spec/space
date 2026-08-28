@@ -16,12 +16,10 @@ function generateDroneArmorTexture() {
   ctx.strokeRect(16, 16, 224, 224);
   ctx.strokeRect(48, 48, 160, 160);
 
-  // Diagonal tech lines
+  // Smooth flow lines
   ctx.beginPath();
-  ctx.moveTo(16, 16); ctx.lineTo(80, 80);
-  ctx.moveTo(240, 16); ctx.lineTo(176, 80);
-  ctx.moveTo(16, 240); ctx.lineTo(80, 176);
-  ctx.moveTo(240, 240); ctx.lineTo(176, 176);
+  ctx.moveTo(16, 16); ctx.bezierCurveTo(64, 48, 192, 48, 240, 16);
+  ctx.moveTo(16, 240); ctx.bezierCurveTo(64, 208, 192, 208, 240, 240);
   ctx.stroke();
 
   // Rivet details
@@ -35,6 +33,76 @@ function generateDroneArmorTexture() {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   return texture;
+}
+
+/**
+ * Creates a continuous, smooth, sculpted aerodynamic lifting-body fuselage for drones.
+ */
+function createSmoothDroneFuselageGeo() {
+  const geom = new THREE.BufferGeometry();
+  const zSlices = 20;
+  const radSegments = 24;
+
+  const positions = [];
+  const uvs = [];
+  const indices = [];
+
+  for (let i = 0; i <= zSlices; i++) {
+    const v = i / zSlices;
+    // z ranges from +2.4 (nose oculus) to -2.4 (aft engine)
+    const z = 2.4 - v * 4.8;
+
+    let halfWidth, halfHeight, yCenter;
+    if (z > 0.8) {
+      const t = (z - 0.8) / 1.6;
+      halfWidth = THREE.MathUtils.lerp(1.8, 0.45, Math.pow(t, 0.8));
+      halfHeight = THREE.MathUtils.lerp(0.9, 0.35, Math.pow(t, 0.8));
+      yCenter = THREE.MathUtils.lerp(0.1, 0.05, t);
+    } else if (z > -1.0) {
+      const t = (z - (-1.0)) / 1.8;
+      halfWidth = THREE.MathUtils.lerp(2.2, 1.8, Math.sin(t * Math.PI * 0.5));
+      halfHeight = THREE.MathUtils.lerp(1.1, 0.9, Math.sin(t * Math.PI * 0.5));
+      yCenter = 0.1;
+    } else {
+      const t = (z - (-2.4)) / 1.4;
+      halfWidth = THREE.MathUtils.lerp(1.4, 2.2, Math.pow(t, 0.7));
+      halfHeight = THREE.MathUtils.lerp(0.7, 1.1, Math.pow(t, 0.7));
+      yCenter = THREE.MathUtils.lerp(0.0, 0.1, t);
+    }
+
+    for (let j = 0; j <= radSegments; j++) {
+      const u = j / radSegments;
+      const theta = u * Math.PI * 2;
+      const cosT = Math.cos(theta);
+      const sinT = Math.sin(theta);
+
+      const chine = Math.pow(Math.abs(cosT), 2.5) * 0.4;
+      const x = cosT * (halfWidth + chine);
+      const y = yCenter + sinT * halfHeight;
+
+      positions.push(x, y, z);
+      uvs.push(u, v);
+    }
+  }
+
+  for (let i = 0; i < zSlices; i++) {
+    for (let j = 0; j < radSegments; j++) {
+      const a = i * (radSegments + 1) + j;
+      const b = (i + 1) * (radSegments + 1) + j;
+      const c = (i + 1) * (radSegments + 1) + (j + 1);
+      const d = i * (radSegments + 1) + (j + 1);
+
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+
+  return geom;
 }
 
 export class EnemyDrone {
@@ -75,11 +143,11 @@ export class EnemyDrone {
   buildDroneMesh() {
     const armorTex = generateDroneArmorTexture();
 
-    // ── High-Definition High-Contrast Alloy Materials (Stage 1 Crimson Magma Fleet) ──
+    // ── High-Definition Smooth PBR Materials (Stage 1 Crimson Magma Fleet) ──
     this.hullMat = new THREE.MeshStandardMaterial({
       color: 0x220c12,
-      metalness: 0.88,
-      roughness: 0.22,
+      metalness: 0.9,
+      roughness: 0.18,
       bumpMap: armorTex,
       bumpScale: 0.14,
       emissive: 0x3d0810,
@@ -88,18 +156,18 @@ export class EnemyDrone {
 
     this.armorPlateMat = new THREE.MeshStandardMaterial({
       color: 0x941c28,
-      metalness: 0.92,
-      roughness: 0.16,
+      metalness: 0.94,
+      roughness: 0.14,
       bumpMap: armorTex,
-      bumpScale: 0.18,
+      bumpScale: 0.16,
       emissive: 0x600a14,
       emissiveIntensity: 0.5
     });
 
     this.trimMat = new THREE.MeshStandardMaterial({
       color: 0xff4400,
-      metalness: 0.85,
-      roughness: 0.14,
+      metalness: 0.88,
+      roughness: 0.12,
       emissive: 0x992200,
       emissiveIntensity: 0.6
     });
@@ -133,341 +201,166 @@ export class EnemyDrone {
     });
     this.glowMaterials.push(this.thrusterGlowMat);
 
-    // Dedicated Key Spotlight on drone for dramatic specular reflections
-    this.droneKeyLight = new THREE.PointLight(0xaad4ff, 4.0, 22);
-    this.droneKeyLight.position.set(0, 4.0, 5.0);
+    // Dedicated Key Spotlight
+    this.droneKeyLight = new THREE.PointLight(0xaad4ff, 3.5, 20);
+    this.droneKeyLight.position.set(0, 3.0, 4.0);
     this.meshGroup.add(this.droneKeyLight);
 
-    // ── 1. Central Diamond / Hexagonal Core Fuselage (Facing Forward +Z) ──
-    const coreGeo = new THREE.CylinderGeometry(1.25, 2.0, 4.4, 6, 1);
-    coreGeo.rotateX(Math.PI / 2);
-    coreGeo.scale(1.35, 0.7, 1.0);
+    // ── 1. Smooth Continuous Lifting-Body Core Fuselage ──
+    const coreGeo = createSmoothDroneFuselageGeo();
     this.coreMesh = new THREE.Mesh(coreGeo, this.hullMat);
-    this.coreMesh.position.set(0, 0, 0);
     this.meshGroup.add(this.coreMesh);
 
-    // ── 2. Beveled Dorsal Armor Spine & Cockpit Ridge ──
-    const spineGeo = new THREE.ConeGeometry(1.0, 4.0, 5);
-    spineGeo.rotateX(Math.PI / 2);
-    spineGeo.scale(1.15, 0.5, 1.0);
-    const spineMesh = new THREE.Mesh(spineGeo, this.armorPlateMat);
-    spineMesh.position.set(0, 0.44, 0.35);
-    this.meshGroup.add(spineMesh);
+    // ── 2. Integrated Predator Sensor Oculus (Smoothly embedded at nose) ──
+    const oculusHousingGeo = new THREE.CapsuleGeometry(0.35, 0.8, 8, 16);
+    oculusHousingGeo.rotateZ(Math.PI / 2);
+    const oculusHousing = new THREE.Mesh(oculusHousingGeo, this.armorPlateMat);
+    oculusHousing.position.set(0, 0.15, 2.0);
+    this.meshGroup.add(oculusHousing);
 
-    // Ventral Armor Keel
-    const keelGeo = new THREE.ConeGeometry(0.75, 3.4, 4);
-    keelGeo.rotateX(Math.PI / 2);
-    keelGeo.scale(1.0, 0.4, 1.0);
-    const keelMesh = new THREE.Mesh(keelGeo, this.titaniumTrimMat);
-    keelMesh.position.set(0, -0.42, -0.1);
-    this.meshGroup.add(keelMesh);
-
-    // Forward Canard Airfoils / Prow Blades
-    [1, -1].forEach(side => {
-      const canardGeo = new THREE.BoxGeometry(1.2, 0.08, 0.9);
-      const canard = new THREE.Mesh(canardGeo, this.trimMat);
-      canard.position.set(side * 1.1, 0.05, 1.4);
-      canard.rotation.y = -side * 0.4;
-      canard.rotation.z = side * 0.15;
-      this.meshGroup.add(canard);
-    });
-
-    // ── 3. High-Definition Predator Sensor Oculus (Forward Prow +Z) ──
-    // Sensor Housing Brow
-    const browGeo = new THREE.BoxGeometry(1.2, 0.35, 0.8);
-    const browMesh = new THREE.Mesh(browGeo, this.armorPlateMat);
-    browMesh.position.set(0, 0.15, 1.5);
-    this.meshGroup.add(browMesh);
-
-    // Central Oculus Slit Lens
-    const eyeGeo = new THREE.BoxGeometry(0.9, 0.16, 0.2);
+    const eyeGeo = new THREE.CapsuleGeometry(0.18, 0.6, 6, 12);
+    eyeGeo.rotateZ(Math.PI / 2);
     this.eyeMesh = new THREE.Mesh(eyeGeo, this.redGlowMat);
-    this.eyeMesh.position.set(0, 0.15, 1.92);
+    this.eyeMesh.position.set(0, 0.15, 2.3);
     this.meshGroup.add(this.eyeMesh);
 
-    // Optical Focusing Spherical Core
-    const oculusCoreGeo = new THREE.SphereGeometry(0.24, 16, 16);
-    const oculusCore = new THREE.Mesh(oculusCoreGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    oculusCore.position.set(0, 0.15, 1.88);
-    this.meshGroup.add(oculusCore);
-
-    // Secondary Cheek Targeting Sensors
-    [-0.55, 0.55].forEach(x => {
-      const cheekGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.4, 6);
-      cheekGeo.rotateX(Math.PI / 2);
-      const cheekMesh = new THREE.Mesh(cheekGeo, this.trimMat);
-      cheekMesh.position.set(x, 0.05, 1.7);
-      this.meshGroup.add(cheekMesh);
-
-      const cheekLens = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), this.accentGlowMat);
-      cheekLens.position.set(x, 0.05, 1.9);
-      this.meshGroup.add(cheekLens);
-    });
-
-    // Oculus Halo & Light
-    this.eyeHalo = new THREE.Mesh(
-      new THREE.SphereGeometry(0.55, 14, 14),
-      new THREE.MeshBasicMaterial({ color: 0xff0044, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending })
-    );
-    this.eyeHalo.position.set(0, 0.15, 1.9);
-    this.meshGroup.add(this.eyeHalo);
-
-    this.eyeLight = new THREE.PointLight(0xff0044, 3.5, 14);
-    this.eyeLight.position.set(0, 0.15, 2.2);
+    this.eyeLight = new THREE.PointLight(0xff0044, 3.0, 12);
+    this.eyeLight.position.set(0, 0.15, 2.5);
     this.meshGroup.add(this.eyeLight);
 
-    // ── 4. Swept-Forward Multi-Faceted Razor Delta Wings & Destructible Plasma Cannons ──
+    // ── 3. Smooth Swept Delta Wings with Rounded Leading Edges ──
     this.cannons = [];
 
-    [1, -1].forEach((side, idx) => {
-      const sideName = side === 1 ? 'right' : 'left';
-      // Main Wing Plate (Swept forward with aggressive attack angle)
+    [1, -1].forEach((side) => {
       const wingShape = new THREE.Shape();
-      wingShape.moveTo(0, -0.4);
-      wingShape.lineTo(side * 3.6, -1.0); // Wingtip out and swept back
-      wingShape.lineTo(side * 3.4, 1.2);  // Forward razor leading edge
-      wingShape.lineTo(side * 1.2, 2.2);  // Prow root blend
-      wingShape.lineTo(0, 1.4);
+      wingShape.moveTo(0, 0.8);
+      wingShape.bezierCurveTo(side * 1.5, 0.6, side * 3.0, -0.2, side * 3.4, -0.8);
+      wingShape.bezierCurveTo(side * 3.5, -1.1, side * 3.2, -1.3, side * 2.8, -1.2);
+      wingShape.bezierCurveTo(side * 1.8, -0.8, side * 0.8, -0.6, 0, -0.8);
       wingShape.closePath();
 
       const extrudeSettings = {
-        depth: 0.16,
+        depth: 0.18,
         bevelEnabled: true,
-        bevelSegments: 2,
+        bevelSegments: 3,
         steps: 1,
-        bevelSize: 0.06,
-        bevelThickness: 0.06
+        bevelSize: 0.08,
+        bevelThickness: 0.08
       };
       const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
       wingGeo.rotateX(-Math.PI / 2);
       const wingMesh = new THREE.Mesh(wingGeo, this.hullMat);
-      wingMesh.position.set(0, 0, 0);
+      wingMesh.position.set(0, 0.05, 0);
       this.meshGroup.add(wingMesh);
 
-      // Upper Armor Layer / Sponson Plate
-      const upperPlateGeo = new THREE.BoxGeometry(2.2, 0.18, 1.6);
-      const upperPlate = new THREE.Mesh(upperPlateGeo, this.armorPlateMat);
-      upperPlate.position.set(side * 1.8, 0.14, 0.4);
-      upperPlate.rotation.y = side * 0.22;
-      this.meshGroup.add(upperPlate);
-
-      // Titanium Leading Edge Armor Slat
-      const slatGeo = new THREE.BoxGeometry(0.18, 0.22, 2.8);
-      const slatMesh = new THREE.Mesh(slatGeo, this.trimMat);
-      slatMesh.position.set(side * 2.5, 0.08, 1.3);
-      slatMesh.rotation.y = -side * 0.65;
-      this.meshGroup.add(slatMesh);
-
-      // Glowing Neon Crimson Energy Inset Channel
-      const conduitGeo = new THREE.BoxGeometry(0.1, 0.1, 2.4);
-      const conduit = new THREE.Mesh(conduitGeo, this.accentGlowMat);
-      conduit.position.set(side * 2.4, 0.16, 0.2);
-      conduit.rotation.y = -side * 0.38;
-      this.meshGroup.add(conduit);
-
-      // Vertical Wingtip Stabilizer Winglet
-      const wingletGeo = new THREE.BoxGeometry(0.14, 1.2, 1.6);
+      // Smooth Rounded Winglet
+      const wingletGeo = new THREE.CapsuleGeometry(0.12, 1.2, 6, 12);
+      wingletGeo.rotateX(Math.PI / 2);
       const winglet = new THREE.Mesh(wingletGeo, this.trimMat);
-      winglet.position.set(side * 3.5, 0.35, 0.1);
-      winglet.rotation.x = -0.15;
-      winglet.rotation.z = side * 0.1;
+      winglet.position.set(side * 3.3, 0.25, -0.8);
+      winglet.rotation.z = side * 0.15;
       this.meshGroup.add(winglet);
 
-      const wingletGlow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.0, 0.08), this.redGlowMat);
-      wingletGlow.position.set(side * 3.52, 0.35, -0.6);
-      this.meshGroup.add(wingletGlow);
-
-      // ── Targetable & Destructible Forward Plasma Cannon Pod ──
+      // Destructible Plasma Cannon Pod (Rounded Capsule Housing)
       const gunPodGroup = new THREE.Group();
-      gunPodGroup.position.set(side * 2.4, -0.16, 1.2);
+      gunPodGroup.position.set(side * 2.2, -0.15, 0.8);
 
       const cannonHousing = new THREE.Mesh(
-        new THREE.BoxGeometry(0.42, 0.38, 2.2),
+        new THREE.CapsuleGeometry(0.24, 1.6, 6, 12),
         this.armorPlateMat
       );
+      cannonHousing.rotation.x = Math.PI / 2;
       gunPodGroup.add(cannonHousing);
 
-      const barrelGeo = new THREE.CylinderGeometry(0.12, 0.15, 2.4, 8);
+      const barrelGeo = new THREE.CylinderGeometry(0.09, 0.12, 1.8, 8);
       barrelGeo.rotateX(Math.PI / 2);
       const barrel = new THREE.Mesh(barrelGeo, this.trimMat);
-      barrel.position.set(0, 0, 1.2);
+      barrel.position.set(0, 0, 0.9);
       gunPodGroup.add(barrel);
 
-      // Glowing Plasma Muzzle Emitter & Heat Shroud
       const muzzleGlow = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.16, 0.16, 0.35, 8),
+        new THREE.RingGeometry(0.1, 0.2, 8),
         this.redGlowMat
       );
-      muzzleGlow.rotateX(Math.PI / 2);
-      muzzleGlow.position.set(0, 0, 2.3);
+      muzzleGlow.position.set(0, 0, 1.85);
       gunPodGroup.add(muzzleGlow);
 
       this.meshGroup.add(gunPodGroup);
-
       this.cannons.push({
-        id: sideName,
-        side: side,
+        id: side,
+        side: side === 1 ? 'right' : 'left',
+        mesh: gunPodGroup,
         hp: 30,
         maxHp: 30,
-        isDead: false,
-        mesh: gunPodGroup,
-        barrel: barrel,
-        muzzle: muzzleGlow,
-        recoilZ: 0
+        isDead: false
       });
     });
 
-    // ── 5. Stern Dual Heavy Vector Ion Thrusters (-Z) ──
-    const thrusterBellMat = new THREE.MeshStandardMaterial({
-      color: 0x181c28,
-      metalness: 0.95,
-      roughness: 0.1
-    });
-
+    // ── 4. Smooth Rounded Twin Exhaust Thruster Bells ──
     [-0.65, 0.65].forEach(x => {
-      // Cylindrical Engine Nacelle Housing
-      const nacelleGeo = new THREE.CylinderGeometry(0.38, 0.44, 1.4, 8);
-      nacelleGeo.rotateX(Math.PI / 2);
-      const nacelle = new THREE.Mesh(nacelleGeo, this.armorPlateMat);
-      nacelle.position.set(x, 0.05, -1.3);
-      this.meshGroup.add(nacelle);
+      const bellGeo = new THREE.CylinderGeometry(0.35, 0.5, 0.9, 16);
+      bellGeo.rotateX(Math.PI / 2);
+      const bell = new THREE.Mesh(bellGeo, this.trimMat);
+      bell.position.set(x, 0.05, -2.4);
+      this.meshGroup.add(bell);
 
-      // Exhaust Nozzle Bell
-      const nozzleGeo = new THREE.CylinderGeometry(0.34, 0.26, 0.6, 8);
-      nozzleGeo.rotateX(Math.PI / 2);
-      const nozzle = new THREE.Mesh(nozzleGeo, thrusterBellMat);
-      nozzle.position.set(x, 0.05, -1.9);
-      this.meshGroup.add(nozzle);
-
-      // Pulsing Interior Ion Shock Diamond
-      const flameGeo = new THREE.ConeGeometry(0.24, 1.4, 8);
+      const flameGeo = new THREE.ConeGeometry(0.4, 2.0, 16);
       flameGeo.rotateX(-Math.PI / 2);
       const flame = new THREE.Mesh(flameGeo, this.thrusterGlowMat);
-      flame.position.set(x, 0.05, -2.4);
+      flame.position.set(x, 0.05, -3.3);
       this.meshGroup.add(flame);
       this.thrusterMeshes.push(flame);
     });
-
-    // Stern Engine Light
-    this.thrusterLight = new THREE.PointLight(0x8800ff, 2.5, 10);
-    this.thrusterLight.position.set(0, 0.05, -2.5);
-    this.meshGroup.add(this.thrusterLight);
   }
 
-  takeCannonDamage(sideName, amount) {
-    const cannon = this.cannons.find(c => c.id === sideName);
-    if (!cannon || cannon.isDead) return false;
-    cannon.hp -= amount;
-
-    // Show progressive damage on cannon
-    if (cannon.muzzle && cannon.muzzle.material) {
-      const pct = cannon.hp / cannon.maxHp;
-      if (pct <= 0.5) {
-        cannon.muzzle.material = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-      }
-    }
-
-    if (cannon.hp <= 0) {
-      cannon.isDead = true;
-      if (cannon.mesh) {
-        cannon.mesh.visible = false;
-      }
-      return true;
-    }
-    return false;
-  }
-
-  takeDamage(amount, hitPos = null) {
-    // If a hit position is specified, check if it hit a wing cannon
-    if (hitPos && this.cannons) {
-      for (const cannon of this.cannons) {
-        if (!cannon.isDead && cannon.mesh) {
-          const cPos = cannon.mesh.getWorldPosition(new THREE.Vector3());
-          if (hitPos.distanceTo(cPos) < 1.2) {
-            this.takeCannonDamage(cannon.id, amount * 1.5);
-            break;
-          }
-        }
-      }
-    }
-
+  takeDamage(amount) {
+    if (this.isDead) return;
     this.hp -= amount;
-
-    // Flash red / white on hit
-    if (this.coreMesh && this.coreMesh.material) {
-      this.coreMesh.material.emissive.setHex(0xff0044);
-      this.coreMesh.material.emissiveIntensity = 3.5;
-      setTimeout(() => {
-        if (!this.isDead && this.coreMesh && this.coreMesh.material) {
-          this.coreMesh.material.emissive.setHex(0x1a0826);
-          this.coreMesh.material.emissiveIntensity = 0.2;
-        }
-      }, 80);
+    if (this.hp <= 0) {
+      this.isDead = true;
     }
-    if (this.hp <= 0) this.isDead = true;
-    return this.isDead;
   }
 
   destroy() {
-    this.scene.remove(this.meshGroup);
-    this.meshGroup.traverse(child => {
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-        else child.material.dispose();
-      }
+    this.isDead = true;
+    if (this.meshGroup && this.meshGroup.parent) {
+      this.meshGroup.parent.remove(this.meshGroup);
+    }
+    this.meshGroup.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) c.material.dispose();
     });
   }
 
   update(dt, playerPos) {
+    if (this.isDead) return false;
     this._time += dt;
 
-    // Dogfighting AI — steer toward player with a sinusoidal weave
-    const steer = new THREE.Vector3().subVectors(playerPos, this.meshGroup.position);
-    steer.z = 0;
-    steer.normalize().multiplyScalar(6.5);
-
-    // Dynamic weaving maneuver
-    const weave = Math.sin(this._time * 4.0 + this._wobbleOffset) * 3.5;
-    steer.x += weave;
-
-    this.velocity.x += (steer.x - this.velocity.x) * 0.08;
-    this.velocity.y += (steer.y - this.velocity.y) * 0.08;
-
+    // Movement forward
     this.meshGroup.position.addScaledVector(this.velocity, dt);
 
-    // Dynamic banking and pitch based on velocity
-    this.meshGroup.rotation.z = -this.velocity.x * 0.08;
-    this.meshGroup.rotation.x = this.velocity.y * 0.04;
+    // Natural tactical sway
+    this.meshGroup.position.x += Math.sin(this._time * 2.5 + this._wobbleOffset) * 2.0 * dt;
+    this.meshGroup.rotation.z = Math.sin(this._time * 2.5 + this._wobbleOffset) * 0.15;
 
-    // Pulsing Eye and Engine Glow Animations
-    const pulse = Math.sin(this._time * 8.0);
-    if (this.eyeLight) {
-      this.eyeLight.intensity = 3.0 + pulse * 1.2;
-    }
-    if (this.eyeHalo) {
-      this.eyeHalo.scale.setScalar(1.0 + pulse * 0.2);
-    }
-
-    // Engine flame pulsation
-    const flameScale = 1.0 + Math.sin(this._time * 18.0) * 0.25;
-    this.thrusterMeshes.forEach(flame => {
-      flame.scale.set(flameScale, flameScale, flameScale * 1.2);
+    // Pulse Thruster Flames
+    this.thrusterMeshes.forEach((flame, idx) => {
+      const s = 1.0 + Math.sin(this._time * 20.0 + idx) * 0.25;
+      flame.scale.set(s, s, s * 1.2);
     });
 
-    // Weapon firing
+    // Firing Loop
     this.fireTimer -= dt;
-    let shouldFirePlasma = false;
-    if (this.fireTimer <= 0 && this.meshGroup.position.z < 18) {
-      this.fireTimer = 0.5 + Math.random() * 0.45;
-      shouldFirePlasma = true;
+    if (this.fireTimer <= 0 && playerPos) {
+      this.fireTimer = 1.2 + Math.random() * 0.8;
+      const activeCannons = this.cannons.filter(c => !c.isDead);
+      const outLasers = [];
+      activeCannons.forEach(c => {
+        outLasers.push(c.mesh.getWorldPosition(new THREE.Vector3()));
+      });
+      return outLasers.length > 0 ? outLasers : [this.meshGroup.position.clone()];
     }
 
-    if (this.meshGroup.position.z > 18) {
-      this.isDead = true;
-      this.impactedPlanet = true;
-    }
-
-    return shouldFirePlasma;
+    return false;
   }
 }
