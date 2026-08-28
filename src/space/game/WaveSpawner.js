@@ -92,6 +92,8 @@ export class WaveSpawner {
         // Stage 1 Progression:
         if (this.spawnedCount === 4) {
           this.gameManager.spawnStealthFighter();
+        } else if (this.spawnedCount === 6) {
+          this.gameManager.spawnPhaseInterceptor();
         } else if (this.spawnedCount === 10) {
           // Vanguard Capital Cruiser Warps In!
           this.gameManager.spawnCapitalShip();
@@ -104,9 +106,9 @@ export class WaveSpawner {
         // Stage 2 Progression:
         if (this.spawnedCount === 4) {
           this.gameManager.spawnDrone(null, true);
-          this.gameManager.spawnDrone(null, true);
+          this.gameManager.spawnPhaseInterceptor();
         } else if (this.spawnedCount === 10) {
-          this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnECMCorvette();
         } else if (this.spawnedCount === 18) {
           this.gameManager.spawnCarrierBoss();
         }
@@ -114,18 +116,21 @@ export class WaveSpawner {
         // Stage 3 Progression:
         if (this.spawnedCount === 4) {
           this.gameManager.spawnStealthFighter();
+          this.gameManager.spawnPhaseInterceptor();
         } else if (this.spawnedCount === 12) {
           // Goliath Devastator Heavy Battleship siege!
           this.gameManager.spawnHeavyBattleship();
         } else if (this.spawnedCount === 22) {
-          this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnECMCorvette();
         }
       } else if (this.currentWave === 4) {
         // Stage 4 Dual Capital Progression:
         if (this.spawnedCount === 6) {
           this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnECMCorvette();
         } else if (this.spawnedCount === 16) {
           this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnPhaseInterceptor();
         } else if (this.spawnedCount === 26) {
           this.gameManager.spawnCarrierBoss();
         }
@@ -133,8 +138,10 @@ export class WaveSpawner {
         // Stage 5 Grand Armada Gauntlet:
         if (this.spawnedCount === 8) {
           this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnECMCorvette();
         } else if (this.spawnedCount === 20) {
           this.gameManager.spawnCarrierBoss();
+          this.gameManager.spawnPhaseInterceptor();
         } else if (this.spawnedCount === 34) {
           this.gameManager.spawnBoss(); // Dreadnought
           this.gameManager.spawnCapitalShip();
@@ -144,8 +151,10 @@ export class WaveSpawner {
         if (this.spawnedCount === 8) {
           this.gameManager.spawnHeavyBattleship();
           this.gameManager.spawnStealthFighter();
+          this.gameManager.spawnECMCorvette();
         } else if (this.spawnedCount === 22) {
           this.gameManager.spawnCarrierBoss();
+          this.gameManager.spawnPhaseInterceptor();
         }
       }
 
@@ -154,11 +163,13 @@ export class WaveSpawner {
       const cometChance = this.currentWave === 1 ? 0.15 : 0.25;
 
       const roll = Math.random();
-      if (carrierActive && roll < 0.45) {
+      if (carrierActive && roll < 0.40) {
         // Carrier deploys active drone interceptors!
         this.gameManager.spawnDrone(null, true);
-      } else if (roll < 0.68) {
+      } else if (roll < 0.60) {
         this.gameManager.spawnStealthFighter();
+      } else if (roll < 0.75) {
+        this.gameManager.spawnPhaseInterceptor();
       } else {
         if (Math.random() < cometChance) {
           this.gameManager.spawnAsteroid({ isComet: true });

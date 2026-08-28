@@ -39,6 +39,15 @@ export class ControlsManager {
       }
       this.lastPressD = now;
     }
+
+    // Squadron Doctrine Hotkeys (1: DEFEND, 2: FOCUS, 3: FLANK)
+    if (e.code === 'Digit1' || e.key === '1') {
+      if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('DEFEND');
+    } else if (e.code === 'Digit2' || e.key === '2') {
+      if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('FOCUS_FIRE');
+    } else if (e.code === 'Digit3' || e.key === '3') {
+      if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('SWARM_FLANK');
+    }
   }
 
   onKeyUp(e) {

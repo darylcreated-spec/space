@@ -2538,3 +2538,90 @@ html, body {
   0% { box-shadow: 0 0 12px rgba(0, 255, 136, 0.3); }
   100% { box-shadow: 0 0 24px rgba(0, 255, 136, 0.7); }
 }
+
+/* 🛡️ Tactical Wingman Squadron Doctrine Control Bar */
+.squadron-doctrine-zone {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+  pointer-events: auto;
+}
+
+.doctrine-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(5, 16, 28, 0.85);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  border-radius: 14px;
+  padding: 4px 10px;
+  color: var(--text-muted);
+  font-family: var(--font-header);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.doctrine-btn .doctrine-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #557799;
+}
+
+.doctrine-btn .doctrine-key {
+  font-family: var(--font-code);
+  font-size: 0.58rem;
+  opacity: 0.7;
+}
+
+.doctrine-btn.active {
+  background: rgba(0, 243, 255, 0.18);
+  border-color: #00f3ff;
+  color: #00f3ff;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+}
+
+.doctrine-btn.active .doctrine-dot {
+  background: #00f3ff;
+  box-shadow: 0 0 8px #00f3ff;
+}
+
+#btn-doctrine-focus.active {
+  background: rgba(255, 51, 0, 0.2);
+  border-color: #ff3300;
+  color: #ff5533;
+  box-shadow: 0 0 12px rgba(255, 51, 0, 0.4);
+}
+#btn-doctrine-focus.active .doctrine-dot {
+  background: #ff3300;
+  box-shadow: 0 0 8px #ff3300;
+}
+
+#btn-doctrine-flank.active {
+  background: rgba(0, 255, 136, 0.2);
+  border-color: #00ff88;
+  color: #00ff88;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+}
+#btn-doctrine-flank.active .doctrine-dot {
+  background: #00ff88;
+  box-shadow: 0 0 8px #00ff88;
+}
+
+/* ⚡ Chrono Warp Visual Distortion Flash */
+.camera-glitch {
+  filter: contrast(140%) brightness(120%) hue-rotate(45deg);
+  animation: chronoFlash 0.4s ease-out;
+}
+
+@keyframes chronoFlash {
+  0% { filter: contrast(180%) brightness(160%) drop-shadow(0 0 25px #00f3ff); transform: scale(1.01); }
+  100% { filter: none; transform: scale(1.0); }
+}
+

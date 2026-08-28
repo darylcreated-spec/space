@@ -331,6 +331,60 @@ export class CollisionSystem {
 
         if (hit) continue;
 
+        // Player Lasers vs ECM Jammer Corvettes
+        if (gameManager.ecmCorvettes && gameManager.ecmCorvettes.length > 0) {
+          for (let eIdx = gameManager.ecmCorvettes.length - 1; eIdx >= 0; eIdx--) {
+            const ecm = gameManager.ecmCorvettes[eIdx];
+            if (!ecm || ecm.isDead || !ecm.meshGroup) continue;
+
+            if (lPos.distanceTo(ecm.meshGroup.position) < ecm.radius + laser.radius) {
+              const dead = ecm.takeDamage(laser.isCritical ? 90 : 30);
+              this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0xaa22ff);
+              if (dead) {
+                gameManager.addScore(ecm.scoreValue);
+                gameManager.addScrap(45);
+                gameManager.achievementSystem.recordDroneKill();
+                if (player && player.onKillHeal) player.onKillHeal();
+              }
+              if (!gameManager.activePerks.has('piercing')) {
+                hit = true;
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                break;
+              }
+            }
+          }
+        }
+
+        if (hit) continue;
+
+        // Player Lasers vs Phase Shift Interceptors
+        if (gameManager.phaseInterceptors && gameManager.phaseInterceptors.length > 0) {
+          for (let pIdx = gameManager.phaseInterceptors.length - 1; pIdx >= 0; pIdx--) {
+            const phase = gameManager.phaseInterceptors[pIdx];
+            if (!phase || phase.isDead || !phase.meshGroup) continue;
+
+            if (lPos.distanceTo(phase.meshGroup.position) < phase.radius + laser.radius) {
+              const dead = phase.takeDamage(laser.isCritical ? 75 : 25);
+              this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0x00f3ff);
+              if (dead) {
+                gameManager.addScore(phase.scoreValue);
+                gameManager.addScrap(30);
+                gameManager.achievementSystem.recordDroneKill();
+                if (player && player.onKillHeal) player.onKillHeal();
+              }
+              if (!gameManager.activePerks.has('piercing')) {
+                hit = true;
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                break;
+              }
+            }
+          }
+        }
+
+        if (hit) continue;
+
         // Player Lasers vs Goliath Heavy Battleships
         if (gameManager.heavyBattleships && gameManager.heavyBattleships.length > 0) {
           for (const battleship of gameManager.heavyBattleships) {

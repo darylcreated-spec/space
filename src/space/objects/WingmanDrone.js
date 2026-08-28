@@ -7,16 +7,32 @@ export class WingmanDrone {
     this.slot = slot; // 'LEFT' or 'RIGHT'
 
     this.meshGroup = new THREE.Group();
-    this.targetOffset = new THREE.Vector3(slot === 'LEFT' ? -3.4 : 3.4, 0.5, 1.2);
+    this.currentDoctrine = 'DEFEND'; // 'DEFEND', 'FOCUS_FIRE', 'SWARM_FLANK'
+
+    this.targetOffset = new THREE.Vector3(slot === 'LEFT' ? -3.0 : 3.0, 0.4, 1.0);
     this.currentPos = new THREE.Vector3();
     this.fireTimer = 0;
-    this.fireInterval = 0.18;
-    this.shieldHp = 50;
-    this.maxShieldHp = 50;
+    this.fireInterval = 0.16;
+    this.shieldHp = 80;
+    this.maxShieldHp = 80;
     this.isDead = false;
 
     this.buildMesh();
     this.scene.add(this.meshGroup);
+  }
+
+  setDoctrine(doctrine) {
+    this.currentDoctrine = doctrine || 'DEFEND';
+    if (this.currentDoctrine === 'DEFEND') {
+      this.targetOffset.set(this.slot === 'LEFT' ? -2.6 : 2.6, 0.3, 1.2);
+      this.fireInterval = 0.16;
+    } else if (this.currentDoctrine === 'FOCUS_FIRE') {
+      this.targetOffset.set(this.slot === 'LEFT' ? -4.5 : 4.5, 0.8, -1.0);
+      this.fireInterval = 0.10; // Rapid coordinated suppression
+    } else if (this.currentDoctrine === 'SWARM_FLANK') {
+      this.targetOffset.set(this.slot === 'LEFT' ? -9.5 : 9.5, 0.5, 2.0);
+      this.fireInterval = 0.14;
+    }
   }
 
   buildMesh() {
@@ -59,8 +75,8 @@ export class WingmanDrone {
 
     // Glowing Nose Sensor Dome
     const noseGeo = new THREE.SphereGeometry(0.18, 12, 12);
-    const noseMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
-    const nose = new THREE.Mesh(noseGeo, noseMat);
+    this.noseMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const nose = new THREE.Mesh(noseGeo, this.noseMat);
     nose.position.set(0, 0.05, -0.9);
     this.meshGroup.add(nose);
 
@@ -94,6 +110,13 @@ export class WingmanDrone {
   update(dt, playerShip, gameManager) {
     if (this.isDead || !playerShip || !playerShip.meshGroup) return;
 
+    // Doctrine Color Updates
+    if (this.noseMat) {
+      if (this.currentDoctrine === 'FOCUS_FIRE') this.noseMat.color.setHex(0xff3300);
+      else if (this.currentDoctrine === 'SWARM_FLANK') this.noseMat.color.setHex(0x00ff88);
+      else this.noseMat.color.setHex(0x00f3ff);
+    }
+
     const idealPos = playerShip.meshGroup.position.clone().add(this.targetOffset);
     idealPos.y += Math.sin(Date.now() * 0.004 + (this.slot === 'LEFT' ? 0 : Math.PI)) * 0.25;
 
@@ -107,7 +130,7 @@ export class WingmanDrone {
     }
 
     this.fireTimer += dt;
-    if (this.fireTimer >= this.fireInterval && gameManager.state === 'PLAYING') {
+    if (this.fireTimer >= this.fireInterval && gameManager && gameManager.state === 'PLAYING') {
       this.fireTimer = 0;
       this.fireSupportBlaster(gameManager);
     }
@@ -117,10 +140,30 @@ export class WingmanDrone {
     if (!gameManager) return;
     const muzzleL = this.meshGroup.localToWorld(new THREE.Vector3(-0.45, 0, -0.8));
     const muzzleR = this.meshGroup.localToWorld(new THREE.Vector3(0.45, 0, -0.8));
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
 
-    gameManager.spawnLaser(muzzleL, 0x00f3ff, false, forward);
-    gameManager.spawnLaser(muzzleR, 0x00f3ff, false, forward);
+    let targetDir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
+
+    if (this.currentDoctrine === 'FOCUS_FIRE') {
+      // Aim directly at Active Boss or nearest Capital Ship
+      const boss = gameManager.activeBoss;
+      if (boss && boss.meshGroup && !boss.isDead) {
+        targetDir = new THREE.Vector3().subVectors(boss.meshGroup.position, muzzleL).normalize();
+      } else if (gameManager.capitalShips.length > 0) {
+        const c = gameManager.capitalShips[0];
+        if (c && c.meshGroup && !c.isDead) {
+          targetDir = new THREE.Vector3().subVectors(c.meshGroup.position, muzzleL).normalize();
+        }
+      }
+    } else if (this.currentDoctrine === 'SWARM_FLANK') {
+      // Spread fire outward slightly to clear peripheral asteroids/drones
+      const spreadX = this.slot === 'LEFT' ? -0.15 : 0.15;
+      targetDir.x += spreadX;
+      targetDir.normalize();
+    }
+
+    const laserColor = this.currentDoctrine === 'FOCUS_FIRE' ? 0xff4400 : (this.currentDoctrine === 'SWARM_FLANK' ? 0x00ff88 : 0x00f3ff);
+    gameManager.spawnLaser(muzzleL, laserColor, false, targetDir);
+    gameManager.spawnLaser(muzzleR, laserColor, false, targetDir);
   }
 
   takeDamage(amount) {

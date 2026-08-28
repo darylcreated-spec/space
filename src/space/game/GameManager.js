@@ -17,6 +17,8 @@ import { PlayerSwarmMissile } from '../objects/PlayerSwarmMissile.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
 import { CarrierCapitalShip } from '../objects/CarrierCapitalShip.js';
 import { StealthFighter } from '../objects/StealthFighter.js';
+import { ECMJammerCorvette } from '../objects/ECMJammerCorvette.js';
+import { PhaseShiftInterceptor } from '../objects/PhaseShiftInterceptor.js';
 import { HeavyBattleship } from '../objects/HeavyBattleship.js';
 import { CommandMothership } from '../objects/CommandMothership.js';
 import { CollisionSystem } from './CollisionSystem.js';
@@ -82,6 +84,8 @@ export class GameManager {
     this.asteroids = [];
     this.drones = [];
     this.stealthFighters = [];
+    this.ecmCorvettes = [];
+    this.phaseInterceptors = [];
     this.capitalShips = [];
     this.heavyBattleships = [];
     this.powerUps = [];
@@ -188,12 +192,45 @@ export class GameManager {
     }
   }
 
+  triggerChronoFocus() {
+    this.chronoFocusTimer = 0.45;
+    this.chronoFocusBoostTimer = 2.8;
+    if (this.spaceAudio) this.spaceAudio.playQuantumArc?.(0);
+    if (this.spaceHUD) this.spaceHUD.showWaveBanner("CHRONO FOCUS", "PERFECT DODGE // TIME WARP");
+    if (this.spaceScene) this.spaceScene.addScreenShake(1.2);
+    if (this.hapticsManager) this.hapticsManager.triggerExplosion?.();
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer) {
+      canvasContainer.classList.add('camera-glitch');
+      setTimeout(() => { canvasContainer.classList.remove('camera-glitch'); }, 400);
+    }
+  }
+
   triggerDodgeRoll(direction = null) {
     if (this.state !== 'PLAYING') return;
     if (!direction) {
       direction = Math.random() < 0.5 ? 'left' : 'right';
     }
     this.spaceAudio.playDodgeSound();
+
+    // Check for Perfect Dodge (enemy laser within 7.0m)
+    if (this.playerShip && this.playerShip.meshGroup && this.lasers) {
+      const pPos = this.playerShip.meshGroup.position;
+      const nearLaser = this.lasers.some(l => l.isEnemy && !l.isDead && l.meshGroup && l.meshGroup.position.distanceTo(pPos) < 7.0);
+      if (nearLaser) {
+        this.triggerChronoFocus();
+      }
+    }
+  }
+
+  setWingmanDoctrine(doctrine = 'DEFEND') {
+    this.currentWingmanDoctrine = doctrine;
+    this.wingmanDrones.forEach(w => w.setDoctrine(doctrine));
+    if (this.voiceAnnouncer) this.voiceAnnouncer.speak(`Squadron Directive: ${doctrine}`, true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission(`WING COMMAND: Squadron Doctrine set to ${doctrine}!`, "ALLIED FLIGHT", 3.5);
+      this.spaceHUD.updateWingmanDoctrineUI?.(doctrine);
+    }
   }
 
   toggleAutoPilot() {
@@ -282,6 +319,12 @@ export class GameManager {
 
     this.stealthFighters.forEach(s => s.destroy());
     this.stealthFighters = [];
+
+    this.ecmCorvettes.forEach(e => e.destroy());
+    this.ecmCorvettes = [];
+
+    this.phaseInterceptors.forEach(p => p.destroy());
+    this.phaseInterceptors = [];
 
     this.capitalShips.forEach(c => c.destroy());
     this.capitalShips = [];
@@ -600,6 +643,24 @@ export class GameManager {
     this.applyEnemyHpScaling(fighter);
     this.stealthFighters.push(fighter);
     return fighter;
+  }
+
+  spawnECMCorvette(spawnPos = null) {
+    const corv = new ECMJammerCorvette(this.spaceScene.scene, this.particleManager, spawnPos);
+    this.applyEnemyHpScaling(corv);
+    this.ecmCorvettes.push(corv);
+    this.voiceAnnouncer.speak("Warning! Electronic Warfare Jammer Corvette Detected!", true);
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission("WARNING: ECM Jammer Corvette detected! Radar and targeting disrupted!", "TACTICAL COMMS", 4.5);
+    }
+    return corv;
+  }
+
+  spawnPhaseInterceptor(spawnPos = null) {
+    const inter = new PhaseShiftInterceptor(this.spaceScene.scene, this.particleManager, spawnPos);
+    this.applyEnemyHpScaling(inter);
+    this.phaseInterceptors.push(inter);
+    return inter;
   }
 
   spawnHeavyBattleship() {
@@ -1169,6 +1230,30 @@ export class GameManager {
 
     this.spawnPlasmaPulse(startPos);
 
+    // Deflector Counter-Pulse: Convert all enemy projectiles within 10m into amplified friendly counter-lasers
+    let reflectedCount = 0;
+    if (this.lasers) {
+      this.lasers.forEach(laser => {
+        if (laser && laser.isEnemy && !laser.isDead && laser.meshGroup) {
+          const dist = laser.meshGroup.position.distanceTo(pPos);
+          if (dist < 10.5) {
+            laser.isEnemy = false;
+            laser.damage = Math.max(75, (laser.damage || 20) * 2.5);
+            laser.isCritical = true;
+            // Reverse direction forward toward enemy fleet
+            laser.direction.set(0, 0, -1);
+            laser.meshGroup.rotation.set(0, 0, 0);
+            reflectedCount++;
+          }
+        }
+      });
+    }
+
+    if (reflectedCount > 0) {
+      this.spaceAudio.playVictoryArpeggio?.();
+      this.spaceHUD?.showWaveBanner("COUNTER-PULSE", `${reflectedCount} ENEMY BOLTS DEFLECTED!`);
+    }
+
     this.achievementSystem.recordEmpUsed();
     this.spaceAudio.playEmpPulse();
     this.spaceAudio.vibrate([50, 30, 50]);
@@ -1437,8 +1522,10 @@ export class GameManager {
 
     if (this.overchargeTimer > 0) this.overchargeTimer -= dt;
     if (this.stasisTimer > 0) this.stasisTimer -= dt;
+    if (this.chronoFocusTimer > 0) this.chronoFocusTimer -= dt;
+    if (this.chronoFocusBoostTimer > 0) this.chronoFocusBoostTimer -= dt;
 
-    const timeScale = this.stasisTimer > 0 ? 0.25 : 1.0;
+    const timeScale = (this.stasisTimer > 0 || this.chronoFocusTimer > 0) ? 0.25 : 1.0;
     const effectiveDt = dt * timeScale;
 
     // 1. Update Controls & Player Ship Movement
@@ -1564,6 +1651,62 @@ export class GameManager {
         if (fighter.isDead) {
           fighter.destroy();
           this.stealthFighters.splice(i, 1);
+        }
+      }
+    }
+
+    // 2B. Update ECM Jammer Corvettes
+    for (let i = 0; i < this.ecmCorvettes.length; i++) {
+      const ecm = this.ecmCorvettes[i];
+      if (!ecm || ecm.isDead || !ecm.meshGroup) continue;
+      if (this.freezeFleetAI) {
+        ecm.meshGroup.rotation.y += 0.003;
+      } else {
+        const ecmFire = ecm.update(effectiveDt, pPos, this);
+        if (ecmFire && Array.isArray(ecmFire)) {
+          ecmFire.forEach(ePos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, ePos).normalize();
+            this.spawnLaser(ePos, 0xaa22ff, true, targetDir, false, 'STANDARD');
+          });
+          this.spaceAudio.playLaserPew();
+        }
+      }
+    }
+
+    if (!this.freezeFleetAI) {
+      for (let i = this.ecmCorvettes.length - 1; i >= 0; i--) {
+        const ecm = this.ecmCorvettes[i];
+        if (ecm.isDead) {
+          ecm.destroy();
+          this.ecmCorvettes.splice(i, 1);
+        }
+      }
+    }
+
+    // 2C. Update Phase Shift Interceptors
+    for (let i = 0; i < this.phaseInterceptors.length; i++) {
+      const phase = this.phaseInterceptors[i];
+      if (!phase || phase.isDead || !phase.meshGroup) continue;
+      if (this.freezeFleetAI) {
+        phase.meshGroup.rotation.y += 0.005;
+      } else {
+        const pFire = phase.update(effectiveDt, pPos, this);
+        if (pFire && Array.isArray(pFire)) {
+          pFire.forEach(pos => {
+            const targetDir = new THREE.Vector3().subVectors(pPos, pos).normalize();
+            this.spawnLaser(pos, 0x00f3ff, true, targetDir, false, 'STANDARD');
+          });
+          this.spaceAudio.playLaserPew();
+        }
+      }
+    }
+
+    if (!this.freezeFleetAI) {
+      for (let i = this.phaseInterceptors.length - 1; i >= 0; i--) {
+        const phase = this.phaseInterceptors[i];
+        if (phase.isDead) {
+          phase.destroy();
+          this.phaseInterceptors.splice(i, 1);
         }
       }
     }

@@ -268,6 +268,30 @@ export class SpaceHUD {
       });
     }
 
+    // Squadron Doctrine Buttons
+    const btnDoctrineDefend = document.getElementById('btn-doctrine-defend');
+    const btnDoctrineFocus = document.getElementById('btn-doctrine-focus');
+    const btnDoctrineFlank = document.getElementById('btn-doctrine-flank');
+
+    if (btnDoctrineDefend) {
+      btnDoctrineDefend.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.setWingmanDoctrine('DEFEND');
+      });
+    }
+    if (btnDoctrineFocus) {
+      btnDoctrineFocus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.setWingmanDoctrine('FOCUS_FIRE');
+      });
+    }
+    if (btnDoctrineFlank) {
+      btnDoctrineFlank.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.setWingmanDoctrine('SWARM_FLANK');
+      });
+    }
+
     if (this.btnSpaceCamera) {
       this.btnSpaceCamera.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1302,5 +1326,15 @@ export class SpaceHUD {
       this.btnSubmitGodmode.style.color = isGod ? '#00ff88' : '#00f3ff';
       this.btnSubmitGodmode.style.background = isGod ? 'rgba(0, 255, 136, 0.25)' : 'rgba(0, 243, 255, 0.2)';
     }
+  }
+
+  updateWingmanDoctrineUI(doctrine = 'DEFEND') {
+    const btnDefend = document.getElementById('btn-doctrine-defend');
+    const btnFocus = document.getElementById('btn-doctrine-focus');
+    const btnFlank = document.getElementById('btn-doctrine-flank');
+
+    if (btnDefend) btnDefend.classList.toggle('active', doctrine === 'DEFEND');
+    if (btnFocus) btnFocus.classList.toggle('active', doctrine === 'FOCUS_FIRE');
+    if (btnFlank) btnFlank.classList.toggle('active', doctrine === 'SWARM_FLANK');
   }
 }

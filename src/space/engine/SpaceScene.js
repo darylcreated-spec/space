@@ -410,39 +410,75 @@ export class SpaceScene {
     warpGroup.position.copy(position);
 
     // Flash sphere
-    const flashGeo = new THREE.SphereGeometry(18.0, 16, 16);
+    const flashGeo = new THREE.SphereGeometry(22.0, 16, 16);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.98,
       blending: THREE.AdditiveBlending
     });
     const flash = new THREE.Mesh(flashGeo, flashMat);
     warpGroup.add(flash);
 
     // Spacetime Refraction Rings
-    const ringGeo = new THREE.TorusGeometry(26.0, 0.8, 12, 32);
+    const ringGeo = new THREE.TorusGeometry(32.0, 1.2, 12, 32);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     warpGroup.add(ring);
 
+    // Radial Hyperspace Speed Streak Lines
+    const streaks = [];
+    for (let s = 0; s < 18; s++) {
+      const angle = (s / 18) * Math.PI * 2;
+      const streakGeo = new THREE.CylinderGeometry(0.08, 0.35, 30.0, 4);
+      streakGeo.rotateX(Math.PI / 2);
+      const streakMat = new THREE.MeshBasicMaterial({
+        color: s % 2 === 0 ? 0x00f3ff : 0xffffff,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending
+      });
+      const streak = new THREE.Mesh(streakGeo, streakMat);
+      streak.position.set(Math.cos(angle) * 12, Math.sin(angle) * 12, -10);
+      streak.rotation.z = angle;
+      warpGroup.add(streak);
+      streaks.push({ mesh: streak, mat: streakMat });
+    }
+
     this.scene.add(warpGroup);
-    this.addScreenShake(1.4);
+    this.addScreenShake(1.6);
+
+    // Cinematic Camera FOV Punch
+    const originalFov = this.camera.fov;
+    this.camera.fov = Math.min(90, originalFov + 18);
+    this.camera.updateProjectionMatrix();
 
     let t = 0;
     const interval = setInterval(() => {
-      t += 0.05;
-      ring.scale.addScalar(0.18);
-      flash.scale.addScalar(0.12);
-      flashMat.opacity = Math.max(0, 0.95 - t * 1.5);
-      ringMat.opacity = Math.max(0, 0.9 - t * 1.4);
-      if (t >= 0.8) {
+      t += 0.04;
+      ring.scale.addScalar(0.24);
+      flash.scale.addScalar(0.18);
+      flashMat.opacity = Math.max(0, 0.98 - t * 1.6);
+      ringMat.opacity = Math.max(0, 0.95 - t * 1.4);
+
+      streaks.forEach(st => {
+        st.mesh.scale.z += 0.35;
+        st.mat.opacity = Math.max(0, 0.85 - t * 1.5);
+      });
+
+      // Smoothly recover camera FOV
+      this.camera.fov += (originalFov - this.camera.fov) * 0.15;
+      this.camera.updateProjectionMatrix();
+
+      if (t >= 0.9) {
         clearInterval(interval);
+        this.camera.fov = originalFov;
+        this.camera.updateProjectionMatrix();
         this.scene.remove(warpGroup);
         flashGeo.dispose();
         flashMat.dispose();
