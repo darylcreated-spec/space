@@ -580,18 +580,6 @@ export class SpaceScene {
             bPos.z * 0.8
           );
         }
-      } else if (activeBoss.constructor && activeBoss.constructor.name === 'CommandMothership' && !activeBoss.hasPlasmaShield) {
-        // ── 🚀 Cinematic Open-Top Canyon & Couplings Assault Camera ──
-        this.targetCameraPos.set(
-          pPos.x * 0.55,
-          10.5 + pPos.y * 0.3,
-          pPos.z + 22.0
-        );
-        this.targetLookAt.set(
-          pPos.x * 0.45,
-          pPos.y * 0.3,
-          pPos.z - 35.0
-        );
       } else {
         // Dynamic Cinematic Boss Duel Tracking Mode:
         // Wide-angle majestic third-person framing that keeps both the capital boss and dogfight sector in full view

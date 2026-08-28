@@ -612,16 +612,17 @@ export class GameManager {
     this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     if (this.activeBoss.meshGroup) {
-      this.activeBoss.meshGroup.position.set(0, 5, -140);
+      this.activeBoss.meshGroup.position.set(0, 0, -140);
     }
-    this.voiceAnnouncer.speak("Priority Alpha! Leviathan Command Mothership emerging from subspace! Target entrance shield pylons to breach the trench!", true);
+    this.voiceAnnouncer.speak("Priority Alpha! Leviathan Dreadnought Battle Monster emerging! Flank the warship and destroy its shield nodes!", true);
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Command Mothership detected! Target the dual Shield Generators at the entrance pylons to lower the Plasma Shield!", "STARBOUND COMMAND", 8.0);
-      this.spaceHUD.showWaveBanner("COLOSSAL APEX SIEGE", "LEVIATHAN COMMAND MOTHERSHIP");
+      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Battle Monster Dreadnought detected! Flank the warship to destroy its Port & Starboard Shield Generators!", "STARBOUND COMMAND", 8.0);
+      this.spaceHUD.showWaveBanner("BATTLE MONSTER SIEGE", "LEVIATHAN COMMAND DREADNOUGHT");
+      this.spaceHUD.updateBossHealth(1.0, "LEVIATHAN DREADNOUGHT // BATTLE MONSTER");
     }
     if (this.spaceScene) {
-      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 5, -140));
-      this.spaceScene.triggerBossIntroCamera(4.5);
+      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 0, -140));
+      this.spaceScene.triggerBossIntroCamera(3.5);
     }
   }
 
@@ -1685,19 +1686,43 @@ export class GameManager {
             }
 
             if (salvo && this.activeBoss) {
-              if (Array.isArray(salvo)) {
+              // A. Railgun & Laser Volleys
+              if (salvo.lasers && Array.isArray(salvo.lasers)) {
+                salvo.lasers.forEach(tPos => {
+                  const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+                  this.spawnLaser(tPos, 0xff0055, true, targetDir);
+                });
+                this.spaceAudio.playLaserPew();
+              } else if (Array.isArray(salvo)) {
                 salvo.forEach(tPos => {
                   const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
                   this.spawnLaser(tPos, 0xff0055, true, targetDir);
                 });
+                this.spaceAudio.playLaserPew();
               } else if (salvo !== false && this.activeBoss.meshGroup && this.activeBoss.meshGroup.position) {
                 const bPos = this.activeBoss.meshGroup.position;
                 const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
                 this.spawnLaser(new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir);
                 this.spawnLaser(new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir);
+                this.spaceAudio.playLaserPew();
               }
 
-              this.spaceAudio.playLaserPew();
+              // B. Swarm Homing Missiles
+              if (salvo.homingMissiles && Array.isArray(salvo.homingMissiles)) {
+                salvo.homingMissiles.forEach(m => {
+                  const targetDir = new THREE.Vector3().subVectors(pPos, m.pos).normalize();
+                  this.spawnLaser(m.pos, 0xffaa00, true, targetDir, false, 'HOMING');
+                });
+                if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();
+              }
+
+              // C. Stealth Fighter Catapult Launches (Active Cloaking Escorts)
+              if (salvo.stealthSpawns && Array.isArray(salvo.stealthSpawns)) {
+                salvo.stealthSpawns.forEach(s => {
+                  this.spawnStealthFighter(new THREE.Vector3(s.x, s.y, s.z));
+                });
+                this.voiceAnnouncer.speak("Alert! Stealth Fighters deployed from dreadnought catapults!", true);
+              }
             }
           }
 
