@@ -59,7 +59,7 @@ const TrenchShader = {
 };
 
 const ShieldShader = {
-  uniforms: { uTime: { value: 0 }, uHitTime: { value: 0 }, uColor: { value: new THREE.Color(0x00ff44) }, uHp: { value: 1.0 } },
+  uniforms: { uTime: { value: 0 }, uHitTime: { value: 0 }, uColor: { value: new THREE.Color(0x00f3ff) }, uHp: { value: 1.0 } },
   vertexShader: `varying vec3 vNormal; varying vec3 vViewPosition;
     void main() { vNormal = normalize(normalMatrix * normal);
       vec4 mvPos = modelViewMatrix * vec4(position, 1.0); vViewPosition = -mvPos.xyz;
@@ -68,12 +68,12 @@ const ShieldShader = {
     varying vec3 vNormal; varying vec3 vViewPosition;
     void main() {
       vec3 n = normalize(vNormal); vec3 v = normalize(vViewPosition);
-      float fresnel = pow(1.0 - abs(dot(n, v)), 3.0);
-      float pulse = sin(uTime * 4.0) * 0.10 + 0.90;
-      float hexPattern = step(0.5, fract(dot(n, vec3(8.0, 12.0, 6.0)) + uTime * 0.5));
-      vec3 edgeCol = mix(uColor, vec3(0.9), uHitTime * 0.5 + hexPattern * 0.1);
-      float alpha = (fresnel * 0.35 + uHitTime * 0.35) * pulse;
-      gl_FragColor = vec4(edgeCol * (0.9 + uHitTime * 1.1 + hexPattern * 0.2), alpha); }`
+      float fresnel = pow(1.0 - max(0.0, dot(n, v)), 3.5);
+      float pulse = sin(uTime * 3.0) * 0.15 + 0.85;
+      float hexPattern = step(0.75, fract(dot(n, vec3(6.0, 8.0, 6.0)) + uTime * 0.3));
+      vec3 edgeCol = mix(uColor, vec3(1.0), uHitTime * 0.6);
+      float alpha = clamp(fresnel * 0.35 + hexPattern * 0.08 + uHitTime * 0.35, 0.0, 0.45) * pulse;
+      gl_FragColor = vec4(edgeCol, alpha); }`
 };
 
 export class MoonBase {
@@ -134,26 +134,14 @@ export class MoonBase {
     const R = 36.0;
     const normalMap = generateHullNormalMap();
 
-    // â”€â”€ 1. Dramatic 3-point lighting â”€â”€
-    this.rimLight = new THREE.DirectionalLight(0xd0e8ff, 2.4);
-    this.rimLight.position.set(60, 37.5, -45);
-    this.scene.add(this.rimLight);
-
-    this.backLight = new THREE.DirectionalLight(0x002244, 0.6);
-    this.backLight.position.set(-45, -22.5, 30);
-    this.scene.add(this.backLight);
-
-    this.ambLight = new THREE.AmbientLight(0x050d14, 0.5);
-    this.scene.add(this.ambLight);
-
     // ── 2. Main PBR Cratered Lunar Sphere Hull ──
     const hullGeo = new THREE.SphereGeometry(R, 48, 40);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x5a6e8a,
-      roughness: 0.38,
+      color: 0x161e2a,
+      roughness: 0.52,
       metalness: 0.88,
-      emissive: 0x141e2e,
-      emissiveIntensity: 0.3,
+      emissive: 0x080f18,
+      emissiveIntensity: 0.2,
       normalMap,
       normalScale: new THREE.Vector2(1.4, 1.4),
       flatShading: true,
@@ -473,18 +461,16 @@ export class MoonBase {
       this.reticleMeshes.push(reticle);
     });
 
-    // ── 8. Hexagonal Deflector Shield Sphere ──
-    const shieldGeo = new THREE.IcosahedronGeometry(R + 4.5, 4);
-    this.shieldShaderMat = new THREE.ShaderMaterial({
-      uniforms: THREE.UniformsUtils.clone(ShieldShader.uniforms),
-      vertexShader: ShieldShader.vertexShader,
-      fragmentShader: ShieldShader.fragmentShader,
+    // ── 8. Hexagonal Deflector Shield Lattice ──
+    const shieldGeo = new THREE.IcosahedronGeometry(R + 4.0, 3);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      wireframe: true,
       transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.35,
+      blending: THREE.AdditiveBlending
     });
-    this.shaderMaterials.push(this.shieldShaderMat);
-    this.shieldRing = new THREE.Mesh(shieldGeo, this.shieldShaderMat);
+    this.shieldRing = new THREE.Mesh(shieldGeo, shieldMat);
     this.meshGroup.add(this.shieldRing);
 
     // ── 9. Thermal Exhaust Reactor Core (Exposed on shield collapse) ──
@@ -584,11 +570,6 @@ export class MoonBase {
       t.reticle = reticle;
       this.reticleMeshes.push(reticle);
     });
-
-    // Dedicated Specular Light for Moon Base Definition
-    this.keyLight = new THREE.PointLight(0xaad4ff, 2.5, 90);
-    this.keyLight.position.set(0, 20, 20);
-    this.meshGroup.add(this.keyLight);
   }
 
   takeGeneratorDamage(genId, amount) {
@@ -755,9 +736,6 @@ export class MoonBase {
     this.isDead = true; // Ensure isDead is set before clearing timers
     this.superlaserfiring = false;
     this.clearAllTimers();
-    if (this.rimLight) this.scene.remove(this.rimLight);
-    if (this.backLight) this.scene.remove(this.backLight);
-    if (this.ambLight) this.scene.remove(this.ambLight);
     this.scene.remove(this.meshGroup);
     this.meshGroup.traverse(c => {
       if (c.geometry) c.geometry.dispose();
