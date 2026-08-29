@@ -47,6 +47,8 @@ export class ControlsManager {
       if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('FOCUS_FIRE');
     } else if (e.code === 'Digit3' || e.key === '3') {
       if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('SWARM_FLANK');
+    } else if (e.code === 'KeyF' || e.code === 'Digit4' || e.key === 'f' || e.key === 'F' || e.key === '4') {
+      if (window.spaceGameManager) window.spaceGameManager.fireAntiMatterNuke();
     }
   }
 

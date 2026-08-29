@@ -268,6 +268,44 @@ export class SpaceHUD {
       });
     }
 
+    const btnSuperweapon = document.getElementById('btn-fire-superweapon');
+    if (btnSuperweapon) {
+      btnSuperweapon.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerStartIfInStartScreen();
+        this.gameManager.fireAntiMatterNuke();
+      });
+      btnSuperweapon.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.fireAntiMatterNuke();
+      });
+    }
+
+    // Mode Selector Buttons
+    const btnModeCampaign = document.getElementById('btn-mode-campaign');
+    const btnModeBossRush = document.getElementById('btn-mode-bossrush');
+    const btnModeEndless = document.getElementById('btn-mode-endless');
+
+    const setModeActive = (btn, mode) => {
+      [btnModeCampaign, btnModeBossRush, btnModeEndless].forEach(b => {
+        if (b) {
+          b.classList.remove('active');
+          b.style.borderColor = 'rgba(255,255,255,0.2)';
+        }
+      });
+      if (btn) {
+        btn.classList.add('active');
+        btn.style.borderColor = '#00f3ff';
+      }
+      this.gameManager.gameMode = mode;
+      if (this.gameManager.spaceAudio) this.gameManager.spaceAudio.vibrate(15);
+    };
+
+    if (btnModeCampaign) btnModeCampaign.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeCampaign, 'CAMPAIGN'); });
+    if (btnModeBossRush) btnModeBossRush.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeBossRush, 'BOSS_RUSH'); });
+    if (btnModeEndless) btnModeEndless.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeEndless, 'ENDLESS_SURVIVAL'); });
+
     // Squadron Doctrine Buttons
     const btnDoctrineDefend = document.getElementById('btn-doctrine-defend');
     const btnDoctrineFocus = document.getElementById('btn-doctrine-focus');

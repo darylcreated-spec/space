@@ -49,6 +49,20 @@ export class PlayerShip {
     this.swarmMissileCooldown = 0;
     this.maxSwarmCD = 3.0;
 
+    // Modular Components & Livery Customization
+    this.currentLivery = 'DEFAULT';
+    this.reactorCore = 'DEFAULT';        // 'DEFAULT', 'OVERCLOCKED_PLASMA', 'TITANIUM_AEGIS'
+    this.thrusterManifold = 'DEFAULT';    // 'DEFAULT', 'AFTERBURNER', 'VECTOR_RCS'
+    this.avionicsSuite = 'DEFAULT';       // 'DEFAULT', 'AUTO_AIM', 'SCRAP_MAGNET'
+
+    // Superweapons & Advanced Weaponry States
+    this.railgunCharge = 0;
+    this.isChargingRailgun = false;
+    this.tachyonBeamActive = false;
+    this.nukeCooldown = 0;
+    this.maxNukeCD = 24.0;
+    this.nukeCharges = 1;
+
     // Premium Add-On Feature
     this.hasMiningAddon = false;
 
@@ -1672,5 +1686,60 @@ export class PlayerShip {
         this.particleManager.spawnEngineParticle(worldPos, pColor);
       });
     }
+
+    // Cooldown updates for Superweapons
+    if (this.nukeCooldown > 0) {
+      this.nukeCooldown = Math.max(0, this.nukeCooldown - dt);
+    }
+  }
+
+  setLivery(liveryTheme) {
+    this.currentLivery = liveryTheme || 'DEFAULT';
+    const themeKey = liveryTheme === 'DEFAULT' ? this.shipClass : liveryTheme;
+    const matSet = getPBRMaterialSet(themeKey);
+
+    this.meshGroup.traverse(child => {
+      if (child.isMesh && child.material && !child.material.wireframe) {
+        if (child.material.map || child.material.roughnessMap) {
+          child.material.map = matSet.albedo;
+          child.material.bumpMap = matSet.bump;
+          child.material.roughnessMap = matSet.roughness;
+          child.material.emissiveMap = matSet.emissive;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+  }
+
+  setEquipment(slot, itemKey) {
+    if (slot === 'reactor') {
+      this.reactorCore = itemKey;
+      if (itemKey === 'OVERCLOCKED_PLASMA') {
+        this.laserFireDelay = 0.045; // Rapid fire
+        this.maxShield = 80;
+      } else if (itemKey === 'TITANIUM_AEGIS') {
+        this.maxShield = 140;
+        this.laserFireDelay = 0.075;
+      } else {
+        this.maxShield = 90;
+        this.laserFireDelay = 0.06;
+      }
+      this.shield = Math.min(this.shield, this.maxShield);
+    } else if (slot === 'thruster') {
+      this.thrusterManifold = itemKey;
+      if (itemKey === 'AFTERBURNER') {
+        this.speed = 46;
+        this.dodgeMaxCooldown = 1.1;
+      } else if (itemKey === 'VECTOR_RCS') {
+        this.speed = 38;
+        this.dodgeMaxCooldown = 0.75; // Fast tactical dodge recovery
+      } else {
+        this.speed = 36;
+        this.dodgeMaxCooldown = 1.2;
+      }
+    } else if (slot === 'avionics') {
+      this.avionicsSuite = itemKey;
+    }
   }
 }
+

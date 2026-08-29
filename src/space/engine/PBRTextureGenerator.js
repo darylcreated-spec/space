@@ -63,6 +63,36 @@ export function getPBRMaterialSet(theme = 'INTERCEPTOR') {
     panelColor2 = '#12110a';
     accentGlow = '#ffea00';
     stencilText = 'VG-05 // AEGIS SENTINEL';
+  } else if (theme === 'VOID_OBSIDIAN') {
+    baseColor = '#06060a';
+    panelColor1 = '#0f0f18';
+    panelColor2 = '#030306';
+    accentGlow = '#9900ff';
+    stencilText = 'SPEC-OPS // VOID OBSIDIAN';
+  } else if (theme === 'CARBON_STEALTH') {
+    baseColor = '#0d1117';
+    panelColor1 = '#161b22';
+    panelColor2 = '#090d12';
+    accentGlow = '#00f3ff';
+    stencilText = 'TACTICAL // CARBON WEAVE';
+  } else if (theme === 'HAZARD_INDUSTRIAL') {
+    baseColor = '#1f1a0e';
+    panelColor1 = '#2d2514';
+    panelColor2 = '#141009';
+    accentGlow = '#ff9900';
+    stencilText = 'HAZARD-01 // CAUTION HEAVY ARMOR';
+  } else if (theme === 'CORONAL_GOLD') {
+    baseColor = '#241c08';
+    panelColor1 = '#382b0d';
+    panelColor2 = '#161105';
+    accentGlow = '#ffd700';
+    stencilText = 'ROYAL APEX // CORONAL GOLD';
+  } else if (theme === 'CYBER_NEON') {
+    baseColor = '#0c0818';
+    panelColor1 = '#180f30';
+    panelColor2 = '#070410';
+    accentGlow = '#ff00aa';
+    stencilText = 'SYNTH-99 // CYBER NEON';
   } else if (theme === 'ENEMY_ALIEN') {
     baseColor = '#14080c';
     panelColor1 = '#240d16';

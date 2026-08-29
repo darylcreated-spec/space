@@ -114,6 +114,19 @@ export class LaserBolt {
       this.isCritical = isCrit;
       this.damage = isCrit ? 75 : 25;
       if (isCrit) colorHex = 0xff00ff; // Bright neon magenta on crit
+    } else if (projectileType === 'RAILGUN') {
+      this.damage = 1250;
+      this.speed = 260;
+      this.radius = 3.0;
+      this.isPiercing = true;
+      this.isCritical = true;
+      colorHex = 0x00ffff;
+    } else if (projectileType === 'TACHYON_BEAM') {
+      this.damage = 65;
+      this.speed = 290;
+      this.radius = 1.8;
+      this.isPiercing = true;
+      colorHex = 0xff00bb;
     } else {
       // STANDARD / INTERCEPTOR
       this.damage = 22;
@@ -284,11 +297,35 @@ export class LaserBolt {
       this.meshGroup.add(lattice);
 
       // 4. Twin Micro-Dagger Stabilizers
-      const finGeo = new THREE.BoxGeometry(0.02, 0.38, 0.4);
-      const finMat = new THREE.MeshBasicMaterial({ color: needleColor });
       const fin = new THREE.Mesh(finGeo, finMat);
       fin.position.set(0, 0, 1.2);
       this.meshGroup.add(fin);
+    } else if (projectileType === 'RAILGUN') {
+      // 1. Long Tungsten Kinetic Rod
+      const rodGeo = new THREE.CylinderGeometry(0.08, 0.08, 6.5, 8);
+      rodGeo.rotateX(Math.PI / 2);
+      const rodMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00aaff, emissiveIntensity: 1.8 });
+      this.meshGroup.add(new THREE.Mesh(rodGeo, rodMat));
+
+      // 2. Ionized Plasma Vapor Shroud
+      const shroudGeo = new THREE.CylinderGeometry(0.22, 0.22, 5.8, 8);
+      shroudGeo.rotateX(Math.PI / 2);
+      const shroudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending });
+      this.meshGroup.add(new THREE.Mesh(shroudGeo, shroudMat));
+
+      // 3. Concentric Electromagnetic Rings
+      [-2.0, 0.0, 2.0].forEach(z => {
+        const ringGeo = new THREE.TorusGeometry(0.35, 0.04, 6, 16);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, blending: THREE.AdditiveBlending });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(0, 0, z);
+        this.meshGroup.add(ring);
+      });
+    } else if (projectileType === 'TACHYON_BEAM') {
+      const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, 5.2, 8);
+      beamGeo.rotateX(Math.PI / 2);
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0xff00bb, blending: THREE.AdditiveBlending });
+      this.meshGroup.add(new THREE.Mesh(beamGeo, beamMat));
     } else {
       const geos = getLaserGeometries(projectileType, isEnemy);
 
@@ -320,6 +357,11 @@ export class LaserBolt {
     if (this.isDead) return;
 
     const gm = this.gameManager || (typeof window !== 'undefined' ? window.spaceGameManager : null);
+
+    // Dynamic Ionization Spark Trail for Railgun Shots
+    if (this.projectileType === 'RAILGUN' && gm && gm.particleManager && gm.particleManager.spawnSparks) {
+      gm.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0x00ffff, 2);
+    }
 
     // Dynamic Rocket Motor Exhaust for Heavy Missiles
     if (this.projectileType === 'FLAK' && gm && gm.particleManager) {
@@ -519,5 +561,124 @@ export class PlasmaPulse {
     }
 
     if (this.meshGroup.position.z < -160) this.destroy();
+  }
+}
+
+export class AntiMatterNuke {
+  constructor(scene, startPos, particleManager) {
+    this.scene = scene;
+    this.particleManager = particleManager;
+    this.meshGroup = new THREE.Group();
+    this._build();
+    this.reset(startPos);
+    this.scene.add(this.meshGroup);
+  }
+
+  _build() {
+    // 1. Heavy Quantum Warhead Fuselage
+    const bodyGeo = new THREE.CylinderGeometry(0.35, 0.45, 3.8, 12);
+    bodyGeo.rotateX(Math.PI / 2);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x140824,
+      metalness: 0.95,
+      roughness: 0.2,
+      emissive: 0x440088,
+      emissiveIntensity: 0.8
+    });
+    this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+    // 2. Singularity Containment Core
+    const coreGeo = new THREE.SphereGeometry(0.55, 16, 16);
+    this.coreMat = new THREE.MeshBasicMaterial({ color: 0xcc00ff });
+    const core = new THREE.Mesh(coreGeo, this.coreMat);
+    core.position.set(0, 0, -1.2);
+    this.meshGroup.add(core);
+
+    // 3. Spacetime Distortion Field Torus
+    const ringGeo = new THREE.TorusGeometry(0.75, 0.08, 8, 24);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
+    this.fieldRing = new THREE.Mesh(ringGeo, ringMat);
+    this.fieldRing.position.set(0, 0, -1.2);
+    this.meshGroup.add(this.fieldRing);
+
+    // 4. Strobe Light
+    this.light = new THREE.PointLight(0xcc00ff, 3.5, 25);
+    this.meshGroup.add(this.light);
+  }
+
+  reset(startPos) {
+    this.damage = 3500;
+    this.aoeRadius = 45.0;
+    this.speed = 85;
+    this.radius = 3.5;
+    this.isDead = false;
+    this._time = 0;
+    this.meshGroup.position.copy(startPos);
+    this.meshGroup.visible = true;
+  }
+
+  destroy() {
+    this.isDead = true;
+    this.meshGroup.visible = false;
+  }
+
+  update(dt) {
+    if (this.isDead) return;
+    this._time += dt;
+    this.meshGroup.position.z -= this.speed * dt;
+
+    if (this.fieldRing) {
+      this.fieldRing.rotation.z += 8.0 * dt;
+      this.fieldRing.rotation.x += 5.0 * dt;
+    }
+    if (this.coreMat) {
+      this.coreMat.color.setHex(Math.sin(this._time * 25) > 0 ? 0xff00ff : 0x00f3ff);
+    }
+    if (this.particleManager) {
+      this.particleManager.spawnEngineParticle(this.meshGroup.position, 0xcc00ff);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
+    }
+
+    if (this.meshGroup.position.z < -95) {
+      this.detonate();
+    }
+  }
+
+  detonate() {
+    if (this.isDead) return;
+    this.destroy();
+
+    const gm = typeof window !== 'undefined' ? window.spaceGameManager : null;
+    if (this.particleManager) {
+      this.particleManager.createExplosion(this.meshGroup.position, 0xcc00ff, 400, 8.0);
+      this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 250, 6.0);
+      this.particleManager.createEmpShockwave(this.meshGroup.position, 180);
+      this.particleManager.createEmpShockwave(this.meshGroup.position, 260);
+    }
+
+    if (gm) {
+      gm.spaceScene?.addScreenShake(2.5);
+      gm.spaceAudio?.playEmpPulse?.();
+      gm.spaceHUD?.showWaveBanner('SUB-SPACE DETONATION', 'TACTICAL ANTI-MATTER WARHEAD TRIGGERED!');
+
+      // Eradicate non-boss enemies in blast radius
+      if (gm.drones) gm.drones.forEach(d => { if (!d.isDead && d.meshGroup && d.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) d.takeDamage(this.damage); });
+      if (gm.stealthFighters) gm.stealthFighters.forEach(s => { if (!s.isDead && s.meshGroup && s.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) s.takeDamage(this.damage); });
+      if (gm.phaseInterceptors) gm.phaseInterceptors.forEach(p => { if (!p.isDead && p.meshGroup && p.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) p.takeDamage(this.damage); });
+      if (gm.asteroids) gm.asteroids.forEach(a => { if (!a.isDead && a.meshGroup && a.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) a.takeDamage(this.damage); });
+      if (gm.capitalShips) gm.capitalShips.forEach(c => { if (!c.isDead && c.meshGroup && c.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) c.takeDamage(this.damage); });
+      if (gm.heavyBattleships) gm.heavyBattleships.forEach(b => { if (!b.isDead && b.meshGroup && b.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) b.takeDamage(this.damage); });
+      if (gm.carrierBoss && !gm.carrierBoss.isDead) gm.carrierBoss.takeDamage(this.damage);
+      if (gm.activeBoss && !gm.activeBoss.isDead) gm.activeBoss.takeDamage(this.damage);
+
+      // Vaporize hostile enemy lasers in blast radius
+      if (gm.lasers) {
+        gm.lasers.forEach(l => {
+          if (l && l.isEnemy && !l.isDead && l.meshGroup && l.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) {
+            l.destroy();
+          }
+        });
+      }
+    }
   }
 }

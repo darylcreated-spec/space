@@ -654,6 +654,17 @@ export class SpaceScene {
     this.currentCamLookAt.lerp(this.targetLookAt, lerpSpeed);
     this.camera.lookAt(this.currentCamLookAt);
 
+    // G-Force Dynamic Camera Momentum Drift & Aerodynamic Banking
+    if (pVel && playerShip) {
+      const gDriftX = -pVel.x * 0.035;
+      const gDriftY = -pVel.y * 0.025;
+      this.camera.position.x += gDriftX;
+      this.camera.position.y += gDriftY;
+      if (playerShip.currentRoll !== undefined) {
+        this.camera.rotation.z = -playerShip.currentRoll * 0.08;
+      }
+    }
+
     // Hyper-Boost Camera FOV speed warping
     const targetFov = (playerShip && playerShip.isBoosting) ? 74 : 60;
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.0);

@@ -12,7 +12,7 @@ import { SanctuaryCylinderBoss } from '../objects/SanctuaryCylinderBoss.js';
 import { HeliosSolarBoss } from '../objects/HeliosSolarBoss.js';
 import { WingmanDrone } from '../objects/WingmanDrone.js';
 import { DataCourierDrone } from '../objects/DataCourierDrone.js';
-import { LaserBolt, PlasmaPulse } from '../objects/Projectiles.js';
+import { LaserBolt, PlasmaPulse, AntiMatterNuke } from '../objects/Projectiles.js';
 import { PlayerSwarmMissile } from '../objects/PlayerSwarmMissile.js';
 import { CapitalShip } from '../objects/CapitalShip.js';
 import { CarrierCapitalShip } from '../objects/CarrierCapitalShip.js';
@@ -93,6 +93,7 @@ export class GameManager {
     this.powerUps = [];
     this.lasers = [];
     this.plasmaPulses = [];
+    this.nukes = [];
     this.playerSwarmMissiles = [];
     this.severedDebris = [];
     this.laserPool = [];
@@ -102,6 +103,12 @@ export class GameManager {
     this.isGodMode = false;
     this.freezeFleetAI = false;
     this.isAutoPilot = false;
+
+    // Game Mode States
+    this.gameMode = 'CAMPAIGN'; // 'CAMPAIGN', 'BOSS_RUSH', 'ENDLESS_SURVIVAL'
+    this.bossRushIndex = 1;
+    this.bossRushTimer = 0;
+    this.endlessKillCount = 0;
 
     // Active Power-Up Timers
     this.overchargeTimer = 0;
@@ -175,12 +182,68 @@ export class GameManager {
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.playerShip.shield = this.playerShip.maxShield;
     this.state = 'PLAYING';
-    this.waveSpawner.startWave(1);
-    if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("All Vanguard units, Sector Alpha IV is under attack! Clear the asteroid corridor!", "STARBOUND COMMAND", 5.0);
+
+    if (this.gameMode === 'BOSS_RUSH') {
+      this.startBossRushMode();
+    } else if (this.gameMode === 'ENDLESS_SURVIVAL') {
+      this.startEndlessSurvivalMode();
+    } else {
+      this.waveSpawner.startWave(1);
+      if (this.spaceHUD) {
+        this.spaceHUD.showRadioTransmission("All Vanguard units, Sector Alpha IV is under attack! Clear the asteroid corridor!", "STARBOUND COMMAND", 5.0);
+      }
     }
     this.spaceAudio.ensureContext();
     this.spaceAudio.startDrone();
+  }
+
+  startBossRushMode() {
+    this.bossRushIndex = 1;
+    this.bossRushTimer = 0;
+    this.spawnNextBossRush();
+    this.spaceHUD?.showWaveBanner('BOSS RUSH GAUNTLET', 'PHASE 1 // 12 APEX TITANS');
+    this.voiceAnnouncer.speak('Boss Rush Mode Activated! Neutralize all 12 Apex Titans!', true);
+  }
+
+  spawnNextBossRush() {
+    const idx = this.bossRushIndex;
+    if (idx === 1) this.spawnTitanBoss();
+    else if (idx === 2) this.spawnHaloBoss();
+    else if (idx === 3) this.spawnSpaceStation();
+    else if (idx === 4) this.spawnSanctuaryCylinderBoss();
+    else if (idx === 5) this.spawnCommandMothership();
+    else if (idx === 6) this.spawnHeliosSolarBoss();
+    else if (idx === 7) this.spawnSolarTitan();
+    else if (idx === 8) this.spawnSingularityHarbinger();
+    else if (idx === 9) { this.spawnHeavyBattleship(); this.spawnCarrierBoss(); }
+    else if (idx === 10) this.spawnCommandMothership();
+    else if (idx === 11) this.spawnSanctuaryCylinderBoss();
+    else if (idx === 12) { this.spawnCommandMothership(); this.spawnSolarTitan(); }
+    else {
+      this.spaceHUD?.showWaveBanner('VICTORY', `BOSS RUSH CLEARED IN ${Math.round(this.bossRushTimer)}s!`);
+      this.voiceAnnouncer.speak('Gauntlet Complete! Sovereign Apex Titans Neutralized!', true);
+    }
+  }
+
+  advanceBossRush() {
+    this.bossRushIndex++;
+    if (this.bossRushIndex <= 12) {
+      setTimeout(() => {
+        if (this.state === 'PLAYING' && this.gameMode === 'BOSS_RUSH') {
+          this.spawnNextBossRush();
+          this.spaceHUD?.showWaveBanner('BOSS RUSH GAUNTLET', `PHASE ${this.bossRushIndex} OF 12`);
+        }
+      }, 1500);
+    } else {
+      this.spawnNextBossRush();
+    }
+  }
+
+  startEndlessSurvivalMode() {
+    this.endlessKillCount = 0;
+    this.waveSpawner.startWave(1);
+    this.spaceHUD?.showWaveBanner('ENDLESS SURVIVAL', 'INFINITE CAPITAL FLEET INCURSION');
+    this.voiceAnnouncer.speak('Endless Survival Initiated! Stand your ground against the infinite swarm!', true);
   }
 
   setSelectedShipClass(shipClass) {
@@ -1301,6 +1364,53 @@ export class GameManager {
     this.spaceScene.addScreenShake(1.8);
   }
 
+  fireRailgun(chargeRatio = 1.0) {
+    if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0) return;
+    this.playerShip.laserCooldown = 0.45;
+
+    const pPos = this.playerShip.meshGroup.position;
+    const startPos = new THREE.Vector3(0, 0, -2.5).add(pPos);
+
+    const laser = this.spawnLaser(startPos, 0x00ffff, false, new THREE.Vector3(0, 0, -1), false, 'RAILGUN');
+    if (laser) {
+      laser.damage = Math.round(1250 * Math.max(0.4, chargeRatio));
+    }
+
+    this.spaceScene.addScreenShake(1.6 * chargeRatio);
+    this.spaceAudio.playHeavyCannonSound?.();
+    this.particleManager.spawnSparks(startPos, new THREE.Vector3(0, 0, -1), 0x00ffff, 18);
+    this.voiceAnnouncer.speak('Spinal Railgun Discharged!', false);
+  }
+
+  fireTachyonBeam(dt = 0.016) {
+    if (this.state !== 'PLAYING') return;
+    const pPos = this.playerShip.meshGroup.position;
+    const startPos = new THREE.Vector3(0, 0, -2.0).add(pPos);
+
+    if (Math.random() < 0.35) {
+      this.spawnLaser(startPos, 0xff00bb, false, new THREE.Vector3(0, 0, -1), false, 'TACHYON_BEAM');
+      this.spaceScene.addScreenShake(0.12);
+    }
+  }
+
+  fireAntiMatterNuke() {
+    if (this.state !== 'PLAYING' || this.playerShip.nukeCooldown > 0 || this.playerShip.nukeCharges <= 0) return;
+    this.playerShip.nukeCooldown = this.playerShip.maxNukeCD;
+
+    const pPos = this.playerShip.meshGroup.position;
+    const startPos = new THREE.Vector3(0, 0, -2.0).add(pPos);
+
+    this.spawnAntiMatterNuke(startPos);
+    this.spaceAudio.playEmpPulse?.();
+    this.voiceAnnouncer.speak('Warning! Anti-Matter Warhead Launched!', true);
+  }
+
+  spawnAntiMatterNuke(startPos) {
+    const nuke = new AntiMatterNuke(this.spaceScene.scene, startPos, this.particleManager);
+    this.nukes.push(nuke);
+    return nuke;
+  }
+
   fireSwarmMissiles() {
     if (this.state !== 'PLAYING' || this.playerShip.swarmMissileCooldown > 0) return;
     this.playerShip.swarmMissileCooldown = this.playerShip.maxSwarmCD;
@@ -1543,15 +1653,17 @@ export class GameManager {
       return;
     }
 
-    // Low shield warning beep sound
+    // Low shield warning beep sound & dynamic Low-Pass audio filter
     if (this.playerShip && this.playerShip.shield < this.playerShip.maxShield * 0.25 && this.playerShip.shield > 0) {
       this.lowShieldWarningSoundTimer -= dt;
       if (this.lowShieldWarningSoundTimer <= 0) {
         this.spaceAudio.playLowShieldAlarm();
         this.lowShieldWarningSoundTimer = 1.2;
       }
+      this.spaceAudio.setLowPassMuffle?.(true);
     } else {
       this.lowShieldWarningSoundTimer = 0;
+      this.spaceAudio.setLowPassMuffle?.(false);
     }
 
     // AAA Hit Freeze-Frame Micro-Stutter for heavy impacts
@@ -2016,6 +2128,16 @@ export class GameManager {
       if (pulse.isDead) {
         pulse.destroy();
         this.plasmaPulses.splice(i, 1);
+      }
+    }
+
+    for (let i = this.nukes.length - 1; i >= 0; i--) {
+      const nuke = this.nukes[i];
+      if (!nuke || !nuke.meshGroup) { this.nukes.splice(i, 1); continue; }
+      nuke.update(dt);
+      if (nuke.isDead) {
+        nuke.destroy();
+        this.nukes.splice(i, 1);
       }
     }
 

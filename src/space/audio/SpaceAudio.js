@@ -782,6 +782,18 @@ export class SpaceAudio {
     try { osc.start(now); osc.stop(now + 0.35); } catch(e){}
   }
 
+  setLowPassMuffle(enabled = true) {
+    this.ensureContext();
+    if (!this.ctx) return;
+    if (!this.masterLowPassFilter) {
+      this.masterLowPassFilter = this.ctx.createBiquadFilter();
+      this.masterLowPassFilter.type = 'lowpass';
+      this.masterLowPassFilter.frequency.setValueAtTime(20000, this.ctx.currentTime);
+    }
+    const targetFreq = enabled ? 550 : 20000;
+    this.masterLowPassFilter.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.15);
+  }
+
   vibrateSuperlaserCharge() {
     if ('vibrate' in navigator) {
       try {

@@ -174,6 +174,59 @@ export class WaveSpawner {
           this.gameManager.spawnCarrierBoss();
           this.gameManager.spawnPhaseInterceptor();
         }
+      } else if (this.currentWave === 7) {
+        // Stage 7 Solar Forge Incursion:
+        if (this.spawnedCount === 10) {
+          this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnECMCorvette();
+        } else if (this.spawnedCount === 24) {
+          this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnPhaseInterceptor();
+        }
+      } else if (this.currentWave === 8) {
+        // Stage 8 Event Horizon Singularity Incursion:
+        if (this.spawnedCount === 12) {
+          this.gameManager.spawnCarrierBoss();
+          this.gameManager.spawnECMCorvette();
+        } else if (this.spawnedCount === 28) {
+          this.gameManager.spawnPhaseInterceptor();
+          this.gameManager.spawnStealthFighter();
+        }
+      } else if (this.currentWave === 9) {
+        // Stage 9 Crystalline Abyss Cryo-Fleet:
+        if (this.spawnedCount === 14) {
+          this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnStealthFighter();
+        } else if (this.spawnedCount === 30) {
+          this.gameManager.spawnCarrierBoss();
+        }
+      } else if (this.currentWave === 10) {
+        // Stage 10 Null-Sector Ghost Fleet:
+        if (this.spawnedCount === 16) {
+          this.gameManager.spawnStealthFighter();
+          this.gameManager.spawnECMCorvette();
+        } else if (this.spawnedCount === 32) {
+          this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnPhaseInterceptor();
+        }
+      } else if (this.currentWave === 11) {
+        // Stage 11 Ruined Dyson Megastructure Siege:
+        if (this.spawnedCount === 18) {
+          this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnECMCorvette();
+        } else if (this.spawnedCount === 36) {
+          this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnPhaseInterceptor();
+        }
+      } else if (this.currentWave >= 12) {
+        // Stage 12 Gateway of the Ancients Grand Armada:
+        if (this.spawnedCount === 18) {
+          this.gameManager.spawnCapitalShip();
+          this.gameManager.spawnCarrierBoss();
+        } else if (this.spawnedCount === 38) {
+          this.gameManager.spawnHeavyBattleship();
+          this.gameManager.spawnBoss(); // Vorn Dreadnought
+        }
       }
 
       // ── Standard Combat Patrol Spawning ──

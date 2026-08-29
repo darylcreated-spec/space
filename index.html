@@ -364,6 +364,18 @@
             <span class="btn-hotkey">[Q]</span>
           </div>
         </button>
+
+        <!-- 5. Tactical Superweapon Munition -->
+        <button id="btn-fire-superweapon" class="action-btn superweapon-btn" title="Tactical Superweapon (F / 4)">
+          <span class="cooldown-ring" id="cd-ring-superweapon"></span>
+          <div class="action-btn-inner">
+            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#00f3ff" stroke-width="2.2">
+              <circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="2" fill="#00f3ff"/>
+            </svg>
+            <span class="btn-label">NUKE</span>
+            <span class="btn-hotkey">[F]</span>
+          </div>
+        </button>
       </div>
     </div>
   </div>
@@ -721,6 +733,13 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Mission Mode Selector -->
+      <div class="mode-select-banner" style="display:flex; gap:8px; margin-bottom:14px; width:100%; justify-content:center; flex-wrap:wrap;">
+        <button id="btn-mode-campaign" class="btn-mode-select active" style="flex:1; min-width:110px; padding:8px 10px; background:rgba(0,243,255,0.2); border:1px solid #00f3ff; color:#fff; border-radius:6px; font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:bold; cursor:pointer;">CAMPAIGN (1-12)</button>
+        <button id="btn-mode-bossrush" class="btn-mode-select" style="flex:1; min-width:110px; padding:8px 10px; background:rgba(255,0,100,0.12); border:1px solid rgba(255,0,100,0.4); color:#fff; border-radius:6px; font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:bold; cursor:pointer;">BOSS RUSH (12 APEX)</button>
+        <button id="btn-mode-endless" class="btn-mode-select" style="flex:1; min-width:110px; padding:8px 10px; background:rgba(255,180,0,0.12); border:1px solid rgba(255,180,0,0.4); color:#fff; border-radius:6px; font-family:'Rajdhani',sans-serif; font-size:13px; font-weight:bold; cursor:pointer;">ENDLESS SURVIVAL</button>
       </div>
 
       <div class="start-actions-row">

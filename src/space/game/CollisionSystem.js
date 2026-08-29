@@ -167,7 +167,7 @@ export class CollisionSystem {
               }
             }
 
-            if (!gameManager.activePerks.has('piercing') && !laser.isAoe) {
+            if (!gameManager.activePerks.has('piercing') && !laser.isAoe && !laser.isPiercing) {
               hit = true;
               laser.destroy();
               gameManager.lasers.splice(i, 1);
@@ -195,7 +195,7 @@ export class CollisionSystem {
               }
               gameManager.hapticsManager.triggerStarEarned();
             }
-            if (!gameManager.activePerks.has('piercing') && !laser.isAoe) {
+            if (!gameManager.activePerks.has('piercing') && !laser.isAoe && !laser.isPiercing) {
               laser.destroy();
               gameManager.lasers.splice(i, 1);
               continue;
@@ -247,7 +247,7 @@ export class CollisionSystem {
               }
             }
 
-            if (!gameManager.activePerks.has('piercing') && !laser.isAoe) {
+            if (!gameManager.activePerks.has('piercing') && !laser.isAoe && !laser.isPiercing) {
               hit = true;
               laser.destroy();
               gameManager.lasers.splice(i, 1);

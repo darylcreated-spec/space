@@ -106,29 +106,41 @@ export class FleetHangarUI {
             <!-- Hardpoints Loadout Selectors -->
             <div class="hardpoint-section">
               <div class="hardpoint-slot">
-                <label>PRIMARY WEAPON</label>
-                <select id="sel-primary-weapon" class="hangar-select">
-                  <option value="plasma">Twin Plasma Blasters (Balanced)</option>
-                  <option value="railgun">Heavy Kinetic Railguns (High Damage)</option>
-                  <option value="tachyon">Tachyon Beam Lance (Rapid Piercing)</option>
+                <label>AESTHETIC LIVERY SKIN</label>
+                <select id="sel-livery-skin" class="hangar-select">
+                  <option value="DEFAULT">Standard Naval Titanium</option>
+                  <option value="VOID_OBSIDIAN">Void Obsidian (Stealth Onyx & Violet)</option>
+                  <option value="CARBON_STEALTH">Carbon Stealth (Carbon Weave & Cyan)</option>
+                  <option value="HAZARD_INDUSTRIAL">Hazard Industrial (Amber Chevrons)</option>
+                  <option value="CORONAL_GOLD">Coronal Gold (Solar Plated Alloy)</option>
+                  <option value="CYBER_NEON">Cyber Neon (Synthwave Magenta/Cyan)</option>
                 </select>
               </div>
 
               <div class="hardpoint-slot">
-                <label>DEFENSE MATRIX</label>
-                <select id="sel-defense-matrix" class="hangar-select">
-                  <option value="deflector">Omni-Deflector Shield (Standard)</option>
-                  <option value="fortified">Superconducting Barrier (+30% HP)</option>
-                  <option value="recharge">Fast-Regen Matrix (Quick Recharge)</option>
+                <label>SUPERWEAPON MUNITION</label>
+                <select id="sel-superweapon" class="hangar-select">
+                  <option value="ANTIMATTER_NUKE">Sub-Space Anti-Matter Nuke (Screen-Clear)</option>
+                  <option value="HYPER_RAILGUN">Spinal Hyper-Railgun (Kinetic Piercing)</option>
+                  <option value="TACHYON_LANCE">Tachyon Beam Lance (Continuous Melt)</option>
                 </select>
               </div>
 
               <div class="hardpoint-slot">
-                <label>AFTERBURNER SYSTEM</label>
-                <select id="sel-thruster-mod" class="hangar-select">
-                  <option value="overdrive">Hyper-Boost Overdrive (+20% Speed)</option>
-                  <option value="maneuver">Vectored Roll Thrusters (+30% Agility)</option>
-                  <option value="emp">EMP Discharge Coil (Shockwave on Boost)</option>
+                <label>REACTOR CORE</label>
+                <select id="sel-reactor-core" class="hangar-select">
+                  <option value="DEFAULT">Standard Fusion Core (Balanced)</option>
+                  <option value="OVERCLOCKED_PLASMA">Overclocked Plasma (+25% Rapid Fire)</option>
+                  <option value="TITANIUM_AEGIS">Titanium Aegis Core (+100% Shield Capacity)</option>
+                </select>
+              </div>
+
+              <div class="hardpoint-slot">
+                <label>THRUSTER MANIFOLD</label>
+                <select id="sel-thruster-manifold" class="hangar-select">
+                  <option value="DEFAULT">Standard Ion Drive</option>
+                  <option value="AFTERBURNER">Hyper-Boost Afterburner (+35% Top Speed)</option>
+                  <option value="VECTOR_RCS">Vector RCS Thrusters (Instant 360° Agility)</option>
                 </select>
               </div>
             </div>
@@ -587,10 +599,26 @@ export class FleetHangarUI {
   equipAndLaunch() {
     const ship = this.ships[this.currentShipIndex];
     if (this.gameManager && this.gameManager.playerShip) {
-      this.gameManager.playerShip.shipClass = ship.id;
-      this.gameManager.voiceAnnouncer?.speak(`${ship.name} equipped. Launching to active combat sector!`, true);
+      const p = this.gameManager.playerShip;
+      p.shipClass = ship.id;
+
+      // Apply Livery
+      const livery = document.getElementById('sel-livery-skin')?.value || 'DEFAULT';
+      p.setLivery(livery);
+
+      // Apply Superweapon
+      const superweapon = document.getElementById('sel-superweapon')?.value || 'ANTIMATTER_NUKE';
+      p.equippedSuperweapon = superweapon;
+
+      // Apply Modular Components
+      const reactor = document.getElementById('sel-reactor-core')?.value || 'DEFAULT';
+      const thruster = document.getElementById('sel-thruster-manifold')?.value || 'DEFAULT';
+      p.setEquipment('reactor', reactor);
+      p.setEquipment('thruster', thruster);
+
+      this.gameManager.voiceAnnouncer?.speak(`${ship.name} refitted with ${livery} livery. Launching!`, true);
       if (this.gameManager.spaceHUD) {
-        this.gameManager.spaceHUD.showRadioTransmission(`STARFIGHTER EQUIPPED: ${ship.name}. Systems online!`, "STARBOUND COMMAND", 5.0);
+        this.gameManager.spaceHUD.showRadioTransmission(`REFIT COMPLETE: ${ship.name} [${livery} // ${superweapon}]`, "STARBOUND COMMAND", 5.0);
       }
     }
     this.close();
