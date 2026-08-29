@@ -90,11 +90,11 @@ export class WaveSpawner {
     const activeBattleships = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.filter(b => !b.isDead).length : 0;
     const activeCarrier = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
 
-    // Weight asteroid fragments lightly so split shards don't block large warships
-    const totalActiveCombatants = Math.floor(activeAsteroids * 0.5) + activeDrones + activeStealth + activeECM + activePhase + (activeCruisers * 2) + (activeBattleships * 3) + (activeCarrier ? 4 : 0);
+    // Weight combatants appropriately so waves flow without stalling
+    const totalActiveCombatants = Math.floor(activeAsteroids * 0.3) + Math.floor((activeDrones + activeStealth + activePhase) * 0.5) + activeECM + (activeCruisers * 1.5) + (activeBattleships * 2) + (activeCarrier ? 3 : 0);
 
-    if (totalActiveCombatants >= 12 && this.spawnedCount < this.totalToSpawnInWave) {
-      // Screen is occupied — pause spawner until player destroys enemies
+    if (totalActiveCombatants >= 20 && this.spawnedCount < this.totalToSpawnInWave) {
+      // Screen is heavily occupied — brief buffer before next wave element
       return;
     }
 

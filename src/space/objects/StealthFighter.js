@@ -368,6 +368,16 @@ export class StealthFighter {
       }
     }
 
+    // Boundary Check: If stealth fighter flies past player (+Z), warp re-enter from deep space flank
+    if (this.meshGroup.position.z > 26) {
+      this.meshGroup.position.z = -80 - Math.random() * 15;
+      this.meshGroup.position.x = (Math.random() - 0.5) * 32;
+      this.state = 'CLOAKED_APPROACH';
+      this.stateTimer = 3.0;
+      this.isCloaked = true;
+      this.targetCloakOpacity = 0.12;
+    }
+
     return false;
   }
 }

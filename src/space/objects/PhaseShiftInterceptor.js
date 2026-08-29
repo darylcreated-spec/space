@@ -128,6 +128,15 @@ export class PhaseShiftInterceptor {
       ];
     }
 
+    // Boundary Check: Micro-warp re-entry if flying past player
+    if (this.meshGroup.position.z > 26) {
+      this.meshGroup.position.z = -75 - Math.random() * 15;
+      this.meshGroup.position.x = (Math.random() - 0.5) * 30;
+      if (this.particleManager) {
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 20);
+      }
+    }
+
     return false;
   }
 

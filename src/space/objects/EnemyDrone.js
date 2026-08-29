@@ -437,6 +437,13 @@ export class EnemyDrone {
       return outLasers.length > 0 ? outLasers : [this.meshGroup.position.clone()];
     }
 
+    // Boundary Check: Hyperspace flank wrap if flying past player (+Z)
+    if (this.meshGroup.position.z > 26) {
+      this.meshGroup.position.z = -75 - Math.random() * 15;
+      this.meshGroup.position.x = (Math.random() - 0.5) * 32;
+      this.aiState = 'CRUISE';
+    }
+
     return false;
   }
 }
