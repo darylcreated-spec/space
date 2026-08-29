@@ -715,20 +715,26 @@
       </div>
 
       <!-- Pre-Game Hub Utility Buttons -->
-      <div class="start-subhub-row" style="display:flex; gap:8px; width:100%; justify-content:center;">
-        <button id="btn-start-hangar" class="btn-secondary" style="flex:1; padding:8px 10px; font-size:12px;" title="Open Shipyard Hangar & Refit Suite">
+      <div class="start-subhub-row" style="display:flex; gap:6px; width:100%; justify-content:center; flex-wrap:wrap;">
+        <button id="btn-toggle-god-start" class="btn-secondary" style="flex:1; min-width:125px; padding:8px 10px; font-size:12px; border-color:rgba(0,255,100,0.5); color:#00ff88;" title="Toggle Invulnerable Shield (God Mode for full campaign playthrough)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#00ff88" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span id="btn-toggle-god-start-text">SHIELD: NORMAL</span>
+        </button>
+        <button id="btn-start-hangar" class="btn-secondary" style="flex:1; min-width:105px; padding:8px 10px; font-size:12px;" title="Open Shipyard Hangar & Refit Suite">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
           </svg>
           <span>REFIT / HANGAR</span>
         </button>
-        <button id="btn-start-fleet" class="btn-secondary" style="flex:1; padding:8px 10px; font-size:12px;" title="Open Admiralty Fleet Inspector">
+        <button id="btn-start-fleet" class="btn-secondary" style="flex:1; min-width:105px; padding:8px 10px; font-size:12px;" title="Open Admiralty Fleet Inspector">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
           </svg>
-          <span>FLEET INSPECTOR</span>
+          <span>FLEET</span>
         </button>
-        <button id="btn-start-settings" class="btn-secondary" style="flex:1; padding:8px 10px; font-size:12px;" title="Open Game Configuration">
+        <button id="btn-start-settings" class="btn-secondary" style="flex:1; min-width:85px; padding:8px 10px; font-size:12px;" title="Open Game Configuration">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>

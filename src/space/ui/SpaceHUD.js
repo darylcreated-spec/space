@@ -112,6 +112,8 @@ export class SpaceHUD {
     this.btnVoiceOff = document.getElementById('btn-voice-off');
     this.btnVoiceOn = document.getElementById('btn-voice-on');
     this.btnStartSettings = document.getElementById('btn-start-settings');
+    this.btnToggleGodStart = document.getElementById('btn-toggle-god-start');
+    this.btnToggleGodStartText = document.getElementById('btn-toggle-god-start-text');
     this.btnExitGame = document.getElementById('btn-exit-game');
     this.inputGodmodeCode = document.getElementById('input-godmode-code');
     this.btnSubmitGodmode = document.getElementById('btn-submit-godmode');
@@ -361,14 +363,14 @@ export class SpaceHUD {
     if (this.btnFleetToggleGod) {
       this.btnFleetToggleGod.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isGod = this.gameManager.toggleGodMode();
-        if (this.fleetGodBtnText) {
-          this.fleetGodBtnText.textContent = isGod ? '🛡️ GOD MODE: ON' : '🛡️ GOD MODE: OFF';
-        }
-        if (this.fleetGodStatus) {
-          this.fleetGodStatus.textContent = isGod ? 'INVULNERABILITY: ACTIVE' : 'INVULNERABILITY: READY';
-          this.fleetGodStatus.style.color = isGod ? '#00ff66' : '#00f3ff';
-        }
+        this.gameManager.toggleGodMode();
+      });
+    }
+
+    if (this.btnToggleGodStart) {
+      this.btnToggleGodStart.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.toggleGodMode();
       });
     }
 
@@ -569,6 +571,9 @@ export class SpaceHUD {
       }
       if (e.code === 'KeyP' || e.key === 'p' || e.key === 'P') {
         this.gameManager.toggleAutoPilot();
+      }
+      if (e.code === 'KeyG' || e.key === 'g' || e.key === 'G') {
+        this.gameManager.toggleGodMode();
       }
       if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
         this.gameManager.spaceAudio.vibrate(10);
@@ -1453,5 +1458,34 @@ export class SpaceHUD {
     if (btnDefend) btnDefend.classList.toggle('active', doctrine === 'DEFEND');
     if (btnFocus) btnFocus.classList.toggle('active', doctrine === 'FOCUS_FIRE');
     if (btnFlank) btnFlank.classList.toggle('active', doctrine === 'SWARM_FLANK');
+  }
+
+  updateGodModeUI(isGod) {
+    if (this.btnToggleGodStartText) {
+      this.btnToggleGodStartText.textContent = isGod ? 'SHIELD: INVINCIBLE' : 'SHIELD: NORMAL';
+    }
+    if (this.btnToggleGodStart) {
+      if (isGod) {
+        this.btnToggleGodStart.style.background = 'rgba(0, 255, 100, 0.25)';
+        this.btnToggleGodStart.style.borderColor = '#00ff88';
+        this.btnToggleGodStart.style.boxShadow = '0 0 15px rgba(0, 255, 100, 0.4)';
+        this.btnToggleGodStart.style.color = '#00ff88';
+      } else {
+        this.btnToggleGodStart.style.background = '';
+        this.btnToggleGodStart.style.borderColor = 'rgba(0, 255, 100, 0.5)';
+        this.btnToggleGodStart.style.boxShadow = '';
+        this.btnToggleGodStart.style.color = '#00ff88';
+      }
+    }
+    if (this.fleetGodBtnText) {
+      this.fleetGodBtnText.textContent = isGod ? '🛡️ GOD MODE: ON' : '🛡️ GOD MODE: OFF';
+    }
+    if (this.fleetGodStatus) {
+      this.fleetGodStatus.textContent = isGod ? 'INVULNERABILITY: ACTIVE' : 'INVULNERABILITY: READY';
+      this.fleetGodStatus.style.color = isGod ? '#00ff66' : '#00f3ff';
+    }
+    if (this.godmodeActivePill) {
+      this.godmodeActivePill.style.display = isGod ? 'inline-block' : 'none';
+    }
   }
 }

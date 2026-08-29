@@ -952,8 +952,9 @@ export class GameManager {
       if (this.isGodMode) this.playerShip.shield = this.playerShip.maxShield;
     }
     if (this.spaceHUD) {
+      if (this.spaceHUD.updateGodModeUI) this.spaceHUD.updateGodModeUI(this.isGodMode);
       this.spaceHUD.showRadioTransmission(
-        this.isGodMode ? "ADMIRALTY GOD MODE: ACTIVE (Invulnerable)" : "ADMIRALTY GOD MODE: DISABLED (Standard Combat)",
+        this.isGodMode ? "🛡️ INVINCIBLE SHIELD: ENGAGED // 100% DAMAGE IMMUNITY" : "🛡️ INVINCIBLE SHIELD: DISABLED // STANDARD COMBAT",
         "FLEET COMMAND",
         3.0
       );
