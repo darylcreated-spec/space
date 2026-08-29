@@ -28,7 +28,6 @@ export class SpaceHUD {
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnFireSwarm = document.getElementById('btn-fire-swarm');
     this.btnHyperBoost = document.getElementById('btn-hyper-boost');
-    this.btnSpaceCamera = document.getElementById('btn-space-camera');
     this.btnOpenHangar = document.getElementById('btn-open-hangar');
 
     this.cdRingPulse = document.getElementById('cd-ring-pulse');
@@ -36,12 +35,18 @@ export class SpaceHUD {
 
     this.modalStart = document.getElementById('space-modal-start');
     this.btnStartGame = document.getElementById('btn-start-space');
+    this.btnResumeSave = document.getElementById('btn-resume-save');
+    this.btnResumeSaveText = document.getElementById('btn-resume-save-text');
+    this.btnStartHangar = document.getElementById('btn-start-hangar');
+    this.btnStartFleet = document.getElementById('btn-start-fleet');
     this.highScoreVal = document.getElementById('space-high-score');
 
     // Hangar Modal
     this.modalHangar = document.getElementById('space-modal-hangar');
     this.hangarScrapVal = document.getElementById('hangar-scrap-val');
     this.btnNextWave = document.getElementById('btn-next-wave');
+    this.btnHangarExitMenu = document.getElementById('btn-hangar-exit-menu');
+    this.hangarSaveStatusText = document.getElementById('hangar-save-status-text');
 
     this.btnBuyThrust = document.getElementById('btn-buy-thrust');
     this.btnBuyShield = document.getElementById('btn-buy-shield');
@@ -327,14 +332,6 @@ export class SpaceHUD {
       btnDoctrineFlank.addEventListener('click', (e) => {
         e.stopPropagation();
         this.gameManager.setWingmanDoctrine('SWARM_FLANK');
-      });
-    }
-
-    if (this.btnSpaceCamera) {
-      this.btnSpaceCamera.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.gameManager.spaceAudio.vibrate(10);
-        this.gameManager.spaceScene.toggleCameraMode();
       });
     }
 
@@ -699,6 +696,38 @@ export class SpaceHUD {
       });
     }
 
+    if (this.btnResumeSave) {
+      this.btnResumeSave.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.modalStart) this.modalStart.classList.add('hidden');
+        this.gameManager.loadSavedGame();
+      });
+    }
+
+    if (this.btnStartHangar) {
+      this.btnStartHangar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showHangarModal(0, this.gameManager.upgradeSystem);
+      });
+    }
+
+    if (this.btnStartFleet) {
+      this.btnStartFleet.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showFleetModal();
+      });
+    }
+
+    if (this.btnHangarExitMenu) {
+      this.btnHangarExitMenu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.hideAllModals();
+        this.gameManager.state = 'START';
+        if (this.modalStart) this.modalStart.classList.remove('hidden');
+        this.updateStartScreenSaveState();
+      });
+    }
+
     if (this.btnRestartGame) {
       this.btnRestartGame.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -840,6 +869,26 @@ export class SpaceHUD {
         this.showRadioTransmission(`OPTICS CALIBRATED: Laser beam tinted to #${hexStr.toUpperCase()}`, "OPTICS BAY", 3.0);
       });
     });
+
+    this.updateStartScreenSaveState();
+  }
+
+  updateStartScreenSaveState() {
+    if (!this.btnResumeSave) {
+      this.btnResumeSave = document.getElementById('btn-resume-save');
+      this.btnResumeSaveText = document.getElementById('btn-resume-save-text');
+    }
+    if (!this.btnResumeSave) return;
+
+    const save = (this.gameManager && this.gameManager.getSavedGame) ? this.gameManager.getSavedGame() : null;
+    if (save && save.waveNum && save.waveNum > 1) {
+      this.btnResumeSave.classList.remove('hidden');
+      if (this.btnResumeSaveText) {
+        this.btnResumeSaveText.textContent = `CONTINUE CAMPAIGN // RESUME STAGE ${save.waveNum} (${save.scrap || 0} CR)`;
+      }
+    } else {
+      this.btnResumeSave.classList.add('hidden');
+    }
   }
 
   showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 2.2) {
@@ -879,6 +928,33 @@ export class SpaceHUD {
     } else {
       this.lockonBox.classList.add('hidden');
     }
+  }
+
+  showFlankIndicator(type = 'FLANK CRITICAL!') {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      position: absolute;
+      top: 32%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffd700;
+      font-family: 'Orbitron', monospace;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #ffea00, 0 0 20px #ff7700;
+      pointer-events: none;
+      z-index: 100;
+      transition: all 0.75s ease-out;
+      opacity: 1;
+    `;
+    banner.textContent = `⚡ ${type} (+75% DMG)`;
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => {
+      banner.style.transform = 'translate(-50%, -90%) scale(1.15)';
+      banner.style.opacity = '0';
+    });
+    setTimeout(() => banner.remove(), 750);
   }
 
   showHangarModal(completedWaveNum, upgradeSystem, starsEarned = 0) {
@@ -1234,7 +1310,10 @@ export class SpaceHUD {
     this.updatePilotDisplays(profile);
 
     if (this.modalPilotReg) this.modalPilotReg.classList.add('hidden');
-    if (this.modalStart) this.modalStart.classList.remove('hidden');
+    if (this.modalStart) {
+      this.modalStart.classList.remove('hidden');
+      this.updateStartScreenSaveState();
+    }
 
     if (this.gameManager && this.gameManager.spaceAudio) {
       this.gameManager.spaceAudio.vibrate(25);

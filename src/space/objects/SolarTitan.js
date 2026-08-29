@@ -142,6 +142,32 @@ export class SolarTitan {
     if (this.isDead) return null;
 
     this.stateTimer += dt;
+    // Dynamic Dying State
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.92 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 45);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff5500, 80, 4.5);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffea00, 60, 3.5);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xff7700, 20);
+      }
+      this.meshGroup.rotation.z += 0.45 * dt;
+      this.meshGroup.rotation.x += 0.2 * dt;
+      this.meshGroup.position.y -= 1.8 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this.destroy();
+      }
+      return { lasers: [], solarLances: [] };
+    }
+
+    // Progressive damage smoke
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 16, 0);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xffaa00, 8);
+    }
+
     this.laserTimer += dt;
     this.flareBurstTimer += dt;
 
@@ -206,7 +232,7 @@ export class SolarTitan {
   }
 
   takeDamage(amount) {
-    if (this.isDead) return;
+    if (this.isDead || this.isDying) return;
 
     // Takes 100% damage when radiators are venting, 25% glancing damage when shielded
     const effectiveDamage = this.isVulnerable ? amount * 1.5 : amount * 0.25;
@@ -216,19 +242,20 @@ export class SolarTitan {
       this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), this.isVulnerable ? 0xffea00 : 0x884400, 12);
     }
 
-    if (this.coreHp <= 0) {
+    if (this.coreHp <= 0 && !this.isDying) {
       this.coreHp = 0;
-      this.isDead = true;
-      if (this.particleManager) {
-        this.particleManager.createExplosion(this.meshGroup.position, 0xff5500, 120, 6.0);
-        this.particleManager.createShockwave(this.meshGroup.position, 0xffea00, 35.0, 0.8);
-      }
-      this.destroy();
+      this.isDying = true;
+      this.deathTimer = 4.2;
+      window.spaceGameManager?.voiceAnnouncer?.speak("Solar Titan Core Collapsing into Supernova!", true);
     }
   }
 
   destroy() {
     this.isDead = true;
+    if (this.particleManager && this.meshGroup) {
+      this.particleManager.createExplosion(this.meshGroup.position, 0xff5500, 450, 8.5);
+      this.particleManager.createShockwave(this.meshGroup.position, 0xffea00, 45.0, 1.2);
+    }
     if (this.meshGroup && this.meshGroup.parent) {
       this.meshGroup.parent.remove(this.meshGroup);
     }

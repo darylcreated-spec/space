@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getPBRMaterialSet } from '../engine/PBRTextureGenerator.js';
+import { getPBRMaterialSet, createAAAPBRMaterial } from '../engine/PBRTextureGenerator.js';
 
 export class PlayerShip {
   constructor(scene, particleManager) {
@@ -24,7 +24,7 @@ export class PlayerShip {
     this.currentPitch = 0;
     this.prevInput = { x: 0, y: 0 };
 
-    this.bounds = { minX: -14.0, maxX: 14.0, minY: -7.0, maxY: 8.0 };
+    this.bounds = { minX: -65.0, maxX: 65.0, minY: -32.0, maxY: 32.0, minZ: -60.0, maxZ: 18.0 };
 
     this.laserCooldown = 0;
     this.pulseCooldown = 0;
@@ -175,9 +175,11 @@ export class PlayerShip {
       wireframe: true,
       transparent: true,
       opacity: 0.0,
-      blending: THREE.AdditiveBlending
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
     this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
+    this.shieldMesh.visible = false;
     this.meshGroup.add(this.shieldMesh);
 
     if (this.shipClass === 'INTERCEPTOR') {
@@ -211,8 +213,8 @@ export class PlayerShip {
     // ── High-Tech Materials ──
     const bodyMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
-      bumpMap: pbr.bumpMap,
-      bumpScale: pbr.bumpScale,
+      normalMap: pbr.normalMap,
+      normalScale: pbr.normalScale,
       roughnessMap: pbr.roughnessMap,
       emissiveMap: pbr.emissiveMap,
       color: 0x0e1c34,
@@ -491,8 +493,8 @@ export class PlayerShip {
     // ── High-Tech Heavy Armor Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
-      bumpMap: pbr.bumpMap,
-      bumpScale: pbr.bumpScale,
+      normalMap: pbr.normalMap,
+      normalScale: pbr.normalScale,
       roughnessMap: pbr.roughnessMap,
       emissiveMap: pbr.emissiveMap,
       color: 0x221218,
@@ -747,8 +749,8 @@ export class PlayerShip {
     // ── High-Tech Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
-      bumpMap: pbr.bumpMap,
-      bumpScale: pbr.bumpScale,
+      normalMap: pbr.normalMap,
+      normalScale: pbr.normalScale,
       roughnessMap: pbr.roughnessMap,
       emissiveMap: pbr.emissiveMap,
       color: 0x0c281e,
@@ -962,8 +964,8 @@ export class PlayerShip {
     // ── High-Tech Stealth Materials ──
     this.reaperBodyMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
-      bumpMap: pbr.bumpMap,
-      bumpScale: pbr.bumpScale,
+      normalMap: pbr.normalMap,
+      normalScale: pbr.normalScale,
       roughnessMap: pbr.roughnessMap,
       emissiveMap: pbr.emissiveMap,
       color: 0x1e0b2e,
@@ -1164,8 +1166,8 @@ export class PlayerShip {
     // ── High-Tech Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
-      bumpMap: pbr.bumpMap,
-      bumpScale: pbr.bumpScale,
+      normalMap: pbr.normalMap,
+      normalScale: pbr.normalScale,
       roughnessMap: pbr.roughnessMap,
       emissiveMap: pbr.emissiveMap,
       color: 0x2c2612,
@@ -1360,9 +1362,10 @@ export class PlayerShip {
     }
 
     this.shield = Math.max(0, this.shield - finalAmount);
-    this.shieldRippleTimer = 1.0; // Bring up shield display for 1.0 second
-    if (this.shieldMat) this.shieldMat.opacity = 1.0;
+    this.shieldRippleTimer = 0.65; // Bring up shield display for 0.65 second
+    if (this.shieldMat) this.shieldMat.opacity = 0.35;
     if (this.shieldMesh) this.shieldMesh.visible = true;
+    this.updateDamageVisuals();
 
     // ── 🛡️ Level 5 Apex: Emergency Aegis Shield Reboot ──
     if (this.shield <= 0 && this.hasEmergencyAegisReboot && !this._aegisUsed) {
@@ -1402,6 +1405,16 @@ export class PlayerShip {
     this.shield = Math.min(this.maxShield, this.shield + amount);
     this.shieldRippleTimer = 0.35;
     if (this.shieldMat) this.shieldMat.opacity = 0.7;
+    this.updateDamageVisuals();
+  }
+
+  updateDamageVisuals() {
+    const ratio = Math.max(0.0, Math.min(1.0, 1.0 - (this.shield / (this.maxShield || 1))));
+    this.meshGroup.traverse((child) => {
+      if (child.isMesh && child.material && child.material.userData && child.material.userData.uDamageRatio) {
+        child.material.userData.uDamageRatio.value = ratio;
+      }
+    });
   }
 
   onKillHeal() {
@@ -1429,6 +1442,11 @@ export class PlayerShip {
     return this.dodgeRoll(direction);
   }
 
+  triggerInvulnerability(duration = 2.0) {
+    this.isInvulnerable = true;
+    this.invulnerableTimer = duration;
+  }
+
   reset() {
     this.shield = this.maxShield;
     this.velocity.set(0, 0, 0);
@@ -1446,11 +1464,21 @@ export class PlayerShip {
     this.isBoosting = false;
     this.swarmMissileCooldown = 0;
     this.isInspectingSolo = false;
+    this.invulnerableTimer = 0;
+    this.isInvulnerable = false;
     this.meshGroup.scale.set(1, 1, 1);
+    this.updateDamageVisuals();
   }
 
   update(dt, inputDir = { x: 0, y: 0 }) {
     this._time += dt;
+
+    if (this.invulnerableTimer > 0) {
+      this.invulnerableTimer -= dt;
+      if (this.invulnerableTimer <= 0) {
+        this.isInvulnerable = false;
+      }
+    }
 
     if (this.laserCooldown > 0) this.laserCooldown -= dt;
     if (this.pulseCooldown > 0) this.pulseCooldown -= dt;
@@ -1474,11 +1502,11 @@ export class PlayerShip {
 
     const currentSpeed = this.speed * (this.isBoosting ? 2.0 : 1.0);
 
-    // Shield Hexagonal Lattice decay (1.0 second display on collision)
+    // Shield Hexagonal Lattice decay (0.65 second display on collision)
     if (this.shieldRippleTimer > 0) {
       this.shieldRippleTimer -= dt;
       if (this.shieldMat) {
-        this.shieldMat.opacity = Math.min(1.0, this.shieldRippleTimer / 0.8);
+        this.shieldMat.opacity = Math.min(0.35, (this.shieldRippleTimer / 0.65) * 0.35);
       }
       if (this.shieldMesh) {
         this.shieldMesh.visible = true;
@@ -1557,15 +1585,12 @@ export class PlayerShip {
     }
 
     // ── Movement & Bounds ──
-    const bossActive = this.gameManager && (
-      (this.gameManager.activeBoss && !this.gameManager.activeBoss.isDead) ||
-      (this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead) ||
-      (this.gameManager.heavyBattleships && this.gameManager.heavyBattleships.some(b => !b.isDead))
-    );
-    const minX = bossActive ? -44 : this.bounds.minX;
-    const maxX = bossActive ? 44 : this.bounds.maxX;
-    const minY = bossActive ? -25 : this.bounds.minY;
-    const maxY = bossActive ? 25 : this.bounds.maxY;
+    const minX = this.bounds.minX;
+    const maxX = this.bounds.maxX;
+    const minY = this.bounds.minY;
+    const maxY = this.bounds.maxY;
+    const minZ = this.bounds.minZ || -60.0;
+    const maxZ = this.bounds.maxZ || 18.0;
 
     if (this.isInspectingSolo) {
       this.meshGroup.position.set(0, 0.4, 2.5);
@@ -1574,7 +1599,7 @@ export class PlayerShip {
       this.meshGroup.rotation.z = Math.sin(this._time * 1.2) * 0.05;
     } else if (this.dodgeTimer > 0) {
       this.dodgeTimer -= dt;
-      const dodgeSpeed = 54.0;
+      const dodgeSpeed = 65.0;
       this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
       this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
 
@@ -1582,18 +1607,23 @@ export class PlayerShip {
       this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
       this.meshGroup.rotation.x = 0;
     } else {
+      // 3D Velocity update
+      const inputZ = (inputDir && typeof inputDir.z === 'number') ? inputDir.z : 0;
       this.velocity.x += (inputDir.x * currentSpeed - this.velocity.x) * 0.18;
       this.velocity.y += (inputDir.y * currentSpeed - this.velocity.y) * 0.18;
+      this.velocity.z += (inputZ * currentSpeed * 1.25 - this.velocity.z) * 0.16;
 
       this.meshGroup.position.x += this.velocity.x * dt;
       this.meshGroup.position.y += this.velocity.y * dt;
+      this.meshGroup.position.z += this.velocity.z * dt;
 
       this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
       this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, minY, maxY);
+      this.meshGroup.position.z = THREE.MathUtils.clamp(this.meshGroup.position.z, minZ, maxZ);
 
-      this.targetRoll = -inputDir.x * (this.isBoosting ? 0.85 : 0.65);
-      this.targetPitch = inputDir.y * 0.28;
-      this.targetYaw = -inputDir.x * 0.12;
+      this.targetRoll = -inputDir.x * (this.isBoosting ? 0.95 : 0.75);
+      this.targetPitch = inputDir.y * 0.35 + (this.velocity.z < -2 ? -0.15 : (this.velocity.z > 2 ? 0.12 : 0));
+      this.targetYaw = -inputDir.x * 0.28;
       this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
       this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
       this.currentYaw = (this.currentYaw || 0) + (this.targetYaw - (this.currentYaw || 0)) * 0.18;
@@ -1701,10 +1731,11 @@ export class PlayerShip {
     this.meshGroup.traverse(child => {
       if (child.isMesh && child.material && !child.material.wireframe) {
         if (child.material.map || child.material.roughnessMap) {
-          child.material.map = matSet.albedo;
-          child.material.bumpMap = matSet.bump;
-          child.material.roughnessMap = matSet.roughness;
-          child.material.emissiveMap = matSet.emissive;
+          child.material.map = matSet.map;
+          child.material.normalMap = matSet.normalMap;
+          child.material.normalScale = matSet.normalScale;
+          child.material.roughnessMap = matSet.roughnessMap;
+          child.material.emissiveMap = matSet.emissiveMap;
           child.material.needsUpdate = true;
         }
       }

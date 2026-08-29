@@ -61,6 +61,8 @@ export class CapitalShip {
     this.maxHp = 850;
     this.scoreValue = 1800;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 2.8;
 
     this.meshGroup = new THREE.Group();
 
@@ -810,21 +812,26 @@ function createSmoothCapitalShipHullGeo() {
       }, 100);
     }
 
-    if (this.hp <= 0 && !this.isDead) {
-      this.isDead = true;
-      this._explode();
+    if (this.hp <= 0 && !this.isDying && !this.isDead) {
+      this.isDying = true;
+      this.deathTimer = 2.8;
+      this.turrets.forEach(t => t.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Vanguard Cruiser Critical! Structural Meltdown!", false);
+      return true;
     }
-    return this.isDead;
+    return false;
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0xff0055, 130, 3.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 90, 2.6);
-    this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xffd700, 30);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 45);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xff0055, 180, 5.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 140, 4.5);
+    this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xffd700, 40);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 65);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 95);
   }
 
   destroy() {
+    this.isDead = true;
     this.scene.remove(this.meshGroup);
     this.meshGroup.traverse(c => {
       if (c.geometry) c.geometry.dispose();
@@ -833,7 +840,34 @@ function createSmoothCapitalShipHullGeo() {
   }
 
   update(dt, playerPos) {
+    if (this.isDead || !this.meshGroup) return;
     this._time += dt;
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.85 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 22);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff0055, 45, 2.8);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xffaa00, 15);
+      }
+      this.meshGroup.rotation.z += 0.35 * dt;
+      this.meshGroup.rotation.x += 0.18 * dt;
+      this.meshGroup.position.y -= 2.5 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this._explode();
+        this.destroy();
+      }
+      return;
+    }
+
+    // Dynamic Hull Breach Smoke and Electrical Arcs when heavily damaged
+    if (this.hp < this.maxHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 12);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00f3ff, 5);
+    }
+
     if (this.breakCooldown > 0) this.breakCooldown -= dt;
     const gm = window.spaceGameManager;
 

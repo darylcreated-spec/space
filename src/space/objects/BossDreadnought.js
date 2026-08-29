@@ -712,6 +712,31 @@ export class BossDreadnought {
 
   update(dt, playerShip, gameManager) {
     if (this.isDead || !this.meshGroup) return;
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.9 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 45, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 65);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff0044, 75, 4.5);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffaa00, 55, 3.5);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xffffff, 20);
+      }
+      this.meshGroup.rotation.z += 0.14 * dt;
+      this.meshGroup.rotation.x += 0.07 * dt;
+      this.meshGroup.position.y -= 2.2 * dt;
+      if (this.deathTimer <= 0) {
+        this.destroy();
+      }
+      return false;
+    }
+
+    // Progressive hull damage smoke
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 25, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 35);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xff0044, 8);
+    }
+
     this._time += dt;
 
     const pos = this.meshGroup.position;

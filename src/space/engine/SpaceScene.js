@@ -373,36 +373,6 @@ export class SpaceScene {
 
     this.dustPoints = new THREE.Points(dustGeo, dustMat);
     this.scene.add(this.dustPoints);
-
-    // 5. Background Deep-Space Capital Fleet Silhouettes
-    this.bgFleetGroup = new THREE.Group();
-    const fleetMat = new THREE.MeshBasicMaterial({ color: 0x0a1830, transparent: true, opacity: 0.88 });
-    const engineGlowMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.95 });
-
-    for (let f = 0; f < 6; f++) {
-      const frigate = new THREE.Group();
-      const fx = (f % 2 === 0 ? 1 : -1) * (140 + Math.random() * 120);
-      const fy = (Math.random() - 0.5) * 80 + 20;
-      const fz = -380 - f * 60;
-      frigate.position.set(fx, fy, fz);
-
-      // Frigate Wedge Body
-      const fGeo = new THREE.ConeGeometry(8.0, 32.0, 4);
-      fGeo.rotateX(Math.PI / 2);
-      frigate.add(new THREE.Mesh(fGeo, fleetMat));
-
-      // Engine Thruster Glows
-      [-2.5, 2.5].forEach(ex => {
-        const eg = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), engineGlowMat);
-        eg.position.set(ex, 0, 16.0);
-        frigate.add(eg);
-      });
-
-      this.bgFleetGroup.add(frigate);
-    }
-    this.scene.add(this.bgFleetGroup);
-
-    this.bgLasers = [];
   }
 
   triggerHyperspaceWarp(position) {
@@ -633,16 +603,21 @@ export class SpaceScene {
         );
       }
     } else if (pPos) {
-      // Normal gameplay: camera smoothly tracks player craft lateral movement
+      // Normal gameplay: dynamic adaptive framing tracking 3D open flight and wide flanking sweeps
       if (this.cameraMode === 'isometric') {
-        this.targetCameraPos.set(pPos.x * 0.55, 14.0 + pPos.y * 0.35, 24.0);
-        this.targetLookAt.set(pPos.x * 0.45, -1.0 + pPos.y * 0.35, -15.0);
+        const flankDistance = Math.hypot(pPos.x, pPos.y);
+        const depthLag = Math.min(18.0, (pPos.z < 0 ? -pPos.z * 0.45 : 0));
+        const camHeight = 14.0 + pPos.y * 0.4 + flankDistance * 0.12;
+        const camDistZ = 24.0 + depthLag + (pPos.z > 0 ? pPos.z * 0.6 : pPos.z * 0.85);
+
+        this.targetCameraPos.set(pPos.x * 0.68, camHeight, camDistZ);
+        this.targetLookAt.set(pPos.x * 0.55, -1.0 + pPos.y * 0.4, pPos.z - 18.0);
       } else if (this.cameraMode === 'chase') {
-        this.targetCameraPos.set(pPos.x * 0.8, 5.0 + pPos.y * 0.5, pPos.z + 18.0);
-        this.targetLookAt.set(pPos.x * 0.7, pPos.y * 0.5, -30.0);
+        this.targetCameraPos.set(pPos.x * 0.85, 5.0 + pPos.y * 0.5, pPos.z + 18.0);
+        this.targetLookAt.set(pPos.x * 0.75, pPos.y * 0.5, pPos.z - 35.0);
       } else if (this.cameraMode === 'topdown') {
-        this.targetCameraPos.set(pPos.x * 0.8, 55.0, -15.0);
-        this.targetLookAt.set(pPos.x * 0.8, -5.0, -15.1);
+        this.targetCameraPos.set(pPos.x * 0.85, 60.0, pPos.z - 10.0);
+        this.targetLookAt.set(pPos.x * 0.85, -5.0, pPos.z - 10.1);
       }
     }
 
@@ -669,33 +644,6 @@ export class SpaceScene {
     const targetFov = (playerShip && playerShip.isBoosting) ? 74 : 60;
     this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.0);
     this.camera.updateProjectionMatrix();
-
-    // Background Fleet ambient laser battle tracers
-    if (this.bgFleetGroup && Math.random() < 0.04) {
-      const startF = this.bgFleetGroup.children[Math.floor(Math.random() * this.bgFleetGroup.children.length)];
-      if (startF) {
-        const tracerGeo = new THREE.CylinderGeometry(0.3, 0.3, 25.0, 4);
-        tracerGeo.rotateX(Math.PI / 2);
-      const tracerColor = Math.random() > 0.5 ? 0x00f3ff : 0xff0055;
-      const tracerMat = new THREE.MeshStandardMaterial({ color: tracerColor, emissive: tracerColor, emissiveIntensity: 2.5, toneMapped: false });
-        const tracer = new THREE.Mesh(tracerGeo, tracerMat);
-        tracer.position.copy(startF.position);
-        tracer.velocity = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 20, -100);
-        this.scene.add(tracer);
-        this.bgLasers.push({ mesh: tracer, life: 2.5 });
-      }
-    }
-    for (let i = this.bgLasers.length - 1; i >= 0; i--) {
-      const l = this.bgLasers[i];
-      l.life -= dt;
-      l.mesh.position.addScaledVector(l.mesh.velocity, dt);
-      if (l.life <= 0) {
-        this.scene.remove(l.mesh);
-        l.mesh.geometry.dispose();
-        l.mesh.material.dispose();
-        this.bgLasers.splice(i, 1);
-      }
-    }
 
     // Atmosphere & Planet Slow Rotation
     if (this.planetGroup) {

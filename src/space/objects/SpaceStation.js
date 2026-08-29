@@ -92,6 +92,8 @@ export class MoonBase {
     this.maxCoreHp = 9000;
     this.scoreValue = 120000;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 4.5;
     this.hitRadius = 48.0;
 
     // Phase system â€” changes attack pattern as HP drops
@@ -696,11 +698,15 @@ export class MoonBase {
       this.justPhaseTransitioned = true;
     }
 
-    if (this.coreHp <= 0 && !this.isDead) {
-      this.isDead = true;
-      this._explode();
+    if (this.coreHp <= 0 && !this.isDying && !this.isDead) {
+      this.isDying = true;
+      this.deathTimer = 4.5;
+      this.turrets.forEach(t => t.isDead = true);
+      this.generators.forEach(g => g.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Orbital Alpha Selene Moon Base Catastrophic Core Implosion!", true);
+      return true;
     }
-    return this.isDead;
+    return false;
   }
 
   takeDamage(targetType, amount) {
@@ -709,20 +715,12 @@ export class MoonBase {
 
   _explode() {
     // Multi-phase planetary supernova chain reactions
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00ff44, 500, 8.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 350, 7.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 300, 6.5);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 200);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 280);
-
-    // Cascading surface secondary detonations
-    for (let i = 0; i < 8; i++) {
-      setTimeout(() => {
-        if (!this.meshGroup) return;
-        const offset = new THREE.Vector3((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 40);
-        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff3300, 200, 4.5);
-      }, i * 180);
-    }
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00ff44, 550, 10.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffea00, 400, 8.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 350, 7.5);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 250);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 360);
+    this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 1, 0), 0x00ff88, 80);
   }
 
   clearAllTimers() {
@@ -752,8 +750,33 @@ export class MoonBase {
   }
 
   update(dt, playerPos) {
-    // If already dead, don't update anything â€” materials may be disposed
-    if (this.isDead) return [];
+    if (this.isDead || !this.meshGroup) return [];
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.94 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 65, (Math.random() - 0.5) * 65, (Math.random() - 0.5) * 45);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0x00ff44, 90, 5.0);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffaa00, 70, 4.0);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00ffff, 25);
+      }
+      this.meshGroup.rotation.z += 0.08 * dt;
+      this.meshGroup.rotation.x += 0.04 * dt;
+      this.meshGroup.position.y -= 1.5 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this._explode();
+        this.destroy();
+      }
+      return [];
+    }
+
+    // Progressive hull damage smoke & sparks
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, 0);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00ff44, 8);
+    }
 
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) this.meshGroup.position.z += this.speed * dt;

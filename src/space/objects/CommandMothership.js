@@ -230,6 +230,8 @@ export class CommandMothership {
     this.hitRadius = 48.0;
     this.radius = 48.0;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 4.6;
     this.scoreValue = 100000;
     this.bossTitle = "LEVIATHAN CRIMSON DREADNOUGHT // BATTLE MONSTER";
 
@@ -708,11 +710,16 @@ export class CommandMothership {
       window.spaceGameManager?.voiceAnnouncer?.speak("Critical alert! Dreadnought reactor critical overcharge!", true);
     }
 
-    if (this.coreHp <= 0 && !this.isDead) {
-      this.isDead = true;
-      this._explode();
+    if (this.coreHp <= 0 && !this.isDying && !this.isDead) {
+      this.isDying = true;
+      this.deathTimer = 4.6;
+      this.turrets.forEach(t => t.isDead = true);
+      this.missilePods.forEach(m => m.isDead = true);
+      this.shieldGenerators.forEach(g => g.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Leviathan Dreadnought Hull Breached! Catastrophic Reactor Cascade!", true);
+      return true;
     }
-    return this.isDead;
+    return false;
   }
 
   takeCouplingDamage(couplingId, amount) {
@@ -733,12 +740,12 @@ export class CommandMothership {
 
   _explode() {
     const p = this.meshGroup.position;
-    this.particleManager.createExplosion(p, 0xff0044, 450, 9.0);
-    this.particleManager.createExplosion(p, 0xff5500, 350, 7.5);
-    this.particleManager.createExplosion(p, 0xffaa00, 300, 6.0);
-    this.particleManager.createExplosion(p, 0xffffff, 200, 5.0);
-    this.particleManager.createEmpShockwave(p, 250);
-    this.particleManager.createEmpShockwave(p, 350);
+    this.particleManager.createExplosion(p, 0xff0044, 500, 10.0);
+    this.particleManager.createExplosion(p, 0xff5500, 400, 8.5);
+    this.particleManager.createExplosion(p, 0xffaa00, 350, 7.0);
+    this.particleManager.createExplosion(p, 0xffffff, 250, 6.0);
+    this.particleManager.createEmpShockwave(p, 280);
+    this.particleManager.createEmpShockwave(p, 380);
   }
 
   destroy() {
@@ -766,7 +773,34 @@ export class CommandMothership {
   }
 
   update(dt, playerPos) {
-    if (this.isDead) return false;
+    if (this.isDead || !this.meshGroup) return false;
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.92 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 55, (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 75);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff0044, 90, 5.0);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffaa00, 70, 4.0);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00f3ff, 25);
+      }
+      this.meshGroup.rotation.z += 0.09 * dt;
+      this.meshGroup.rotation.x += 0.05 * dt;
+      this.meshGroup.position.y -= 1.8 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this._explode();
+        this.destroy();
+      }
+      return false;
+    }
+
+    // Progressive hull damage smoke & fire arcs
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.4 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 45);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xff0044, 10);
+    }
+
     this._time += dt;
 
     // 1. Forward Advance to Target Battle Station

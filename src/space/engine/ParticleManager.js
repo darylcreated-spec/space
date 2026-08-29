@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { SpaceDebrisSystem } from './SpaceDebrisSystem.js';
 
 export class ParticleManager {
   constructor(scene) {
@@ -44,32 +45,8 @@ export class ParticleManager {
     // Shared Fireball Geometry & Materials
     this._fireballGeo = new THREE.IcosahedronGeometry(1.0, 2);
 
-    // ── High-Performance Pre-Cached Debris Mesh Pool (Zero Dynamic Allocations) ──
-    this._debrisGeos = [
-      new THREE.DodecahedronGeometry(0.5, 0),
-      new THREE.BoxGeometry(0.35, 0.35, 1.0),
-      new THREE.CylinderGeometry(0.12, 0.14, 0.9, 6),
-      new THREE.DodecahedronGeometry(0.8, 0)
-    ];
-
-    this._debrisMats = [
-      new THREE.MeshStandardMaterial({ color: 0x181224, metalness: 0.9, roughness: 0.3, transparent: true }),
-      new THREE.MeshStandardMaterial({ color: 0xe61c47, emissive: 0x66081e, emissiveIntensity: 0.6, metalness: 0.8, roughness: 0.3, transparent: true }),
-      new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0x442200, emissiveIntensity: 0.5, metalness: 0.9, roughness: 0.2, transparent: true }),
-      new THREE.MeshStandardMaterial({ color: 0x221812, emissive: 0xff3300, emissiveIntensity: 0.8, metalness: 0.6, roughness: 0.6, transparent: true }),
-      new THREE.MeshStandardMaterial({ color: 0x00f3ff, emissive: 0x00aaff, emissiveIntensity: 0.8, metalness: 0.9, roughness: 0.2, transparent: true })
-    ];
-
-    this.maxDebrisCount = 45;
-    this.debrisMeshPool = [];
-    for (let i = 0; i < this.maxDebrisCount; i++) {
-      const geo = this._debrisGeos[i % this._debrisGeos.length];
-      const mat = this._debrisMats[i % this._debrisMats.length];
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.visible = false;
-      this.scene.add(mesh);
-      this.debrisMeshPool.push(mesh);
-    }
+    // ── GPU-Instanced Kinematic Metal Debris & Shrapnel System (512 Debris Pool) ──
+    this.spaceDebris = new SpaceDebrisSystem(this.scene, 512);
   }
 
   _buildParticlePool(count, defaultSize) {
@@ -326,70 +303,15 @@ export class ParticleManager {
       }
     }
 
-    // ── Update Breakaway Metal Debris & Armor Shards (Zero-Allocation Pool) ──
-    for (let i = this.metalDebris.length - 1; i >= 0; i--) {
-      const d = this.metalDebris[i];
-      d.life -= d.decay * dt;
-      d.mesh.position.x += d.vx * dt;
-      d.mesh.position.y += d.vy * dt;
-      d.mesh.position.z += d.vz * dt;
-
-      d.mesh.rotation.x += d.rotSpeedX * dt;
-      d.mesh.rotation.y += d.rotSpeedY * dt;
-      d.mesh.rotation.z += d.rotSpeedZ * dt;
-
-      if (d.mesh.material && d.mesh.material.opacity !== undefined) {
-        d.mesh.material.opacity = Math.min(1.0, d.life * 2.0);
-      }
-
-      if (d.life <= 0 || d.mesh.position.z > 35 || d.mesh.position.length() > 220) {
-        d.mesh.visible = false;
-        this.metalDebris.splice(i, 1);
-      }
+    // ── Update GPU Instanced Metal Debris (512 Shard Pool) ──
+    if (this.spaceDebris) {
+      this.spaceDebris.update(performance.now() * 0.001);
     }
   }
 
-  spawnMetalDebris(originPos, count = 4, defaultColorHex = null, baseVel = null) {
-    if (!originPos) return;
-    const spawnNum = Math.min(count, 4);
-
-    for (let i = 0; i < spawnNum; i++) {
-      // Find an available pooled mesh or recycle oldest
-      let mesh = this.debrisMeshPool.find(m => !m.visible);
-      if (!mesh) {
-        if (this.metalDebris.length > 0) {
-          const oldest = this.metalDebris.shift();
-          mesh = oldest.mesh;
-        } else {
-          continue;
-        }
-      }
-
-      const scale = 0.5 + Math.random() * 0.7;
-      mesh.scale.set(scale, scale, scale);
-      mesh.position.copy(originPos);
-      mesh.position.x += (Math.random() - 0.5) * 2.0;
-      mesh.position.y += (Math.random() - 0.5) * 2.0;
-      mesh.position.z += (Math.random() - 0.5) * 2.0;
-      mesh.visible = true;
-
-      const spread = 5.0 + Math.random() * 10.0;
-      const vx = (Math.random() - 0.5) * spread + (baseVel ? baseVel.x * 0.3 : 0);
-      const vy = 1.5 + (Math.random() - 0.5) * spread + (baseVel ? baseVel.y * 0.3 : 0);
-      const vz = 4.0 + Math.random() * 14.0;
-
-      const rotSpeedX = (Math.random() - 0.5) * 6.0;
-      const rotSpeedY = (Math.random() - 0.5) * 6.0;
-      const rotSpeedZ = (Math.random() - 0.5) * 6.0;
-
-      this.metalDebris.push({
-        mesh,
-        vx, vy, vz,
-        rotSpeedX, rotSpeedY, rotSpeedZ,
-        life: 1.0,
-        decay: 0.28 + Math.random() * 0.15 // Lasts ~2.5 - 3.5s
-      });
-    }
+  spawnMetalDebris(originPos, count = 8, defaultColorHex = null, baseVel = null) {
+    if (!originPos || !this.spaceDebris) return;
+    this.spaceDebris.explodeShip(originPos, baseVel || new THREE.Vector3(), count);
   }
 
   _updatePool(pool) {

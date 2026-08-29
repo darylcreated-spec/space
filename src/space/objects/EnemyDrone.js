@@ -128,10 +128,20 @@ export class EnemyDrone {
       opt.vy !== undefined ? opt.vy : 0,
       opt.vz !== undefined ? opt.vz : (14 + Math.random() * 6)
     );
-    this.fireTimer = 0.5 + Math.random() * 0.8;
+    this.fireTimer = 1.8 + Math.random() * 1.5;
     this.isDead = false;
     this._time = Math.random() * 10;
     this._wobbleOffset = Math.random() * Math.PI * 2;
+
+    // ── 🧠 Reactive Evasive Dogfighting AI & Flanking Maneuvers ──
+    this.aiState = 'CRUISE'; // 'CRUISE', 'EVADING', 'FLANKING_PURSUIT', 'ATTACK_RUN'
+    this.evadeTimer = 0;
+    this.evadeDirection = new THREE.Vector3();
+    this.evadeRollRate = 0;
+    this.isEvading = false;
+    this.flankAngle = Math.random() * Math.PI * 2;
+    this.flankRadius = 22.0 + Math.random() * 14.0;
+    this.orbitSpeed = (Math.random() > 0.5 ? 1 : -1) * (1.2 + Math.random() * 0.8);
 
     this.thrusterMeshes = [];
     this.glowMaterials = [];
@@ -314,11 +324,19 @@ export class EnemyDrone {
   }
 
   takeDamage(amount) {
-    if (this.isDead) return;
+    if (this.isDead) return true;
     this.hp -= amount;
+    const ratio = Math.max(0.0, Math.min(1.0, 1.0 - (this.hp / (this.maxHp || 40))));
+    this.meshGroup.traverse((child) => {
+      if (child.isMesh && child.material && child.material.userData && child.material.userData.uDamageRatio) {
+        child.material.userData.uDamageRatio.value = ratio;
+      }
+    });
     if (this.hp <= 0) {
       this.isDead = true;
+      return true;
     }
+    return false;
   }
 
   destroy() {
@@ -336,23 +354,81 @@ export class EnemyDrone {
     if (this.isDead) return false;
     this._time += dt;
 
-    // Movement forward
-    this.meshGroup.position.addScaledVector(this.velocity, dt);
+    const pPos = playerPos || new THREE.Vector3(0, 0, 0);
+    const toPlayer = pPos.clone().sub(this.meshGroup.position);
+    const distToPlayer = toPlayer.length();
 
-    // Natural tactical sway
-    this.meshGroup.position.x += Math.sin(this._time * 2.5 + this._wobbleOffset) * 2.0 * dt;
-    this.meshGroup.rotation.z = Math.sin(this._time * 2.5 + this._wobbleOffset) * 0.15;
+    // ── 1. Reactive Threat Detection & Evasive Trigger ──
+    if (distToPlayer < 75.0 && this.aiState === 'CRUISE') {
+      // Check if player is pointing weapons directly at this drone (threat lock)
+      const lateralDist = Math.hypot(pPos.x - this.meshGroup.position.x, pPos.y - this.meshGroup.position.y);
+      if (lateralDist < 8.0 && Math.random() < 0.08) {
+        // Break lock! Trigger evasive high-G barrel roll
+        this.aiState = 'EVADING';
+        this.evadeTimer = 0.75 + Math.random() * 0.45;
+        this.evadeRollRate = (Math.random() > 0.5 ? 1 : -1) * (Math.PI * 3.2);
+        const breakDir = Math.random() > 0.5 ? 1 : -1;
+        this.evadeDirection.set(
+          breakDir * (25.0 + Math.random() * 15.0),
+          (Math.random() - 0.5) * 20.0,
+          (Math.random() - 0.5) * 10.0
+        );
+        this.isEvading = true;
+      } else if (distToPlayer < 45.0 && Math.random() < 0.04) {
+        // Switch to Flanking Pursuit dogfight circle
+        this.aiState = 'FLANKING_PURSUIT';
+      }
+    }
+
+    // ── 2. AI State Execution ──
+    if (this.aiState === 'EVADING') {
+      this.evadeTimer -= dt;
+      this.meshGroup.position.addScaledVector(this.evadeDirection, dt);
+      this.meshGroup.position.z += this.velocity.z * 0.5 * dt;
+      this.meshGroup.rotation.z += this.evadeRollRate * dt;
+      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, (this.evadeDirection.y > 0 ? 0.35 : -0.35), dt * 4.0);
+
+      if (this.evadeTimer <= 0) {
+        this.isEvading = false;
+        this.aiState = Math.random() < 0.6 ? 'FLANKING_PURSUIT' : 'CRUISE';
+      }
+    } else if (this.aiState === 'FLANKING_PURSUIT') {
+      // Flanking Dogfight: Circling around the player's lateral flank and matching Z-depth
+      this.flankAngle += this.orbitSpeed * dt;
+      const targetX = pPos.x + Math.cos(this.flankAngle) * this.flankRadius;
+      const targetY = pPos.y + Math.sin(this.flankAngle) * (this.flankRadius * 0.65);
+      const targetZ = pPos.z - 15.0 + Math.sin(this.flankAngle * 1.5) * 8.0;
+
+      this.meshGroup.position.x = THREE.MathUtils.lerp(this.meshGroup.position.x, targetX, dt * 2.2);
+      this.meshGroup.position.y = THREE.MathUtils.lerp(this.meshGroup.position.y, targetY, dt * 2.2);
+      this.meshGroup.position.z = THREE.MathUtils.lerp(this.meshGroup.position.z, targetZ, dt * 1.8);
+
+      // Aim nose toward player
+      const aimDir = pPos.clone().sub(this.meshGroup.position).normalize();
+      const targetYaw = Math.atan2(aimDir.x, aimDir.z) + Math.PI;
+      const targetPitch = Math.asin(Math.max(-1, Math.min(1, aimDir.y)));
+      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, targetYaw, dt * 3.5);
+      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, -targetPitch, dt * 3.5);
+      this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -aimDir.x * 0.45, dt * 3.0);
+    } else {
+      // Standard dynamic cruising movement
+      this.meshGroup.position.addScaledVector(this.velocity, dt);
+      this.meshGroup.position.x += Math.sin(this._time * 2.5 + this._wobbleOffset) * 2.5 * dt;
+      this.meshGroup.rotation.z = Math.sin(this._time * 2.5 + this._wobbleOffset) * 0.2;
+      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0, dt * 2.0);
+      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, 0, dt * 2.0);
+    }
 
     // Pulse Thruster Flames
     this.thrusterMeshes.forEach((flame, idx) => {
       const s = 1.0 + Math.sin(this._time * 20.0 + idx) * 0.25;
-      flame.scale.set(s, s, s * 1.2);
+      flame.scale.set(s, s, s * (this.isEvading ? 1.8 : 1.2));
     });
 
     // Firing Loop
     this.fireTimer -= dt;
     if (this.fireTimer <= 0 && playerPos) {
-      this.fireTimer = 1.2 + Math.random() * 0.8;
+      this.fireTimer = (this.aiState === 'FLANKING_PURSUIT' ? 0.9 : 1.2) + Math.random() * 0.7;
       const activeCannons = this.cannons.filter(c => !c.isDead);
       const outLasers = [];
       activeCannons.forEach(c => {

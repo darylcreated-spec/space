@@ -20,6 +20,8 @@ export class ECMJammerCorvette {
     this.maxHp = 320;
     this.radius = 4.2;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 1.8;
     this.scoreValue = 950;
 
     this.targetZ = -38;
@@ -99,6 +101,25 @@ export class ECMJammerCorvette {
 
   update(dt, playerPos, gameManager) {
     if (this.isDead || !this.meshGroup) return false;
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.9 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 8);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xaa22ff, 25, 1.5);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00f3ff, 10);
+      }
+      this.meshGroup.rotation.z += 2.5 * dt;
+      this.meshGroup.rotation.x += 1.2 * dt;
+      this.meshGroup.position.y -= 4.0 * dt;
+      this.meshGroup.position.z += 10.0 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this.destroy();
+      }
+      return false;
+    }
+
     this._time += dt;
 
     // Movement to position
@@ -147,26 +168,30 @@ export class ECMJammerCorvette {
   }
 
   takeDamage(amount) {
-    if (this.isDead) return;
+    if (this.isDead || this.isDying) return false;
     this.hp -= amount;
-    if (this.hp <= 0) {
-      this.isDead = true;
-      if (this.particleManager) {
-        this.particleManager.createExplosion(this.meshGroup.position, 0xaa22ff, 140, 4.0);
-        this.particleManager.createEmpShockwave(this.meshGroup.position, 50);
-      }
-      this.destroy();
+    if (this.hp <= 0 && !this.isDying) {
+      this.isDying = true;
+      this.deathTimer = 1.8;
+      return true;
     }
+    return false;
   }
 
   destroy() {
     this.isDead = true;
+    if (this.particleManager && this.meshGroup) {
+      this.particleManager.createExplosion(this.meshGroup.position, 0xaa22ff, 140, 4.0);
+      this.particleManager.createEmpShockwave(this.meshGroup.position, 50);
+    }
     if (this.meshGroup && this.meshGroup.parent) {
       this.meshGroup.parent.remove(this.meshGroup);
     }
-    this.meshGroup.traverse(c => {
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) c.material.dispose();
-    });
+    if (this.meshGroup) {
+      this.meshGroup.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+      });
+    }
   }
 }

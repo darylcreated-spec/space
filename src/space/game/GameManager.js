@@ -171,7 +171,7 @@ export class GameManager {
     }
   }
 
-  startGame() {
+  startGame(startWaveNum = 1) {
     this.resetState();
     if (this.spaceHUD) this.spaceHUD.hideAllModals();
     if (this.selectedShipClass) {
@@ -181,6 +181,7 @@ export class GameManager {
     }
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.playerShip.shield = this.playerShip.maxShield;
+    this.playerShip.triggerInvulnerability(2.5);
     this.state = 'PLAYING';
 
     if (this.gameMode === 'BOSS_RUSH') {
@@ -188,9 +189,14 @@ export class GameManager {
     } else if (this.gameMode === 'ENDLESS_SURVIVAL') {
       this.startEndlessSurvivalMode();
     } else {
-      this.waveSpawner.startWave(1);
+      const waveToStart = typeof startWaveNum === 'number' ? Math.max(1, startWaveNum) : 1;
+      this.waveSpawner.startWave(waveToStart);
       if (this.spaceHUD) {
-        this.spaceHUD.showRadioTransmission("All Vanguard units, Sector Alpha IV is under attack! Clear the asteroid corridor!", "STARBOUND COMMAND", 5.0);
+        if (waveToStart > 1) {
+          this.spaceHUD.showRadioTransmission(`RESUMING CAMPAIGN // SECTOR STAGE ${waveToStart}`, "STARBOUND COMMAND", 5.0);
+        } else {
+          this.spaceHUD.showRadioTransmission("All Vanguard units, Sector Alpha IV is under attack! Clear the asteroid corridor!", "STARBOUND COMMAND", 5.0);
+        }
       }
     }
     this.spaceAudio.ensureContext();
@@ -411,6 +417,15 @@ export class GameManager {
     this.plasmaPulses.forEach(p => p.destroy());
     this.plasmaPulses = [];
 
+    this.playerSwarmMissiles.forEach(m => m.destroy());
+    this.playerSwarmMissiles = [];
+
+    this.nukes.forEach(n => n.destroy());
+    this.nukes = [];
+
+    this.severedDebris.forEach(d => { try { if (d.mesh && d.mesh.parent) d.mesh.parent.remove(d.mesh); } catch(e) {} });
+    this.severedDebris = [];
+
     if (this.activeBoss) {
       this.activeBoss.destroy();
       this.activeBoss = null;
@@ -498,9 +513,10 @@ export class GameManager {
   }
 
   damagePlanet(amount) {
+    if (this.state !== 'PLAYING' || this.isGodMode || this.godMode) return;
     this.planetHp = Math.max(0, this.planetHp - amount);
     if (this.planetHp <= 0) {
-      this.onGameOver('Planet Shield Depleted');
+      this.onGameOver('Defenses Breached');
     }
   }
 
@@ -853,6 +869,73 @@ export class GameManager {
     if (count > existing) {
       localStorage.setItem(`ov_stars_stage_${stageNum}`, count.toString());
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // STAGE-BY-STAGE PERSISTENT CAMPAIGN SAVE & RESUME SYSTEM
+  // ══════════════════════════════════════════════════════════════════════════════
+  saveGameProgress(completedWaveNum) {
+    const stage = completedWaveNum || (this.waveSpawner ? this.waveSpawner.currentWave : 1);
+    const saveState = {
+      savedAt: new Date().toISOString(),
+      waveNum: stage + 1, // The next stage to resume
+      completedStage: stage,
+      score: this.score || 0,
+      scrap: this.upgradeSystem ? this.upgradeSystem.scrap : 0,
+      upgrades: this.upgradeSystem ? Object.assign({}, this.upgradeSystem.upgrades) : {},
+      shipClass: this.selectedShipClass || (this.playerShip ? this.playerShip.shipClass : 'INTERCEPTOR'),
+      currentLivery: this.playerShip ? this.playerShip.currentLivery : 'DEFAULT',
+      reactorCore: this.playerShip ? this.playerShip.reactorCore : 'DEFAULT',
+      thrusterManifold: this.playerShip ? this.playerShip.thrusterManifold : 'DEFAULT',
+      avionicsSuite: this.playerShip ? this.playerShip.avionicsSuite : 'DEFAULT',
+      highScore: this.highScore
+    };
+    try {
+      localStorage.setItem('orbital_vanguard_campaign_save', JSON.stringify(saveState));
+    } catch (e) {
+      console.warn("Could not save campaign state to localStorage:", e);
+    }
+    return saveState;
+  }
+
+  getSavedGame() {
+    try {
+      const raw = localStorage.getItem('orbital_vanguard_campaign_save');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  clearSavedGame() {
+    try {
+      localStorage.removeItem('orbital_vanguard_campaign_save');
+    } catch (e) {}
+  }
+
+  loadSavedGame() {
+    const save = this.getSavedGame();
+    if (!save) return false;
+    this.score = save.score || 0;
+    if (this.upgradeSystem) {
+      this.upgradeSystem.scrap = save.scrap || 0;
+      if (save.upgrades) {
+        this.upgradeSystem.upgrades = Object.assign({}, save.upgrades);
+      }
+    }
+    if (save.shipClass) {
+      this.selectedShipClass = save.shipClass;
+      if (this.playerShip) this.playerShip.setShipClass(save.shipClass);
+    }
+    if (this.playerShip) {
+      if (save.currentLivery && this.playerShip.setLivery) this.playerShip.setLivery(save.currentLivery);
+      if (save.reactorCore && this.playerShip.setEquipment) this.playerShip.setEquipment('reactor', save.reactorCore);
+      if (save.thrusterManifold && this.playerShip.setEquipment) this.playerShip.setEquipment('thruster', save.thrusterManifold);
+      if (save.avionicsSuite && this.playerShip.setEquipment) this.playerShip.setEquipment('avionics', save.avionicsSuite);
+    }
+    const targetWave = Math.max(1, save.waveNum || 1);
+    this.startGame(targetWave);
+    return true;
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -1547,6 +1630,7 @@ export class GameManager {
         starsEarned++; // Star 3: Data Core Recovered
       }
       this.saveStageStars(completedWaveNum, starsEarned);
+      this.saveGameProgress(completedWaveNum);
       if (this.hapticsManager) this.hapticsManager.triggerStarEarned();
 
       if (this.dailyIncursionSystem) {
@@ -1620,7 +1704,10 @@ export class GameManager {
   }
 
   onGameOver(reason = 'Defenses Breached') {
+    if (this.godMode || this.isGodMode) return;
     if (this.state === 'GAME_OVER') return;
+    console.warn('💥 GAME OVER TRIGGERED BY:', reason, new Error().stack);
+    window._lastGameOverReason = { reason, stack: new Error().stack };
     this.state = 'GAME_OVER';
 
     this.spaceAudio.playGameOverSiren();
@@ -1697,7 +1784,7 @@ export class GameManager {
         this.firePlasmaPulse();
       }
       if (this.swarmMissilesReady && Math.random() < 0.05) {
-        this.firePlayerSwarmMissiles();
+        this.fireSwarmMissiles();
       }
     }
 

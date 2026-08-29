@@ -11,6 +11,16 @@ export class CollisionSystem {
     this._tempVec2 = new THREE.Vector3();
   }
 
+  isFlankAttack(projectilePos, targetPos, playerPos) {
+    if (!projectilePos || !targetPos) return false;
+    const pZ = playerPos ? playerPos.z : projectilePos.z;
+    // Rear exhaust arc strike (player positioned behind target)
+    const isRearFlank = pZ < targetPos.z - 2.0;
+    // Wide lateral flank strike
+    const isLateralFlank = Math.abs(projectilePos.x - targetPos.x) > 12.0 && Math.abs(projectilePos.z - targetPos.z) < 18.0;
+    return isRearFlank || isLateralFlank;
+  }
+
   checkCollisions(gameManager) {
     if (gameManager.freezeFleetAI) return;
     const player = gameManager.playerShip;
@@ -216,7 +226,13 @@ export class CollisionSystem {
           if (dist < dronePhysicalRadius) {
             laser.hitEntities.add(drone.meshGroup.uuid);
             let dmg = laser.damage || 20;
-            if (laser.isCritical) {
+
+            const isFlank = this.isFlankAttack(lPos, drone.meshGroup.position, pPos);
+            if (isFlank) {
+              dmg = Math.round(dmg * 1.75);
+              this.particleManager.createExplosion(lPos, 0xffd700, 32, 1.4);
+              this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 1, 0), 0xffea00, 12);
+            } else if (laser.isCritical) {
               this.particleManager.createExplosion(lPos, 0xff0044, 28);
             } else if (laser.isAoe) {
               this.particleManager.createExplosion(lPos, 0xff5500, 30, 1.8);
@@ -271,7 +287,16 @@ export class CollisionSystem {
             if (dist < ship.radius + laser.radius) {
               laser.hitEntities.add(ship.meshGroup.uuid);
               let dmg = 20;
-              if (laser.isCritical) {
+
+              const isFlank = this.isFlankAttack(lPos, ship.meshGroup.position, pPos);
+              if (isFlank) {
+                dmg = Math.round(dmg * 1.75);
+                this.particleManager.createExplosion(lPos, 0xffd700, 36, 1.6);
+                this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 1, 0), 0xffea00, 16);
+                if (gameManager.spaceHUD && Math.random() < 0.3) {
+                  gameManager.spaceHUD.showFlankIndicator('FLANK CRITICAL!');
+                }
+              } else if (laser.isCritical) {
                 dmg *= 3;
                 this.particleManager.createExplosion(lPos, 0xff0044, 30);
               } else {

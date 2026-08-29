@@ -77,6 +77,8 @@ export class SanctuaryCylinderBoss {
     this.maxCoreHp = 6000;
     this.scoreValue = 60000;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 4.4;
     this.hitRadius = 65.0;
     this.bossTitle = "SANCTUARY-9 CYLINDER // HABITAT CITADEL";
 
@@ -482,21 +484,28 @@ export class SanctuaryCylinderBoss {
       this.justPhaseTransitioned = true;
     }
 
-    if (this.coreHp <= 0 && !this.isDead) {
-      this.isDead = true;
-      this._explode();
+    if (this.coreHp <= 0 && !this.isDying && !this.isDead) {
+      this.isDying = true;
+      this.deathTimer = 4.4;
+      this.turrets.forEach(t => t.isDead = true);
+      this.satellites.forEach(s => s.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Sanctuary-9 Habitat Core Implosion! Atmospheric Decompression!", true);
+      return true;
     }
-    return this.isDead;
+    return false;
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0xff4400, 400, 7.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 300, 6.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xff0000, 200, 4.5);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 180);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xff4400, 500, 9.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 380, 7.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xff0000, 250, 6.0);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 220);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 320);
+    this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 1, 0), 0xffaa00, 70);
   }
 
   destroy() {
+    this.isDead = true;
     this.scene.remove(this.meshGroup);
     this.meshGroup.traverse(c => {
       if (c.geometry) c.geometry.dispose();
@@ -505,6 +514,34 @@ export class SanctuaryCylinderBoss {
   }
 
   update(dt, playerPos) {
+    if (this.isDead || !this.meshGroup) return { lasers: false, missiles: false, plasmaBlast: false };
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.94 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 35, (Math.random() - 0.5) * 60);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff4400, 85, 4.5);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffaa00, 65, 3.5);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00f3ff, 20);
+      }
+      this.meshGroup.rotation.z += 0.35 * dt;
+      this.meshGroup.rotation.x += 0.15 * dt;
+      this.meshGroup.position.y -= 1.8 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this._explode();
+        this.destroy();
+      }
+      return { lasers: false, missiles: false, plasmaBlast: false };
+    }
+
+    // Progressive hull damage smoke
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 25, (Math.random() - 0.5) * 25, (Math.random() - 0.5) * 40);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xff6600, 8);
+    }
+
     this._time += dt;
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) this.meshGroup.position.z += this.speed * dt;

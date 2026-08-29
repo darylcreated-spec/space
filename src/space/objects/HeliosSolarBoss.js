@@ -117,10 +117,35 @@ export class HeliosSolarBoss {
     }
   }
 
-  update(dt, arg2, arg3, arg4) {
+  update(dt, playerPos, gameManager) {
     if (this.isDead || !this.meshGroup) return;
 
-    const gm = arg3 || (arg2 && arg2.spawnLaser ? arg2 : window.spaceGameManager);
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.92 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 25, (Math.random() - 0.5) * 25, (Math.random() - 0.5) * 20);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffaa00, 80, 4.0);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff3300, 60, 3.0);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xffd700, 20);
+      }
+      this.meshGroup.rotation.z += 0.5 * dt;
+      this.meshGroup.rotation.x += 0.25 * dt;
+      this.meshGroup.position.y -= 2.0 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this.destroy();
+      }
+      return;
+    }
+
+    // Progressive hull damage smoke
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12, 0);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xffaa00, 8);
+    }
+
+    const gm = gameManager || window.spaceGameManager;
 
     // Warp-in approach
     if (!this.introFinished) {
@@ -168,39 +193,25 @@ export class HeliosSolarBoss {
   }
 
   takeDamage(hitPart, amount) {
+    if (this.isDead || this.isDying) return false;
     this.coreHp = Math.max(0, this.coreHp - amount);
-    if (this.coreHp <= 0 && !this.isDead) {
-      this.isDead = true;
-      this.explode();
+    if (this.coreHp <= 0 && !this.isDying) {
+      this.isDying = true;
+      this.deathTimer = 4.0;
+      this.arcCannons.forEach(c => c.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Helios Solar Siphon Containment Failure! Solar Eruption!", true);
       return true;
     }
     return false;
   }
 
-  explode() {
-    this.isDead = true;
-    if (this.particleManager) {
-      for (let i = 0; i < 12; i++) {
-        setTimeout(() => {
-          if (this.meshGroup) {
-            const burstPos = this.meshGroup.position.clone().add(new THREE.Vector3(
-              (Math.random() - 0.5) * 16,
-              (Math.random() - 0.5) * 16,
-              (Math.random() - 0.5) * 8
-            ));
-            this.particleManager.createExplosion(burstPos, 2.5);
-          }
-        }, i * 150);
-      }
-    }
-
-    setTimeout(() => {
-      this.destroy();
-    }, 2000);
-  }
-
   destroy() {
     this.isDead = true;
+    if (this.particleManager && this.meshGroup) {
+      this.particleManager.createExplosion(this.meshGroup.position, 0xffaa00, 400, 8.0);
+      this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 6.0);
+      this.particleManager.createEmpShockwave(this.meshGroup.position, 250);
+    }
     if (this.meshGroup && this.scene) {
       this.scene.remove(this.meshGroup);
     }

@@ -123,6 +123,8 @@ export class CarrierCapitalShip {
     this.hasShieldTriggered = false;
     this.scoreValue = 95000;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 3.8;
     this.hitRadius = 32.0;
 
     this.meshGroup = new THREE.Group();
@@ -788,7 +790,33 @@ export class CarrierCapitalShip {
   }
 
   update(dt, playerShip) {
-    if (this.isDead) return { lasers: false, missiles: false, droneSpawns: 0, droneLaunches: null, siegeLasers: false };
+    if (this.isDead || !this.meshGroup) return { lasers: false, missiles: false, droneSpawns: 0, droneLaunches: null, siegeLasers: false };
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.9 && this.particleManager) {
+        const offset = new THREE.Vector3((Math.random() - 0.5) * 45, (Math.random() - 0.5) * 18, (Math.random() - 0.5) * 65);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff2244, 80, 4.5);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff6600, 60, 3.5);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xffd700, 20);
+      }
+      this.meshGroup.rotation.z += 0.12 * dt;
+      this.meshGroup.rotation.x += 0.06 * dt;
+      this.meshGroup.position.y -= 2.0 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this._explode();
+        this.destroy();
+      }
+      return { lasers: false, missiles: false, droneSpawns: 0, droneLaunches: null, siegeLasers: false };
+    }
+
+    // Progressive hull damage smoke
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.4 && this.particleManager) {
+      const offset = new THREE.Vector3((Math.random() - 0.5) * 25, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 35);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0xff4400, 8);
+    }
 
     this._time += dt;
     const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3();
@@ -1085,30 +1113,28 @@ export class CarrierCapitalShip {
   }
 
   takeDamage(amount) {
-    if (this.isDead) return false;
+    if (this.isDead || this.isDying) return false;
     this.coreHp -= amount;
-    if (this.coreHp <= 0) {
-      this.isDead = true;
-      this._explode();
+    if (this.coreHp <= 0 && !this.isDying) {
+      this.isDying = true;
+      this.deathTimer = 3.8;
+      this.turrets.forEach(t => t.isDead = true);
+      this.subsystems.forEach(s => s.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Gorgon Supercarrier Flight Deck Shattered! Critical Core Overload!", true);
+      return true;
     }
-    return this.isDead;
+    return false;
   }
 
   _explode() {
     const pos = this.meshGroup.position;
     if (this.particleManager) {
-      this.particleManager.createExplosion(pos, 0xff2244, 400, 8.0);
-      this.particleManager.createExplosion(pos, 0xff6600, 300, 7.0);
-      this.particleManager.createEmpShockwave(pos, 150);
-      this.particleManager.createEmpShockwave(pos, 220);
-
-      for (let i = 0; i < 8; i++) {
-        setTimeout(() => {
-          if (!this.meshGroup) return;
-          const offset = new THREE.Vector3((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 55);
-          this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xff3300, 180, 4.0);
-        }, i * 160);
-      }
+      this.particleManager.createExplosion(pos, 0xff2244, 450, 9.0);
+      this.particleManager.createExplosion(pos, 0xff6600, 350, 8.0);
+      this.particleManager.createExplosion(pos, 0xffffff, 250, 6.0);
+      this.particleManager.createEmpShockwave(pos, 180);
+      this.particleManager.createEmpShockwave(pos, 280);
+      this.particleManager.spawnSparks(pos, new THREE.Vector3(0, 1, 0), 0xffaa00, 60);
     }
   }
 

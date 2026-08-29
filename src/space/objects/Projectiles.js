@@ -88,6 +88,7 @@ export class LaserBolt {
 
     this.meshGroup.position.copy(startPos);
     this.meshGroup.visible = true;
+    if (this.scene && !this.meshGroup.parent) this.scene.add(this.meshGroup);
 
     // Archetype-Specific Weapon Properties
     if (isEnemy) {
@@ -351,6 +352,9 @@ export class LaserBolt {
   destroy() {
     this.isDead = true;
     this.meshGroup.visible = false;
+    if (this.meshGroup.parent) {
+      this.meshGroup.parent.remove(this.meshGroup);
+    }
   }
 
   update(dt) {

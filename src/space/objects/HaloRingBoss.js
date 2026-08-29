@@ -126,6 +126,8 @@ export class HaloRingBoss {
     this.maxCoreHp = 4400;
     this.scoreValue = 50000;
     this.isDead = false;
+    this.isDying = false;
+    this.deathTimer = 4.2;
     this.hitRadius = 58.0;
     this.bossTitle = "HALO MEGASTRUCTURE // FORERUNNER RING CITADEL";
 
@@ -574,22 +576,29 @@ export class HaloRingBoss {
       setTimeout(() => { if (this.coreMat) this.coreMat.emissiveIntensity = 3.5; }, 80);
     }
 
-    if (this.coreHp <= 0 && !this.isDead) {
-      this.isDead = true;
-      this._explode();
+    if (this.coreHp <= 0 && !this.isDying && !this.isDead) {
+      this.isDying = true;
+      this.deathTimer = 4.2;
+      this.turrets.forEach(t => t.isDead = true);
+      this.sentinels.forEach(s => s.isDead = true);
+      this.framingNodes.forEach(n => n.isDead = true);
+      window.spaceGameManager?.voiceAnnouncer?.speak("Halo Megastructure Critical Overload! Ring Fracturing!", true);
+      return true;
     }
-    return this.isDead;
+    return false;
   }
 
   _explode() {
-    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 450, 8.5);
-    this.particleManager.createExplosion(this.meshGroup.position, 0x0088ff, 350, 7.0);
-    this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 5.0);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 200);
-    this.particleManager.createEmpShockwave(this.meshGroup.position, 300);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 500, 9.5);
+    this.particleManager.createExplosion(this.meshGroup.position, 0x0088ff, 400, 8.0);
+    this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 250, 6.0);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 220);
+    this.particleManager.createEmpShockwave(this.meshGroup.position, 340);
+    this.particleManager.spawnSparks(this.meshGroup.position, new THREE.Vector3(0, 1, 0), 0x00f3ff, 60);
   }
 
   destroy() {
+    this.isDead = true;
     this.scene.remove(this.meshGroup);
     this.meshGroup.traverse(c => {
       if (c.geometry) c.geometry.dispose();
@@ -598,6 +607,37 @@ export class HaloRingBoss {
   }
 
   update(dt, playerPos) {
+    if (this.isDead || !this.meshGroup) return { lasers: false, missiles: false, gravWave: false };
+
+    if (this.isDying) {
+      this.deathTimer -= dt;
+      if (Math.random() < 0.92 && this.particleManager) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = 38.0;
+        const offset = new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, (Math.random() - 0.5) * 12);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0x00f3ff, 80, 4.5);
+        this.particleManager.createExplosion(this.meshGroup.position.clone().add(offset), 0xffaa00, 60, 3.5);
+        this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00ffff, 20);
+      }
+      this.meshGroup.rotation.z += 0.45 * dt;
+      this.meshGroup.rotation.x += 0.22 * dt;
+      this.meshGroup.position.y -= 2.0 * dt;
+      if (this.deathTimer <= 0) {
+        this.isDead = true;
+        this._explode();
+        this.destroy();
+      }
+      return { lasers: false, missiles: false, gravWave: false };
+    }
+
+    // Progressive hull damage smoke
+    if (this.coreHp < this.maxCoreHp * 0.5 && Math.random() < 0.35 && this.particleManager) {
+      const angle = Math.random() * Math.PI * 2;
+      const offset = new THREE.Vector3(Math.cos(angle) * 35, Math.sin(angle) * 35, 0);
+      this.particleManager.spawnEngineParticle(this.meshGroup.position.clone().add(offset), 0x222222);
+      this.particleManager.spawnSparks(this.meshGroup.position.clone().add(offset), new THREE.Vector3(0, 1, 0), 0x00f3ff, 8);
+    }
+
     this._time += dt;
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) this.meshGroup.position.z += this.speed * dt;
