@@ -118,7 +118,7 @@ export class HeavyBattleship {
     this.machDiamonds = [];
     this.machDiamondRings = [];
 
-    // Weapon Timers
+    // Weapon Timers & Tactical Attack Sequencing
     this.railgunTimer = 2.8;
     this.missileTimer = 3.5;
     this.flakTimer = 1.8;
@@ -126,6 +126,13 @@ export class HeavyBattleship {
     this.spinalLanceTimer = 9.0;
     this.isChargingLance = false;
     this.lanceChargeTime = 0;
+
+    // ── 🛡️ Tactical Maneuver & Evasive Action System ──
+    this.tacticalState = 'CRUISE_BARRAGE'; // 'CRUISE_BARRAGE', 'LANCE_ALIGNMENT', 'EVASIVE_DRIFT', 'BROADSIDE_BOMBARD'
+    this.tacticalTimer = 4.5 + Math.random() * 2.0;
+    this.evasiveRoll = 0;
+    this.flankSide = Math.random() > 0.5 ? 1 : -1;
+    this.recoilKickback = 0;
 
     // Teardown
     this.deathTimer = 0;
@@ -826,14 +833,58 @@ function createSmoothBattleshipHullGeo() {
     const pos = this.meshGroup.position;
     const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
 
-    // 1. Advance to battle station
+    // 1. Advance to battle station & Tactical Maneuver Controller
     if (pos.z < this.targetZ) {
       pos.z += this.speed * dt;
+      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.05, dt * 2.0);
+      this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, 0, dt * 2.0);
     } else {
-      // Slow tactical dreadnought strafe
-      this.strafeTimer += dt * 0.4;
-      pos.x = Math.sin(this.strafeTimer) * 16.0;
-      pos.y = 4.0 + Math.cos(this.strafeTimer * 0.8) * 3.5;
+      // ── 🧠 Multi-Phase Tactical Attack & Evasive Sequencing ──
+      this.tacticalTimer -= dt;
+      if (this.tacticalTimer <= 0) {
+        this.tacticalTimer = 4.0 + Math.random() * 3.0;
+        this.flankSide = Math.random() > 0.5 ? 1 : -1;
+        const rand = Math.random();
+        if (rand < 0.35) {
+          this.tacticalState = 'CRUISE_BARRAGE';
+        } else if (rand < 0.65) {
+          this.tacticalState = 'EVASIVE_DRIFT';
+          if (this.particleManager) {
+            this.particleManager.spawnSparks(pos, new THREE.Vector3(this.flankSide, 0, 0), 0xff4400, 15);
+          }
+        } else {
+          this.tacticalState = 'BROADSIDE_BOMBARD';
+        }
+      }
+
+      if (this.isChargingLance) {
+        // Spinal Lance Alignment: lock yaw and tilt downward aiming directly down the center line
+        const targetX = playerPos ? playerPos.x * 0.75 : 0;
+        pos.x = THREE.MathUtils.lerp(pos.x, targetX, dt * 1.5);
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, 0, dt * 3.0);
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, 0, dt * 3.0);
+        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.08, dt * 2.0);
+      } else if (this.tacticalState === 'EVASIVE_DRIFT') {
+        // Heavy Dreadnought Lateral Evasive Banking (dodge player torpedoes/lasers)
+        pos.x += this.flankSide * 9.5 * dt;
+        pos.y = 4.0 + Math.cos(this._time * 1.2) * 2.5;
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -this.flankSide * 0.28, dt * 2.5);
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, this.flankSide * 0.12, dt * 2.0);
+        if (Math.abs(pos.x) > 22.0) this.flankSide *= -1;
+      } else if (this.tacticalState === 'BROADSIDE_BOMBARD') {
+        // Pivot 35 degrees to unmask upper and lower heavy railgun batteries
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, this.flankSide * 0.45, dt * 2.0);
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -this.flankSide * 0.15, dt * 2.0);
+        pos.x += Math.sin(this._time * 0.6) * 4.5 * dt;
+      } else {
+        // Standard sweeping combat cruise
+        this.strafeTimer += dt * 0.45;
+        pos.x = Math.sin(this.strafeTimer) * 16.0;
+        pos.y = 4.0 + Math.cos(this.strafeTimer * 0.8) * 3.5;
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, Math.sin(this.strafeTimer) * 0.12, dt * 2.0);
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, 0, dt * 2.0);
+        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0, dt * 2.0);
+      }
     }
 
     // 2. Heavy Triple-Railgun Tracking

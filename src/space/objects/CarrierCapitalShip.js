@@ -840,12 +840,6 @@ export class CarrierCapitalShip {
       }
 
       this.surgeTimer = (this.surgeTimer || 6.0) - dt;
-      if (this.surgeTimer <= 0) {
-        this.surgeTimer = 8.0 + Math.random() * 3.0;
-        this.isSurging = true;
-        this.surgeProgress = 0;
-      }
-
       if (this.isSurging) {
         this.surgeProgress += dt * 1.5;
         this.meshGroup.position.z = this.targetZ + Math.sin(this.surgeProgress * Math.PI) * 22.0;
@@ -858,11 +852,27 @@ export class CarrierCapitalShip {
           this.meshGroup.position.z = this.targetZ;
         }
       } else {
-        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.22, dt * 2.0);
-        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, Math.sin(this._time * 0.4) * 0.25, dt * 2.0);
-        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -Math.sin(this._time * 0.4) * 0.08, dt * 2.0);
-        this.meshGroup.position.x = Math.sin(this._time * 0.4) * 14.0;
-        this.meshGroup.position.y = 8.0 + Math.cos(this._time * 0.3) * 2.5;
+        // ── 🧠 Carrier Standoff Positioning & Evasive Banking Maneuvers ──
+        this.tacticalTimer = (this.tacticalTimer || 5.0) - dt;
+        if (this.tacticalTimer <= 0) {
+          this.tacticalTimer = 4.5 + Math.random() * 3.5;
+          this.flankSide = (this.flankSide || 1) * -1;
+          const roll = Math.random();
+          if (roll < 0.35) {
+            this.isSurging = true;
+            this.surgeProgress = 0;
+            if (this.particleManager) {
+              this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0xff0044);
+            }
+          }
+        }
+
+        // Lateral banking strafe & standoff range maintenance
+        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.20, dt * 2.0);
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, (this.flankSide || 1) * 0.22, dt * 2.0);
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -(this.flankSide || 1) * 0.18, dt * 2.0);
+        this.meshGroup.position.x = THREE.MathUtils.lerp(this.meshGroup.position.x, Math.sin(this._time * 0.5) * 18.0, dt * 2.0);
+        this.meshGroup.position.y = 8.0 + Math.cos(this._time * 0.35) * 3.0;
       }
     }
 
