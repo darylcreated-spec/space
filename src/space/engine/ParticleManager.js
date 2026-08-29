@@ -303,9 +303,104 @@ export class ParticleManager {
       }
     }
 
+    // ── Update Physical Severed Metal Debris Meshes (Wings, Armor, Turrets) ──
+    for (let i = this.metalDebris.length - 1; i >= 0; i--) {
+      const d = this.metalDebris[i];
+      d.life -= (d.decay || 0.2) * delta * 60.0;
+
+      if (d.life <= 0 || !d.mesh) {
+        if (d.mesh) {
+          if (d.mesh.parent) d.mesh.parent.remove(d.mesh);
+          else this.scene.remove(d.mesh);
+          if (d.geo) d.geo.dispose();
+          if (d.mat) {
+            if (Array.isArray(d.mat)) d.mat.forEach(m => m.dispose());
+            else d.mat.dispose();
+          }
+        }
+        this.metalDebris.splice(i, 1);
+      } else {
+        if (d.mesh) {
+          d.mesh.position.x += (d.vx || 0) * delta;
+          d.mesh.position.y += (d.vy || 0) * delta;
+          d.mesh.position.z += (d.vz || 0) * delta;
+          d.mesh.rotation.x += (d.rotSpeedX || 1.0) * delta;
+          d.mesh.rotation.y += (d.rotSpeedY || 1.0) * delta;
+          d.mesh.rotation.z += (d.rotSpeedZ || 1.0) * delta;
+
+          // Smooth fade-out as chunk tumbles into deep space
+          if (d.life < 0.35) {
+            const alpha = Math.max(0, d.life / 0.35);
+            if (d.mat) {
+              if (Array.isArray(d.mat)) {
+                d.mat.forEach(m => { m.transparent = true; m.opacity = alpha; });
+              } else {
+                d.mat.transparent = true;
+                d.mat.opacity = alpha;
+              }
+            }
+          }
+        }
+      }
+    }
+
     // ── Update GPU Instanced Metal Debris (512 Shard Pool) ──
     if (this.spaceDebris) {
       this.spaceDebris.update(performance.now() * 0.001);
+    }
+  }
+
+  clear() {
+    // Purge and dispose all severed physical metal debris
+    if (this.metalDebris) {
+      this.metalDebris.forEach(d => {
+        if (d && d.mesh) {
+          if (d.mesh.parent) d.mesh.parent.remove(d.mesh);
+          else this.scene.remove(d.mesh);
+          if (d.geo) d.geo.dispose();
+          if (d.mat) {
+            if (Array.isArray(d.mat)) d.mat.forEach(m => m.dispose());
+            else d.mat.dispose();
+          }
+        }
+      });
+      this.metalDebris = [];
+    }
+
+    // Purge shockwaves
+    if (this.shockwaves) {
+      this.shockwaves.forEach(sw => {
+        if (sw && sw.mesh) {
+          if (sw.mesh.parent) sw.mesh.parent.remove(sw.mesh);
+          else this.scene.remove(sw.mesh);
+          if (sw.mesh.material) sw.mesh.material.dispose();
+        }
+      });
+      this.shockwaves = [];
+    }
+
+    // Purge sonic discs
+    if (this.sonicDiscs) {
+      this.sonicDiscs.forEach(sd => {
+        if (sd && sd.mesh) {
+          if (sd.mesh.parent) sd.mesh.parent.remove(sd.mesh);
+          else this.scene.remove(sd.mesh);
+          if (sd.mesh.material) sd.mesh.material.dispose();
+        }
+      });
+      this.sonicDiscs = [];
+    }
+
+    // Purge fireballs
+    if (this.fireballs) {
+      this.fireballs.forEach(fb => {
+        if (fb && fb.mesh) {
+          if (fb.mesh.parent) fb.mesh.parent.remove(fb.mesh);
+          else this.scene.remove(fb.mesh);
+          if (fb.mesh.material) fb.mesh.material.dispose();
+        }
+      });
+      this.fireballs = [];
     }
   }
 

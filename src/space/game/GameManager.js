@@ -426,6 +426,10 @@ export class GameManager {
     this.severedDebris.forEach(d => { try { if (d.mesh && d.mesh.parent) d.mesh.parent.remove(d.mesh); } catch(e) {} });
     this.severedDebris = [];
 
+    if (this.particleManager) {
+      this.particleManager.clear();
+    }
+
     if (this.activeBoss) {
       this.activeBoss.destroy();
       this.activeBoss = null;
@@ -1857,13 +1861,12 @@ export class GameManager {
       }
     }
 
-    if (!this.freezeFleetAI) {
-      for (let i = this.drones.length - 1; i >= 0; i--) {
-        const drone = this.drones[i];
-        if (drone.isDead) {
-          drone.destroy();
-          this.drones.splice(i, 1);
-        }
+    // 1B. Always Clean up Dead Drones
+    for (let i = this.drones.length - 1; i >= 0; i--) {
+      const drone = this.drones[i];
+      if (drone.isDead) {
+        drone.destroy();
+        this.drones.splice(i, 1);
       }
     }
 
@@ -1885,17 +1888,16 @@ export class GameManager {
       }
     }
 
-    if (!this.freezeFleetAI) {
-      for (let i = this.stealthFighters.length - 1; i >= 0; i--) {
-        const fighter = this.stealthFighters[i];
-        if (fighter.isDead) {
-          fighter.destroy();
-          this.stealthFighters.splice(i, 1);
-        }
+    // 2B. Always Clean up Dead Stealth Fighters
+    for (let i = this.stealthFighters.length - 1; i >= 0; i--) {
+      const fighter = this.stealthFighters[i];
+      if (fighter.isDead) {
+        fighter.destroy();
+        this.stealthFighters.splice(i, 1);
       }
     }
 
-    // 2B. Update ECM Jammer Corvettes
+    // 2C. Update ECM Jammer Corvettes
     for (let i = 0; i < this.ecmCorvettes.length; i++) {
       const ecm = this.ecmCorvettes[i];
       if (!ecm || ecm.isDead || !ecm.meshGroup) continue;
@@ -1913,17 +1915,16 @@ export class GameManager {
       }
     }
 
-    if (!this.freezeFleetAI) {
-      for (let i = this.ecmCorvettes.length - 1; i >= 0; i--) {
-        const ecm = this.ecmCorvettes[i];
-        if (ecm.isDead) {
-          ecm.destroy();
-          this.ecmCorvettes.splice(i, 1);
-        }
+    // 2D. Always Clean up Dead ECM Corvettes
+    for (let i = this.ecmCorvettes.length - 1; i >= 0; i--) {
+      const ecm = this.ecmCorvettes[i];
+      if (ecm.isDead) {
+        ecm.destroy();
+        this.ecmCorvettes.splice(i, 1);
       }
     }
 
-    // 2C. Update Phase Shift Interceptors
+    // 2E. Update Phase Shift Interceptors
     for (let i = 0; i < this.phaseInterceptors.length; i++) {
       const phase = this.phaseInterceptors[i];
       if (!phase || phase.isDead || !phase.meshGroup) continue;
@@ -1941,13 +1942,12 @@ export class GameManager {
       }
     }
 
-    if (!this.freezeFleetAI) {
-      for (let i = this.phaseInterceptors.length - 1; i >= 0; i--) {
-        const phase = this.phaseInterceptors[i];
-        if (phase.isDead) {
-          phase.destroy();
-          this.phaseInterceptors.splice(i, 1);
-        }
+    // 2F. Always Clean up Dead Phase Interceptors
+    for (let i = this.phaseInterceptors.length - 1; i >= 0; i--) {
+      const phase = this.phaseInterceptors[i];
+      if (phase.isDead) {
+        phase.destroy();
+        this.phaseInterceptors.splice(i, 1);
       }
     }
 
@@ -1978,13 +1978,12 @@ export class GameManager {
       }
     }
 
-    if (!this.freezeFleetAI) {
-      for (let i = this.capitalShips.length - 1; i >= 0; i--) {
-        const ship = this.capitalShips[i];
-        if (ship.isDead) {
-          ship.destroy();
-          this.capitalShips.splice(i, 1);
-        }
+    // 3B. Always Clean up Dead Capital Cruisers
+    for (let i = this.capitalShips.length - 1; i >= 0; i--) {
+      const ship = this.capitalShips[i];
+      if (ship.isDead) {
+        ship.destroy();
+        this.capitalShips.splice(i, 1);
       }
     }
 
@@ -1999,13 +1998,12 @@ export class GameManager {
       }
     }
 
-    if (!this.freezeFleetAI) {
-      for (let i = this.heavyBattleships.length - 1; i >= 0; i--) {
-        const battleship = this.heavyBattleships[i];
-        if (battleship.isDead) {
-          battleship.destroy();
-          this.heavyBattleships.splice(i, 1);
-        }
+    // 4B. Always Clean up Dead Heavy Battleships
+    for (let i = this.heavyBattleships.length - 1; i >= 0; i--) {
+      const battleship = this.heavyBattleships[i];
+      if (battleship.isDead) {
+        battleship.destroy();
+        this.heavyBattleships.splice(i, 1);
       }
     }
 
