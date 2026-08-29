@@ -123,6 +123,7 @@ export class GameManager {
     // Subsystems
     this.collisionSystem = new CollisionSystem(this.particleManager, this.spaceAudio, this.spaceScene);
     this.waveSpawner = new WaveSpawner(this);
+    this._tempTargetDir = new THREE.Vector3();
 
     this.spaceHUD = null;
     
@@ -1849,13 +1850,13 @@ export class GameManager {
         if (firePlasma) {
           if (Array.isArray(firePlasma)) {
             firePlasma.forEach(dPos => {
-              const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
-              this.spawnLaser(dPos, 0xff0055, true, targetDir);
+              this._tempTargetDir.subVectors(pPos, dPos).normalize();
+              this.spawnLaser(dPos, 0xff0055, true, this._tempTargetDir);
             });
           } else if (drone.meshGroup) {
             const dPos = drone.meshGroup.position;
-            const targetDir = new THREE.Vector3().subVectors(pPos, dPos).normalize();
-            this.spawnLaser(dPos, 0xff0055, true, targetDir);
+            this._tempTargetDir.subVectors(pPos, dPos).normalize();
+            this.spawnLaser(dPos, 0xff0055, true, this._tempTargetDir);
           }
           this.spaceAudio.playLaserPew();
         }
@@ -1881,8 +1882,8 @@ export class GameManager {
         const stealthFire = fighter.update(effectiveDt, pPos);
         if (stealthFire && Array.isArray(stealthFire)) {
           stealthFire.forEach(sPos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, sPos).normalize();
-            this.spawnLaser(sPos, 0xff0055, true, targetDir);
+            this._tempTargetDir.subVectors(pPos, sPos).normalize();
+            this.spawnLaser(sPos, 0xff0055, true, this._tempTargetDir);
           });
           this.spaceAudio.playLaserPew();
         }
@@ -1908,8 +1909,8 @@ export class GameManager {
         const ecmFire = ecm.update(effectiveDt, pPos, this);
         if (ecmFire && Array.isArray(ecmFire)) {
           ecmFire.forEach(ePos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, ePos).normalize();
-            this.spawnLaser(ePos, 0xaa22ff, true, targetDir, false, 'STANDARD');
+            this._tempTargetDir.subVectors(pPos, ePos).normalize();
+            this.spawnLaser(ePos, 0xaa22ff, true, this._tempTargetDir, false, 'STANDARD');
           });
           this.spaceAudio.playLaserPew();
         }
@@ -1935,8 +1936,8 @@ export class GameManager {
         const pFire = phase.update(effectiveDt, pPos, this);
         if (pFire && Array.isArray(pFire)) {
           pFire.forEach(pos => {
-            const targetDir = new THREE.Vector3().subVectors(pPos, pos).normalize();
-            this.spawnLaser(pos, 0x00f3ff, true, targetDir, false, 'STANDARD');
+            this._tempTargetDir.subVectors(pPos, pos).normalize();
+            this.spawnLaser(pos, 0x00f3ff, true, this._tempTargetDir, false, 'STANDARD');
           });
           this.spaceAudio.playLaserPew();
         }
@@ -1964,14 +1965,14 @@ export class GameManager {
         if (fireData) {
           if (fireData.origins && Array.isArray(fireData.origins)) {
             fireData.origins.forEach(tPos => {
-              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-              this.spawnEnemyLaser(tPos, targetDir, 0xff2244, 46);
+              this._tempTargetDir.subVectors(pPos, tPos).normalize();
+              this.spawnEnemyLaser(tPos, this._tempTargetDir, 0xff2244, 46);
             });
             this.spaceAudio.playLaserPew();
           } else if (Array.isArray(fireData)) {
             fireData.forEach(tPos => {
-              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-              this.spawnEnemyLaser(tPos, targetDir, 0xff2244, 46);
+              this._tempTargetDir.subVectors(pPos, tPos).normalize();
+              this.spawnEnemyLaser(tPos, this._tempTargetDir, 0xff2244, 46);
             });
             this.spaceAudio.playLaserPew();
           }

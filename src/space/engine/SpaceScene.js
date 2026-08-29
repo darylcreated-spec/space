@@ -35,7 +35,7 @@ export class SpaceScene {
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0));
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
 
@@ -950,8 +950,10 @@ export class SpaceScene {
 
     // Hyper-Boost Camera FOV speed warping
     const targetFov = (playerShip && playerShip.isBoosting) ? 74 : 60;
-    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.0);
-    this.camera.updateProjectionMatrix();
+    if (Math.abs(this.camera.fov - targetFov) > 0.05) {
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.0);
+      this.camera.updateProjectionMatrix();
+    }
 
     // Atmosphere & Planet Slow Rotation
     if (this.planetGroup) {

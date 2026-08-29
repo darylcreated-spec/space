@@ -61,36 +61,16 @@ const AAACinematicShader = {
       float b = texture2D(tDiffuse, uvB).b;
       vec3 color = vec3(r, g, b);
 
-      // 3. Crisp Optical Anamorphic Glint (Subtle highlight sparkle on Ultra)
-      if (uQuality >= 3.0) {
-        vec3 flare = vec3(0.0);
-        for (float i = 1.0; i <= 3.0; i++) {
-          float offset = i * 0.0025;
-          vec3 s1 = texture2D(tDiffuse, vec2(uv.x + offset, uv.y)).rgb;
-          vec3 s2 = texture2D(tDiffuse, vec2(uv.x - offset, uv.y)).rgb;
-          vec3 l1 = max(vec3(0.0), s1 - 0.88);
-          vec3 l2 = max(vec3(0.0), s2 - 0.88);
-          flare += (l1 + l2) * (1.0 / i);
-        }
-        color += flare * vec3(0.25, 0.7, 1.0) * 0.08;
-      }
-
-      // 4. Subtle Vignette
+      // 3. Subtle Vignette
       if (uVignette > 0.0) {
         float vignette = smoothstep(1.3, 0.5, dist * uVignette);
         color *= mix(0.88, 1.0, vignette);
       }
 
-      // 5. Film Grain
-      if (uGrainIntensity > 0.0) {
-        float grain = (rand(uv + fract(uTime * 19.3)) - 0.5) * uGrainIntensity;
-        color += grain;
-      }
-
-      // 6. Filmic Gentle Contrast
+      // 4. Filmic Contrast & Tone Balance
       color = clamp(color, 0.0, 1.0);
       vec3 sCurve = color * color * (3.0 - 2.0 * color);
-      color = mix(color, sCurve, 0.35);
+      color = mix(color, sCurve, 0.25);
 
       gl_FragColor = vec4(color, 1.0);
     }
@@ -120,10 +100,10 @@ export class PostProcessing {
   }
 
   _getBloomScale() {
-    if (this.isMobile) return 0.5;
-    if (this.quality === 'ultra') return 0.75;
-    if (this.quality === 'high') return 0.5;
-    return 0.35;
+    if (this.isMobile) return 0.35;
+    if (this.quality === 'ultra') return 0.5;
+    if (this.quality === 'high') return 0.35;
+    return 0.25;
   }
 
   _initComposer() {
