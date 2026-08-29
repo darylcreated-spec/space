@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { getPBRMaterialSet } from './PBRTextureGenerator.js';
 
 export class SpaceDebrisSystem {
@@ -46,9 +46,10 @@ export class SpaceDebrisSystem {
     this.aLifeParams.setUsage(THREE.DynamicDrawUsage);
     this.aScale.setUsage(THREE.DynamicDrawUsage);
 
-    // Initialize all debris in "expired" state
+    // Initialize all debris in "expired" state far offscreen
     for (let i = 0; i < this.poolSize; i++) {
-      this.aLifeParams.setXY(i, -100.0, 1.0); // birthTime = -100 (inactive)
+      this.aOrigin.setXYZ(i, 99999.0, 99999.0, 99999.0);
+      this.aLifeParams.setXY(i, -9999.0, 1.0); // birthTime = -9999 (inactive)
     }
 
     baseGeometry.setAttribute('aOrigin', this.aOrigin);
@@ -98,12 +99,17 @@ export class SpaceDebrisSystem {
           float maxLifetime = aLifeParams.y;
           float age = uTime - birthTime;
 
-          // Normalize lifetime; if inactive or expired, shrink to zero
-          vNormalizedAge = clamp(age / maxLifetime, 0.0, 1.0);
-          float alive = (age >= 0.0 && age < maxLifetime) ? 1.0 : 0.0;
+          // If inactive or expired, immediately clip offscreen
+          if (age < 0.0 || age >= maxLifetime) {
+              gl_Position = vec4(99999.0, 99999.0, 99999.0, 1.0);
+              vNormalizedAge = 1.0;
+              vNormal = vec3(0.0, 0.0, 1.0);
+              vViewPosition = vec3(0.0);
+              return;
+          }
 
-          // Linear scale-down as fragment burns up / cools off
-          float currentScale = aScale * (1.0 - vNormalizedAge * 0.7) * alive;
+          vNormalizedAge = clamp(age / maxLifetime, 0.0, 1.0);
+          float currentScale = aScale * (1.0 - vNormalizedAge * 0.7);
 
           // Kinematic displacement: P(t) = P0 + V0 * t
           vec3 worldOffset = aOrigin + (aVelocity * age);

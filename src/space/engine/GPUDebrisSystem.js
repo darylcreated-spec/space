@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 /**
  * GPU-Instanced Kinematic Debris & Shrapnel System
@@ -109,12 +109,17 @@ export class GPUDebrisSystem {
           float maxLifetime = aLifeParams.y;
           float age = uTime - birthTime;
 
-          // Normalize lifetime; if inactive or expired, shrink to zero
-          vNormalizedAge = clamp(age / maxLifetime, 0.0, 1.0);
-          float alive = (age >= 0.0 && age < maxLifetime) ? 1.0 : 0.0;
+          // If inactive or expired, immediately clip offscreen
+          if (age < 0.0 || age >= maxLifetime) {
+              gl_Position = vec4(99999.0, 99999.0, 99999.0, 1.0);
+              vNormalizedAge = 1.0;
+              vNormal = vec3(0.0, 0.0, 1.0);
+              vViewPosition = vec3(0.0);
+              return;
+          }
 
-          // Linear scale-down as fragment burns up / cools off
-          float currentScale = aScale * (1.0 - vNormalizedAge * 0.7) * alive;
+          vNormalizedAge = clamp(age / maxLifetime, 0.0, 1.0);
+          float currentScale = aScale * (1.0 - vNormalizedAge * 0.7);
 
           // Kinematic displacement: P(t) = P0 + V0 * t
           vec3 worldOffset = aOrigin + (aVelocity * age);
