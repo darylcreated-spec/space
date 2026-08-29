@@ -525,6 +525,47 @@ export class SpaceScene {
     return tex;
   }
 
+  createShootingStarTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    const cy = 32;
+    // Ultra-fine exponential plasma streak
+    for (let x = 0; x < 512; x++) {
+      const t = x / 512;
+      const alphaT = Math.pow(1.0 - t, 2.8);
+      const halfH = Math.max(1, Math.round(18 * (1.0 - t * 0.85)));
+
+      const grad = ctx.createLinearGradient(x, cy - halfH, x, cy + halfH);
+      grad.addColorStop(0.0, 'rgba(0, 0, 0, 0)');
+      grad.addColorStop(0.3, `rgba(0, 200, 255, ${0.4 * alphaT})`);
+      grad.addColorStop(0.5, t < 0.06 ? `rgba(255, 255, 255, ${alphaT})` : `rgba(140, 230, 255, ${0.85 * alphaT})`);
+      grad.addColorStop(0.7, `rgba(0, 200, 255, ${0.4 * alphaT})`);
+      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, cy - halfH, 1, halfH * 2);
+    }
+
+    // Brilliant pinpoint incandescent nucleus
+    const headGrad = ctx.createRadialGradient(12, cy, 0, 12, cy, 22);
+    headGrad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+    headGrad.addColorStop(0.2, 'rgba(200, 245, 255, 0.95)');
+    headGrad.addColorStop(0.5, 'rgba(0, 220, 255, 0.45)');
+    headGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = headGrad;
+    ctx.beginPath();
+    ctx.arc(12, cy, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
+  }
+
   createPlanetTexture() {
     return this.createGasGiantTexture([
       [0.0, '#041226'], [0.2, '#08284d'], [0.35, '#00e1ff'],
@@ -924,12 +965,12 @@ export class SpaceScene {
       if (this.dustPoints.position.z > 80) this.dustPoints.position.z = -100;
     }
 
-    // Deep-Space Comet & Meteor Spawning & Updates
+    // Deep-Space Shooting Star & Meteor Streak Spawning & Updates
     if (this.cometSpawnTimer !== undefined) {
       this.cometSpawnTimer -= dt;
       if (this.cometSpawnTimer <= 0) {
-        this.spawnComet();
-        this.cometSpawnTimer = 6.0 + Math.random() * 8.0;
+        this.spawnShootingStar();
+        this.cometSpawnTimer = 5.0 + Math.random() * 7.0;
       }
     }
 
@@ -938,20 +979,16 @@ export class SpaceScene {
         const c = this.comets[i];
         c.progress += dt / c.duration;
         if (c.progress >= 1.0) {
-          this.cometGroup.remove(c.group);
-          c.group.traverse(child => {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) child.material.dispose();
-          });
+          this.cometGroup.remove(c.mesh);
+          if (c.mesh.geometry) c.mesh.geometry.dispose();
+          if (c.mesh.material) c.mesh.material.dispose();
           this.comets.splice(i, 1);
         } else {
-          c.group.position.lerpVectors(c.start, c.end, c.progress);
-          const alpha = Math.sin(c.progress * Math.PI);
-          c.group.traverse(child => {
-            if (child.material && child.material.opacity !== undefined) {
-              child.material.opacity = alpha * 0.85;
-            }
-          });
+          c.mesh.position.lerpVectors(c.start, c.end, c.progress);
+          // Realistic shooting star flash curve: quick incandescence, peak, smooth trailing burn-out
+          const p = c.progress;
+          const alpha = p < 0.25 ? (p / 0.25) : Math.pow(1.0 - (p - 0.25) / 0.75, 2.2);
+          c.mesh.material.opacity = alpha * 0.95;
         }
       }
     }
@@ -970,61 +1007,55 @@ export class SpaceScene {
     }
   }
 
-  spawnComet() {
+  spawnShootingStar() {
     if (!this.cometGroup) return;
 
-    const startX = (Math.random() - 0.5) * 400 + (Math.random() > 0.5 ? 250 : -250);
-    const startY = 120 + Math.random() * 80;
-    const startZ = -380 - Math.random() * 150;
+    if (!this.shootingStarTexture) {
+      this.shootingStarTexture = this.createShootingStarTexture();
+    }
 
-    const endX = startX > 0 ? startX - 450 - Math.random() * 200 : startX + 450 + Math.random() * 200;
-    const endY = startY - 180 - Math.random() * 120;
-    const endZ = startZ - 50;
+    const startX = (Math.random() - 0.5) * 360 + (Math.random() > 0.5 ? 180 : -180);
+    const startY = 80 + Math.random() * 80;
+    const startZ = -340 - Math.random() * 120;
 
-    const cometObj = new THREE.Group();
-    cometObj.position.set(startX, startY, startZ);
+    const streakLen = 48 + Math.random() * 28;
+    const streakWidth = 2.2;
 
-    // Emissive Comet Plasma Nucleus
-    const headMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1.6, 12, 12),
-      new THREE.MeshBasicMaterial({ color: 0xffffff })
-    );
-    cometObj.add(headMesh);
+    const travelDistX = (startX > 0 ? -1 : 1) * (220 + Math.random() * 140);
+    const travelDistY = -90 - Math.random() * 70;
+    const travelDistZ = -20 - Math.random() * 40;
 
-    // Glowing Coma Halo
-    const comaMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(4.5, 12, 12),
-      new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
-    );
-    cometObj.add(comaMesh);
+    const endPos = new THREE.Vector3(startX + travelDistX, startY + travelDistY, startZ + travelDistZ);
+    const dir = new THREE.Vector3(travelDistX, travelDistY, travelDistZ).normalize();
 
-    // Ion Stream Tail (Straight blue/cyan trail)
-    const tailLen = 65.0;
-    const tailGeo = new THREE.CylinderGeometry(0.2, 3.5, tailLen, 8, 1, true);
-    tailGeo.rotateX(Math.PI * 0.5);
-    tailGeo.translate(0, 0, -tailLen * 0.5);
-    const tailMat = new THREE.MeshBasicMaterial({
-      color: 0x00aaff,
+    // 2D Camera-Facing Billboard Ribbon
+    const geo = new THREE.PlaneGeometry(streakLen, streakWidth);
+    geo.translate(streakLen * 0.5, 0, 0); // Origin at front head
+
+    const mat = new THREE.MeshBasicMaterial({
+      map: this.shootingStarTexture,
       transparent: true,
-      opacity: 0.65,
+      opacity: 0.0,
       blending: THREE.AdditiveBlending,
+      depthWrite: false,
       side: THREE.DoubleSide
     });
-    const tailMesh = new THREE.Mesh(tailGeo, tailMat);
-    cometObj.add(tailMesh);
 
-    // Orient tail along direction of movement
-    const dir = new THREE.Vector3(endX - startX, endY - startY, endZ - startZ).normalize();
-    cometObj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(startX, startY, startZ);
 
-    this.cometGroup.add(cometObj);
+    // Orient ribbon along flight trajectory
+    const angle = Math.atan2(dir.y, dir.x);
+    mesh.rotation.z = angle;
+
+    this.cometGroup.add(mesh);
 
     this.comets.push({
-      group: cometObj,
+      mesh: mesh,
       start: new THREE.Vector3(startX, startY, startZ),
-      end: new THREE.Vector3(endX, endY, endZ),
+      end: endPos,
       progress: 0.0,
-      duration: 3.5 + Math.random() * 2.0
+      duration: 1.1 + Math.random() * 0.6 // Fast 1.1s - 1.7s flash
     });
   }
 
