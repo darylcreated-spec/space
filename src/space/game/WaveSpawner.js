@@ -80,17 +80,20 @@ export class WaveSpawner {
     if (this.waveState !== 'SPAWNING') return;
 
     // ── 📱 Mobile Performance Safeguard: Concurrency Throttle ──
-    // Count active non-boss combatants. If too many are alive, hold spawns to maintain rock-solid 60fps
+    // Count active combatants. If screen is full, hold spawns to maintain rock-solid 60fps
     const activeAsteroids = this.gameManager.asteroids ? this.gameManager.asteroids.length : 0;
     const activeDrones = this.gameManager.drones ? this.gameManager.drones.filter(d => !d.isDead).length : 0;
     const activeStealth = this.gameManager.stealthFighters ? this.gameManager.stealthFighters.filter(s => !s.isDead).length : 0;
+    const activeECM = this.gameManager.ecmCorvettes ? this.gameManager.ecmCorvettes.filter(e => !e.isDead).length : 0;
+    const activePhase = this.gameManager.phaseInterceptors ? this.gameManager.phaseInterceptors.filter(p => !p.isDead).length : 0;
     const activeCruisers = this.gameManager.capitalShips ? this.gameManager.capitalShips.filter(c => !c.isDead).length : 0;
     const activeBattleships = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.filter(b => !b.isDead).length : 0;
     const activeCarrier = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
 
-    const totalActiveCombatants = activeAsteroids + activeDrones + activeStealth + (activeCruisers * 2) + (activeBattleships * 3) + (activeCarrier ? 4 : 0);
+    // Weight asteroid fragments lightly so split shards don't block large warships
+    const totalActiveCombatants = Math.floor(activeAsteroids * 0.5) + activeDrones + activeStealth + activeECM + activePhase + (activeCruisers * 2) + (activeBattleships * 3) + (activeCarrier ? 4 : 0);
 
-    if (totalActiveCombatants >= this.maxConcurrentEnemies && this.spawnedCount < this.totalToSpawnInWave) {
+    if (totalActiveCombatants >= 12 && this.spawnedCount < this.totalToSpawnInWave) {
       // Screen is occupied — pause spawner until player destroys enemies
       return;
     }
@@ -305,6 +308,8 @@ export class WaveSpawner {
 
   checkWaveComplete(activeAsteroidsCount, activeDronesCount, bossActive) {
     const stealthActive = this.gameManager.stealthFighters ? this.gameManager.stealthFighters.some(s => !s.isDead) : false;
+    const ecmActive = this.gameManager.ecmCorvettes ? this.gameManager.ecmCorvettes.some(e => !e.isDead) : false;
+    const phaseActive = this.gameManager.phaseInterceptors ? this.gameManager.phaseInterceptors.some(p => !p.isDead) : false;
     const battleshipActive = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.some(b => !b.isDead) : false;
     const cruiserActive = this.gameManager.capitalShips ? this.gameManager.capitalShips.some(c => !c.isDead) : false;
     const carrierActive = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
@@ -317,6 +322,8 @@ export class WaveSpawner {
       activeAsteroidsCount === 0 &&
       activeDronesCount === 0 &&
       !stealthActive &&
+      !ecmActive &&
+      !phaseActive &&
       !battleshipActive &&
       !cruiserActive &&
       !carrierActive &&
