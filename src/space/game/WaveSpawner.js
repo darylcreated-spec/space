@@ -51,6 +51,9 @@ export class WaveSpawner {
     }
 
     this.gameManager.announceWave(this.currentWave, this.getWaveSubtitle());
+    if (this.gameManager.spaceScene) {
+      this.gameManager.spaceScene.setStageEnvironment(this.currentWave);
+    }
     if (this.gameManager.spaceAudio) {
       this.gameManager.spaceAudio.startSoundtrack();
       this.gameManager.spaceAudio.setSoundtrackTheme('COMBAT');
