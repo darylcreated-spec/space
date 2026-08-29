@@ -90,17 +90,9 @@ export class WaveSpawner {
     const activeBattleships = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.filter(b => !b.isDead).length : 0;
     const activeCarrier = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
 
-    // Weight combatants appropriately so waves flow without stalling
-    const totalActiveCombatants = Math.floor(activeAsteroids * 0.3) + Math.floor((activeDrones + activeStealth + activePhase) * 0.5) + activeECM + (activeCruisers * 1.5) + (activeBattleships * 2) + (activeCarrier ? 3 : 0);
-
-    if (totalActiveCombatants >= 20 && this.spawnedCount < this.totalToSpawnInWave) {
-      // Screen is heavily occupied — brief buffer before next wave element
-      return;
-    }
-
     this.spawnTimer += dt;
-    // Dynamic spawn pacing: fast initial waves that relax slightly during heavy capital encounters
-    const spawnInterval = activeCarrier || activeBattleships > 0 ? 1.6 : Math.max(0.65, 1.2 - this.currentWave * 0.08);
+    // Dynamic spawn pacing: fast initial waves
+    const spawnInterval = activeCarrier || activeBattleships > 0 ? 1.3 : Math.max(0.65, 1.1 - this.currentWave * 0.06);
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;
