@@ -489,6 +489,42 @@ export class SpaceScene {
     return new THREE.CanvasTexture(canvas);
   }
 
+  createPlanetaryRingTexture(primaryHex = 'rgba(170, 220, 255, 0.75)', innerHex = 'rgba(60, 130, 210, 0.25)') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+
+    // Cassini Division, Encke Gap, and Multi-Ringlet Transparency Gradients
+    const grad = ctx.createLinearGradient(0, 0, 512, 0);
+    grad.addColorStop(0.0, 'rgba(0, 0, 0, 0.0)');
+    grad.addColorStop(0.12, innerHex); // C-Ring (Crepe Ring)
+    grad.addColorStop(0.28, primaryHex); // B-Ring dense inner edge
+    grad.addColorStop(0.58, primaryHex); // B-Ring outer edge
+    grad.addColorStop(0.60, 'rgba(0, 0, 0, 0.0)'); // Cassini Division Gap
+    grad.addColorStop(0.66, 'rgba(0, 0, 0, 0.0)');
+    grad.addColorStop(0.68, primaryHex); // A-Ring inner
+    grad.addColorStop(0.85, 'rgba(0, 0, 0, 0.0)'); // Encke Gap
+    grad.addColorStop(0.88, primaryHex); // A-Ring outer
+    grad.addColorStop(0.96, 'rgba(0, 0, 0, 0.0)'); // F-Ring diffuse boundary
+    grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 512, 32);
+
+    // Fine ringlet micro-banding
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    for (let x = 60; x < 480; x += 6) {
+      if (x > 300 && x < 340) continue; // Skip Cassini gap
+      ctx.fillRect(x, 0, 2, 32);
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.ClampToEdgeWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
+  }
+
   createPlanetTexture() {
     return this.createGasGiantTexture([
       [0.0, '#041226'], [0.2, '#08284d'], [0.35, '#00e1ff'],
@@ -570,43 +606,6 @@ export class SpaceScene {
     // 3. AAA Distant Majestic Celestial Gas Giant & Equatorial Rings
     this.planetGroup = new THREE.Group();
     this.planetGroup.position.set(240, 85, -580);
-
-    const planetGeo = new THREE.SphereGeometry(85, 32, 32);
-    const planetTex = this.createPlanetTexture();
-    const planetMat = new THREE.MeshStandardMaterial({
-      map: planetTex,
-      roughness: 0.85,
-      metalness: 0.1,
-      emissive: 0x021124,
-      emissiveIntensity: 0.3
-    });
-    const planetMesh = new THREE.Mesh(planetGeo, planetMat);
-    this.planetGroup.add(planetMesh);
-
-    // Atmospheric Rayleigh Limb Glow Rim
-    const atmosGeo = new THREE.SphereGeometry(88.5, 32, 32);
-    const atmosMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      transparent: true,
-      opacity: 0.18,
-      blending: THREE.AdditiveBlending,
-      side: THREE.BackSide
-    });
-    this.planetGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
-
-    // Translucent Ice Ring
-    const ringGeo = new THREE.RingGeometry(110, 175, 48);
-    ringGeo.rotateX(Math.PI * 0.38);
-    ringGeo.rotateZ(Math.PI * 0.12);
-    const ringMat = new THREE.MeshBasicMaterial({
-      color: 0x88ccff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.32,
-      blending: THREE.AdditiveBlending
-    });
-    this.planetGroup.add(new THREE.Mesh(ringGeo, ringMat));
-
     this.scene.add(this.planetGroup);
 
     // 4. Floating Interstellar Dust Particles (Realistic Round Glow)
@@ -635,6 +634,12 @@ export class SpaceScene {
 
     this.dustPoints = new THREE.Points(dustGeo, dustMat);
     this.scene.add(this.dustPoints);
+
+    // 5. Periodic Deep-Space Comets & Shooting Stars
+    this.comets = [];
+    this.cometGroup = new THREE.Group();
+    this.scene.add(this.cometGroup);
+    this.cometSpawnTimer = 3.0;
   }
 
   triggerHyperspaceWarp(position) {
@@ -919,6 +924,38 @@ export class SpaceScene {
       if (this.dustPoints.position.z > 80) this.dustPoints.position.z = -100;
     }
 
+    // Deep-Space Comet & Meteor Spawning & Updates
+    if (this.cometSpawnTimer !== undefined) {
+      this.cometSpawnTimer -= dt;
+      if (this.cometSpawnTimer <= 0) {
+        this.spawnComet();
+        this.cometSpawnTimer = 6.0 + Math.random() * 8.0;
+      }
+    }
+
+    if (this.comets && this.comets.length > 0) {
+      for (let i = this.comets.length - 1; i >= 0; i--) {
+        const c = this.comets[i];
+        c.progress += dt / c.duration;
+        if (c.progress >= 1.0) {
+          this.cometGroup.remove(c.group);
+          c.group.traverse(child => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) child.material.dispose();
+          });
+          this.comets.splice(i, 1);
+        } else {
+          c.group.position.lerpVectors(c.start, c.end, c.progress);
+          const alpha = Math.sin(c.progress * Math.PI);
+          c.group.traverse(child => {
+            if (child.material && child.material.opacity !== undefined) {
+              child.material.opacity = alpha * 0.85;
+            }
+          });
+        }
+      }
+    }
+
     // Dynamic camera roll/tilt when banking during dogfights
     if (this.cameraMode !== 'topdown') {
       const targetRoll = -pVel.x * (bossActive ? 0.035 : 0.02);
@@ -931,6 +968,64 @@ export class SpaceScene {
       this.camera.position.y += (Math.random() - 0.5) * this.shakeIntensity;
       this.shakeIntensity *= 0.88;
     }
+  }
+
+  spawnComet() {
+    if (!this.cometGroup) return;
+
+    const startX = (Math.random() - 0.5) * 400 + (Math.random() > 0.5 ? 250 : -250);
+    const startY = 120 + Math.random() * 80;
+    const startZ = -380 - Math.random() * 150;
+
+    const endX = startX > 0 ? startX - 450 - Math.random() * 200 : startX + 450 + Math.random() * 200;
+    const endY = startY - 180 - Math.random() * 120;
+    const endZ = startZ - 50;
+
+    const cometObj = new THREE.Group();
+    cometObj.position.set(startX, startY, startZ);
+
+    // Emissive Comet Plasma Nucleus
+    const headMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(1.6, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    cometObj.add(headMesh);
+
+    // Glowing Coma Halo
+    const comaMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(4.5, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending })
+    );
+    cometObj.add(comaMesh);
+
+    // Ion Stream Tail (Straight blue/cyan trail)
+    const tailLen = 65.0;
+    const tailGeo = new THREE.CylinderGeometry(0.2, 3.5, tailLen, 8, 1, true);
+    tailGeo.rotateX(Math.PI * 0.5);
+    tailGeo.translate(0, 0, -tailLen * 0.5);
+    const tailMat = new THREE.MeshBasicMaterial({
+      color: 0x00aaff,
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+    const tailMesh = new THREE.Mesh(tailGeo, tailMat);
+    cometObj.add(tailMesh);
+
+    // Orient tail along direction of movement
+    const dir = new THREE.Vector3(endX - startX, endY - startY, endZ - startZ).normalize();
+    cometObj.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+
+    this.cometGroup.add(cometObj);
+
+    this.comets.push({
+      group: cometObj,
+      start: new THREE.Vector3(startX, startY, startZ),
+      end: new THREE.Vector3(endX, endY, endZ),
+      progress: 0.0,
+      duration: 3.5 + Math.random() * 2.0
+    });
   }
 
   setSectorEnvironment(sectorId = 'SECTOR_ALPHA') {
@@ -985,9 +1080,10 @@ export class SpaceScene {
       const planetMat = new THREE.MeshStandardMaterial({ map: planetTex, roughness: 0.85, metalness: 0.1 });
       this.planetGroup.add(new THREE.Mesh(planetGeo, planetMat));
 
-      const ringGeo = new THREE.RingGeometry(110, 175, 48);
+      const ringGeo = new THREE.RingGeometry(110, 185, 64);
       ringGeo.rotateX(Math.PI * 0.38); ringGeo.rotateZ(Math.PI * 0.12);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x88ccff, side: THREE.DoubleSide, transparent: true, opacity: 0.32, blending: THREE.AdditiveBlending });
+      const ringTex = this.createPlanetaryRingTexture('rgba(140, 210, 255, 0.8)', 'rgba(30, 90, 180, 0.25)');
+      const ringMat = new THREE.MeshBasicMaterial({ map: ringTex, side: THREE.DoubleSide, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending });
       this.planetGroup.add(new THREE.Mesh(ringGeo, ringMat));
 
       this.planetGroup.position.set(240, 85, -580);
