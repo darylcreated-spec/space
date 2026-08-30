@@ -17,9 +17,18 @@ export class SpaceAudio {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
+
+      // Master Limiter / Dynamics Compressor to prevent any audio clipping or blearing
+      this.masterLimiter = this.ctx.createDynamicsCompressor();
+      this.masterLimiter.threshold.setValueAtTime(-14, this.ctx.currentTime);
+      this.masterLimiter.knee.setValueAtTime(8, this.ctx.currentTime);
+      this.masterLimiter.ratio.setValueAtTime(10, this.ctx.currentTime);
+      this.masterLimiter.attack.setValueAtTime(0.002, this.ctx.currentTime);
+      this.masterLimiter.release.setValueAtTime(0.20, this.ctx.currentTime);
+      this.masterLimiter.connect(this.ctx.destination);
+
       this.soundtrack = new AdaptiveSoundtrack(this.ctx);
       this.soundtrack.init();
-      this.setupSpaceDrone();
       this.isInitialized = true;
     } catch (e) {
       console.warn('Web Audio API not supported', e);
@@ -48,30 +57,11 @@ export class SpaceAudio {
   }
 
   setupSpaceDrone() {
-    if (!this.ctx) return;
-
-    this.droneOsc = this.ctx.createOscillator();
-    this.droneGain = this.ctx.createGain();
-    this.droneFilter = this.ctx.createBiquadFilter();
-
-    this.droneOsc.type = 'sawtooth';
-    this.droneOsc.frequency.setValueAtTime(55, this.ctx.currentTime); // A1 low cosmic drone
-
-    this.droneFilter.type = 'lowpass';
-    this.droneFilter.frequency.setValueAtTime(180, this.ctx.currentTime);
-
-    this.droneGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
-
-    this.droneOsc.connect(this.droneFilter);
-    this.droneFilter.connect(this.droneGain);
-    this.droneGain.connect(this.ctx.destination);
+    // Disabled continuous raw sawtooth drone to prevent acoustic interference with soundtrack
   }
 
   startDrone() {
-    this.ensureContext();
-    if (this.droneOsc && this.ctx) {
-      try { this.droneOsc.start(); } catch (e) {}
-    }
+    // Disabled continuous raw sawtooth drone
   }
 
   playRadioChirp() {
@@ -92,12 +82,16 @@ export class SpaceAudio {
       osc2.frequency.setValueAtTime(523.25, now);
       osc2.frequency.setValueAtTime(659.25, now + 0.04);
 
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
 
       osc1.connect(gain);
       osc2.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterLimiter || this.ctx.destination);
+
+      osc1.onended = () => {
+        try { osc1.disconnect(); osc2.disconnect(); gain.disconnect(); } catch (e) {}
+      };
 
       osc1.start(now);
       osc2.start(now);
@@ -688,11 +682,15 @@ export class SpaceAudio {
     osc.frequency.setValueAtTime(380, now);
     osc.frequency.linearRampToValueAtTime(220, now + 0.18);
 
-    gain.gain.setValueAtTime(0.08, now);
-    gain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.linearRampToValueAtTime(0.0001, now + 0.18);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterLimiter || this.ctx.destination);
+
+    osc.onended = () => {
+      try { osc.disconnect(); gain.disconnect(); } catch (e) {}
+    };
 
     try {
       osc.start(now);

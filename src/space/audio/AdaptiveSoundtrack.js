@@ -29,9 +29,18 @@ export class AdaptiveSoundtrack {
   init() {
     if (!this.ctx) return;
 
+    // Master Limiter / Dynamics Compressor prevents any audio clipping or blearing
+    this.compressor = this.ctx.createDynamicsCompressor();
+    this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
+    this.compressor.knee.setValueAtTime(12, this.ctx.currentTime);
+    this.compressor.ratio.setValueAtTime(8, this.ctx.currentTime);
+    this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+    this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+    this.compressor.connect(this.ctx.destination);
+
     this.masterGain = this.ctx.createGain();
-    this.masterGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-    this.masterGain.connect(this.ctx.destination);
+    this.masterGain.gain.setValueAtTime(0.30, this.ctx.currentTime);
+    this.masterGain.connect(this.compressor);
 
     this.ambientGain = this.ctx.createGain();
     this.ambientGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
@@ -85,9 +94,9 @@ export class AdaptiveSoundtrack {
       this.combatGain.gain.setTargetAtTime(1.0, now, fadeDuration);
       this.bossGain.gain.setTargetAtTime(0.0, now, fadeDuration);
     } else if (themeName === 'BOSS') {
-      this.ambientGain.gain.setTargetAtTime(0.2, now, fadeDuration);
-      this.combatGain.gain.setTargetAtTime(0.7, now, fadeDuration);
-      this.bossGain.gain.setTargetAtTime(1.0, now, fadeDuration);
+      this.ambientGain.gain.setTargetAtTime(0.15, now, fadeDuration);
+      this.combatGain.gain.setTargetAtTime(0.60, now, fadeDuration);
+      this.bossGain.gain.setTargetAtTime(0.75, now, fadeDuration);
     }
   }
 
@@ -108,9 +117,9 @@ export class AdaptiveSoundtrack {
 
       filter.type = 'lowpass';
       filter.frequency.setValueAtTime(450 + idx * 80, this.ctx.currentTime);
-      filter.Q.setValueAtTime(2.0, this.ctx.currentTime);
+      filter.Q.setValueAtTime(1.5, this.ctx.currentTime);
 
-      gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
 
       osc.connect(filter);
       filter.connect(gain);
@@ -161,18 +170,24 @@ export class AdaptiveSoundtrack {
     osc.frequency.setValueAtTime(freq, time);
 
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, time);
-    filter.frequency.exponentialRampToValueAtTime(120, time + 0.14);
+    filter.frequency.setValueAtTime(700, time);
+    filter.frequency.exponentialRampToValueAtTime(100, time + 0.14);
 
-    gain.gain.setValueAtTime(0.12, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+    gain.gain.setValueAtTime(0.10, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.16);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.combatGain);
 
-    osc.start(time);
-    osc.stop(time + 0.18);
+    osc.onended = () => {
+      try { osc.disconnect(); filter.disconnect(); gain.disconnect(); } catch (e) {}
+    };
+
+    try {
+      osc.start(time);
+      osc.stop(time + 0.18);
+    } catch (e) {}
   }
 
   _playSynthKick(time) {
@@ -180,22 +195,28 @@ export class AdaptiveSoundtrack {
     const gain = this.ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(140, time);
+    osc.frequency.setValueAtTime(130, time);
     osc.frequency.exponentialRampToValueAtTime(35, time + 0.1);
 
-    gain.gain.setValueAtTime(0.25, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+    gain.gain.setValueAtTime(0.20, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.12);
 
     osc.connect(gain);
     gain.connect(this.combatGain);
 
-    osc.start(time);
-    osc.stop(time + 0.14);
+    osc.onended = () => {
+      try { osc.disconnect(); gain.disconnect(); } catch (e) {}
+    };
+
+    try {
+      osc.start(time);
+      osc.stop(time + 0.14);
+    } catch (e) {}
   }
 
   _playSynthSnare(time) {
     // White noise snare transient
-    const bufferSize = this.ctx.sampleRate * 0.08;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.08);
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -210,15 +231,21 @@ export class AdaptiveSoundtrack {
     filter.frequency.setValueAtTime(1200, time);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.08, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    gain.gain.setValueAtTime(0.06, time);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.08);
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(this.combatGain);
 
-    noise.start(time);
-    noise.stop(time + 0.09);
+    noise.onended = () => {
+      try { noise.disconnect(); filter.disconnect(); gain.disconnect(); } catch (e) {}
+    };
+
+    try {
+      noise.start(time);
+      noise.stop(time + 0.09);
+    } catch (e) {}
   }
 
   _playBossChord(time) {
@@ -232,18 +259,24 @@ export class AdaptiveSoundtrack {
       osc.frequency.setValueAtTime(freq, time);
 
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(600, time);
-      filter.Q.setValueAtTime(4.0, time);
+      filter.frequency.setValueAtTime(500, time);
+      filter.Q.setValueAtTime(1.2, time); // Reduced Q from 4.0 to 1.2 to eliminate sharp resonance blearing
 
-      gain.gain.setValueAtTime(0.08, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.65);
+      gain.gain.setValueAtTime(0.05, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.55);
 
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.bossGain);
 
-      osc.start(time);
-      osc.stop(time + 0.7);
+      osc.onended = () => {
+        try { osc.disconnect(); filter.disconnect(); gain.disconnect(); } catch (e) {}
+      };
+
+      try {
+        osc.start(time);
+        osc.stop(time + 0.60);
+      } catch (e) {}
     });
   }
 }
