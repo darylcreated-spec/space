@@ -1409,21 +1409,26 @@ export class GameManager {
     if (this.overchargeTimer > 0) color = 0xffea00;
     if (this.hapticsManager) this.hapticsManager.triggerLaser();
 
+    if (!this._tempWorldMuzzle) {
+      this._tempWorldMuzzle = new THREE.Vector3();
+    }
+
     const muzzles = this.playerShip.muzzleOffsets && this.playerShip.muzzleOffsets.length > 0
       ? this.playerShip.muzzleOffsets
       : [new THREE.Vector3(-2, 0, -1), new THREE.Vector3(2, 0, -1)];
 
     muzzles.forEach(offset => {
-      const worldMuzzle = this.playerShip.meshGroup.localToWorld(offset.clone());
-      this.spawnLaser(worldMuzzle, color, false, null, false, projectileType);
+      this._tempWorldMuzzle.copy(offset);
+      this.playerShip.meshGroup.localToWorld(this._tempWorldMuzzle);
+      this.spawnLaser(this._tempWorldMuzzle, color, false, null, false, projectileType);
       if (shipClass === 'DREADNOUGHT') {
-        this.particleManager.spawnEngineParticle(worldMuzzle, 0xff5500);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0xff5500);
       } else if (shipClass === 'TACTICIAN') {
-        this.particleManager.spawnEngineParticle(worldMuzzle, 0x00ff88);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00ff88);
       } else if (shipClass === 'REAPER') {
-        this.particleManager.spawnEngineParticle(worldMuzzle, 0xcc00ff);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0xcc00ff);
       } else if (shipClass === 'SENTINEL') {
-        this.particleManager.spawnEngineParticle(worldMuzzle, 0x00e5ff);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00e5ff);
       }
     });
 

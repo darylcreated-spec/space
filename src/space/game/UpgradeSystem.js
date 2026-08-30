@@ -139,7 +139,8 @@ export class UpgradeSystem {
     // 3. Laser Weapon Systems & Progressive Muzzle Cannon Array
     let lLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.lasers || 0);
     playerShip.laserLevel = lLvl;
-    playerShip.laserFireDelay = Math.max(0.045, 0.10 - lLvl * 0.011);
+    // High-performance rhythmic salvo cadence (8-11 salvos/sec) with punchy high-damage plasma bolts
+    playerShip.laserFireDelay = Math.max(0.088, 0.12 - lLvl * 0.006);
     
     if (lLvl === 0) {
       playerShip.muzzleOffsets = [new THREE.Vector3(-1.4, 0, -1), new THREE.Vector3(1.4, 0, -1)];

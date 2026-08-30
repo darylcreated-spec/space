@@ -143,10 +143,13 @@ export class CollisionSystem {
           const rock = gameManager.asteroids[j];
           if (!rock || !rock.meshGroup || rock.isDead) continue;
 
+          const rockPos = rock.meshGroup.position;
+          if (Math.abs(lPos.z - rockPos.z) > 8.0 || Math.abs(lPos.x - rockPos.x) > 8.0) continue;
+
           laser.hitEntities = laser.hitEntities || new Set();
           if (laser.hitEntities.has(rock.meshGroup.uuid)) continue;
 
-          const dist = lPos.distanceTo(rock.meshGroup.position);
+          const dist = lPos.distanceTo(rockPos);
           const rockPhysicalRadius = (rock.radius || 3.0) * 0.75 + 0.3;
           if (dist < rockPhysicalRadius) {
             laser.hitEntities.add(rock.meshGroup.uuid);
@@ -195,24 +198,27 @@ export class CollisionSystem {
         // ── ⭐ Player Lasers vs Cloaked Data Courier Drone (3-Star Mastery) ──
         if (gameManager.dataCourierDrone && !gameManager.dataCourierDrone.isDead && gameManager.dataCourierDrone.meshGroup) {
           const courier = gameManager.dataCourierDrone;
-          const dist = lPos.distanceTo(courier.meshGroup.position);
-          if (dist < 2.5) {
-            const dead = courier.takeDamage(laser.isCritical ? 100 : 35);
-            this.particleManager.createExplosion(lPos, 0xffea00, 20);
-            if (dead) {
-              gameManager.dataCoresCollectedInWave = true;
-              gameManager.addScore(25000);
-              gameManager.upgradeSystem.addScrap(500);
-              if (gameManager.spaceHUD) {
-                gameManager.spaceHUD.showRadioTransmission("3-STAR MASTERY: Vorn Black Box Data Core Recovered! (+500 CR)", "STARBOUND COMMAND", 6.0);
-                gameManager.spaceHUD.updateScrap(gameManager.upgradeSystem.scrap);
+          const cPos = courier.meshGroup.position;
+          if (Math.abs(lPos.z - cPos.z) <= 5.0 && Math.abs(lPos.x - cPos.x) <= 5.0) {
+            const dist = lPos.distanceTo(cPos);
+            if (dist < 2.5) {
+              const dead = courier.takeDamage(laser.isCritical ? 100 : 35);
+              this.particleManager.createExplosion(lPos, 0xffea00, 20);
+              if (dead) {
+                gameManager.dataCoresCollectedInWave = true;
+                gameManager.addScore(25000);
+                gameManager.upgradeSystem.addScrap(500);
+                if (gameManager.spaceHUD) {
+                  gameManager.spaceHUD.showRadioTransmission("3-STAR MASTERY: Vorn Black Box Data Core Recovered! (+500 CR)", "STARBOUND COMMAND", 6.0);
+                  gameManager.spaceHUD.updateScrap(gameManager.upgradeSystem.scrap);
+                }
+                gameManager.hapticsManager.triggerStarEarned();
               }
-              gameManager.hapticsManager.triggerStarEarned();
-            }
-            if (!gameManager.activePerks.has('piercing') && !laser.isAoe && !laser.isPiercing) {
-              laser.destroy();
-              gameManager.lasers.splice(i, 1);
-              continue;
+              if (!gameManager.activePerks.has('piercing') && !laser.isAoe && !laser.isPiercing) {
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                continue;
+              }
             }
           }
         }
@@ -222,16 +228,19 @@ export class CollisionSystem {
           const drone = gameManager.drones[j];
           if (!drone || !drone.meshGroup || drone.isDead) continue;
 
+          const dPos = drone.meshGroup.position;
+          if (Math.abs(lPos.z - dPos.z) > 5.0 || Math.abs(lPos.x - dPos.x) > 5.0) continue;
+
           laser.hitEntities = laser.hitEntities || new Set();
           if (laser.hitEntities.has(drone.meshGroup.uuid)) continue;
 
-          const dist = lPos.distanceTo(drone.meshGroup.position);
+          const dist = lPos.distanceTo(dPos);
           const dronePhysicalRadius = 1.3;
           if (dist < dronePhysicalRadius) {
             laser.hitEntities.add(drone.meshGroup.uuid);
             let dmg = laser.damage || 20;
 
-            const isFlank = this.isFlankAttack(lPos, drone.meshGroup.position, pPos);
+            const isFlank = this.isFlankAttack(lPos, dPos, pPos);
             if (isFlank) {
               dmg = Math.round(dmg * 1.75);
               this.particleManager.createExplosion(lPos, 0xffd700, 32, 1.4);
@@ -249,7 +258,7 @@ export class CollisionSystem {
             // Tactician EMP stun on hit
             if (laser.appliesEmp || player.shipClass === 'TACTICIAN') {
               drone.stunTimer = 2.5;
-              this.particleManager.createEmpShockwave(drone.meshGroup.position, 6.0);
+              this.particleManager.createEmpShockwave(dPos, 6.0);
             }
 
             const dead = drone.takeDamage(dmg, lPos);
@@ -284,15 +293,19 @@ export class CollisionSystem {
             const ship = gameManager.capitalShips[j];
             if (!ship || !ship.meshGroup || ship.isDead || ship.isAllied || ship.isFriendly) continue;
 
+            const sPos = ship.meshGroup.position;
+            const checkRadius = (ship.radius || 12.0) + 4.0;
+            if (Math.abs(lPos.z - sPos.z) > checkRadius || Math.abs(lPos.x - sPos.x) > checkRadius) continue;
+
             laser.hitEntities = laser.hitEntities || new Set();
             if (laser.hitEntities.has(ship.meshGroup.uuid)) continue;
 
-            const dist = lPos.distanceTo(ship.meshGroup.position);
+            const dist = lPos.distanceTo(sPos);
             if (dist < ship.radius + laser.radius) {
               laser.hitEntities.add(ship.meshGroup.uuid);
               let dmg = 20;
 
-              const isFlank = this.isFlankAttack(lPos, ship.meshGroup.position, pPos);
+              const isFlank = this.isFlankAttack(lPos, sPos, pPos);
               if (isFlank) {
                 dmg = Math.round(dmg * 1.75);
                 this.particleManager.createExplosion(lPos, 0xffd700, 36, 1.6);
