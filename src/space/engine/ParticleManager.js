@@ -249,6 +249,18 @@ export class ParticleManager {
     this.shockwaves.push({ mesh: ring, currentRadius: 0.5, maxRadius, speed: 1.6 });
   }
 
+  createShockwave(pos, color = 0x00f3ff, maxRadius = 28, duration = 0.5) {
+    const mat = this._shockwaveMat.clone();
+    if (color !== undefined) mat.color.set(color);
+    const ring = new THREE.Mesh(this._shockwaveGeo, mat);
+    ring.position.copy(pos);
+    ring.rotation.x = Math.PI / 2;
+    this.scene.add(ring);
+
+    const speed = (maxRadius / Math.max(0.1, duration)) * 0.05;
+    this.shockwaves.push({ mesh: ring, currentRadius: 0.5, maxRadius, speed: Math.max(1.2, speed) });
+  }
+
   update(dt = 0.016) {
     const delta = dt || 0.016;
     this._updatePool(this.enginePool);
