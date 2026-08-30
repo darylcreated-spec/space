@@ -61,6 +61,9 @@ export class SpaceHUD {
     this.btnBuyOvercharge = document.getElementById('btn-buy-overcharge');
     this.btnBuyStasis = document.getElementById('btn-buy-stasis');
     this.btnBuyNuke = document.getElementById('btn-buy-nuke');
+    this.btnGodMaxUpgrades = document.getElementById('btn-god-max-upgrades');
+    this.btnGodMaxUpgradesText = document.getElementById('btn-god-max-upgrades-text');
+    this.hangarGodOverdriveBanner = document.getElementById('hangar-god-overdrive-banner');
 
     this.upgLvlThrust = document.getElementById('upg-lvl-thrust');
     this.upgLvlShield = document.getElementById('upg-lvl-shield');
@@ -789,6 +792,14 @@ export class SpaceHUD {
       });
     }
 
+    if (this.btnGodMaxUpgrades) {
+      this.btnGodMaxUpgrades.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.toggleGodMaxUpgrades();
+        this.updateHangarUI(this.gameManager.upgradeSystem);
+      });
+    }
+
     const bindUpgBtn = (btn, type) => {
       if (btn) {
         btn.addEventListener('click', (e) => {
@@ -1074,6 +1085,14 @@ export class SpaceHUD {
     if (this.btnBuyStasis) this.btnBuyStasis.disabled = upgradeSystem.scrap < 150;
     if (this.btnBuyNuke) this.btnBuyNuke.disabled = upgradeSystem.scrap < 200;
 
+    // God Mode Max Upgrades banner status
+    if (this.btnGodMaxUpgradesText && this.btnGodMaxUpgrades) {
+      const isGodOverdrive = !!(this.gameManager && this.gameManager.isGodMode && this.gameManager.godModeMaxUpgrades);
+      this.btnGodMaxUpgradesText.textContent = isGodOverdrive ? 'TIER 5 MAXED (ACTIVE) ⚡' : 'APPLY MAX UPGRADES';
+      this.btnGodMaxUpgrades.style.background = isGodOverdrive ? 'rgba(0, 255, 136, 0.3)' : 'transparent';
+      this.btnGodMaxUpgrades.style.borderColor = isGodOverdrive ? '#00ff88' : 'rgba(0, 255, 136, 0.5)';
+    }
+
     // Premium Mining Addon card state
     if (this.btnBuyMiningAddon && this.miningAddonStatus && this.gameManager.playerShip) {
       if (this.gameManager.playerShip.hasMiningAddon) {
@@ -1088,6 +1107,14 @@ export class SpaceHUD {
         this.btnBuyMiningAddon.textContent = 'UNLOCK DRILL (500 CR)';
         this.btnBuyMiningAddon.disabled = !canAfford;
       }
+    }
+  }
+
+  updateGodMaxUpgradesUI(isMaxed) {
+    if (this.btnGodMaxUpgradesText && this.btnGodMaxUpgrades) {
+      this.btnGodMaxUpgradesText.textContent = isMaxed ? 'TIER 5 MAXED (ACTIVE) ⚡' : 'APPLY MAX UPGRADES';
+      this.btnGodMaxUpgrades.style.background = isMaxed ? 'rgba(0, 255, 136, 0.3)' : 'transparent';
+      this.btnGodMaxUpgrades.style.borderColor = isMaxed ? '#00ff88' : 'rgba(0, 255, 136, 0.5)';
     }
   }
 

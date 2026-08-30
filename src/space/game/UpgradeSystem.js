@@ -104,18 +104,32 @@ export class UpgradeSystem {
     return false;
   }
 
+  maxAllUpgrades() {
+    this.upgrades.thrust = this.maxLevel;
+    this.upgrades.shield = this.maxLevel;
+    this.upgrades.lasers = this.maxLevel;
+    this.upgrades.emp = this.maxLevel;
+    this.upgrades.magnet = this.maxLevel;
+    for (const key in this.upgrades) {
+      localStorage.setItem(`ov_upg_${key}`, this.maxLevel.toString());
+    }
+  }
+
   applyUpgradesToShip(playerShip) {
     if (!playerShip) return;
 
+    const gm = window.spaceGameManager;
+    const isGodOverdrive = gm && gm.isGodMode && gm.godModeMaxUpgrades;
+
     // 1. Thrusters & Mobility Progression
-    let tLvl = this.upgrades.thrust || 0;
+    let tLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.thrust || 0);
     playerShip.thrustLevel = tLvl;
     playerShip.speed = 32 + tLvl * 5; // 32 to 57
     playerShip.boostRechargeRate = 16 + tLvl * 6;
     playerShip.dodgeInvulnDuration = 0.45 + tLvl * 0.08;
 
     // 2. Shield & Nanite Armor Progression
-    let sLvl = this.upgrades.shield || 0;
+    let sLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.shield || 0);
     playerShip.shieldLevel = sLvl;
     playerShip.maxShield = 100 + sLvl * 35; // 100 to 275 HP
     playerShip.shield = playerShip.maxShield;
@@ -123,7 +137,7 @@ export class UpgradeSystem {
     playerShip.hasEmergencyAegisReboot = sLvl >= 5;
 
     // 3. Laser Weapon Systems & Progressive Muzzle Cannon Array
-    let lLvl = this.upgrades.lasers || 0;
+    let lLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.lasers || 0);
     playerShip.laserLevel = lLvl;
     playerShip.laserFireDelay = Math.max(0.045, 0.10 - lLvl * 0.011);
     
@@ -166,15 +180,21 @@ export class UpgradeSystem {
     }
 
     // 4. Tactical EMP Shockwave
-    let eLvl = this.upgrades.emp || 0;
+    let eLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.emp || 0);
     playerShip.empLevel = eLvl;
     playerShip.maxPulseCD = Math.max(3.0, 7.5 - eLvl * 0.9);
     playerShip.empRadius = 25 + eLvl * 8; // 25m to 65m radius
 
     // 5. Magnetic Tractor Beam & Scrap Harvester
-    let mLvl = this.upgrades.magnet || 0;
+    let mLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.magnet || 0);
     playerShip.tractorBeamLevel = mLvl;
     playerShip.magnetRadius = 8 + mLvl * 7; // 8m to 43m collection radius
     playerShip.scrapMultiplier = 1.0 + mLvl * 0.15; // Up to +75% bonus scrap
+
+    if (isGodOverdrive) {
+      playerShip.hasMiningAddon = true;
+      playerShip.hasQuantumOvercharge = true;
+      playerShip.hasEmergencyAegisReboot = true;
+    }
   }
 }

@@ -102,6 +102,7 @@ export class GameManager {
     this.showcaseBosses = [];
     const savedGodMode = localStorage.getItem('orbital_vanguard_god_mode');
     this.isGodMode = savedGodMode === 'true';
+    this.godModeMaxUpgrades = localStorage.getItem('orbital_vanguard_god_max_upgrades') !== 'false';
     this.freezeFleetAI = false;
     this.isAutoPilot = false;
 
@@ -961,6 +962,7 @@ export class GameManager {
     if (this.playerShip) {
       this.playerShip.isInvulnerable = this.isGodMode;
       if (this.isGodMode) this.playerShip.shield = this.playerShip.maxShield;
+      if (this.upgradeSystem) this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     }
     if (this.spaceHUD) {
       if (this.spaceHUD.updateGodModeUI) this.spaceHUD.updateGodModeUI(this.isGodMode);
@@ -971,6 +973,27 @@ export class GameManager {
       );
     }
     return this.isGodMode;
+  }
+
+  toggleGodMaxUpgrades(explicitState) {
+    if (typeof explicitState === 'boolean') {
+      this.godModeMaxUpgrades = explicitState;
+    } else {
+      this.godModeMaxUpgrades = !this.godModeMaxUpgrades;
+    }
+    localStorage.setItem('orbital_vanguard_god_max_upgrades', this.godModeMaxUpgrades ? 'true' : 'false');
+    if (this.playerShip && this.upgradeSystem) {
+      this.upgradeSystem.applyUpgradesToShip(this.playerShip);
+    }
+    if (this.spaceHUD) {
+      if (this.spaceHUD.updateGodMaxUpgradesUI) this.spaceHUD.updateGodMaxUpgradesUI(this.godModeMaxUpgrades);
+      this.spaceHUD.showRadioTransmission(
+        this.godModeMaxUpgrades ? "⚡ GOD OVERDRIVE: ALL TIER 5 APEX UPGRADES APPLIED!" : "⚡ GOD OVERDRIVE: RESTORED STANDARD HANGAR UPGRADES",
+        "SHIPYARD",
+        3.0
+      );
+    }
+    return this.godModeMaxUpgrades;
   }
 
   toggleFreezeFleetAI() {
