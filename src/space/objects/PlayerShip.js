@@ -1355,12 +1355,18 @@ export class PlayerShip {
   }
 
   takeDamage(amount) {
-    if (this.dodgeTimer > 0 || this.isInvulnerable || (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode)) {
-      return false; // God Mode: Shield takes zero damage
+    const isGod = (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode);
+    if (isGod) {
+      return false; // ONLY God Mode grants permanent 100% damage immunity
+    }
+
+    // Brief action-specific temporary i-frames
+    if (this.dodgeTimer > 0 || (this.invulnerableTimer > 0 && this.hasEmergencyAegisReboot)) {
+      return false;
     }
 
     if (this.shipClass === 'REAPER' && this.isBoosting) {
-      return false; // Phasing quantum cloak
+      return false; // Phasing quantum cloak while boosting
     }
 
     let finalAmount = amount;
