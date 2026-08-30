@@ -298,6 +298,8 @@ export class LaserBolt {
       this.meshGroup.add(lattice);
 
       // 4. Twin Micro-Dagger Stabilizers
+      const finGeo = new THREE.BoxGeometry(0.8, 0.04, 0.4);
+      const finMat = new THREE.MeshBasicMaterial({ color: needleColor });
       const fin = new THREE.Mesh(finGeo, finMat);
       fin.position.set(0, 0, 1.2);
       this.meshGroup.add(fin);
