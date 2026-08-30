@@ -1193,23 +1193,34 @@ export class SpaceHUD {
 
   updateStatus(data) {
     if (this.planetHpFill) {
-      const pPct = Math.max(0, data.planetHp);
-      this.planetHpFill.style.width = `${pPct}%`;
-      this.planetHpText.textContent = `${Math.round(pPct)}%`;
+      const pPct = Math.round(Math.max(0, data.planetHp));
+      if (this._lastPlanetHp !== pPct) {
+        this._lastPlanetHp = pPct;
+        this.planetHpFill.style.width = `${pPct}%`;
+        this.planetHpText.textContent = `${pPct}%`;
+      }
     }
 
     if (this.playerHpFill) {
       const maxS = data.playerMaxShield || 90;
-      const sPct = Math.max(0, Math.min(100, (data.playerShield / maxS) * 100));
-      this.playerHpFill.style.width = `${sPct}%`;
-      this.playerHpText.textContent = `${Math.round(sPct)}%`;
+      const sPct = Math.round(Math.max(0, Math.min(100, (data.playerShield / maxS) * 100)));
+      if (this._lastShieldPct !== sPct) {
+        this._lastShieldPct = sPct;
+        this.playerHpFill.style.width = `${sPct}%`;
+        this.playerHpText.textContent = `${sPct}%`;
+      }
     }
 
     if (this.bossBarContainer && this.bossHpFill) {
       if (data.bossHpRatio !== null) {
         this.bossBarContainer.classList.remove('hidden');
-        this.bossHpFill.style.width = `${data.bossHpRatio * 100}%`;
-        if (this.bossTitleElem && data.bossTitle) {
+        const bPct = Math.round(data.bossHpRatio * 100);
+        if (this._lastBossPct !== bPct) {
+          this._lastBossPct = bPct;
+          this.bossHpFill.style.width = `${bPct}%`;
+        }
+        if (this.bossTitleElem && data.bossTitle && this._lastBossTitle !== data.bossTitle) {
+          this._lastBossTitle = data.bossTitle;
           this.bossTitleElem.textContent = data.bossTitle;
         }
       } else {
@@ -1217,19 +1228,39 @@ export class SpaceHUD {
       }
     }
 
-    if (this.scoreVal) this.scoreVal.textContent = String(data.score).padStart(6, '0');
-    if (this.scrapVal) this.scrapVal.textContent = data.scrap;
-    if (this.waveBadge) this.waveBadge.textContent = `WAVE ${data.waveNum}`;
+    if (this.scoreVal && this._lastScore !== data.score) {
+      this._lastScore = data.score;
+      this.scoreVal.textContent = String(data.score).padStart(6, '0');
+    }
+    if (this.scrapVal && this._lastScrap !== data.scrap) {
+      this._lastScrap = data.scrap;
+      this.scrapVal.textContent = data.scrap;
+    }
+    if (this.waveBadge && this._lastWaveNum !== data.waveNum) {
+      this._lastWaveNum = data.waveNum;
+      this.waveBadge.textContent = `WAVE ${data.waveNum}`;
+    }
 
-    if (this.cdRingPulse) this.cdRingPulse.style.opacity = data.pulseCdRatio > 0 ? '1' : '0';
+    if (this.cdRingPulse) {
+      const pulseActive = data.pulseCdRatio > 0 ? '1' : '0';
+      if (this._lastPulseOpacity !== pulseActive) {
+        this._lastPulseOpacity = pulseActive;
+        this.cdRingPulse.style.opacity = pulseActive;
+      }
+    }
     if (this.cdRingSwarm && this.gameManager.playerShip) {
-      this.cdRingSwarm.style.opacity = this.gameManager.playerShip.swarmMissileCooldown > 0 ? '1' : '0';
+      const swarmActive = this.gameManager.playerShip.swarmMissileCooldown > 0 ? '1' : '0';
+      if (this._lastSwarmOpacity !== swarmActive) {
+        this._lastSwarmOpacity = swarmActive;
+        this.cdRingSwarm.style.opacity = swarmActive;
+      }
     }
     if (this.btnHyperBoost && this.gameManager.playerShip) {
-      if (this.gameManager.playerShip.isBoosting) {
-        this.btnHyperBoost.classList.add('active-boost');
-      } else {
-        this.btnHyperBoost.classList.remove('active-boost');
+      const isBoosting = !!this.gameManager.playerShip.isBoosting;
+      if (this._lastIsBoosting !== isBoosting) {
+        this._lastIsBoosting = isBoosting;
+        if (isBoosting) this.btnHyperBoost.classList.add('active-boost');
+        else this.btnHyperBoost.classList.remove('active-boost');
       }
     }
   }

@@ -1792,13 +1792,6 @@ export class GameManager {
       this.spaceAudio.setLowPassMuffle?.(false);
     }
 
-    // AAA Hit Freeze-Frame Micro-Stutter for heavy impacts
-    if (this.hitFreezeTimer > 0) {
-      this.hitFreezeTimer -= dt;
-      this.renderScene();
-      return;
-    }
-
     if (this.overchargeTimer > 0) this.overchargeTimer -= dt;
     if (this.stasisTimer > 0) this.stasisTimer -= dt;
     if (this.chronoFocusTimer > 0) this.chronoFocusTimer -= dt;

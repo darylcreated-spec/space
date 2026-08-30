@@ -85,9 +85,9 @@ export class PostProcessing {
 
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    // Mobile-Guaranteed Default: 'balanced' provides a subtle, crisp micro-bloom tailored for 60fps mobile GPUs
+    // Default to 'low' (Pure Direct WebGL) to guarantee buttery-smooth 60 FPS on all devices
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || 'balanced';
+    this.quality = savedQuality || 'low';
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;

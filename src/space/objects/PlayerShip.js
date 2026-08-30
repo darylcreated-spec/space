@@ -1643,11 +1643,14 @@ export class PlayerShip {
       this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
       this.meshGroup.rotation.x = 0;
     } else {
-      // 3D Velocity update
+      // 3D Frame-Rate Independent Velocity & Orientation Smoothing
       const inputZ = (inputDir && typeof inputDir.z === 'number') ? inputDir.z : 0;
-      this.velocity.x += (inputDir.x * currentSpeed - this.velocity.x) * 0.18;
-      this.velocity.y += (inputDir.y * currentSpeed - this.velocity.y) * 0.18;
-      this.velocity.z += (inputZ * currentSpeed * 1.25 - this.velocity.z) * 0.16;
+      const smoothFactor = 1.0 - Math.exp(-14.0 * dt);
+      const rotSmooth = 1.0 - Math.exp(-16.0 * dt);
+
+      this.velocity.x += (inputDir.x * currentSpeed - this.velocity.x) * smoothFactor;
+      this.velocity.y += (inputDir.y * currentSpeed - this.velocity.y) * smoothFactor;
+      this.velocity.z += (inputZ * currentSpeed * 1.25 - this.velocity.z) * smoothFactor;
 
       this.meshGroup.position.x += this.velocity.x * dt;
       this.meshGroup.position.y += this.velocity.y * dt;
@@ -1660,15 +1663,15 @@ export class PlayerShip {
       this.targetRoll = -inputDir.x * (this.isBoosting ? 0.95 : 0.75);
       this.targetPitch = inputDir.y * 0.35 + (this.velocity.z < -2 ? -0.15 : (this.velocity.z > 2 ? 0.12 : 0));
       this.targetYaw = -inputDir.x * 0.28;
-      this.currentRoll += (this.targetRoll - this.currentRoll) * 0.18;
-      this.currentPitch += (this.targetPitch - this.currentPitch) * 0.18;
-      this.currentYaw = (this.currentYaw || 0) + (this.targetYaw - (this.currentYaw || 0)) * 0.18;
+      this.currentRoll += (this.targetRoll - this.currentRoll) * rotSmooth;
+      this.currentPitch += (this.targetPitch - this.currentPitch) * rotSmooth;
+      this.currentYaw = (this.currentYaw || 0) + (this.targetYaw - (this.currentYaw || 0)) * rotSmooth;
       this.meshGroup.rotation.z = this.currentRoll;
       this.meshGroup.rotation.x = this.currentPitch;
       this.meshGroup.rotation.y = this.currentYaw;
     }
 
-    // â”€â”€ Active RCS Micro-Thruster Bursts â”€â”€
+    // ── Active RCS Micro-Thruster Bursts ──
     const dX = inputDir.x - this.prevInput.x;
     const dY = inputDir.y - this.prevInput.y;
     this.prevInput.x = inputDir.x;
@@ -1681,12 +1684,18 @@ export class PlayerShip {
       else if (this.shipClass === 'REAPER') rcsColor = 0xaa00ff;
       else if (this.shipClass === 'SENTINEL') rcsColor = 0x00e5ff;
 
+      if (!this._tempRcsWorldPos) {
+        this._tempRcsWorldPos = new THREE.Vector3();
+        this._tempRcsWorldDir = new THREE.Vector3();
+      }
+
       this.rcsPorts.forEach(port => {
         if ((dY > 0.15 && port.dirY > 0) || (dY < -0.15 && port.dirY < 0) ||
             (dX > 0.15 && port.dirX > 0) || (dX < -0.15 && port.dirX < 0)) {
-          const worldPos = this.meshGroup.localToWorld(port.pos.clone());
-          const worldDir = new THREE.Vector3(port.dirX, port.dirY, 0).applyEuler(this.meshGroup.rotation);
-          this.particleManager.spawnRcsJet(worldPos, worldDir, rcsColor);
+          this._tempRcsWorldPos.copy(port.pos);
+          this.meshGroup.localToWorld(this._tempRcsWorldPos);
+          this._tempRcsWorldDir.set(port.dirX, port.dirY, 0).applyEuler(this.meshGroup.rotation);
+          this.particleManager.spawnRcsJet(this._tempRcsWorldPos, this._tempRcsWorldDir, rcsColor);
         }
       });
     }

@@ -929,23 +929,17 @@ export class SpaceScene {
       }
     }
 
-    // Smooth camera position lerp
-    const lerpSpeed = bossActive ? 0.12 : 0.08;
-    this.camera.position.lerp(this.targetCameraPos, lerpSpeed);
+    // Frame-Rate Independent Exponential Camera Smoothing
+    const camAlpha = 1.0 - Math.exp((bossActive ? -14.0 : -9.0) * dt);
+    this.camera.position.lerp(this.targetCameraPos, camAlpha);
 
     // Smooth lookAt target lerp
-    this.currentCamLookAt.lerp(this.targetLookAt, lerpSpeed);
+    this.currentCamLookAt.lerp(this.targetLookAt, camAlpha);
     this.camera.lookAt(this.currentCamLookAt);
 
-    // G-Force Dynamic Camera Momentum Drift & Aerodynamic Banking
-    if (pVel && playerShip) {
-      const gDriftX = -pVel.x * 0.035;
-      const gDriftY = -pVel.y * 0.025;
-      this.camera.position.x += gDriftX;
-      this.camera.position.y += gDriftY;
-      if (playerShip.currentRoll !== undefined) {
-        this.camera.rotation.z = -playerShip.currentRoll * 0.08;
-      }
+    // Subtle Aerodynamic Banking
+    if (playerShip && playerShip.currentRoll !== undefined) {
+      this.camera.rotation.z -= playerShip.currentRoll * 0.05;
     }
 
     // Hyper-Boost Camera FOV speed warping
