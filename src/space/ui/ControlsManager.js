@@ -110,32 +110,19 @@ export class ControlsManager {
   }
 
   showVirtualJoystick(x, y) {
-    let base = document.getElementById('touch-joystick-base');
-    let stick = document.getElementById('touch-joystick-stick');
-    if (!base) {
-      base = document.createElement('div');
-      base.id = 'touch-joystick-base';
-      base.style.cssText = 'position:fixed; width:90px; height:90px; border-radius:50%; border:2px solid rgba(0,243,255,0.45); background:rgba(0,243,255,0.1); pointer-events:none; z-index:99; transform:translate(-50%, -50%); display:none; box-shadow:0 0 15px rgba(0,243,255,0.3);';
-      stick = document.createElement('div');
-      stick.id = 'touch-joystick-stick';
-      stick.style.cssText = 'position:fixed; width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg, #00f3ff, #0088ff); pointer-events:none; z-index:100; transform:translate(-50%, -50%); display:none; box-shadow:0 0 12px rgba(0,243,255,0.6);';
-      document.body.appendChild(base);
-      document.body.appendChild(stick);
+    const stick = document.getElementById('touch-joystick-stick');
+    if (stick) {
+      stick.style.transform = 'translate(-50%, -50%) scale(1.15)';
     }
-    base.style.left = `${x}px`;
-    base.style.top = `${y}px`;
-    base.style.display = 'block';
-
-    stick.style.left = `${x}px`;
-    stick.style.top = `${y}px`;
-    stick.style.display = 'block';
   }
 
   hideVirtualJoystick() {
-    const base = document.getElementById('touch-joystick-base');
     const stick = document.getElementById('touch-joystick-stick');
-    if (base) base.style.display = 'none';
-    if (stick) stick.style.display = 'none';
+    if (stick) {
+      stick.style.left = '50%';
+      stick.style.top = '50%';
+      stick.style.transform = 'translate(-50%, -50%) scale(1.0)';
+    }
   }
 
   updateTouchVector(clientX, clientY) {
@@ -148,8 +135,10 @@ export class ControlsManager {
       const maxClamp = this.dragRadius;
       const clampedX = dist > 0 ? (dx / dist) * Math.min(dist, maxClamp) : 0;
       const clampedY = dist > 0 ? (dy / dist) * Math.min(dist, maxClamp) : 0;
-      stick.style.left = `${this.touchStartPos.x + clampedX}px`;
-      stick.style.top = `${this.touchStartPos.y + clampedY}px`;
+      const pctX = 50 + (clampedX / maxClamp) * 38;
+      const pctY = 50 + (clampedY / maxClamp) * 38;
+      stick.style.left = `${pctX}%`;
+      stick.style.top = `${pctY}%`;
     }
 
     // Smooth proportional analog steering (-1.0 to +1.0)

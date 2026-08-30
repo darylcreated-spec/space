@@ -227,245 +227,259 @@ html, body {
 }
 
 /* ==================== UNIFIED BOTTOM AEROSPACE COMMAND DECK ==================== */
-.hud-bottom-bar {
+/* ==================== UNIFIED TOP TACTICAL COMMAND BAR ==================== */
+.hud-top-unified-bar {
   position: absolute;
-  bottom: 12px;
-  left: 0;
-  right: 0;
-  width: 100%;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0 1.25rem;
-  pointer-events: none;
-  z-index: 20;
-}
-
-.hud-bottom-bar > * {
+  justify-content: space-between;
+  gap: 16px;
+  width: min(94vw, 720px);
+  padding: 8px 18px;
+  background: rgba(3, 8, 18, 0.88);
+  border: 1.5px solid rgba(0, 243, 255, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 243, 255, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 40;
   pointer-events: auto;
 }
 
-/* Left Cluster: Craft Shield */
-.meter-panel {
+/* 1. Shield Telemetry Cluster */
+.top-shield-cluster {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 6px 14px 8px 14px;
-  min-width: 160px;
-  background: rgba(4, 9, 20, 0.88);
-  border: 1px solid rgba(0, 243, 255, 0.35);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 243, 255, 0.15);
+  min-width: 140px;
+  flex: 1;
 }
 
-.meter-header {
+.top-shield-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
+  gap: 6px;
 }
 
-.meter-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.meter-label {
+.top-shield-label {
   font-family: var(--font-header);
   font-size: 0.65rem;
   font-weight: 800;
   color: var(--accent-cyan);
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
 }
 
-.meter-value {
+.top-shield-pct {
   font-family: var(--font-code);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  color: #fff;
+  color: #ffffff;
 }
 
-.meter-bar-track {
+.top-shield-track {
   width: 100%;
   height: 7px;
   background: rgba(0, 20, 40, 0.8);
-  border: 1px solid rgba(0, 243, 255, 0.3);
+  border: 1px solid rgba(0, 243, 255, 0.35);
   border-radius: 3px;
   overflow: hidden;
   position: relative;
 }
 
-.meter-bar-fill {
+.top-shield-fill {
   height: 100%;
+  background: linear-gradient(90deg, #0088ff, var(--accent-cyan));
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
   transition: width 0.15s ease-out;
 }
 
-.player-fill {
-  background: linear-gradient(90deg, #0088ff, var(--accent-cyan));
-  box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
-}
-
-.meter-grid-ticks {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: repeating-linear-gradient(90deg, transparent 0, transparent 8px, rgba(0, 0, 0, 0.4) 8px, rgba(0, 0, 0, 0.4) 10px);
-  pointer-events: none;
-}
-
-/* Visceral Shield Impact Display Pulse */
-.player-panel.shield-impact-flash {
-  animation: shieldImpactAnim 1.0s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@keyframes shieldImpactAnim {
-  0% {
-    border-color: #ff0055 !important;
-    background: rgba(255, 0, 85, 0.35) !important;
-    box-shadow: 0 0 35px rgba(255, 0, 85, 0.9), inset 0 0 20px rgba(0, 243, 255, 0.8) !important;
-    transform: scale(1.06);
-  }
-  30% {
-    border-color: #00f3ff !important;
-    background: rgba(0, 243, 255, 0.25) !important;
-    box-shadow: 0 0 30px rgba(0, 243, 255, 0.8), inset 0 0 15px rgba(255, 0, 85, 0.5) !important;
-    transform: scale(1.03);
-  }
-  100% {
-    border-color: rgba(0, 243, 255, 0.35);
-    background: rgba(4, 9, 20, 0.88);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 243, 255, 0.15);
-    transform: scale(1.0);
-  }
-}
-
-/* Center Cluster: Mission Score & Wave Badge */
-.center-score-panel {
+/* 2. Wave / Stage Pill Cluster */
+.top-wave-cluster {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 6px 18px;
-  background: rgba(4, 9, 20, 0.88);
-  border: 1px solid rgba(0, 243, 255, 0.35);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 243, 255, 0.15);
+  justify-content: center;
 }
 
-.wave-pill {
+.top-wave-badge {
   font-family: var(--font-header);
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   font-weight: 900;
   letter-spacing: 1.5px;
   color: #000;
   background: linear-gradient(90deg, var(--accent-cyan), #00bbff);
-  padding: 3px 10px;
-  border-radius: 6px;
-  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+  padding: 4px 14px;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+  white-space: nowrap;
 }
 
-.tac-cluster-mid {
+/* 3. Score Cluster */
+.top-score-cluster {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
+  min-width: 120px;
+  flex: 1;
 }
 
-.score-label {
+.top-score-label {
   font-family: var(--font-header);
   font-size: 0.55rem;
   letter-spacing: 1.5px;
   color: var(--text-muted);
 }
 
-.score-num {
+.top-score-val {
   font-family: var(--font-code);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: 1px;
 }
 
-.scrap-display {
+/* Compact Pilot Dossier Badge (Far Left Overlay) */
+.top-pilot-badge {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-code);
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--accent-cyan);
-}
-
-.scrap-unit {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  font-family: var(--font-header);
-}
-
-/* Right Cluster: Auxiliary Rail Controls */
-.hud-bottom-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.icon-btn {
-  background: rgba(6, 14, 28, 0.85);
+  background: rgba(0, 243, 255, 0.12);
   border: 1px solid rgba(0, 243, 255, 0.35);
-  color: var(--text-main);
-  padding: 6px 10px;
   border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.top-pilot-badge:hover {
+  background: rgba(0, 243, 255, 0.25);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.top-pilot-avatar {
   display: flex;
   align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-  font-family: var(--font-header);
-  font-size: 0.65rem;
+}
+
+.top-pilot-callsign {
+  font-family: var(--font-code);
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.icon-btn:hover {
-  background: rgba(0, 243, 255, 0.15);
-  border-color: var(--accent-cyan);
   color: var(--accent-cyan);
-  box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
 }
 
-.icon-btn:active {
-  transform: scale(0.95);
-}
-
-/* ==================== TACTICAL WEAPON ACTION PODS ==================== */
-.mobile-controls-layer {
+/* ==================== DOCKED BOTTOM-LEFT VIRTUAL JOYSTICK ==================== */
+.virtual-joystick-dock {
   position: absolute;
-  bottom: 64px;
-  right: 0;
+  bottom: 24px;
+  left: 24px;
+  width: 110px;
+  height: 110px;
+  z-index: 30;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: none;
+}
+
+.touch-joystick-base {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 243, 255, 0.45);
+  background: radial-gradient(circle, rgba(0, 243, 255, 0.14) 0%, rgba(2, 6, 16, 0.85) 75%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.joystick-crosshair-h {
+  position: absolute;
+  width: 70%;
+  height: 1px;
+  background: rgba(0, 243, 255, 0.2);
+}
+
+.joystick-crosshair-v {
+  position: absolute;
+  height: 70%;
+  width: 1px;
+  background: rgba(0, 243, 255, 0.2);
+}
+
+.joystick-chevron {
+  position: absolute;
+  font-size: 0.55rem;
+  color: rgba(0, 243, 255, 0.5);
+  pointer-events: none;
+  font-family: var(--font-header);
+}
+
+.joystick-chevron.chevron-up { top: 4px; left: 50%; transform: translateX(-50%); }
+.joystick-chevron.chevron-down { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.joystick-chevron.chevron-left { left: 5px; top: 50%; transform: translateY(-50%); }
+.joystick-chevron.chevron-right { right: 5px; top: 50%; transform: translateY(-50%); }
+
+.touch-joystick-stick {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #00f3ff 20%, #0077dd 100%);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
+  transform: translate(-50%, -50%);
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+  transition: transform 0.05s ease-out;
+}
+
+/* ==================== RIGHT-EDGE STACKED FIGHT & DOCTRINE BUTTONS ==================== */
+.mobile-controls-right-edge {
+  position: absolute;
+  bottom: 20px;
+  right: 18px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 30;
+  pointer-events: none;
+  touch-action: none;
+}
+
+/* Squadron Doctrine Buttons Stacked Vertically */
+.squadron-doctrine-vertical-stack {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 0.5rem 1.25rem;
-  pointer-events: none;
-  z-index: 25;
-  touch-action: none !important;
+  gap: 6px;
+  pointer-events: auto;
 }
 
-.action-buttons-zone {
+/* Action Fight Buttons Stacked Vertically on Right Edge */
+.action-buttons-vertical-stack {
   display: flex;
-  gap: 10px;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: 8px;
   pointer-events: auto;
-  touch-action: none !important;
 }
 
 .action-btn {
   position: relative;
-  width: 58px;
-  height: 58px;
+  width: 54px;
+  height: 54px;
   border-radius: 12px;
   border: 1.5px solid rgba(0, 243, 255, 0.4);
-  background: rgba(5, 12, 22, 0.9);
+  background: rgba(5, 12, 22, 0.92);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7), 0 0 15px rgba(0, 243, 255, 0.2);
   backdrop-filter: blur(12px);
   color: #fff;
@@ -488,7 +502,7 @@ html, body {
 
 .action-btn .btn-label {
   font-family: var(--font-header);
-  font-size: 0.58rem;
+  font-size: 0.55rem;
   font-weight: 800;
   letter-spacing: 1px;
   margin-top: 1px;
@@ -496,7 +510,7 @@ html, body {
 
 .action-btn .btn-hotkey {
   font-family: var(--font-code);
-  font-size: 0.5rem;
+  font-size: 0.48rem;
   color: var(--text-muted);
   line-height: 1;
 }
@@ -1563,87 +1577,73 @@ html, body {
   .hud-bottom-bar {
     bottom: 6px;
     padding: 0 6px;
-    gap: 6px;
+  /* Top Unified Command Bar on Mobile */
+  .hud-top-unified-bar {
+    top: 8px;
+    width: 96vw;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  .top-shield-cluster { min-width: 90px; }
+  .top-shield-label { font-size: 0.55rem; }
+  .top-shield-pct { font-size: 0.72rem; }
+  .top-wave-badge { font-size: 0.65rem; padding: 3px 8px; }
+  .top-score-cluster { min-width: 80px; }
+  .top-score-val { font-size: 0.85rem; }
+  .top-pilot-badge { display: none; }
+
+  /* Docked Virtual Joystick on Mobile */
+  .virtual-joystick-dock {
+    bottom: 16px;
+    left: 14px;
+    width: 90px;
+    height: 90px;
+  }
+  .touch-joystick-base {
+    width: 84px;
+    height: 84px;
+  }
+  .touch-joystick-stick {
+    width: 38px;
+    height: 38px;
   }
 
-  .meter-panel {
-    min-width: 100px;
-    padding: 4px 6px;
-  }
-  .meter-label { font-size: 0.52rem; }
-  .meter-value { font-size: 0.68rem; }
-  .shield-tick { height: 7px; }
-
-  .center-score-panel {
-    gap: 6px;
-    padding: 3px 8px;
-  }
-  .wave-pill { font-size: 0.58rem; padding: 2px 5px; }
-  .score-num { font-size: 0.8rem; }
-  .score-label { display: none; }
-  .scrap-display { font-size: 0.75rem; }
-
-  /* Tactile Action Button Pods & Placeholders */
-  .mobile-controls-layer {
-    bottom: 56px;
-    left: 0;
-    right: 0;
-    width: 100%;
-    padding: 0.35rem 0.4rem;
-    align-items: center;
-    box-sizing: border-box;
-    pointer-events: none;
+  /* Right-Edge Stacked Controls on Mobile */
+  .mobile-controls-right-edge {
+    bottom: 16px;
+    right: 12px;
+    gap: 8px;
   }
 
-  .squadron-doctrine-zone {
-    justify-content: center;
-    width: 100%;
-    gap: 5px;
-    margin-bottom: 4px;
-  }
-
-  .doctrine-btn {
-    padding: 3px 8px;
-    font-size: 0.58rem;
+  .squadron-doctrine-vertical-stack {
     gap: 4px;
   }
 
-  .doctrine-btn .doctrine-dot {
-    width: 5px;
-    height: 5px;
+  .doctrine-btn {
+    padding: 3px 6px;
+    font-size: 0.52rem;
+    gap: 3px;
   }
 
-  .action-buttons-zone {
-    pointer-events: auto;
-    display: flex;
-    justify-content: center;
-    width: 100%;
+  .action-buttons-vertical-stack {
     gap: 6px;
   }
 
   .action-btn {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    min-height: 48px;
-    border-radius: 12px;
-    border: 1.5px solid rgba(0, 243, 255, 0.4);
-    background: rgba(4, 12, 24, 0.85);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), inset 0 0 8px rgba(0, 243, 255, 0.15);
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .action-btn:active {
-    transform: scale(0.92);
-    border-color: var(--accent-cyan);
-    box-shadow: 0 0 20px rgba(0, 243, 255, 0.8);
-    background: rgba(0, 243, 255, 0.25);
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    min-height: 46px;
+    border-radius: 10px;
   }
 
   .action-btn .btn-label {
-    font-size: 0.48rem;
+    font-size: 0.46rem;
     font-weight: 800;
+  }
+  .action-btn .btn-hotkey {
+    display: none;
+  }
   }
   .action-btn .btn-hotkey {
     display: none;

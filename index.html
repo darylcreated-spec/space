@@ -111,20 +111,41 @@
       </div>
     </div>
 
-    <!-- Top Tactical Pilot Status & Squadron Bar -->
-    <div id="hud-top-pilot-bar" class="hud-top-bar">
-      <!-- Pilot Dossier Badge -->
-      <div id="btn-open-pilot-profile" class="pilot-identity-pill" title="Click to view Pilot Registry & Dossier">
-        <div class="pilot-avatar-badge">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+    <!-- ==================== UNIFIED TOP TACTICAL COMMAND BAR ==================== -->
+    <div id="hud-top-unified-bar" class="hud-top-unified-bar">
+      <!-- 1. Shield Telemetry Cluster -->
+      <div class="top-shield-cluster">
+        <div class="top-shield-header">
+          <svg class="hud-mini-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--accent-cyan)" stroke-width="2.2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span class="top-shield-label">SHIELD</span>
+          <span class="top-shield-pct" id="space-player-hp-text">100%</span>
+        </div>
+        <div class="top-shield-track">
+          <div id="space-player-hp-fill" class="top-shield-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- 2. Center Wave / Stage Badge -->
+      <div class="top-wave-cluster">
+        <div id="space-wave-badge" class="top-wave-badge">STAGE 1</div>
+      </div>
+
+      <!-- 3. Right Score Cluster -->
+      <div class="top-score-cluster">
+        <span class="top-score-label">SCORE</span>
+        <span id="space-score-val" class="top-score-val">000000</span>
+      </div>
+
+      <!-- Compact Pilot Icon Badge (Far Left Overlay) -->
+      <div id="btn-open-pilot-profile" class="top-pilot-badge" title="Pilot Registry & Dossier">
+        <div class="top-pilot-avatar">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
             <polygon points="12 2 19 21 12 17 5 21 12 2"/>
           </svg>
         </div>
-        <div class="pilot-info-col">
-          <span class="pilot-callsign-text" id="hud-pilot-callsign">CDR. DARYL // VG-01</span>
-          <span class="pilot-email-text" id="hud-pilot-email">daryl.created@gmail.com</span>
-        </div>
-        <div class="pilot-rank-tag" id="hud-pilot-rank">COMMANDER</div>
+        <span class="top-pilot-callsign" id="hud-pilot-callsign">VG-01</span>
       </div>
     </div>
 
@@ -147,47 +168,6 @@
       <div class="meter-bar-track boss-track">
         <div id="space-boss-hp-fill" class="meter-bar-fill boss-fill" style="width: 100%;"></div>
         <div class="meter-grid-ticks"></div>
-      </div>
-    </div>
-
-    <!-- Unified Bottom Aerospace Flight Command Deck -->
-    <div class="hud-bottom-bar">
-      <!-- Left Cluster: SYS.DEF Shield & Reactor -->
-      <div class="glass-panel meter-panel player-panel">
-        <div class="meter-header">
-          <div class="meter-title-wrap">
-            <svg class="hud-mini-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <span class="meter-label">SYS.DEF // SHIELD</span>
-          </div>
-          <span class="meter-value" id="space-player-hp-text">100%</span>
-        </div>
-        <div class="meter-bar-track">
-          <div id="space-player-hp-fill" class="meter-bar-fill player-fill" style="width: 100%;"></div>
-          <div class="meter-grid-ticks"></div>
-        </div>
-      </div>
-
-      <!-- Center Cluster: TAC.NAV Wave, Score & Tech Scrap -->
-      <div class="glass-panel center-score-panel">
-        <div class="tac-cluster-left">
-          <div id="space-wave-badge" class="wave-pill">WAVE 1</div>
-        </div>
-        <div class="tac-cluster-mid">
-          <span class="score-label">MISSION SCORE</span>
-          <span id="space-score-val" class="score-num">000000</span>
-        </div>
-        <div class="tac-cluster-right">
-          <div class="scrap-display">
-            <svg class="scrap-icon-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="12" r="3"/>
-              <path d="M12 1v3M12 20v3M1 12h3M20 12h3"/>
-            </svg>
-            <span id="space-scrap-val" class="scrap-num">0</span>
-            <span class="scrap-unit">CR</span>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -246,33 +226,47 @@
       </div>
     </div>
 
-    <!-- Mobile / Tactile Flight Action Buttons Layer -->
-    <div id="space-mobile-controls" class="mobile-controls-layer">
-      <!-- Tactical Squadron Doctrine Selector -->
-      <div class="squadron-doctrine-zone">
-        <button id="btn-doctrine-defend" class="doctrine-btn active" title="Wingman Doctrine: Defend (Key 1)">
+    <!-- ==================== BOTTOM ERGONOMIC FLIGHT & COMBAT CONTROLS ==================== -->
+    <!-- 1. Dedicated Bottom-Left Virtual Joystick Dock -->
+    <div id="virtual-joystick-dock" class="virtual-joystick-dock">
+      <div id="touch-joystick-base" class="touch-joystick-base">
+        <div class="joystick-crosshair-h"></div>
+        <div class="joystick-crosshair-v"></div>
+        <div class="joystick-chevron chevron-up">▲</div>
+        <div class="joystick-chevron chevron-down">▼</div>
+        <div class="joystick-chevron chevron-left">◀</div>
+        <div class="joystick-chevron chevron-right">▶</div>
+        <div id="touch-joystick-stick" class="touch-joystick-stick"></div>
+      </div>
+    </div>
+
+    <!-- 2. Right Edge Stacked Combat & Doctrine Controls -->
+    <div id="space-mobile-controls" class="mobile-controls-right-edge">
+      <!-- Tactical Squadron Doctrine Selector Stack -->
+      <div class="squadron-doctrine-vertical-stack">
+        <button id="btn-doctrine-defend" class="doctrine-btn active" title="Squadron Defend (Key 1)">
           <span class="doctrine-dot"></span>
           <span class="doctrine-label">DEFEND</span>
           <span class="doctrine-key">[1]</span>
         </button>
-        <button id="btn-doctrine-focus" class="doctrine-btn" title="Wingman Doctrine: Focus Fire (Key 2)">
+        <button id="btn-doctrine-focus" class="doctrine-btn" title="Squadron Focus Fire (Key 2)">
           <span class="doctrine-dot"></span>
           <span class="doctrine-label">FOCUS</span>
           <span class="doctrine-key">[2]</span>
         </button>
-        <button id="btn-doctrine-flank" class="doctrine-btn" title="Wingman Doctrine: Swarm Flank (Key 3)">
+        <button id="btn-doctrine-flank" class="doctrine-btn" title="Squadron Swarm Flank (Key 3)">
           <span class="doctrine-dot"></span>
           <span class="doctrine-label">FLANK</span>
           <span class="doctrine-key">[3]</span>
         </button>
       </div>
 
-      <!-- 4 Tactical Ordnance Pods -->
-      <div class="action-buttons-zone">
+      <!-- Action Fight Buttons Stacked on Right Edge -->
+      <div class="action-buttons-vertical-stack">
         <!-- 1. Tactical Dodge Roll -->
         <button id="btn-dodge-roll" class="action-btn dodge-btn" title="Tactical Evasive Roll (Double-tap A/D)">
           <div class="action-btn-inner">
-            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ff0055" stroke-width="2.2">
+            <svg class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ff0055" stroke-width="2.2">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
             <span class="btn-label">DODGE</span>
@@ -284,7 +278,7 @@
         <button id="btn-fire-swarm" class="action-btn swarm-btn" title="Multi-Target Swarm Missiles (E / 2)">
           <span class="cooldown-ring" id="cd-ring-swarm"></span>
           <div class="action-btn-inner">
-            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent-cyan)" stroke-width="2.2">
+            <svg class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent-cyan)" stroke-width="2.2">
               <path d="M12 2l3 5-3 5-3-5zM6 8l3 5-3 5-3-5zM18 8l3 5-3 5-3-5z"/>
             </svg>
             <span class="btn-label">SWARM</span>
@@ -293,9 +287,9 @@
         </button>
 
         <!-- 3. Hyper-Boost Surge -->
-        <button id="btn-hyper-boost" class="action-btn boost-btn" title="Hyper-Boost Thrusters (W / Space)">
+        <button id="btn-hyper-boost" class="action-btn boost-btn" title="Hyper-Boost Thrusters (W / Space / B)">
           <div class="action-btn-inner">
-            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ffea00" stroke-width="2.2">
+            <svg class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ffea00" stroke-width="2.2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
             <span class="btn-label">BOOST</span>
@@ -307,7 +301,7 @@
         <button id="btn-fire-pulse" class="action-btn pulse-btn" title="Plasma Pulse EMP Charge (Q / Shift)">
           <span class="cooldown-ring" id="cd-ring-pulse"></span>
           <div class="action-btn-inner">
-            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ff00bb" stroke-width="2.2">
+            <svg class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ff00bb" stroke-width="2.2">
               <circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/>
             </svg>
             <span class="btn-label">PULSE</span>
@@ -319,8 +313,7 @@
         <button id="btn-fire-superweapon" class="action-btn superweapon-btn" title="Tactical Superweapon (F / 4)">
           <span class="cooldown-ring" id="cd-ring-superweapon"></span>
           <div class="action-btn-inner">
-            <svg class="action-svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#00f3ff" stroke-width="2.2">
-              <!-- Authentic Radiation Hazard Trefoil Warhead Icon -->
+            <svg class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#00f3ff" stroke-width="2.2">
               <circle cx="12" cy="12" r="3" fill="#00f3ff"/>
               <path d="M12 9a3 3 0 0 0-2.6 1.5L6.8 5.9A9 9 0 0 1 17.2 5.9l-2.6 4.6A3 3 0 0 0 12 9z" fill="#00f3ff" fill-opacity="0.85"/>
               <path d="M9.4 13.5a3 3 0 0 0 2.6 1.5v5.3a9 9 0 0 1-9-5.2l4.6-2.6a3 3 0 0 0 1.8 1z" fill="#00f3ff" fill-opacity="0.85"/>
