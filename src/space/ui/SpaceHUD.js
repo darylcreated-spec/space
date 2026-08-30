@@ -35,6 +35,7 @@ export class SpaceHUD {
 
     this.modalStart = document.getElementById('space-modal-start');
     this.btnStartGame = document.getElementById('btn-start-space');
+    this.btnStartSpaceText = document.getElementById('btn-start-space-text');
     this.btnResumeSave = document.getElementById('btn-resume-save');
     this.btnResumeSaveText = document.getElementById('btn-resume-save-text');
     this.btnStartHangar = document.getElementById('btn-start-hangar');
@@ -89,6 +90,9 @@ export class SpaceHUD {
     this.finalWave = document.getElementById('space-final-wave');
     this.finalKills = document.getElementById('space-final-kills');
     this.btnRestartGame = document.getElementById('btn-restart-space');
+    this.btnRetryStage = document.getElementById('btn-retry-stage');
+    this.btnRetryStageText = document.getElementById('btn-retry-stage-text');
+    this.btnGameOverHangar = document.getElementById('btn-gameover-hangar');
 
     // Fleet Inspector Modal cache
     this.btnOpenFleetInspector = document.getElementById('btn-open-fleet-inspector');
@@ -688,16 +692,11 @@ export class SpaceHUD {
       });
     }
 
-    if (this.modalStart) {
-      this.modalStart.addEventListener('pointerdown', (e) => {
-        triggerStartIfInStartScreen();
-      });
-    }
-
     if (this.btnStartGame) {
       this.btnStartGame.addEventListener('click', (e) => {
         e.stopPropagation();
-        triggerStartIfInStartScreen();
+        if (this.modalStart) this.modalStart.classList.add('hidden');
+        this.gameManager.startGame(1); // Start fresh new campaign at Stage 1
       });
     }
 
@@ -705,7 +704,7 @@ export class SpaceHUD {
       this.btnResumeSave.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.modalStart) this.modalStart.classList.add('hidden');
-        this.gameManager.loadSavedGame();
+        this.gameManager.loadSavedGame(); // Load exact saved stage and loadout
       });
     }
 
@@ -733,11 +732,29 @@ export class SpaceHUD {
       });
     }
 
+    // Game Over Actions
+    if (this.btnRetryStage) {
+      this.btnRetryStage.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.modalGameOver) this.modalGameOver.classList.add('hidden');
+        const targetWave = this.currentGameOverWave || (this.gameManager.waveSpawner ? this.gameManager.waveSpawner.currentWave : 1);
+        this.gameManager.startGame(targetWave);
+      });
+    }
+
     if (this.btnRestartGame) {
       this.btnRestartGame.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.modalGameOver) this.modalGameOver.classList.add('hidden');
-        this.gameManager.startGame();
+        this.gameManager.startGame(1); // Start new campaign from Stage 1
+      });
+    }
+
+    if (this.btnGameOverHangar) {
+      this.btnGameOverHangar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.modalGameOver) this.modalGameOver.classList.add('hidden');
+        this.showHangarModal(0, this.gameManager.upgradeSystem);
       });
     }
 
@@ -882,6 +899,7 @@ export class SpaceHUD {
     if (!this.btnResumeSave) {
       this.btnResumeSave = document.getElementById('btn-resume-save');
       this.btnResumeSaveText = document.getElementById('btn-resume-save-text');
+      this.btnStartSpaceText = document.getElementById('btn-start-space-text');
     }
     if (!this.btnResumeSave) return;
 
@@ -891,8 +909,22 @@ export class SpaceHUD {
       if (this.btnResumeSaveText) {
         this.btnResumeSaveText.textContent = `CONTINUE CAMPAIGN // RESUME STAGE ${save.waveNum} (${save.scrap || 0} CR)`;
       }
+      if (this.btnStartSpaceText) {
+        this.btnStartSpaceText.textContent = `START NEW CAMPAIGN (STAGE 1)`;
+      }
+    } else if (save && save.waveNum === 1 && save.scrap > 0) {
+      this.btnResumeSave.classList.remove('hidden');
+      if (this.btnResumeSaveText) {
+        this.btnResumeSaveText.textContent = `CONTINUE CAMPAIGN // STAGE 1 (${save.scrap || 0} CR)`;
+      }
+      if (this.btnStartSpaceText) {
+        this.btnStartSpaceText.textContent = `START NEW CAMPAIGN (STAGE 1)`;
+      }
     } else {
       this.btnResumeSave.classList.add('hidden');
+      if (this.btnStartSpaceText) {
+        this.btnStartSpaceText.textContent = `LAUNCH MISSION (STAGE 1)`;
+      }
     }
   }
 
@@ -1114,11 +1146,20 @@ export class SpaceHUD {
 
   showGameOverModal(data) {
     if (this.modalGameOver) {
+      this.currentGameOverWave = data.waveNum || 1;
       this.gameoverTitle.textContent = data.title;
       this.gameoverReason.textContent = data.reason;
       this.finalScore.textContent = String(data.finalScore).padStart(6, '0');
-      this.finalWave.textContent = `Wave ${data.waveNum}`;
+      this.finalWave.textContent = `Stage ${data.waveNum}`;
       this.finalKills.textContent = data.totalKills;
+
+      if (!this.btnRetryStageText) {
+        this.btnRetryStageText = document.getElementById('btn-retry-stage-text');
+      }
+      if (this.btnRetryStageText) {
+        this.btnRetryStageText.textContent = `RETRY STAGE ${this.currentGameOverWave}`;
+      }
+
       this.modalGameOver.classList.remove('hidden');
     }
   }
