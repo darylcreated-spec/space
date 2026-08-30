@@ -85,19 +85,48 @@ export class PostProcessing {
 
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    // Bare minimum post-processing by default (Direct WebGL rendering, 0 extra framebuffers)
+    // Mobile-Guaranteed Default: 'balanced' provides a subtle, crisp micro-bloom tailored for 60fps mobile GPUs
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || 'low';
+    this.quality = savedQuality || 'balanced';
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;
     this.time = 0;
     this.composer = null;
+    this.fpsDropStreak = 0;
+    this.fallbackDirectCooldown = 0;
 
     if (this.quality !== 'low') {
       this._initComposer();
     }
     window.addEventListener('resize', this.onResize.bind(this));
+  }
+
+  _getCalculatedBloomParams() {
+    // Calculated GPU memory-bandwidth budget:
+    // Mobile Target: ~240p downscaled blur buffer (< 1.5MB total bandwidth)
+    if (this.isMobile || this.quality === 'balanced') {
+      return {
+        scale: 0.22,
+        strength: 0.28,
+        radius: 0.20,
+        threshold: 0.72
+      };
+    } else if (this.quality === 'ultra') {
+      return {
+        scale: 0.40,
+        strength: 0.45,
+        radius: 0.35,
+        threshold: 0.60
+      };
+    } else { // 'high'
+      return {
+        scale: 0.30,
+        strength: 0.35,
+        radius: 0.25,
+        threshold: 0.68
+      };
+    }
   }
 
   _initComposer() {
@@ -106,24 +135,19 @@ export class PostProcessing {
       const renderPass = new RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
-      // Lightweight bare-minimum bloom pass (scaled down resolution)
-      const bloomScale = this.isMobile ? 0.25 : 0.35;
+      const params = this._getCalculatedBloomParams();
       const bloomRes = new THREE.Vector2(
-        Math.max(128, Math.floor(window.innerWidth * bloomScale)),
-        Math.max(128, Math.floor(window.innerHeight * bloomScale))
+        Math.max(128, Math.floor(window.innerWidth * params.scale)),
+        Math.max(128, Math.floor(window.innerHeight * params.scale))
       );
 
-      const bloomStrength = this.quality === 'ultra' ? 0.40 : 0.25;
-      const bloomRadius = 0.25;
-      const bloomThreshold = 0.65;
-
-      this.bloomPass = new UnrealBloomPass(bloomRes, bloomStrength, bloomRadius, bloomThreshold);
+      this.bloomPass = new UnrealBloomPass(bloomRes, params.strength, params.radius, params.threshold);
       this.composer.addPass(this.bloomPass);
 
       const outputPass = new OutputPass();
       this.composer.addPass(outputPass);
 
-      console.log(`[PostFX] Lightweight Composer initialized (Quality: ${this.quality})`);
+      console.log(`[PostFX] Mobile-Engineered Composer active — Bloom res: ${bloomRes.x}x${bloomRes.y}, strength: ${params.strength}`);
     } catch (e) {
       console.warn('PostProcessing fallback to direct WebGL render:', e);
       this.composer = null;
@@ -133,44 +157,74 @@ export class PostProcessing {
   setGraphicsQuality(level) {
     this.quality = level;
     if (level === 'low') {
-      if (this.composer) {
-        this.composer = null;
-      }
+      this.composer = null;
     } else {
       if (!this.composer) {
         this._initComposer();
-      } else if (this.bloomPass) {
-        this.bloomPass.strength = level === 'ultra' ? 0.40 : 0.25;
+      } else {
+        const params = this._getCalculatedBloomParams();
+        if (this.bloomPass) {
+          this.bloomPass.strength = params.strength;
+          this.bloomPass.radius = params.radius;
+          this.bloomPass.threshold = params.threshold;
+          this.bloomPass.resolution.set(
+            Math.max(128, Math.floor(window.innerWidth * params.scale)),
+            Math.max(128, Math.floor(window.innerHeight * params.scale))
+          );
+        }
       }
     }
   }
 
   update(dt, playerShip) {
     this.time += dt;
+
+    // Hyper-Boost Dynamic Glow Surge
     if (playerShip && playerShip.isBoosting) {
       this.targetBoost = 1.0;
     } else {
       this.targetBoost = 0.0;
     }
     this.boostAmount = THREE.MathUtils.lerp(this.boostAmount, this.targetBoost, dt * 8.0);
+
+    if (this.bloomPass) {
+      const baseStrength = (this.isMobile || this.quality === 'balanced') ? 0.28 : (this.quality === 'ultra' ? 0.45 : 0.35);
+      this.bloomPass.strength = baseStrength + this.boostAmount * 0.18;
+    }
+
+    // ── 🛡️ 60 FPS Mobile Performance Watchdog ──
+    // If consecutive frames take longer than 28ms (< 35fps), temporarily bypass to direct render
+    if (this.fallbackDirectCooldown > 0) {
+      this.fallbackDirectCooldown -= dt;
+    } else if (dt > 0.028 && this.composer && this.quality !== 'low') {
+      this.fpsDropStreak++;
+      if (this.fpsDropStreak > 40) { // ~1 second of low fps
+        console.warn(`[PostFX] Low mobile FPS detected (${(1/dt).toFixed(0)} FPS) — optimizing to direct WebGL pipeline.`);
+        this.setGraphicsQuality('low');
+        this.fpsDropStreak = 0;
+        this.fallbackDirectCooldown = 8.0; // Keep direct render for 8s
+      }
+    } else if (dt < 0.018) {
+      this.fpsDropStreak = Math.max(0, this.fpsDropStreak - 1);
+    }
   }
 
   onResize() {
     if (this.composer) {
       this.composer.setSize(window.innerWidth, window.innerHeight);
       if (this.bloomPass) {
-        const bloomScale = this.isMobile ? 0.25 : 0.35;
+        const params = this._getCalculatedBloomParams();
         this.bloomPass.resolution.set(
-          Math.max(128, Math.floor(window.innerWidth * bloomScale)),
-          Math.max(128, Math.floor(window.innerHeight * bloomScale))
+          Math.max(128, Math.floor(window.innerWidth * params.scale)),
+          Math.max(128, Math.floor(window.innerHeight * params.scale))
         );
       }
     }
   }
 
   render() {
-    // Bare Minimum Direct WebGL Render: Zero multi-pass overhead, max 60-120 FPS
-    if (this.composer && this.quality !== 'low') {
+    // Smooth, guaranteed 60fps render execution
+    if (this.composer && this.quality !== 'low' && this.fallbackDirectCooldown <= 0) {
       try {
         this.composer.render();
       } catch (e) {

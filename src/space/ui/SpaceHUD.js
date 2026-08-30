@@ -1421,10 +1421,10 @@ export class SpaceHUD {
 
   updateSettingsUI() {
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    const quality = savedQuality || 'low';
+    const quality = savedQuality || 'balanced';
       
     if (this.btnGraphicsLow) this.btnGraphicsLow.classList.toggle('active', quality === 'low');
-    if (this.btnGraphicsHigh) this.btnGraphicsHigh.classList.toggle('active', quality === 'high');
+    if (this.btnGraphicsHigh) this.btnGraphicsHigh.classList.toggle('active', quality === 'high' || quality === 'balanced');
     if (this.btnGraphicsUltra) this.btnGraphicsUltra.classList.toggle('active', quality === 'ultra');
 
     const voiceEnabled = this.gameManager.voiceAnnouncer.enabled;
