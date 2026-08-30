@@ -85,9 +85,9 @@ export class PostProcessing {
 
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    // Default to 'low' (Pure Direct WebGL) to guarantee buttery-smooth 60 FPS on all devices
+    // Default to 'balanced' for rich, radiant bloom, glowing lasers, and stunning space lighting
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || 'low';
+    this.quality = savedQuality || 'balanced';
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;
@@ -103,28 +103,26 @@ export class PostProcessing {
   }
 
   _getCalculatedBloomParams() {
-    // Calculated GPU memory-bandwidth budget:
-    // Mobile Target: ~240p downscaled blur buffer (< 1.5MB total bandwidth)
-    if (this.isMobile || this.quality === 'balanced') {
+    if (this.quality === 'ultra') {
       return {
-        scale: 0.22,
-        strength: 0.28,
-        radius: 0.20,
-        threshold: 0.72
-      };
-    } else if (this.quality === 'ultra') {
-      return {
-        scale: 0.40,
-        strength: 0.45,
+        scale: 0.45,
+        strength: 0.48,
         radius: 0.35,
-        threshold: 0.60
+        threshold: 0.58
       };
-    } else { // 'high'
+    } else if (this.quality === 'high') {
       return {
-        scale: 0.30,
-        strength: 0.35,
-        radius: 0.25,
-        threshold: 0.68
+        scale: 0.38,
+        strength: 0.42,
+        radius: 0.30,
+        threshold: 0.62
+      };
+    } else { // 'balanced' (Default)
+      return {
+        scale: 0.32,
+        strength: 0.38,
+        radius: 0.26,
+        threshold: 0.65
       };
     }
   }

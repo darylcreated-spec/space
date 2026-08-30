@@ -1615,17 +1615,8 @@ export class PlayerShip {
     const minY = this.bounds.minY;
     const maxY = this.bounds.maxY;
 
-    // Tactical Standoff Boundary:
-    // When capital warships or bosses are present, maintain an unobstructed ~35-45 unit visual corridor
-    const gm = this.gameManager || window.spaceGameManager;
-    const hasCapitalHostile = gm && (
-      (gm.activeBoss && !gm.activeBoss.isDead) ||
-      (gm.carrierBoss && !gm.carrierBoss.isDead) ||
-      (gm.heavyBattleships && gm.heavyBattleships.some(b => !b.isDead)) ||
-      (gm.capitalShips && gm.capitalShips.some(c => !c.isDead))
-    );
-
-    const minZ = hasCapitalHostile ? -8.0 : (this.bounds.minZ || -16.0);
+    // Full 3D Flight Bounds Envelope (Zero Sticky Walls)
+    const minZ = this.bounds.minZ || -16.0;
     const maxZ = this.bounds.maxZ || 16.0;
 
     if (this.isInspectingSolo) {

@@ -107,24 +107,17 @@ export class ControlsManager {
     // WASD & Arrow Key Steering
     if (this.keys['KeyA'] || this.keys['a'] || this.keys['ArrowLeft']) x -= 1;
     if (this.keys['KeyD'] || this.keys['d'] || this.keys['ArrowRight']) x += 1;
-    if (this.keys['KeyW'] || this.keys['w'] || this.keys['ArrowUp']) {
-      y += 1;
-      z -= 0.5; // Natural forward momentum when pitching up
-    }
-    if (this.keys['KeyS'] || this.keys['s'] || this.keys['ArrowDown']) {
-      y -= 1;
-      z += 0.4; // Reverse deceleration when pulling back
-    }
+    if (this.keys['KeyW'] || this.keys['w'] || this.keys['ArrowUp']) y += 1;
+    if (this.keys['KeyS'] || this.keys['s'] || this.keys['ArrowDown']) y -= 1;
 
-    // Dedicated Tactical Throttle / Depth Keys
+    // Dedicated Tactical Throttle / Depth Keys (Shift/R forward, Ctrl/C backward)
     if (this.keys['KeyR'] || this.keys['ShiftLeft'] || this.keys['ShiftRight']) z -= 1.0;
     if (this.keys['KeyC'] || this.keys['ControlLeft'] || this.keys['ControlRight']) z += 1.0;
 
-    // Merge with Smooth Touch Drag Vector
+    // Smooth Touch Drag Vector on Mobile
     if (this.touchVector.x !== 0 || this.touchVector.y !== 0) {
       x = this.touchVector.x;
       y = this.touchVector.y;
-      z = -this.touchVector.y * 0.65;
     }
 
     const len = Math.hypot(x, y);
