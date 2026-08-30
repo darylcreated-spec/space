@@ -100,7 +100,8 @@ export class GameManager {
     this.plasmaPulsePool = [];
     this.activeEmpPulse = null;
     this.showcaseBosses = [];
-    this.isGodMode = false;
+    const savedGodMode = localStorage.getItem('orbital_vanguard_god_mode');
+    this.isGodMode = savedGodMode === 'true';
     this.freezeFleetAI = false;
     this.isAutoPilot = false;
 
@@ -373,13 +374,17 @@ export class GameManager {
     this.overchargeTimer = 0;
     this.stasisTimer = 0;
     this.freezeFleetAI = false;
-    this.isGodMode = false;
+    
+    // Preserve persistent God Mode until explicitly disabled by the user
+    const savedGod = localStorage.getItem('orbital_vanguard_god_mode');
+    if (savedGod !== null) this.isGodMode = savedGod === 'true';
+
     this.specialWeaponActive = false;
     this.pendingNukeOnWaveStart = false;
     this.activePerks.clear();
     if (this.playerShip) {
       this.playerShip.activePerks.clear();
-      this.playerShip.isInvulnerable = false;
+      this.playerShip.isInvulnerable = this.isGodMode;
       this.playerShip.isInspectingSolo = false;
     }
     this.playerShip.reset();
@@ -946,8 +951,13 @@ export class GameManager {
   // ══════════════════════════════════════════════════════════════════════════════
   // ADMIRALTY FLEET INSPECTOR & SHOWCASE MATRIX
   // ══════════════════════════════════════════════════════════════════════════════
-  toggleGodMode() {
-    this.isGodMode = !this.isGodMode;
+  toggleGodMode(explicitState) {
+    if (typeof explicitState === 'boolean') {
+      this.isGodMode = explicitState;
+    } else {
+      this.isGodMode = !this.isGodMode;
+    }
+    localStorage.setItem('orbital_vanguard_god_mode', this.isGodMode ? 'true' : 'false');
     if (this.playerShip) {
       this.playerShip.isInvulnerable = this.isGodMode;
       if (this.isGodMode) this.playerShip.shield = this.playerShip.maxShield;

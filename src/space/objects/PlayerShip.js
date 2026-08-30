@@ -1474,8 +1474,13 @@ export class PlayerShip {
     this.isBoosting = false;
     this.swarmMissileCooldown = 0;
     this.isInspectingSolo = false;
-    this.invulnerableTimer = 0;
-    this.isInvulnerable = false;
+    
+    // Check persistent God Mode status
+    const isGod = (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode) || (localStorage.getItem('orbital_vanguard_god_mode') === 'true');
+    this.invulnerableTimer = isGod ? 999999 : 0;
+    this.isInvulnerable = !!isGod;
+    if (isGod) this.shield = this.maxShield;
+
     this.meshGroup.scale.set(1, 1, 1);
     this.updateDamageVisuals();
   }
@@ -1483,7 +1488,11 @@ export class PlayerShip {
   update(dt, inputDir = { x: 0, y: 0 }) {
     this._time += dt;
 
-    if (this.invulnerableTimer > 0) {
+    const isGod = (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode) || (localStorage.getItem('orbital_vanguard_god_mode') === 'true');
+    if (isGod) {
+      this.isInvulnerable = true;
+      this.shield = this.maxShield;
+    } else if (this.invulnerableTimer > 0) {
       this.invulnerableTimer -= dt;
       if (this.invulnerableTimer <= 0) {
         this.isInvulnerable = false;
