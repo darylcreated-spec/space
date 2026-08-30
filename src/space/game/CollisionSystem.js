@@ -27,6 +27,10 @@ export class CollisionSystem {
     if (!player || !player.meshGroup) return;
     const pPos = player.meshGroup.position;
 
+    // ── 🛡️ 1. Kinetic Bow Shock & Magnetic Repulsor Deflection ──
+    // Keeps player in optimal ~35-45 unit visual standoff corridor from capital warships & bosses
+    this.checkKineticBowShockDeflection(gameManager);
+
     // Retaliatory EMP perk check
     if (player.pendingRetaliateEMP) {
       player.pendingRetaliateEMP = false;
@@ -1400,6 +1404,56 @@ export class CollisionSystem {
         gameManager.damagePlanet(25);
         this.particleManager.createExplosion(ship.meshGroup.position, 0x00aaff, 35);
         this.spaceAudio.playExplosion();
+      }
+    });
+  }
+
+  checkKineticBowShockDeflection(gameManager) {
+    const player = gameManager.playerShip;
+    if (!player || !player.meshGroup) return;
+    const pPos = player.meshGroup.position;
+
+    // Collect all active capital warships and apex bosses
+    const capitalHostiles = [];
+    if (gameManager.activeBoss && !gameManager.activeBoss.isDead && gameManager.activeBoss.meshGroup) {
+      capitalHostiles.push(gameManager.activeBoss);
+    }
+    if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
+      capitalHostiles.push(gameManager.carrierBoss);
+    }
+    if (gameManager.heavyBattleships) {
+      gameManager.heavyBattleships.forEach(b => { if (b && !b.isDead && b.meshGroup) capitalHostiles.push(b); });
+    }
+    if (gameManager.capitalShips) {
+      gameManager.capitalShips.forEach(c => { if (c && !c.isDead && c.meshGroup) capitalHostiles.push(c); });
+    }
+
+    capitalHostiles.forEach(hostile => {
+      const hPos = hostile.meshGroup.position;
+      const distZ = pPos.z - hPos.z;
+      const distX = pPos.x - hPos.x;
+      const distY = pPos.y - hPos.y;
+      const standoffThreshold = (hostile.radius || 12.0) + 16.0; // ~28-35 unit standoff cushion
+
+      // Only deflect if player is approaching from the front (+Z side) within the lateral hull span
+      if (distZ < standoffThreshold && distZ > 0 && Math.abs(distX) < ((hostile.radius || 12.0) + 10.0)) {
+        // Soft cushioned magnetic repulsor force
+        const penetration = Math.max(0.1, standoffThreshold - distZ);
+        const repelStrengthZ = (penetration / standoffThreshold) * 45.0;
+
+        if (player.applyRepulsorDeflection) {
+          player.applyRepulsorDeflection({
+            x: (distX > 0 ? 1 : -1) * (penetration * 0.4),
+            y: (distY > 0 ? 0.5 : -0.5) * (penetration * 0.2),
+            z: repelStrengthZ
+          });
+        } else {
+          player.velocity.z += repelStrengthZ;
+        }
+
+        if (this.particleManager && Math.random() < 0.20) {
+          this.particleManager.createEmpShockwave(new THREE.Vector3(pPos.x, pPos.y, pPos.z - 2.0), 12);
+        }
       }
     });
   }

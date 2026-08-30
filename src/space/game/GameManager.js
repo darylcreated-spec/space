@@ -2298,7 +2298,7 @@ export class GameManager {
     }
 
     // 7. Update Scene & Render
-    const bossForCam = this.activeBoss || this.carrierBoss || (this.heavyBattleships && this.heavyBattleships.find(b => !b.isDead));
+    const bossForCam = this.activeBoss || this.carrierBoss || (this.heavyBattleships && this.heavyBattleships.find(b => !b.isDead)) || (this.capitalShips && this.capitalShips.find(c => !c.isDead));
     this.spaceScene.update(dt, this.playerShip, bossForCam);
     this.particleManager.update();
     this.renderScene(effectiveDt);

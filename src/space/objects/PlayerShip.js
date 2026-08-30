@@ -1344,6 +1344,16 @@ export class PlayerShip {
     this.moltenHeat = Math.min(1.0, this.moltenHeat + 0.25);
   }
 
+  applyRepulsorDeflection(forceVec) {
+    if (!forceVec) return;
+    this.velocity.x += forceVec.x;
+    this.velocity.y += forceVec.y;
+    this.velocity.z += forceVec.z;
+    this.shieldRippleTimer = Math.max(this.shieldRippleTimer, 0.45);
+    if (this.shieldMat) this.shieldMat.opacity = 0.35;
+    if (this.shieldMesh) this.shieldMesh.visible = true;
+  }
+
   takeDamage(amount) {
     if (this.dodgeTimer > 0 || this.isInvulnerable || (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode)) {
       return false; // God Mode: Shield takes zero damage
@@ -1589,8 +1599,19 @@ export class PlayerShip {
     const maxX = this.bounds.maxX;
     const minY = this.bounds.minY;
     const maxY = this.bounds.maxY;
-    const minZ = this.bounds.minZ || -60.0;
-    const maxZ = this.bounds.maxZ || 18.0;
+
+    // Tactical Standoff Boundary:
+    // When capital warships or bosses are present, maintain an unobstructed ~35-45 unit visual corridor
+    const gm = this.gameManager || window.spaceGameManager;
+    const hasCapitalHostile = gm && (
+      (gm.activeBoss && !gm.activeBoss.isDead) ||
+      (gm.carrierBoss && !gm.carrierBoss.isDead) ||
+      (gm.heavyBattleships && gm.heavyBattleships.some(b => !b.isDead)) ||
+      (gm.capitalShips && gm.capitalShips.some(c => !c.isDead))
+    );
+
+    const minZ = hasCapitalHostile ? -8.0 : (this.bounds.minZ || -16.0);
+    const maxZ = this.bounds.maxZ || 16.0;
 
     if (this.isInspectingSolo) {
       this.meshGroup.position.set(0, 0.4, 2.5);
