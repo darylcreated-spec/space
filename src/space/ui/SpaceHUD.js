@@ -1421,7 +1421,7 @@ export class SpaceHUD {
 
   updateSettingsUI() {
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    const quality = savedQuality || 'ultra';
+    const quality = savedQuality || 'low';
       
     if (this.btnGraphicsLow) this.btnGraphicsLow.classList.toggle('active', quality === 'low');
     if (this.btnGraphicsHigh) this.btnGraphicsHigh.classList.toggle('active', quality === 'high');

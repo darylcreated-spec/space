@@ -85,25 +85,19 @@ export class PostProcessing {
 
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
+    // Bare minimum post-processing by default (Direct WebGL rendering, 0 extra framebuffers)
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || (this.isMobile ? 'high' : 'ultra');
+    this.quality = savedQuality || 'low';
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;
     this.time = 0;
+    this.composer = null;
 
-    this.perfDropCount = 0;
-    this.autoScaleCooldown = 0;
-
-    this._initComposer();
+    if (this.quality !== 'low') {
+      this._initComposer();
+    }
     window.addEventListener('resize', this.onResize.bind(this));
-  }
-
-  _getBloomScale() {
-    if (this.isMobile) return 0.35;
-    if (this.quality === 'ultra') return 0.5;
-    if (this.quality === 'high') return 0.35;
-    return 0.25;
   }
 
   _initComposer() {
@@ -112,36 +106,26 @@ export class PostProcessing {
       const renderPass = new RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
-      const bloomScale = this._getBloomScale();
+      // Lightweight bare-minimum bloom pass (scaled down resolution)
+      const bloomScale = this.isMobile ? 0.25 : 0.35;
       const bloomRes = new THREE.Vector2(
-        Math.max(256, Math.floor(window.innerWidth * bloomScale)),
-        Math.max(256, Math.floor(window.innerHeight * bloomScale))
+        Math.max(128, Math.floor(window.innerWidth * bloomScale)),
+        Math.max(128, Math.floor(window.innerHeight * bloomScale))
       );
 
-      // Toned down UnrealBloomPass for clean, crisp aerospace visuals
-      const bloomStrength  = this.quality === 'ultra' ? 0.65 : (this.quality === 'high' ? 0.50 : 0.32);
-      const bloomRadius    = this.quality === 'ultra' ? 0.45 : (this.quality === 'high' ? 0.38 : 0.28);
-      const bloomThreshold = this.quality === 'ultra' ? 0.48 : (this.quality === 'high' ? 0.52 : 0.58);
+      const bloomStrength = this.quality === 'ultra' ? 0.40 : 0.25;
+      const bloomRadius = 0.25;
+      const bloomThreshold = 0.65;
 
       this.bloomPass = new UnrealBloomPass(bloomRes, bloomStrength, bloomRadius, bloomThreshold);
       this.composer.addPass(this.bloomPass);
 
-      // Cinematic Shader Pass
-      this.cinemaPass = new ShaderPass(AAACinematicShader);
-      const shaderQuality = this.isMobile ? 1.0 : (this.quality === 'ultra' ? 3.0 : (this.quality === 'high' ? 2.0 : 1.0));
-      this.cinemaPass.uniforms.uQuality.value = shaderQuality;
-      this.cinemaPass.uniforms.uGrainIntensity.value = (this.isMobile || this.quality === 'low') ? 0.0 : (this.quality === 'ultra' ? 0.005 : 0.0);
-      this.cinemaPass.uniforms.uVignette.value = 0.5;
-      this.cinemaPass.uniforms.uAberration.value = this.isMobile ? 0.0003 : 0.0006;
-      this.composer.addPass(this.cinemaPass);
-
-      // Output Tone Mapping Pass
       const outputPass = new OutputPass();
       this.composer.addPass(outputPass);
 
-      console.log(`[PostFX] EffectComposer initialized — Bloom res: ${bloomRes.x}x${bloomRes.y}, quality: ${this.quality}, mobile: ${this.isMobile}`);
+      console.log(`[PostFX] Lightweight Composer initialized (Quality: ${this.quality})`);
     } catch (e) {
-      console.warn('EffectComposer init fallback to direct WebGL render:', e);
+      console.warn('PostProcessing fallback to direct WebGL render:', e);
       this.composer = null;
     }
   }
@@ -149,79 +133,43 @@ export class PostProcessing {
   setGraphicsQuality(level) {
     this.quality = level;
     if (level === 'low') {
-      this.composer = null;
+      if (this.composer) {
+        this.composer = null;
+      }
     } else {
       if (!this.composer) {
         this._initComposer();
-      } else {
-        const bloomScale = this._getBloomScale();
-        if (this.bloomPass) {
-          this.bloomPass.resolution.set(
-            Math.max(256, Math.floor(window.innerWidth * bloomScale)),
-            Math.max(256, Math.floor(window.innerHeight * bloomScale))
-          );
-          this.bloomPass.strength  = level === 'ultra' ? 0.65 : (level === 'high' ? 0.50 : 0.32);
-          this.bloomPass.radius    = level === 'ultra' ? 0.45 : (level === 'high' ? 0.38 : 0.28);
-          this.bloomPass.threshold = level === 'ultra' ? 0.48 : (level === 'high' ? 0.52 : 0.58);
-        }
-        if (this.cinemaPass) {
-          const shaderQuality = this.isMobile ? 1.0 : (level === 'ultra' ? 3.0 : (level === 'high' ? 2.0 : 1.0));
-          this.cinemaPass.uniforms.uQuality.value = shaderQuality;
-          this.cinemaPass.uniforms.uGrainIntensity.value = (this.isMobile || level === 'low') ? 0.0 : (level === 'ultra' ? 0.005 : 0.0);
-          this.cinemaPass.uniforms.uAberration.value = this.isMobile ? 0.0003 : 0.0006;
-        }
+      } else if (this.bloomPass) {
+        this.bloomPass.strength = level === 'ultra' ? 0.40 : 0.25;
       }
     }
   }
 
   update(dt, playerShip) {
     this.time += dt;
-
     if (playerShip && playerShip.isBoosting) {
       this.targetBoost = 1.0;
     } else {
       this.targetBoost = 0.0;
     }
-
     this.boostAmount = THREE.MathUtils.lerp(this.boostAmount, this.targetBoost, dt * 8.0);
-
-    if (this.cinemaPass && this.cinemaPass.uniforms) {
-      this.cinemaPass.uniforms.uTime.value = this.time;
-      this.cinemaPass.uniforms.uBoost.value = this.boostAmount;
-    }
-
-    // Dynamic FPS Stutter Guard: If frame time exceeds 38ms (~26 FPS) consecutively, dynamically adapt
-    if (this.autoScaleCooldown > 0) {
-      this.autoScaleCooldown -= dt;
-    } else if (dt > 0.038 && this.composer && this.quality !== 'low') {
-      this.perfDropCount++;
-      if (this.perfDropCount > 60) { // ~2 seconds of low framerate
-        console.warn(`[PostFX] Low FPS detected (${(1/dt).toFixed(0)} FPS) — auto-adapting graphics quality for smooth frame pacing.`);
-        if (this.quality === 'ultra') this.setGraphicsQuality('high');
-        else if (this.quality === 'high') this.setGraphicsQuality('medium');
-        else this.setGraphicsQuality('low');
-        this.perfDropCount = 0;
-        this.autoScaleCooldown = 10.0; // Don't scale down again for 10s
-      }
-    } else if (dt < 0.020) {
-      this.perfDropCount = Math.max(0, this.perfDropCount - 1);
-    }
   }
 
   onResize() {
     if (this.composer) {
       this.composer.setSize(window.innerWidth, window.innerHeight);
       if (this.bloomPass) {
-        const bloomScale = this._getBloomScale();
+        const bloomScale = this.isMobile ? 0.25 : 0.35;
         this.bloomPass.resolution.set(
-          Math.max(256, Math.floor(window.innerWidth * bloomScale)),
-          Math.max(256, Math.floor(window.innerHeight * bloomScale))
+          Math.max(128, Math.floor(window.innerWidth * bloomScale)),
+          Math.max(128, Math.floor(window.innerHeight * bloomScale))
         );
       }
     }
   }
 
   render() {
+    // Bare Minimum Direct WebGL Render: Zero multi-pass overhead, max 60-120 FPS
     if (this.composer && this.quality !== 'low') {
       try {
         this.composer.render();
