@@ -1,5 +1,6 @@
 export class ControlsManager {
   constructor() {
+    this._inputVec = { x: 0, y: 0, z: 0 };
     this.keys = {};
     this.touchVector = { x: 0, y: 0 };
     this.activePointerId = null;
@@ -119,9 +120,7 @@ export class ControlsManager {
   hideVirtualJoystick() {
     const stick = document.getElementById('touch-joystick-stick');
     if (stick) {
-      stick.style.left = '50%';
-      stick.style.top = '50%';
-      stick.style.transform = 'translate(-50%, -50%) scale(1.0)';
+      stick.style.transform = 'translate3d(0, 0, 0) translate(-50%, -50%) scale(1.0)';
     }
   }
 
@@ -137,8 +136,7 @@ export class ControlsManager {
       const clampedY = dist > 0 ? (dy / dist) * Math.min(dist, maxClamp) : 0;
       const pctX = 50 + (clampedX / maxClamp) * 38;
       const pctY = 50 + (clampedY / maxClamp) * 38;
-      stick.style.left = `${pctX}%`;
-      stick.style.top = `${pctY}%`;
+      stick.style.transform = `translate3d(${((pctX - 50) / 50) * 38}px, ${((pctY - 50) / 50) * 38}px, 0) translate(-50%, -50%)`;
     }
 
     // Smooth proportional analog steering (-1.0 to +1.0)
@@ -176,6 +174,9 @@ export class ControlsManager {
     }
     z = Math.max(-1.0, Math.min(1.0, z));
 
-    return { x, y, z };
+    this._inputVec.x = x;
+    this._inputVec.y = y;
+    this._inputVec.z = z;
+    return this._inputVec;
   }
 }

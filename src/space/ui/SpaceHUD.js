@@ -1196,7 +1196,7 @@ export class SpaceHUD {
       const pPct = Math.round(Math.max(0, data.planetHp));
       if (this._lastPlanetHp !== pPct) {
         this._lastPlanetHp = pPct;
-        this.planetHpFill.style.width = `${pPct}%`;
+        this.planetHpFill.style.transform = `scaleX(${pPct / 100})`;
         this.planetHpText.textContent = `${pPct}%`;
       }
     }
@@ -1206,7 +1206,7 @@ export class SpaceHUD {
       const sPct = Math.round(Math.max(0, Math.min(100, (data.playerShield / maxS) * 100)));
       if (this._lastShieldPct !== sPct) {
         this._lastShieldPct = sPct;
-        this.playerHpFill.style.width = `${sPct}%`;
+        this.playerHpFill.style.transform = `scaleX(${sPct / 100})`;
         this.playerHpText.textContent = `${sPct}%`;
       }
     }
@@ -1217,7 +1217,7 @@ export class SpaceHUD {
         const bPct = Math.round(data.bossHpRatio * 100);
         if (this._lastBossPct !== bPct) {
           this._lastBossPct = bPct;
-          this.bossHpFill.style.width = `${bPct}%`;
+          this.bossHpFill.style.transform = `scaleX(${bPct / 100})`;
         }
         if (this.bossTitleElem && data.bossTitle && this._lastBossTitle !== data.bossTitle) {
           this._lastBossTitle = data.bossTitle;
@@ -1269,7 +1269,7 @@ export class SpaceHUD {
     if (this.bossBarContainer && this.bossHpFill) {
       if (ratio !== null && ratio > 0) {
         this.bossBarContainer.classList.remove('hidden');
-        this.bossHpFill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+        this.bossHpFill.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
         if (this.bossTitleElem && title) {
           this.bossTitleElem.textContent = title;
         }
@@ -1439,7 +1439,7 @@ export class SpaceHUD {
     const shieldPanel = document.querySelector('.player-panel');
     if (shieldPanel) {
       shieldPanel.classList.remove('shield-impact-flash');
-      void shieldPanel.offsetWidth; // Trigger reflow for instantaneous re-trigger
+      // void shieldPanel.offsetWidth; // Trigger reflow for instantaneous re-trigger
       shieldPanel.classList.add('shield-impact-flash');
       setTimeout(() => {
         if (shieldPanel) shieldPanel.classList.remove('shield-impact-flash');
