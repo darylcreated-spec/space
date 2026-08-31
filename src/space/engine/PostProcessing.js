@@ -85,14 +85,12 @@ export class PostProcessing {
 
     this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
 
-    // On mobile, default to lower quality to prevent GPU thermal throttling
-    if (this.isMobile && !savedQuality) {
-      this.quality = 'low';
-    }
-
-    // Default to 'balanced' for rich, radiant bloom, glowing lasers, and stunning space lighting
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    this.quality = savedQuality || 'balanced';
+    if (this.isMobile && !savedQuality) {
+      this.quality = 'balanced';
+    } else {
+      this.quality = savedQuality || 'balanced';
+    }
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;
