@@ -387,11 +387,12 @@ html, body {
   color: var(--accent-cyan);
 }
 
-/* ==================== DOCKED BOTTOM-LEFT VIRTUAL JOYSTICK ==================== */
+/* ==================== CENTERED BOTTOM VIRTUAL JOYSTICK ==================== */
 .virtual-joystick-dock {
   position: absolute;
   bottom: 24px;
-  left: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateZ(0);
   width: 110px;
   height: 110px;
   z-index: 30;
@@ -402,7 +403,6 @@ html, body {
   user-select: none;
   touch-action: none;
   will-change: transform;
-  transform: translateZ(0);
   contain: layout paint;
 }
 
@@ -460,29 +460,21 @@ html, body {
   will-change: transform;
 }
 
-/* ==================== RIGHT-EDGE STACKED FIGHT & DOCTRINE BUTTONS ==================== */
+/* ==================== RIGHT-EDGE STACKED FIGHT BUTTONS ==================== */
 .mobile-controls-right-edge {
   position: absolute;
   bottom: 20px;
   right: 18px;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: flex-end;
-  gap: 12px;
+  gap: 8px;
   z-index: 30;
   pointer-events: none;
   touch-action: none;
   will-change: transform;
   transform: translateZ(0);
   contain: layout paint;
-}
-
-/* Squadron Doctrine Buttons Stacked Vertically */
-.squadron-doctrine-vertical-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  pointer-events: auto;
 }
 
 /* Action Fight Buttons Stacked Vertically on Right Edge */
@@ -510,6 +502,36 @@ html, body {
   overflow: hidden;
   pointer-events: auto;
   touch-action: manipulation !important;
+}
+
+/* Single Unified Squadron Doctrine Button (Defend / Focus / Flank in ONE) */
+.action-btn.doctrine-cycle-btn {
+  border-color: rgba(0, 243, 255, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 243, 255, 0.25);
+}
+
+.action-btn.doctrine-cycle-btn.doctrine-mode-defend {
+  border-color: rgba(0, 243, 255, 0.75);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 18px rgba(0, 243, 255, 0.45);
+}
+.action-btn.doctrine-cycle-btn.doctrine-mode-defend .btn-label {
+  color: var(--accent-cyan);
+}
+
+.action-btn.doctrine-cycle-btn.doctrine-mode-focus {
+  border-color: rgba(255, 68, 0, 0.85);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 18px rgba(255, 68, 0, 0.55);
+}
+.action-btn.doctrine-cycle-btn.doctrine-mode-focus .btn-label {
+  color: #ff5522;
+}
+
+.action-btn.doctrine-cycle-btn.doctrine-mode-flank {
+  border-color: rgba(0, 255, 136, 0.85);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 18px rgba(0, 255, 136, 0.55);
+}
+.action-btn.doctrine-cycle-btn.doctrine-mode-flank .btn-label {
+  color: #00ff88;
 }
 
 .action-btn-inner {
@@ -1593,9 +1615,6 @@ html, body {
     padding: 0 10px;
   }
 
-  .hud-bottom-bar {
-    bottom: 6px;
-    padding: 0 6px;
   /* Top Unified Command Bar on Mobile */
   .hud-top-unified-bar {
     top: 8px;
@@ -1611,10 +1630,11 @@ html, body {
   .top-score-val { font-size: 0.85rem; }
   .top-pilot-badge { display: none; }
 
-  /* Docked Virtual Joystick on Mobile */
+  /* Centered Docked Virtual Joystick on Mobile */
   .virtual-joystick-dock {
     bottom: 16px;
-    left: 14px;
+    left: 50%;
+    transform: translateX(-50%) translateZ(0);
     width: 90px;
     height: 90px;
   }
@@ -1627,21 +1647,11 @@ html, body {
     height: 38px;
   }
 
-  /* Right-Edge Stacked Controls on Mobile */
+  /* Right-Edge Stacked Action Buttons on Mobile */
   .mobile-controls-right-edge {
     bottom: 16px;
     right: 12px;
-    gap: 8px;
-  }
-
-  .squadron-doctrine-vertical-stack {
-    gap: 4px;
-  }
-
-  .doctrine-btn {
-    padding: 3px 6px;
-    font-size: 0.52rem;
-    gap: 3px;
+    gap: 6px;
   }
 
   .action-buttons-vertical-stack {
@@ -1659,10 +1669,6 @@ html, body {
   .action-btn .btn-label {
     font-size: 0.46rem;
     font-weight: 800;
-  }
-  .action-btn .btn-hotkey {
-    display: none;
-  }
   }
   .action-btn .btn-hotkey {
     display: none;

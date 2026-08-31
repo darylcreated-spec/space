@@ -55,8 +55,10 @@ export class ControlsManager {
       this.lastPressD = now;
     }
 
-    // Squadron Doctrine Hotkeys (1: DEFEND, 2: FOCUS, 3: FLANK)
-    if (e.code === 'Digit1' || e.key === '1') {
+    // Squadron Doctrine Hotkeys (B/T: Cycle, 1: DEFEND, 2: FOCUS, 3: FLANK)
+    if (e.code === 'KeyB' || e.code === 'KeyT' || e.key === 'b' || e.key === 'B' || e.key === 't' || e.key === 'T') {
+      if (window.spaceGameManager) window.spaceGameManager.cycleWingmanDoctrine();
+    } else if (e.code === 'Digit1' || e.key === '1') {
       if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('DEFEND');
     } else if (e.code === 'Digit2' || e.key === '2') {
       if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('FOCUS_FIRE');
@@ -86,9 +88,9 @@ export class ControlsManager {
     // 2. Ignore taps on interactive UI buttons, modal drawers, or header bars
     if (e.target.closest('button, .modal-card, .space-top-bar, .action-btn, .modal-overlay')) return;
 
-    // 3. Dedicated Left-Screen Touch Zone: Only touches on the left 55% of the screen control flight
-    // The right 45% is strictly reserved for action buttons (Boost, Dodge, Pulse, Swarm, Nuke)
-    if (e.clientX > window.innerWidth * 0.55) return;
+    // 3. Ergonomic Touch Steering Zone: Covers screen up to the right action button column (left 80%)
+    // Allows effortless transition between steering and tapping action knobs
+    if (e.clientX > window.innerWidth * 0.80) return;
 
     this.activePointerId = e.pointerId;
     this.touchStartPos = { x: e.clientX, y: e.clientY };

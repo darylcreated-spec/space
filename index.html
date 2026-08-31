@@ -240,28 +240,22 @@
       </div>
     </div>
 
-    <!-- 2. Right Edge Stacked Combat & Doctrine Controls -->
-    <div id="space-mobile-controls" class="mobile-controls-right-edge">
-      <!-- Tactical Squadron Doctrine Selector Stack -->
-      <div class="squadron-doctrine-vertical-stack">
-        <button id="btn-doctrine-defend" class="doctrine-btn active" title="Squadron Defend (Key 1)">
-          <span class="doctrine-dot"></span>
-          <span class="doctrine-label">DEFEND</span>
-          <span class="doctrine-key">[1]</span>
-        </button>
-        <button id="btn-doctrine-focus" class="doctrine-btn" title="Squadron Focus Fire (Key 2)">
-          <span class="doctrine-dot"></span>
-          <span class="doctrine-label">FOCUS</span>
-          <span class="doctrine-key">[2]</span>
-        </button>
-        <button id="btn-doctrine-flank" class="doctrine-btn" title="Squadron Swarm Flank (Key 3)">
-          <span class="doctrine-dot"></span>
-          <span class="doctrine-label">FLANK</span>
-          <span class="doctrine-key">[3]</span>
-        </button>
+    <!-- ==================== BOTTOM ERGONOMIC FLIGHT & COMBAT CONTROLS ==================== -->
+    <!-- 1. Centered Virtual Joystick Dock (Easily accessible from center screen) -->
+    <div id="virtual-joystick-dock" class="virtual-joystick-dock">
+      <div id="touch-joystick-base" class="touch-joystick-base">
+        <div class="joystick-crosshair-h"></div>
+        <div class="joystick-crosshair-v"></div>
+        <div class="joystick-chevron chevron-up">▲</div>
+        <div class="joystick-chevron chevron-down">▼</div>
+        <div class="joystick-chevron chevron-left">◀</div>
+        <div class="joystick-chevron chevron-right">▶</div>
+        <div id="touch-joystick-stick" class="touch-joystick-stick"></div>
       </div>
+    </div>
 
-      <!-- Action Fight Buttons Stacked on Right Edge -->
+    <!-- 2. Right Edge Stacked Combat Action Buttons -->
+    <div id="space-mobile-controls" class="mobile-controls-right-edge">
       <div class="action-buttons-vertical-stack">
         <!-- 1. Tactical Dodge Roll -->
         <button id="btn-dodge-roll" class="action-btn dodge-btn" title="Tactical Evasive Roll (Double-tap A/D)">
@@ -286,14 +280,14 @@
           </div>
         </button>
 
-        <!-- 3. Hyper-Boost Surge -->
-        <button id="btn-hyper-boost" class="action-btn boost-btn" title="Hyper-Boost Thrusters (W / Space / B)">
+        <!-- 3. Unified Squadron Doctrine (Defend / Focus / Flank in ONE Single Button) -->
+        <button id="btn-cycle-doctrine" class="action-btn doctrine-cycle-btn doctrine-mode-defend" title="Squadron Directive: Defend / Focus / Flank (Tap to Cycle / B / 1-3)">
           <div class="action-btn-inner">
-            <svg class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#ffea00" stroke-width="2.2">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            <svg id="doctrine-cycle-svg" class="action-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent-cyan)" stroke-width="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
-            <span class="btn-label">BOOST</span>
-            <span class="btn-hotkey">[B]</span>
+            <span id="doctrine-cycle-label" class="btn-label">DEFEND</span>
+            <span id="doctrine-cycle-hotkey" class="btn-hotkey">[B]</span>
           </div>
         </button>
 

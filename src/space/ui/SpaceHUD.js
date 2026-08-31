@@ -320,7 +320,16 @@ export class SpaceHUD {
     if (btnModeBossRush) btnModeBossRush.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeBossRush, 'BOSS_RUSH'); });
     if (btnModeEndless) btnModeEndless.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeEndless, 'ENDLESS_SURVIVAL'); });
 
-    // Squadron Doctrine Buttons
+    // Single Unified Squadron Doctrine Button (Defend / Focus / Flank in ONE)
+    const btnCycleDoctrine = document.getElementById('btn-cycle-doctrine');
+    if (btnCycleDoctrine) {
+      btnCycleDoctrine.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.cycleWingmanDoctrine();
+      });
+    }
+
+    // Support legacy/alternate direct doctrine buttons if present
     const btnDoctrineDefend = document.getElementById('btn-doctrine-defend');
     const btnDoctrineFocus = document.getElementById('btn-doctrine-focus');
     const btnDoctrineFlank = document.getElementById('btn-doctrine-flank');
@@ -1550,6 +1559,36 @@ export class SpaceHUD {
   }
 
   updateWingmanDoctrineUI(doctrine = 'DEFEND') {
+    const btnCycle = document.getElementById('btn-cycle-doctrine');
+    const labelElem = document.getElementById('doctrine-cycle-label');
+    const svgElem = document.getElementById('doctrine-cycle-svg');
+
+    if (btnCycle) {
+      btnCycle.classList.remove('doctrine-mode-defend', 'doctrine-mode-focus', 'doctrine-mode-flank');
+      if (doctrine === 'DEFEND') {
+        btnCycle.classList.add('doctrine-mode-defend');
+        if (labelElem) labelElem.textContent = 'DEFEND';
+        if (svgElem) {
+          svgElem.setAttribute('stroke', 'var(--accent-cyan)');
+          svgElem.innerHTML = '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>';
+        }
+      } else if (doctrine === 'FOCUS_FIRE') {
+        btnCycle.classList.add('doctrine-mode-focus');
+        if (labelElem) labelElem.textContent = 'FOCUS';
+        if (svgElem) {
+          svgElem.setAttribute('stroke', '#ff5522');
+          svgElem.innerHTML = '<circle cx="12" cy="12" r="9"/><line x1="12" y1="3" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="3" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="21" y2="12"/><circle cx="12" cy="12" r="3" fill="#ff5522"/>';
+        }
+      } else if (doctrine === 'SWARM_FLANK') {
+        btnCycle.classList.add('doctrine-mode-flank');
+        if (labelElem) labelElem.textContent = 'FLANK';
+        if (svgElem) {
+          svgElem.setAttribute('stroke', '#00ff88');
+          svgElem.innerHTML = '<path d="M12 2l3 5-3 5-3-5zM6 8l3 5-3 5-3-5zM18 8l3 5-3 5-3-5z"/>';
+        }
+      }
+    }
+
     const btnDefend = document.getElementById('btn-doctrine-defend');
     const btnFocus = document.getElementById('btn-doctrine-focus');
     const btnFlank = document.getElementById('btn-doctrine-flank');

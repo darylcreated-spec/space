@@ -305,11 +305,20 @@ export class GameManager {
   setWingmanDoctrine(doctrine = 'DEFEND') {
     this.currentWingmanDoctrine = doctrine;
     this.wingmanDrones.forEach(w => w.setDoctrine(doctrine));
-    if (this.voiceAnnouncer) this.voiceAnnouncer.speak(`Squadron Directive: ${doctrine}`, true);
+    const friendlyName = doctrine === 'FOCUS_FIRE' ? 'FOCUS' : (doctrine === 'SWARM_FLANK' ? 'FLANK' : 'DEFEND');
+    if (this.voiceAnnouncer) this.voiceAnnouncer.speak(`Squadron Directive: ${friendlyName}`, true);
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission(`WING COMMAND: Squadron Doctrine set to ${doctrine}!`, "ALLIED FLIGHT", 3.5);
+      this.spaceHUD.showRadioTransmission(`WING COMMAND: Squadron Directive set to ${friendlyName}!`, "ALLIED FLIGHT", 2.5);
       this.spaceHUD.updateWingmanDoctrineUI?.(doctrine);
     }
+  }
+
+  cycleWingmanDoctrine() {
+    const doctrines = ['DEFEND', 'FOCUS_FIRE', 'SWARM_FLANK'];
+    const currentIdx = doctrines.indexOf(this.currentWingmanDoctrine || 'DEFEND');
+    const nextDoctrine = doctrines[(currentIdx + 1) % doctrines.length];
+    this.setWingmanDoctrine(nextDoctrine);
+    return nextDoctrine;
   }
 
   toggleAutoPilot() {
