@@ -181,13 +181,13 @@ html, body {
 /* ==================== BOSS HP TELEMETRY VISOR ==================== */
 .boss-hp-panel {
   position: absolute;
-  top: 18px;
+  top: 74px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
   max-width: 580px;
   padding: 8px 14px 10px 14px;
-  background: rgba(14, 4, 10, 0.88);
+  background: rgba(14, 4, 10, 0.92);
   border: 1px solid rgba(255, 0, 85, 0.5);
   box-shadow: 0 0 25px rgba(255, 0, 85, 0.25);
   z-index: 20;
@@ -1629,6 +1629,15 @@ html, body {
   .top-score-cluster { min-width: 80px; }
   .top-score-val { font-size: 0.85rem; }
   .top-pilot-badge { display: none; }
+
+  /* Boss Telemetry Visor on Mobile */
+  .boss-hp-panel {
+    top: 54px;
+    width: 96vw;
+    padding: 4px 10px 6px 10px;
+  }
+  .boss-title { font-size: 0.68rem; }
+  .boss-status-tag { font-size: 0.55rem; padding: 1px 4px; }
 
   /* Centered Docked Virtual Joystick on Mobile */
   .virtual-joystick-dock {

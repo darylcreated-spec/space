@@ -10,6 +10,31 @@ export class SpaceAudio {
     this.droneOsc = null;
     this.droneGain = null;
     this.droneFilter = null;
+
+    this._lastLaserPewTime = 0;
+    this._lastExplosionTime = 0;
+
+    // Multi-Platform User Gesture Unlock: instantly resumes Web Audio context
+    this.setupUserGestureUnlock();
+  }
+
+  setupUserGestureUnlock() {
+    const unlock = () => {
+      this.ensureContext();
+      if (this.ctx && this.ctx.state === 'running') {
+        ['touchstart', 'touchend', 'pointerdown', 'mousedown', 'keydown', 'click'].forEach(evt => {
+          window.removeEventListener(evt, unlock, true);
+        });
+      }
+    };
+    ['touchstart', 'touchend', 'pointerdown', 'mousedown', 'keydown', 'click'].forEach(evt => {
+      window.addEventListener(evt, unlock, { passive: true, capture: true });
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    });
   }
 
   init() {
@@ -18,14 +43,26 @@ export class SpaceAudio {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
 
-      // Master Limiter / Dynamics Compressor to prevent any audio clipping or blearing
+      // Master Gain Stage (Prevent clipping / distortion)
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
+
+      // Studio-grade Brickwall Limiter & Dynamics Compressor
       this.masterLimiter = this.ctx.createDynamicsCompressor();
-      this.masterLimiter.threshold.setValueAtTime(-14, this.ctx.currentTime);
-      this.masterLimiter.knee.setValueAtTime(8, this.ctx.currentTime);
-      this.masterLimiter.ratio.setValueAtTime(10, this.ctx.currentTime);
+      this.masterLimiter.threshold.setValueAtTime(-12, this.ctx.currentTime);
+      this.masterLimiter.knee.setValueAtTime(10, this.ctx.currentTime);
+      this.masterLimiter.ratio.setValueAtTime(12, this.ctx.currentTime);
       this.masterLimiter.attack.setValueAtTime(0.002, this.ctx.currentTime);
-      this.masterLimiter.release.setValueAtTime(0.20, this.ctx.currentTime);
-      this.masterLimiter.connect(this.ctx.destination);
+      this.masterLimiter.release.setValueAtTime(0.18, this.ctx.currentTime);
+
+      // Dedicated SFX Mixing Bus
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.setValueAtTime(0.70, this.ctx.currentTime);
+
+      // Routing: SFX -> sfxGain -> masterLimiter -> masterGain -> ctx.destination
+      this.sfxGain.connect(this.masterLimiter);
+      this.masterLimiter.connect(this.masterGain);
+      this.masterGain.connect(this.ctx.destination);
 
       this.soundtrack = new AdaptiveSoundtrack(this.ctx);
       this.soundtrack.init();
@@ -33,6 +70,11 @@ export class SpaceAudio {
     } catch (e) {
       console.warn('Web Audio API not supported', e);
     }
+  }
+
+  _getOutputNode() {
+    if (!this.ctx) this.init();
+    return this.sfxGain || this.masterLimiter || (this.ctx ? this.ctx.destination : null);
   }
 
   startSoundtrack() {
@@ -87,7 +129,7 @@ export class SpaceAudio {
 
       osc1.connect(gain);
       osc2.connect(gain);
-      gain.connect(this.masterLimiter || this.ctx.destination);
+      gain.connect(this._getOutputNode());
 
       osc1.onended = () => {
         try { osc1.disconnect(); osc2.disconnect(); gain.disconnect(); } catch (e) {}
@@ -114,8 +156,10 @@ export class SpaceAudio {
   playLaserPew(xPos) {
     this.ensureContext();
     if (!this.ctx) return;
-
     const now = this.ctx.currentTime;
+    if (this._lastLaserPewTime && now - this._lastLaserPewTime < 0.038) return;
+    this._lastLaserPewTime = now;
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
@@ -136,10 +180,10 @@ export class SpaceAudio {
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     osc.onended = () => {
@@ -184,11 +228,11 @@ export class SpaceAudio {
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     osc.onended = () => {
@@ -234,10 +278,10 @@ export class SpaceAudio {
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     try {
@@ -273,10 +317,10 @@ export class SpaceAudio {
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     try {
@@ -316,11 +360,11 @@ export class SpaceAudio {
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     try {
@@ -354,10 +398,10 @@ export class SpaceAudio {
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     osc.onended = () => {
@@ -395,10 +439,10 @@ export class SpaceAudio {
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     osc.onended = () => {
@@ -414,8 +458,10 @@ export class SpaceAudio {
   playExplosion(xPos) {
     this.ensureContext();
     if (!this.ctx) return;
-
     const now = this.ctx.currentTime;
+    if (this._lastExplosionTime && now - this._lastExplosionTime < 0.04) return;
+    this._lastExplosionTime = now;
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
@@ -436,10 +482,10 @@ export class SpaceAudio {
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
       gain.connect(panner);
-      panner.connect(this.ctx.destination);
+      panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
     }
 
     osc.onended = () => {
@@ -472,7 +518,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.start(now);
     osc.stop(now + 0.2);
@@ -495,7 +541,7 @@ export class SpaceAudio {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._getOutputNode());
 
       osc.start(now);
       osc.stop(now + 0.15);
@@ -518,7 +564,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.start(now);
     osc.stop(now + 0.25);
@@ -545,7 +591,7 @@ export class SpaceAudio {
     subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
     subOsc.connect(subGain);
-    subGain.connect(this.ctx.destination);
+    subGain.connect(this._getOutputNode());
 
     subOsc.start(now);
     subOsc.stop(now + 0.4);
@@ -570,7 +616,7 @@ export class SpaceAudio {
 
     noise.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    noiseGain.connect(this._getOutputNode());
 
     noise.start(now);
     noise.stop(now + 0.4);
@@ -592,7 +638,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.start(now);
     osc.stop(now + 0.35);
@@ -614,7 +660,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.start(now);
     osc.stop(now + 0.15);
@@ -636,7 +682,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.start(now);
     osc.stop(now + 0.6);
@@ -658,7 +704,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.start(now);
     osc.stop(now + 1.2);
@@ -686,7 +732,7 @@ export class SpaceAudio {
     gain.gain.linearRampToValueAtTime(0.0001, now + 0.18);
 
     osc.connect(gain);
-    gain.connect(this.masterLimiter || this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     osc.onended = () => {
       try { osc.disconnect(); gain.disconnect(); } catch (e) {}
@@ -715,7 +761,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
 
     try {
       osc.start(now);
@@ -737,7 +783,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
     osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(e){} };
     try { osc.start(now); osc.stop(now + 0.15); } catch(e){}
   }
@@ -756,7 +802,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
     osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(e){} };
     try { osc.start(now); osc.stop(now + 0.2); } catch(e){}
   }
@@ -775,7 +821,7 @@ export class SpaceAudio {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._getOutputNode());
     osc.onended = () => { try { osc.disconnect(); gain.disconnect(); } catch(e){} };
     try { osc.start(now); osc.stop(now + 0.35); } catch(e){}
   }
