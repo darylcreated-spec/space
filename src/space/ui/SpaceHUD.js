@@ -25,6 +25,13 @@ export class SpaceHUD {
     this.waveTitle = document.getElementById('banner-wave-title') || document.getElementById('space-wave-title');
     this.waveSubtitle = document.getElementById('banner-wave-subtitle') || document.getElementById('space-wave-subtitle');
 
+    // Mission Command & Tactical Comms Radio Box
+    this.commsBox = document.getElementById('space-comms-box');
+    this.commsSender = document.getElementById('comms-sender');
+    this.commsMessage = document.getElementById('comms-message');
+    this.commsSignalDot = this.commsBox ? this.commsBox.querySelector('.comms-signal-dot') : null;
+    this.commsAvatarSvg = this.commsBox ? this.commsBox.querySelector('.comms-avatar svg') : null;
+
     this.btnFirePulse = document.getElementById('btn-fire-pulse');
     this.btnFireSwarm = document.getElementById('btn-fire-swarm');
     this.btnHyperBoost = document.getElementById('btn-hyper-boost');
@@ -1175,6 +1182,44 @@ export class SpaceHUD {
       }, duration * 1000);
     }
   }
+
+  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 3.5, color = '#00f3ff') {
+    if (!this.commsBox) {
+      this.commsBox = document.getElementById('space-comms-box');
+      this.commsSender = document.getElementById('comms-sender');
+      this.commsMessage = document.getElementById('comms-message');
+      this.commsSignalDot = this.commsBox ? this.commsBox.querySelector('.comms-signal-dot') : null;
+      this.commsAvatarSvg = this.commsBox ? this.commsBox.querySelector('.comms-avatar svg') : null;
+    }
+    if (!this.commsBox || !this.commsMessage) return;
+
+    if (this.commsSender) {
+      this.commsSender.textContent = sender;
+      this.commsSender.style.color = color || '#00f3ff';
+    }
+    this.commsMessage.textContent = message;
+
+    if (this.commsSignalDot) {
+      this.commsSignalDot.style.background = color || '#00f3ff';
+      this.commsSignalDot.style.boxShadow = `0 0 8px ${color || '#00f3ff'}`;
+    }
+    if (this.commsAvatarSvg) {
+      this.commsAvatarSvg.setAttribute('stroke', color || '#00f3ff');
+    }
+
+    this.commsBox.style.borderColor = color ? `${color}88` : 'rgba(0, 243, 255, 0.4)';
+    this.commsBox.style.boxShadow = `0 0 16px ${color ? color + '33' : 'rgba(0, 243, 255, 0.2)'}`;
+    this.commsBox.classList.remove('hidden');
+
+    if (this._commsTimer) clearTimeout(this._commsTimer);
+    this._commsTimer = setTimeout(() => {
+      if (this.commsBox) this.commsBox.classList.add('hidden');
+      if (this.gameManager && this.gameManager.spaceAudio && this.gameManager.spaceAudio.playRadioRelease) {
+        this.gameManager.spaceAudio.playRadioRelease();
+      }
+    }, duration * 1000);
+  }
+
 
   showKillCam(title, subtitle, duration) {
     // Kill-cam removed for ultra-smooth mobile gameplay and uninterrupted 60fps dogfight flow

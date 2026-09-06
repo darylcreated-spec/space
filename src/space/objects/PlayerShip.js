@@ -1377,11 +1377,23 @@ export class PlayerShip {
       finalAmount *= Math.max(0.70, 1.0 - this.shieldLevel * 0.05); // Up to 25% progressive kinetic damage mitigation!
     }
 
+    const prevShield = this.shield;
     this.shield = Math.max(0, this.shield - finalAmount);
     this.shieldRippleTimer = 0.65; // Bring up shield display for 0.65 second
     if (this.shieldMat) this.shieldMat.opacity = 0.35;
     if (this.shieldMesh) this.shieldMesh.visible = true;
     this.updateDamageVisuals();
+
+    // ── 🎙️ Tactical Voice Radio: Shield Collapse & Near-Death Alert ──
+    if (prevShield > 0 && this.shield <= 0) {
+      window.spaceGameManager?.voiceAnnouncer?.announceShieldCollapse?.();
+    } else if (this.shield <= 0) {
+      const now = performance.now();
+      if (!this._lastNearDeathCallout || now - this._lastNearDeathCallout > 12000) {
+        this._lastNearDeathCallout = now;
+        window.spaceGameManager?.voiceAnnouncer?.announceNearDeath?.();
+      }
+    }
 
     // ── 🛡️ Level 5 Apex: Emergency Aegis Shield Reboot ──
     if (this.shield <= 0 && this.hasEmergencyAegisReboot && !this._aegisUsed) {
@@ -1391,12 +1403,13 @@ export class PlayerShip {
       if (this.particleManager) {
         this.particleManager.createEmpShockwave(this.meshGroup.position, 50);
       }
-      window.spaceGameManager?.voiceAnnouncer?.speak("EMERGENCY AEGIS SHIELD REBOOT TRIGGERED!", true);
+      window.spaceGameManager?.voiceAnnouncer?.speakPersona?.('AVIONICS', "EMERGENCY AEGIS SHIELD REBOOT TRIGGERED!", true);
       if (window.spaceGameManager?.spaceHUD) {
-        window.spaceGameManager.spaceHUD.showRadioTransmission("AEGIS PROTOCOL: Emergency shield rebooted at 55% power! 2.5s invulnerability active!", "SHIP COMPUTER", 4.0);
+        window.spaceGameManager.spaceHUD.showRadioTransmission("AEGIS PROTOCOL: Emergency shield rebooted at 55% power! 2.5s invulnerability active!", "ONBOARD AI // AEGIS-9", 4.0, "#10b981");
       }
       return false;
     }
+
 
     if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
       window.spaceGameManager.spaceHUD.flashShieldImpact();

@@ -1257,19 +1257,41 @@ html, body {
   position: absolute;
   top: 72px;
   left: 1.25rem;
-  max-width: 320px;
-  padding: 8px 12px;
-  z-index: 15;
-  border: 1px solid rgba(0, 243, 255, 0.4);
+  max-width: 340px;
+  padding: 10px 14px;
+  z-index: 25;
+  background: rgba(8, 14, 24, 0.92);
+  border: 1px solid rgba(0, 243, 255, 0.45);
+  border-radius: 4px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 243, 255, 0.08);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.comms-panel.hidden {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
 }
 
 .comms-header {
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-code);
-  font-size: 0.6rem;
-  color: var(--text-muted);
+  align-items: center;
+  font-family: var(--font-code, monospace);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted, #94a3b8);
   margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 4px;
+}
+
+.comms-signal-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .comms-signal-dot {
@@ -1278,21 +1300,60 @@ html, body {
   height: 6px;
   background: #00ff66;
   border-radius: 50%;
-  margin-right: 4px;
-  box-shadow: 0 0 6px #00ff66;
+  box-shadow: 0 0 8px #00ff66;
+  animation: commsSignalPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes commsSignalPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.comms-sender {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .comms-body {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
-.comms-msg {
-  font-size: 0.74rem;
-  color: #fff;
-  line-height: 1.25;
+.comms-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
+
+.comms-msg {
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #f8fafc;
+  line-height: 1.35;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+@media (max-width: 640px) {
+  .comms-panel {
+    max-width: calc(100vw - 2.5rem);
+    left: 1.25rem;
+    top: 66px;
+    padding: 8px 10px;
+  }
+  .comms-msg {
+    font-size: 0.70rem;
+  }
+}
+
 
 .wave-announcer {
   position: absolute;

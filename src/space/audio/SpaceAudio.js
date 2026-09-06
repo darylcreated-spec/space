@@ -853,4 +853,115 @@ export class SpaceAudio {
       } catch (e) {}
     }
   }
+
+  /**
+   * Procedural Tactical Radio Chirp / Roger Beep & Mic Key-Down Click
+   * Simulates dual-tone aviation burst and helmet microphone contact click.
+   */
+  playRadioChirp() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      // 1. Dual-tone Roger Beep (1450Hz & 2200Hz)
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gainTone = this.ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1450, now);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(2200, now + 0.015);
+
+      gainTone.gain.setValueAtTime(0.0001, now);
+      gainTone.gain.linearRampToValueAtTime(0.10, now + 0.005);
+      gainTone.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+
+      osc1.connect(gainTone);
+      osc2.connect(gainTone);
+      gainTone.connect(outputNode);
+
+      osc1.start(now);
+      osc1.stop(now + 0.035);
+      osc2.start(now + 0.015);
+      osc2.stop(now + 0.05);
+
+      osc1.onended = () => { try { osc1.disconnect(); osc2.disconnect(); gainTone.disconnect(); } catch (e) {} };
+
+      // 2. Helmet Squelch Noise Burst (2400Hz Bandpass Click)
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.035);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+      }
+
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(2400, now);
+      noiseFilter.Q.setValueAtTime(1.8, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.07, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+
+      whiteNoise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(outputNode);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.035);
+      whiteNoise.onended = () => { try { whiteNoise.disconnect(); noiseFilter.disconnect(); noiseGain.disconnect(); } catch (e) {} };
+    } catch (e) {
+      // Audio fallback resilience
+    }
+  }
+
+  /**
+   * Procedural Squelch Tail / Radio Release Burst
+   * Simulates the squelch gate clamp noise when pilot releases the mic.
+   */
+  playRadioRelease() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.045);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+      }
+
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(1800, now);
+      noiseFilter.Q.setValueAtTime(1.4, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.06, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+      whiteNoise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(outputNode);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.045);
+      whiteNoise.onended = () => { try { whiteNoise.disconnect(); noiseFilter.disconnect(); noiseGain.disconnect(); } catch (e) {} };
+    } catch (e) {}
+  }
 }
+

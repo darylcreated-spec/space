@@ -305,13 +305,14 @@ export class GameManager {
   setWingmanDoctrine(doctrine = 'DEFEND') {
     this.currentWingmanDoctrine = doctrine;
     this.wingmanDrones.forEach(w => w.setDoctrine(doctrine));
-    const friendlyName = doctrine === 'FOCUS_FIRE' ? 'FOCUS' : (doctrine === 'SWARM_FLANK' ? 'FLANK' : 'DEFEND');
-    if (this.voiceAnnouncer) this.voiceAnnouncer.speak(`Squadron Directive: ${friendlyName}`, true);
+    if (this.voiceAnnouncer) {
+      this.voiceAnnouncer.announceDoctrineSwitch(doctrine);
+    }
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission(`WING COMMAND: Squadron Directive set to ${friendlyName}!`, "ALLIED FLIGHT", 2.5);
       this.spaceHUD.updateWingmanDoctrineUI?.(doctrine);
     }
   }
+
 
   cycleWingmanDoctrine() {
     const doctrines = ['DEFEND', 'FOCUS_FIRE', 'SWARM_FLANK'];
@@ -520,12 +521,31 @@ export class GameManager {
   addScore(pts) {
     this.score += pts;
     this.totalKills++;
+
+    // ── 🎙️ Tactical Radio: Dogfight Combo Streaks ──
+    const now = performance.now();
+    if (!this._lastKillStreakTime || now - this._lastKillStreakTime < 4500) {
+      this._currentKillStreak = (this._currentKillStreak || 0) + 1;
+    } else {
+      this._currentKillStreak = 1;
+    }
+    this._lastKillStreakTime = now;
+
+    if (this._currentKillStreak === 3) {
+      this.voiceAnnouncer?.announceDogfightStreak(3);
+    } else if (this._currentKillStreak === 7) {
+      this.voiceAnnouncer?.announceDogfightStreak(7);
+    } else if (this._currentKillStreak === 15) {
+      this.voiceAnnouncer?.announceDogfightStreak(15);
+    }
+
     if (this.score > this.highScore) {
       this.highScore = this.score;
       localStorage.setItem('orbital_vanguard_highscore', this.highScore.toString());
       if (this.spaceHUD) this.spaceHUD.updateHighScore(this.highScore);
     }
   }
+
 
   addScrap(amount) {
     this.upgradeSystem.addScrap(amount);
@@ -662,12 +682,13 @@ export class GameManager {
   spawnTitanBoss() {
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
-    this.voiceAnnouncer.speak("Warning! Titan Asteroid Colossus Approaching!", true);
+    this.voiceAnnouncer?.announceImperialIncursion('Titan Asteroid Colossus');
     if (this.spaceHUD) {
       this.spaceHUD.showWaveBanner("BOSS BATTLE", "TITAN ASTEROID COLOSSUS");
       this.spaceHUD.updateBossHealth(1.0, "TITAN ASTEROID COLOSSUS // VOLCANIC PLANETOID");
     }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+
 
     // Deploy Enemy Capital Cruiser to protect the Titan Asteroid Boss!
     setTimeout(() => {
@@ -822,12 +843,13 @@ export class GameManager {
     if (this.activeBoss.meshGroup) {
       this.activeBoss.meshGroup.position.set(0, 0, -140);
     }
-    this.voiceAnnouncer.speak("Priority Alpha! Leviathan Dreadnought Battle Monster emerging! Flank the warship and destroy its shield nodes!", true);
+    this.voiceAnnouncer?.announceImperialIncursion('Leviathan Mothership');
     if (this.spaceHUD) {
-      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Battle Monster Dreadnought detected! Flank the warship to destroy its Port & Starboard Shield Generators!", "STARBOUND COMMAND", 8.0);
+      this.spaceHUD.showRadioTransmission("PRIORITY ALPHA: Leviathan Battle Monster Dreadnought detected! Flank the warship to destroy its Port & Starboard Shield Generators!", "AWACS // FLEET CONTROL", 8.0, "#00f3ff");
       this.spaceHUD.showWaveBanner("BATTLE MONSTER SIEGE", "LEVIATHAN COMMAND DREADNOUGHT");
       this.spaceHUD.updateBossHealth(1.0, "LEVIATHAN DREADNOUGHT // BATTLE MONSTER");
     }
+
     if (this.spaceScene) {
       this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(0, 0, -140));
       this.spaceScene.triggerBossIntroCamera(3.5);
