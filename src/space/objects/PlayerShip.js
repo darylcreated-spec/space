@@ -24,7 +24,7 @@ export class PlayerShip {
     this.currentPitch = 0;
     this.prevInput = { x: 0, y: 0 };
 
-    this.bounds = { minX: -22.0, maxX: 22.0, minY: -10.0, maxY: 14.0, minZ: -14.0, maxZ: 10.0 };
+    this.bounds = { minX: -42.0, maxX: 42.0, minY: -16.0, maxY: 22.0, minZ: -28.0, maxZ: 16.0 };
 
     this.laserCooldown = 0;
     this.pulseCooldown = 0;
@@ -1622,20 +1622,20 @@ export class PlayerShip {
       this.sentinelDrone.rotation.y = -droneAngle + Math.PI / 2;
     }
 
-    // ── Movement & Bounds (Strict Viewport Confinement) ──
+    // ── Movement & Bounds (Dynamic Camera-Followed Combat Arena) ──
     const aspect = (typeof window !== 'undefined' && window.innerWidth && window.innerHeight)
       ? (window.innerWidth / window.innerHeight)
       : 1.77;
     const isPortrait = aspect < 1.0;
 
-    // Confine ship so the player can NEVER fly out of view (adapting to portrait mobile vs landscape desktop)
-    const maxHalfX = isPortrait ? Math.min(10.5, Math.max(7.5, 15.0 * aspect)) : 22.0;
+    // Generous combat arena allowing full evasive maneuvers, barrel rolls, and flanking sweeps
+    const maxHalfX = isPortrait ? 30.0 : 42.0;
     this.bounds.minX = -maxHalfX;
     this.bounds.maxX = maxHalfX;
-    this.bounds.minY = isPortrait ? -11.0 : -10.0;
-    this.bounds.maxY = isPortrait ? 15.0 : 14.0;
-    this.bounds.minZ = -14.0;
-    this.bounds.maxZ = 10.0;
+    this.bounds.minY = isPortrait ? -16.0 : -14.0;
+    this.bounds.maxY = isPortrait ? 22.0 : 20.0;
+    this.bounds.minZ = -28.0;
+    this.bounds.maxZ = 16.0;
 
     const minX = this.bounds.minX;
     const maxX = this.bounds.maxX;
