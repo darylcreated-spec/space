@@ -23,14 +23,14 @@ export class HeliosSolarBoss {
   }
 
   buildBossModel() {
-    // ── Central Fusion Siphon Core ──
+    // ── Monolithic Brutalist Central Fusion Siphon Core ──
     const coreGeo = new THREE.IcosahedronGeometry(7.5, 3);
     const coreMat = new THREE.MeshStandardMaterial({
-      color: 0xff8800,
-      emissive: 0xff4400,
-      emissiveIntensity: 0.8,
-      roughness: 0.3,
-      metalness: 0.7
+      color: 0x8b0000, // Stark blood red
+      emissive: 0xff0022, // Blinding crimson red
+      emissiveIntensity: 1.2,
+      roughness: 0.88,
+      metalness: 0.52
     });
     this.coreMesh = new THREE.Mesh(coreGeo, coreMat);
     this.meshGroup.add(this.coreMesh);
@@ -38,23 +38,23 @@ export class HeliosSolarBoss {
     // Glowing Inner Plasma Sphere
     const plasmaGeo = new THREE.SphereGeometry(6.2, 16, 16);
     const plasmaMat = new THREE.MeshBasicMaterial({
-      color: 0xffea00,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
-      opacity: 0.65
+      opacity: 0.85
     });
     this.plasmaMesh = new THREE.Mesh(plasmaGeo, plasmaMat);
     this.meshGroup.add(this.plasmaMesh);
 
-    // ── 6 Rotating Dyson Solar Siphon Collector Petals ──
+    // ── 6 Rotating Monolithic Siphon Collector Slabs ──
     this.petalGroup = new THREE.Group();
     this.meshGroup.add(this.petalGroup);
 
     const petalMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1208,
-      metalness: 0.9,
-      roughness: 0.25,
-      emissive: 0xff6600,
-      emissiveIntensity: 0.2
+      color: 0x191b1d, // Charcoal cast iron
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     for (let i = 0; i < 6; i++) {
@@ -67,13 +67,13 @@ export class HeliosSolarBoss {
       petalMesh.position.set(0, 15.0, 0);
       petalSubGroup.add(petalMesh);
 
-      // Gold Solar Grid Overlay
+      // Blood-Red Faction Grid Overlay
       const gridGeo = new THREE.PlaneGeometry(2.8, 12.0);
       const gridMat = new THREE.MeshBasicMaterial({
-        color: 0xffea00,
+        color: 0x8b0000, // Blood-red faction stripe
         wireframe: true,
         transparent: true,
-        opacity: 0.5
+        opacity: 0.7
       });
       const gridMesh = new THREE.Mesh(gridGeo, gridMat);
       gridMesh.position.set(0, 15.0, 0.7);

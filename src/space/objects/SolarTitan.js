@@ -37,21 +37,21 @@ export class SolarTitan {
   }
 
   buildMesh() {
-    // 1. High-Tech Obsidian-Gold Heat Shielding Materials
+    // ── Monolithic Brutalist Empire Materials ──
     const armorMat = new THREE.MeshStandardMaterial({
-      color: 0x1a1208,
-      metalness: 0.95,
-      roughness: 0.22,
-      emissive: 0x331a00,
-      emissiveIntensity: 0.3
+      color: 0x191b1d, // Charcoal cast iron
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     const goldPlatingMat = new THREE.MeshStandardMaterial({
-      color: 0xd4af37,
-      metalness: 0.98,
-      roughness: 0.12,
-      emissive: 0x4a3c10,
-      emissiveIntensity: 0.4
+      color: 0x8b0000, // Stark blood-red faction stripe
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x3b0000,
+      emissiveIntensity: 0.45
     });
 
     // 2. Central Fortress Chassis
@@ -60,10 +60,10 @@ export class SolarTitan {
     const chassis = new THREE.Mesh(chassisGeo, armorMat);
     this.meshGroup.add(chassis);
 
-    // 3. Molten Solar Plasma Core (Protected during HARVESTING, Exposed during VENTING)
+    // 3. Blinding Crimson Plasma Core
     const coreGeo = new THREE.SphereGeometry(3.2, 24, 24);
     const coreMat = new THREE.MeshBasicMaterial({
-      color: 0xffaa00,
+      color: 0xff0022, // Blinding crimson red
       wireframe: false
     });
     this.coreMesh = new THREE.Mesh(coreGeo, coreMat);
@@ -73,23 +73,23 @@ export class SolarTitan {
     // Inner Core Flare Glow
     const glowGeo = new THREE.SphereGeometry(3.6, 16, 16);
     const glowMat = new THREE.MeshBasicMaterial({
-      color: 0xff3300,
+      color: 0xff0022,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.55,
       blending: THREE.AdditiveBlending
     });
     this.coreGlow = new THREE.Mesh(glowGeo, glowMat);
     this.meshGroup.add(this.coreGlow);
 
-    // 4. 4 Articulated Thermal Radiator Wings
+    // 4. 4 Articulated Slate Concrete Radiator Wings
     this.wings = [];
     const wingGeo = new THREE.BoxGeometry(6.5, 0.4, 14.0);
     const wingMat = new THREE.MeshStandardMaterial({
-      color: 0x24180c,
-      metalness: 0.92,
-      roughness: 0.25,
-      emissive: 0xff5500,
-      emissiveIntensity: 0.6
+      color: 0x282a2e, // Slate concrete slab
+      metalness: 0.76,
+      roughness: 0.94,
+      emissive: 0xaa0814,
+      emissiveIntensity: 0.5
     });
 
     const wingConfigs = [

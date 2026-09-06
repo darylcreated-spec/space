@@ -179,54 +179,51 @@ export class HaloRingBoss {
     const armorTex = generateHaloArmorTexture();
     const bioTex = generateHaloBiosphereTexture();
 
-    // ── 1. Outer Forerunner Pewter-Silver Structural Shell ──
+    // ── 1. Outer Monolithic Cast-Iron Structural Shell ──
     const outerGeo = new THREE.TorusGeometry(ringR, tubeR, 24, 100);
     const shellMat = new THREE.MeshStandardMaterial({
-      color: 0x788c9f,
+      color: 0x191b1d, // Charcoal cast iron
       bumpMap: armorTex,
-      bumpScale: 0.14,
-      metalness: 0.94,
-      roughness: 0.16,
-      emissive: 0x141f2d,
-      emissiveIntensity: 0.35
+      bumpScale: 0.22,
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
     this.ringMesh = new THREE.Mesh(outerGeo, shellMat);
     this.meshGroup.add(this.ringMesh);
 
-    // ── 2. Inward Terraformed Biosphere Band ──
+    // ── 2. Inward Slate Concrete Industrial Bastion Band ──
     const innerGeo = new THREE.TorusGeometry(ringR - 0.8, tubeR - 1.2, 20, 100);
     const bioMat = new THREE.MeshStandardMaterial({
-      color: 0xd8e8f5,
-      map: bioTex,
-      roughness: 0.3,
-      metalness: 0.5,
-      emissive: 0x004488,
-      emissiveIntensity: 0.25
+      color: 0x282a2e, // Slate concrete slab
+      roughness: 0.94,
+      metalness: 0.76,
+      emissive: 0x0d0305,
+      emissiveIntensity: 0.20
     });
     this.meshGroup.add(new THREE.Mesh(innerGeo, bioMat));
 
-    // ── 3. Dual Titanium Retaining Wall Rims with Cyan Lighting ──
+    // ── 3. Dual Heavy Retaining Wall Rims with Crimson Conduits ──
     [-tubeR * 0.9, tubeR * 0.9].forEach(zOff => {
       const rimGeo = new THREE.TorusGeometry(ringR + 0.6, 0.7, 10, 80);
-      const rimMat = new THREE.MeshStandardMaterial({ color: 0x243244, metalness: 0.95, roughness: 0.2 });
+      const rimMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, metalness: 0.52, roughness: 0.88 }); // Blood-red faction rim
       const rim = new THREE.Mesh(rimGeo, rimMat);
       rim.position.z = zOff;
       this.meshGroup.add(rim);
 
       const conduitGeo = new THREE.TorusGeometry(ringR + 0.9, 0.2, 8, 80);
-      const conduitMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const conduitMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
       const conduit = new THREE.Mesh(conduitGeo, conduitMat);
       conduit.position.z = zOff;
       this.meshGroup.add(conduit);
     });
 
-    // ── 4. 12 Triangular Structural Truss Spoke Struts ──
+    // ── 4. 12 Structural Truss Spoke Struts ──
     const spokeMat = new THREE.MeshStandardMaterial({
-      color: 0x36485e,
-      metalness: 0.95,
-      roughness: 0.22,
-      emissive: 0x0e1824,
-      emissiveIntensity: 0.2
+      color: 0x121314, // Dark mechanical steel
+      roughness: 0.92,
+      metalness: 0.90
     });
 
     this.hubGroup = new THREE.Group();

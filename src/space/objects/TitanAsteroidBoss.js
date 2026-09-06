@@ -156,63 +156,60 @@ export class TitanAsteroidBoss {
   buildTitanMesh() {
     const basaltTex = generateTitanBasaltTexture();
 
+    // ── Monolithic Brutalist Empire Materials ──
     const basaltMat = new THREE.MeshStandardMaterial({
-      color: 0x221626,
+      color: 0x191b1d, // Charcoal cast iron / dark basalt
       bumpMap: basaltTex,
-      bumpScale: 0.22,
-      roughness: 0.75,
-      metalness: 0.35,
+      bumpScale: 0.26,
+      roughness: 0.95, // Heavy matte, zero gloss
+      metalness: 0.84,
       flatShading: true
     });
 
-    // ── 🪞 ULTRA-GLOSS MIRROR-SHADED METALLIC ARMOR MATERIAL ──
-    const mirrorPlateMat = new THREE.MeshPhysicalMaterial({
-      color: 0xc8ddf0, // Polished titanium chrome mirror
-      metalness: 1.0,  // Pure reflective metal
-      roughness: 0.02, // Ultra-smooth glass mirror finish
-      clearcoat: 1.0,  // Protective optical lacquer layer
-      clearcoatRoughness: 0.01,
-      reflectivity: 1.0,
-      emissive: 0x0a1c2e,
-      emissiveIntensity: 0.25,
-      envMapIntensity: 3.2
+    // Heavy Slate Concrete Slab Plates
+    const mirrorPlateMat = new THREE.MeshStandardMaterial({
+      color: 0x282a2e, // Slate grey concrete slab
+      metalness: 0.76,
+      roughness: 0.94, // Zero gloss
+      bumpMap: basaltTex,
+      bumpScale: 0.22,
+      emissive: 0x0d0305,
+      emissiveIntensity: 0.2
     });
 
-    const chromeBevelMat = new THREE.MeshPhysicalMaterial({
-      color: 0xffffff, // Pure specular white-chrome bevel
-      metalness: 1.0,
-      roughness: 0.005,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.0,
-      reflectivity: 1.0,
-      envMapIntensity: 4.0
+    const chromeBevelMat = new THREE.MeshStandardMaterial({
+      color: 0x8b0000, // Stark blood-red faction trim
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x3b0000,
+      emissiveIntensity: 0.45
     });
 
     const cyberArmorMat = new THREE.MeshStandardMaterial({
-      color: 0x1f2e3d,
-      metalness: 0.95,
-      roughness: 0.2,
-      emissive: 0x091420,
-      emissiveIntensity: 0.3
+      color: 0x121314, // Dark mechanical structural steel
+      metalness: 0.90,
+      roughness: 0.92,
+      emissive: 0x040404,
+      emissiveIntensity: 0.1
     });
 
     const darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x141a22,
+      color: 0x121314,
       metalness: 0.92,
-      roughness: 0.3
+      roughness: 0.90
     });
 
     const moltenCoreMat = new THREE.MeshStandardMaterial({
-      color: 0x4a1804,
-      emissive: 0xff5500,
-      emissiveIntensity: 6.0,
-      metalness: 0.6,
-      roughness: 0.15
+      color: 0x4a0408,
+      emissive: 0xff0022, // Blinding crimson red
+      emissiveIntensity: 5.0,
+      metalness: 0.5,
+      roughness: 0.85
     });
 
-    const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
-    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    const glowMagmaMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+    const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
+    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
+    const glowMagmaMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
 
     // ── 1. Colossal Deformed Asteroid Core Body (80m Diameter) ──
     const asteroidGeo = new THREE.DodecahedronGeometry(22.0, 3);

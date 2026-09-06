@@ -103,30 +103,32 @@ export class TitanCoreShip {
 
   buildGeometry() {
     const hullTexture = generateTitanCoreHullTexture();
+    // ── Monolithic Brutalist Empire Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
+      color: 0x191b1d, // Charcoal cast iron
       map: hullTexture,
-      roughness: 0.35,
-      metalness: 0.85,
-      emissive: 0x330800,
-      emissiveIntensity: 0.4
+      roughness: 0.95, // Heavy matte, zero gloss
+      metalness: 0.84,
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     const magmaGlowMat = new THREE.MeshStandardMaterial({
-      color: 0xff3300,
-      emissive: 0xff5500,
-      emissiveIntensity: 2.0,
-      roughness: 0.1,
-      metalness: 0.9
+      color: 0x8b0000, // Stark blood-red faction stripe
+      emissive: 0xaa0814,
+      emissiveIntensity: 1.8,
+      roughness: 0.88,
+      metalness: 0.52
     });
 
     const darkMetalMat = new THREE.MeshStandardMaterial({
-      color: 0x181216,
-      roughness: 0.4,
-      metalness: 0.9
+      color: 0x282a2e, // Slate grey concrete slab
+      roughness: 0.94,
+      metalness: 0.76
     });
 
-    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    const glowCrimsonMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
+    const glowCrimsonMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
 
     // ── 1. Central Fuselage Hull (Armored Needle Body pointing toward +Z Player) ──
     // Cone apex points along +Y. rotateX(Math.PI / 2) -> apex points forward (+Z towards player)

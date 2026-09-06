@@ -121,25 +121,25 @@ export class SanctuaryCylinderBoss {
     const cR  = 12.5;
     const armorTex = generateCylinderHullTexture();
 
-    // ── 1. Main Faceted Fuselage Cylinder ──
+    // ── 1. Main Monolithic Brutalist Cast-Iron Cylinder ──
     const hullGeo = new THREE.CylinderGeometry(cR, cR + 2.0, len, 16, 1);
     hullGeo.rotateX(Math.PI / 2);
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x334458,
+      color: 0x191b1d, // Charcoal cast iron
       bumpMap: armorTex,
-      bumpScale: 0.12,
-      roughness: 0.22,
-      metalness: 0.92,
-      emissive: 0x101a26,
-      emissiveIntensity: 0.35,
+      bumpScale: 0.24,
+      roughness: 0.95, // Heavy matte, zero gloss
+      metalness: 0.84,
+      emissive: 0x080203,
+      emissiveIntensity: 0.15,
       flatShading: true,
     });
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // ── 2. Heavy Titanium Reinforcing Armor Ribs ──
-    const ribMat = new THREE.MeshStandardMaterial({ color: 0x1a2636, metalness: 0.95, roughness: 0.2 });
-    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+    // ── 2. Heavy Slate Concrete Reinforcing Armor Ribs with Blood-Red Faction Stripes ──
+    const ribMat = new THREE.MeshStandardMaterial({ color: 0x282a2e, metalness: 0.76, roughness: 0.94 });
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0x8b0000 }); // Blood-red faction
 
     [-30, -15, 0, 15, 30].forEach(zOff => {
       const ribGeo = new THREE.TorusGeometry(cR + 2.4, 0.9, 10, 36);
@@ -158,8 +158,8 @@ export class SanctuaryCylinderBoss {
     const ringSpeeds    = [0.9, -1.2, 1.0];
     const ringRadii     = [cR + 10.0, cR + 11.5, cR + 9.5];
 
-    const spokeMat = new THREE.MeshStandardMaterial({ color: 0x223044, metalness: 0.95, roughness: 0.2 });
-    const windowMat = new THREE.MeshBasicMaterial({ color: 0xffdd88 });
+    const spokeMat = new THREE.MeshStandardMaterial({ color: 0x121314, metalness: 0.90, roughness: 0.92 });
+    const windowMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
 
     ringPositions.forEach((zOff, idx) => {
       const rGroup = new THREE.Group();
@@ -168,11 +168,11 @@ export class SanctuaryCylinderBoss {
       // Outer Structural Ring Torus
       const rGeo = new THREE.TorusGeometry(ringRadii[idx], 2.2, 16, 50);
       const rMat = new THREE.MeshStandardMaterial({
-        color: 0x3d4f68,
-        metalness: 0.94,
-        roughness: 0.18,
-        emissive: idx === 1 ? 0xff4400 : 0xff7700,
-        emissiveIntensity: 0.55
+        color: 0x191b1d,
+        metalness: 0.84,
+        roughness: 0.95,
+        emissive: 0xaa0814,
+        emissiveIntensity: 0.45
       });
       const ring = new THREE.Mesh(rGeo, rMat);
       rGroup.add(ring);

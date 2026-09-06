@@ -138,20 +138,21 @@ export class MoonBase {
 
     // ── 2. Main PBR Cratered Lunar Sphere Hull ──
     const hullGeo = new THREE.SphereGeometry(R, 48, 40);
+    // ── Monolithic Brutalist Empire Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x161e2a,
-      roughness: 0.52,
-      metalness: 0.88,
-      emissive: 0x080f18,
-      emissiveIntensity: 0.2,
+      color: 0x191b1d, // Charcoal cast iron
+      roughness: 0.95, // Heavy matte, zero gloss
+      metalness: 0.84,
+      emissive: 0x080203,
+      emissiveIntensity: 0.15,
       normalMap,
-      normalScale: new THREE.Vector2(1.4, 1.4),
+      normalScale: new THREE.Vector2(1.6, 1.6),
       flatShading: true,
     });
     this.spireMesh = new THREE.Mesh(hullGeo, hullMat);
     this.meshGroup.add(this.spireMesh);
 
-    // â”€â”€ 3. Geodesic Bio-Dome Habitation Colonies with Internal Glowing Spire Cities â”€â”€
+    // ── 3. Brutalist Fortress Bastions with Crimson Sensors ──
     const domePositions = [
       new THREE.Vector3(-10, 14, 11),
       new THREE.Vector3(10, 14, 11),
@@ -163,32 +164,32 @@ export class MoonBase {
       domeGroup.position.copy(dPos);
       domeGroup.lookAt(dPos.clone().multiplyScalar(2));
 
-      // Outer Crystalline Protective Dome
+      // Outer Reinforced Slab Protective Bastion
       const dGeo = new THREE.SphereGeometry(3.2, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
       const dMat = new THREE.MeshStandardMaterial({
-        color: 0x002844,
-        emissive: 0x00f3ff,
-        emissiveIntensity: 0.25,
-        roughness: 0.1,
-        metalness: 0.95,
+        color: 0x282a2e, // Slate concrete slab
+        emissive: 0x8b0000,
+        emissiveIntensity: 0.35,
+        roughness: 0.94,
+        metalness: 0.76,
         transparent: true,
-        opacity: 0.55
+        opacity: 0.75
       });
       const dome = new THREE.Mesh(dGeo, dMat);
       domeGroup.add(dome);
 
-      // Inner Geodesic Structural Lattice
-      const wireMat = new THREE.MeshBasicMaterial({ color: 0x00ff88, wireframe: true });
+      // Inner Structural Lattice
+      const wireMat = new THREE.MeshBasicMaterial({ color: 0xff0022, wireframe: true }); // Blinding crimson
       const wireDome = new THREE.Mesh(dGeo, wireMat);
       domeGroup.add(wireDome);
 
-      // Interior Glowing Miniature Megacity Spires
+      // Interior Glowing Citadel Spires
       const cityPillars = [
-        { x: -0.8, y: 0.8, h: 2.2, col: 0x00f3ff },
-        { x: 0.8, y: 0.8, h: 2.5, col: 0x00ff88 },
-        { x: -0.6, y: -0.6, h: 1.8, col: 0xffea00 },
-        { x: 0.6, y: -0.6, h: 2.0, col: 0x00f3ff },
-        { x: 0.0, y: 0.0, h: 2.8, col: 0xffffff }
+        { x: -0.8, y: 0.8, h: 2.2, col: 0xff0022 },
+        { x: 0.8, y: 0.8, h: 2.5, col: 0x8b0000 },
+        { x: -0.6, y: -0.6, h: 1.8, col: 0xff0022 },
+        { x: 0.6, y: -0.6, h: 2.0, col: 0x8b0000 },
+        { x: 0.0, y: 0.0, h: 2.8, col: 0xff0022 }
       ];
       cityPillars.forEach(cp => {
         const pGeo = new THREE.BoxGeometry(0.4, 0.4, cp.h);
@@ -239,7 +240,7 @@ export class MoonBase {
     this.magLevNodes = [];
     for (let i = 0; i < 6; i++) {
       const nodeGeo = new THREE.SphereGeometry(0.75, 12, 12);
-      const nodeMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+      const nodeMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
       const node = new THREE.Mesh(nodeGeo, nodeMat);
       this.meshGroup.add(node);
       this.magLevNodes.push({ mesh: node, baseAngle: (i / 6) * Math.PI * 2, radius: R + 1.2 });

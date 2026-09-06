@@ -29,17 +29,17 @@ export class SingularityHarbinger {
   }
 
   buildMesh() {
-    // 1. Dark Matter Composite Hull Material
+    // ── Monolithic Brutalist Empire Materials ──
     const darkMatterMat = new THREE.MeshStandardMaterial({
-      color: 0x09050e,
-      metalness: 0.98,
-      roughness: 0.15,
-      emissive: 0x1a0033,
-      emissiveIntensity: 0.5
+      color: 0x191b1d, // Charcoal cast iron
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     const violetTrimMat = new THREE.MeshBasicMaterial({
-      color: 0xaa00ff
+      color: 0x8b0000 // Stark blood-red faction
     });
 
     // 2. Twin Crescent Stasis Claws (Pincers enclosing the Singularity)
@@ -73,10 +73,10 @@ export class SingularityHarbinger {
     const photonRingGeo = new THREE.RingGeometry(2.5, 4.2, 48);
     photonRingGeo.rotateX(Math.PI * 0.4);
     const photonRingMat = new THREE.MeshBasicMaterial({
-      color: 0xaa00ff,
+      color: 0xff0022, // Blinding crimson red
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
     this.photonRing = new THREE.Mesh(photonRingGeo, photonRingMat);
