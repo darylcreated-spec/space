@@ -2809,3 +2809,195 @@ html, body {
   100% { filter: none; transform: scale(1.0); }
 }
 
+/* ══════════════════════════════════════════════════════════
+   🎯 DESKTOP POINTER LOCK & MOUSE FLIGHT HUD
+   ══════════════════════════════════════════════════════════ */
+
+.desktop-flight-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 74px;
+  height: 74px;
+  pointer-events: none;
+  z-index: 42;
+  will-change: transform;
+}
+
+.desktop-flight-reticle.hidden {
+  display: none !important;
+}
+
+.reticle-gimbal-ring {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1.5px solid rgba(0, 243, 255, 0.45);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.25), inset 0 0 8px rgba(0, 243, 255, 0.15);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reticle-tick {
+  position: absolute;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+
+.reticle-tick.tick-top {
+  top: -6px;
+  left: 50%;
+  width: 2px;
+  height: 6px;
+  transform: translateX(-50%);
+}
+
+.reticle-tick.tick-bottom {
+  bottom: -6px;
+  left: 50%;
+  width: 2px;
+  height: 6px;
+  transform: translateX(-50%);
+}
+
+.reticle-tick.tick-left {
+  top: 50%;
+  left: -6px;
+  width: 6px;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.reticle-tick.tick-right {
+  top: 50%;
+  right: -6px;
+  width: 6px;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.reticle-center-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(0, 243, 255, 0.6);
+  transform: translate(-50%, -50%);
+}
+
+.reticle-gimbal-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00ff88;
+  border: 1.5px solid #ffffff;
+  box-shadow: 0 0 10px #00ff88, 0 0 20px rgba(0, 255, 136, 0.7);
+  transform: translate(-50%, -50%) translate3d(0, 0, 0);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.reticle-vector-line {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.1), rgba(0, 255, 136, 0.8));
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+/* 🖱️ Desktop Mouse Flight Status Pill */
+.desktop-mouse-flight-pill {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(4, 16, 28, 0.82);
+  border: 1px solid rgba(0, 243, 255, 0.45);
+  border-radius: 18px;
+  padding: 6px 14px;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 45;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.desktop-mouse-flight-pill:hover {
+  background: rgba(0, 243, 255, 0.15);
+  border-color: #00f3ff;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.5);
+}
+
+.desktop-mouse-flight-pill.is-locked {
+  border-color: #00ff88;
+  box-shadow: 0 0 18px rgba(0, 255, 136, 0.4);
+}
+
+.desktop-mouse-flight-pill.is-locked .pill-radar-dot {
+  background: #00ff88;
+  box-shadow: 0 0 8px #00ff88;
+}
+
+.desktop-mouse-flight-pill.is-locked .pill-text {
+  color: #00ff88;
+}
+
+.pill-radar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #00f3ff;
+  box-shadow: 0 0 8px #00f3ff;
+  animation: blinkDot 1s infinite alternate;
+}
+
+.pill-text {
+  font-family: var(--font-header);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--accent-cyan);
+}
+
+/* Hide desktop mouse flight controls on mobile / touch displays */
+body.is-mobile-browser .desktop-flight-reticle,
+body.is-mobile-browser .desktop-mouse-flight-pill,
+body.is-mobile-browser .desktop-only-setting {
+  display: none !important;
+}
+
+@media (pointer: coarse) and (hover: none) {
+  .desktop-flight-reticle,
+  .desktop-mouse-flight-pill,
+  .desktop-only-setting {
+    display: none !important;
+  }
+}
+
+/* Hide mobile virtual joystick on desktop mouse/keyboard setups */
+body:not(.is-mobile-browser) .virtual-joystick-dock {
+  display: none !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .virtual-joystick-dock {
+    display: none !important;
+  }
+}
+
+

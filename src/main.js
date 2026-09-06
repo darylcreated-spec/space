@@ -22,6 +22,10 @@ class OrbitalVanguardApp {
     this.spaceParticles = new SpaceParticles(this.spaceScene.scene);
     this.spaceAudio = new SpaceAudio();
     this.spaceControls = new SpaceControls();
+    if (this.spaceScene && this.spaceScene.renderer && this.spaceScene.renderer.domElement) {
+      this.spaceControls.attachCanvas(this.spaceScene.renderer.domElement);
+    }
+    window.spaceControls = this.spaceControls;
 
     // 2. Initialize Game Manager & HUD Overlay
     this.spaceGameManager = new SpaceGameManager(

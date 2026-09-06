@@ -111,6 +111,25 @@
       </div>
     </div>
 
+    <!-- Desktop Pointer Lock Flight Reticle & Crosshair -->
+    <div id="desktop-flight-reticle" class="desktop-flight-reticle hidden">
+      <div class="reticle-gimbal-ring">
+        <div class="reticle-tick tick-top"></div>
+        <div class="reticle-tick tick-bottom"></div>
+        <div class="reticle-tick tick-left"></div>
+        <div class="reticle-tick tick-right"></div>
+        <div class="reticle-center-crosshair"></div>
+      </div>
+      <div id="reticle-gimbal-dot" class="reticle-gimbal-dot"></div>
+      <div id="reticle-vector-line" class="reticle-vector-line"></div>
+    </div>
+
+    <!-- Desktop Mouse Flight Mode Status Pill -->
+    <div id="desktop-mouse-flight-pill" class="desktop-mouse-flight-pill hidden" title="Toggle Mouse Flight Pointer Lock (ESC to release)">
+      <span class="pill-radar-dot"></span>
+      <span id="desktop-mouse-flight-text" class="pill-text">MOUSE FLIGHT [CLICK TO LOCK]</span>
+    </div>
+
     <!-- ==================== UNIFIED TOP TACTICAL COMMAND BAR ==================== -->
     <div id="hud-top-unified-bar" class="hud-top-unified-bar">
       <!-- 1. Shield Telemetry Cluster -->
@@ -228,20 +247,6 @@
 
     <!-- ==================== BOTTOM ERGONOMIC FLIGHT & COMBAT CONTROLS ==================== -->
     <!-- 1. Dedicated Bottom-Left Virtual Joystick Dock -->
-    <div id="virtual-joystick-dock" class="virtual-joystick-dock">
-      <div id="touch-joystick-base" class="touch-joystick-base">
-        <div class="joystick-crosshair-h"></div>
-        <div class="joystick-crosshair-v"></div>
-        <div class="joystick-chevron chevron-up">▲</div>
-        <div class="joystick-chevron chevron-down">▼</div>
-        <div class="joystick-chevron chevron-left">◀</div>
-        <div class="joystick-chevron chevron-right">▶</div>
-        <div id="touch-joystick-stick" class="touch-joystick-stick"></div>
-      </div>
-    </div>
-
-    <!-- ==================== BOTTOM ERGONOMIC FLIGHT & COMBAT CONTROLS ==================== -->
-    <!-- 1. Centered Virtual Joystick Dock (Easily accessible from center screen) -->
     <div id="virtual-joystick-dock" class="virtual-joystick-dock">
       <div id="touch-joystick-base" class="touch-joystick-base">
         <div class="joystick-crosshair-h"></div>
@@ -1291,6 +1296,43 @@
           </div>
         </div>
 
+        <!-- Desktop Pointer Lock & Mouse Flight -->
+        <div class="setting-row desktop-only-setting">
+          <div>
+            <strong class="setting-title">Mouse Flight Steering (Pointer Lock)</strong>
+            <span class="setting-desc">Engage cursor lock for precision dogfight pitch & yaw controls</span>
+          </div>
+          <div class="segmented-control">
+            <button id="btn-mouse-flight-off" class="seg-btn">DISABLED</button>
+            <button id="btn-mouse-flight-on" class="seg-btn active">ENABLED</button>
+          </div>
+        </div>
+
+        <!-- Mouse Flight Sensitivity -->
+        <div class="setting-row desktop-only-setting">
+          <div>
+            <strong class="setting-title">Mouse Flight Sensitivity</strong>
+            <span class="setting-desc">Analog steering response curve</span>
+          </div>
+          <div class="segmented-control">
+            <button id="btn-mouse-sens-low" class="seg-btn">LOW</button>
+            <button id="btn-mouse-sens-med" class="seg-btn active">BALANCED</button>
+            <button id="btn-mouse-sens-high" class="seg-btn">HIGH</button>
+          </div>
+        </div>
+
+        <!-- Mouse Invert Y Axis -->
+        <div class="setting-row desktop-only-setting">
+          <div>
+            <strong class="setting-title">Invert Pitch (Y-Axis)</strong>
+            <span class="setting-desc">Simulated flight yoke vertical orientation</span>
+          </div>
+          <div class="segmented-control">
+            <button id="btn-mouse-invert-off" class="seg-btn active">NORMAL</button>
+            <button id="btn-mouse-invert-on" class="seg-btn">INVERTED</button>
+          </div>
+        </div>
+
         <!-- Admiralty Authorization & God Mode Override Code -->
         <div class="setting-row godmode-override-row" style="border: 1px dashed rgba(0, 243, 255, 0.4); border-radius: 8px; padding: 12px 16px; background: rgba(0, 243, 255, 0.05); margin-top: 6px; align-items: center;">
           <div style="flex: 1.2;">
@@ -1322,12 +1364,13 @@
 
             <div class="guide-box keyboard-guide">
               <strong class="guide-box-header">💻 Keyboard & Mouse:</strong>
-              <div>• <strong>Pitch / Roll</strong>: <kbd>WASD</kbd> or <kbd>Arrow Keys</kbd></div>
-              <div>• <strong>Evasive Roll</strong>: Double-tap <kbd>A</kbd> / <kbd>D</kbd></div>
-              <div>• <strong>Swarm Salvo</strong>: <kbd>E</kbd> or <kbd>2</kbd> key</div>
-              <div>• <strong>Hyper-Boost</strong>: <kbd>B</kbd> or <kbd>Space</kbd></div>
-              <div>• <strong>Plasma Pulse</strong>: <kbd>Q</kbd> or <kbd>Shift</kbd></div>
-              <div>• <strong>Shipyard Hangar</strong>: <kbd>H</kbd> | <strong>Optics</strong>: <kbd>C</kbd></div>
+              <div>• <strong>Mouse Flight (Pointer Lock)</strong>: Click screen to lock & steer with mouse | <kbd>ESC</kbd> to unlock</div>
+              <div>• <strong>Mouse Weapons</strong>: <kbd>Left-Click</kbd> Laser | <kbd>Right-Click</kbd> EMP Pulse | <kbd>Middle-Click</kbd> Swarm Missiles | <kbd>Wheel</kbd> Boost / Roll</div>
+              <div>• <strong>Pitch / Roll</strong>: <kbd>WASD</kbd> or <kbd>Arrow Keys</kbd> (Additive with Mouse Flight)</div>
+              <div>• <strong>Evasive Roll</strong>: Double-tap <kbd>A</kbd> / <kbd>D</kbd> | <strong>Throttle</strong>: <kbd>Shift</kbd> / <kbd>Ctrl</kbd></div>
+              <div>• <strong>Swarm Salvo</strong>: <kbd>E</kbd> or <kbd>2</kbd> | <strong>Superweapon</strong>: <kbd>F</kbd> or <kbd>4</kbd></div>
+              <div>• <strong>Squadron Directives</strong>: <kbd>B</kbd> Cycle | <kbd>1</kbd> Defend | <kbd>2</kbd> Focus | <kbd>3</kbd> Flank</div>
+              <div>• <strong>Shipyard Hangar</strong>: <kbd>H</kbd> | <strong>Optics</strong>: <kbd>C</kbd> | <strong>Auto-Pilot</strong>: <kbd>P</kbd></div>
             </div>
           </div>
         </div>

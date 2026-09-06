@@ -160,6 +160,22 @@ export class SpaceHUD {
     this.btnCloseFleetTop = document.getElementById('btn-close-fleet-top');
     this.btnCloseSettingsTop = document.getElementById('btn-close-settings-top');
 
+    // Desktop Pointer Lock & Flight Reticle Elements
+    this.desktopFlightReticle = document.getElementById('desktop-flight-reticle');
+    this.reticleGimbalDot = document.getElementById('reticle-gimbal-dot');
+    this.reticleVectorLine = document.getElementById('reticle-vector-line');
+    this.desktopMouseFlightPill = document.getElementById('desktop-mouse-flight-pill');
+    this.desktopMouseFlightText = document.getElementById('desktop-mouse-flight-text');
+
+    // Desktop Mouse Flight Settings Controls
+    this.btnMouseFlightOff = document.getElementById('btn-mouse-flight-off');
+    this.btnMouseFlightOn = document.getElementById('btn-mouse-flight-on');
+    this.btnMouseSensLow = document.getElementById('btn-mouse-sens-low');
+    this.btnMouseSensMed = document.getElementById('btn-mouse-sens-med');
+    this.btnMouseSensHigh = document.getElementById('btn-mouse-sens-high');
+    this.btnMouseInvertOff = document.getElementById('btn-mouse-invert-off');
+    this.btnMouseInvertOn = document.getElementById('btn-mouse-invert-on');
+
     // Run platform detection & adjust UI settings for Vercel Web vs. Android Native
     this.configurePlatformUI();
     this.initPilotProfile();
@@ -527,6 +543,112 @@ export class SpaceHUD {
         e.stopPropagation();
         this.gameManager.voiceAnnouncer.enabled = true;
         this.updateSettingsUI();
+      });
+    }
+
+    // ── Desktop Mouse Flight & Pointer Lock Settings Listeners ──
+    if (this.btnMouseFlightOff) {
+      this.btnMouseFlightOff.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setMouseFlightEnabled(false);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnMouseFlightOn) {
+      this.btnMouseFlightOn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setMouseFlightEnabled(true);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnMouseSensLow) {
+      this.btnMouseSensLow.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setMouseSensitivity(0.002);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnMouseSensMed) {
+      this.btnMouseSensMed.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setMouseSensitivity(0.0035);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnMouseSensHigh) {
+      this.btnMouseSensHigh.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setMouseSensitivity(0.0055);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnMouseInvertOff) {
+      this.btnMouseInvertOff.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setInvertY(false);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    if (this.btnMouseInvertOn) {
+      this.btnMouseInvertOn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager.controlsManager) {
+          this.gameManager.controlsManager.setInvertY(true);
+        }
+        this.updateSettingsUI();
+      });
+    }
+
+    // ── Desktop Pointer Lock Engagement Handlers ──
+    if (this.gameManager && this.gameManager.controlsManager) {
+      this.gameManager.controlsManager.onPointerLockChangeCallback = (isLocked) => {
+        this.updatePointerLockUI(isLocked);
+      };
+      this.gameManager.controlsManager.onReticleUpdateCallback = (x, y) => {
+        this.updateReticlePosition(x, y);
+      };
+    }
+
+    if (this.desktopMouseFlightPill) {
+      this.desktopMouseFlightPill.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.gameManager && this.gameManager.controlsManager) {
+          if (this.gameManager.controlsManager.isPointerLocked) {
+            this.gameManager.controlsManager.exitPointerLock();
+          } else {
+            this.gameManager.controlsManager.requestPointerLock();
+          }
+        }
+      });
+    }
+
+    const canvasContainer = document.getElementById('canvas-container');
+    if (canvasContainer) {
+      canvasContainer.addEventListener('click', (e) => {
+        if (this.isMobile || this.isNativeApp) return;
+        if (this.gameManager && this.gameManager.state === 'PLAYING') {
+          if (this.gameManager.controlsManager && !this.gameManager.controlsManager.isPointerLocked) {
+            this.gameManager.controlsManager.requestPointerLock();
+          }
+        }
       });
     }
 
@@ -1023,6 +1145,7 @@ export class SpaceHUD {
 
   showHangarModal(completedWaveNum, upgradeSystem, starsEarned = 0) {
     try {
+      this.gameManager.controlsManager?.exitPointerLock();
       if (this.modalHangar) {
         this.gameManager.state = 'HANGAR';
         this.currentHangarWave = completedWaveNum;
@@ -1241,6 +1364,10 @@ export class SpaceHUD {
         this.btnRetryStageText.textContent = `RETRY STAGE ${this.currentGameOverWave}`;
       }
 
+      this.gameManager.controlsManager?.exitPointerLock();
+      if (this.desktopMouseFlightPill) this.desktopMouseFlightPill.classList.add('hidden');
+      if (this.desktopFlightReticle) this.desktopFlightReticle.classList.add('hidden');
+
       this.modalGameOver.classList.remove('hidden');
     }
   }
@@ -1351,6 +1478,7 @@ export class SpaceHUD {
   }
 
   showFleetModal() {
+    this.gameManager.controlsManager?.exitPointerLock();
     if (this.modalFleet) {
       if (this.fleetGodBtnText) {
         this.fleetGodBtnText.textContent = this.gameManager.isGodMode ? '🛡️ GOD MODE: ON' : '🛡️ GOD MODE: OFF';
@@ -1553,6 +1681,7 @@ export class SpaceHUD {
 
   showSettingsModal() {
     if (!this.modalSettings) return;
+    this.gameManager.controlsManager?.exitPointerLock();
     
     this.prevHUDState = this.gameManager.state;
     if (this.gameManager.state === 'PLAYING') {
@@ -1600,6 +1729,26 @@ export class SpaceHUD {
       this.btnSubmitGodmode.style.borderColor = isGod ? '#00ff88' : '#00f3ff';
       this.btnSubmitGodmode.style.color = isGod ? '#00ff88' : '#00f3ff';
       this.btnSubmitGodmode.style.background = isGod ? 'rgba(0, 255, 136, 0.25)' : 'rgba(0, 243, 255, 0.2)';
+    }
+
+    // Desktop Mouse Flight & Pointer Lock UI Sync
+    if (this.gameManager && this.gameManager.controlsManager) {
+      const mfEnabled = this.gameManager.controlsManager.mouseFlightEnabled;
+      if (this.btnMouseFlightOff && this.btnMouseFlightOn) {
+        this.btnMouseFlightOff.classList.toggle('active', !mfEnabled);
+        this.btnMouseFlightOn.classList.toggle('active', mfEnabled);
+      }
+
+      const sens = this.gameManager.controlsManager.mouseSensitivity;
+      if (this.btnMouseSensLow) this.btnMouseSensLow.classList.toggle('active', sens <= 0.0025);
+      if (this.btnMouseSensMed) this.btnMouseSensMed.classList.toggle('active', sens > 0.0025 && sens < 0.0045);
+      if (this.btnMouseSensHigh) this.btnMouseSensHigh.classList.toggle('active', sens >= 0.0045);
+
+      const invY = this.gameManager.controlsManager.invertY;
+      if (this.btnMouseInvertOff && this.btnMouseInvertOn) {
+        this.btnMouseInvertOff.classList.toggle('active', !invY);
+        this.btnMouseInvertOn.classList.toggle('active', invY);
+      }
     }
   }
 
@@ -1669,6 +1818,63 @@ export class SpaceHUD {
     }
     if (this.godmodeActivePill) {
       this.godmodeActivePill.style.display = isGod ? 'inline-block' : 'none';
+    }
+  }
+
+  updatePointerLockUI(isLocked) {
+    if (this.isMobile || this.isNativeApp) return;
+
+    if (this.desktopFlightReticle) {
+      if (isLocked) {
+        this.desktopFlightReticle.classList.remove('hidden');
+      } else {
+        this.desktopFlightReticle.classList.add('hidden');
+        if (this.reticleGimbalDot) {
+          this.reticleGimbalDot.style.transform = 'translate(-50%, -50%) translate3d(0, 0, 0)';
+        }
+        if (this.reticleVectorLine) {
+          this.reticleVectorLine.style.display = 'none';
+        }
+      }
+    }
+
+    if (this.desktopMouseFlightPill && this.desktopMouseFlightText) {
+      if (this.gameManager && this.gameManager.state === 'PLAYING') {
+        this.desktopMouseFlightPill.classList.remove('hidden');
+      }
+      if (isLocked) {
+        this.desktopMouseFlightPill.classList.add('is-locked');
+        this.desktopMouseFlightText.textContent = 'MOUSE FLIGHT ACTIVE [ESC TO RELEASE]';
+      } else {
+        this.desktopMouseFlightPill.classList.remove('is-locked');
+        this.desktopMouseFlightText.textContent = 'MOUSE FLIGHT [CLICK TO LOCK]';
+      }
+    }
+  }
+
+  updateReticlePosition(normX, normY) {
+    if (!this.reticleGimbalDot || !this.gameManager || !this.gameManager.controlsManager || !this.gameManager.controlsManager.isPointerLocked) return;
+    // Deflection range inside the 74px ring is ±26px
+    const pxX = normX * 26;
+    const pxY = -normY * 26; // screen coords: negative normY (down) becomes positive Y (down)
+    this.reticleGimbalDot.style.transform = `translate(-50%, -50%) translate3d(${pxX.toFixed(1)}px, ${pxY.toFixed(1)}px, 0)`;
+
+    if (this.reticleVectorLine) {
+      const dist = Math.hypot(pxX, pxY);
+      if (dist > 3) {
+        const angle = Math.atan2(pxY, pxX) * (180 / Math.PI);
+        this.reticleVectorLine.style.display = 'block';
+        this.reticleVectorLine.style.width = `${dist.toFixed(1)}px`;
+        this.reticleVectorLine.style.transform = `rotate(${angle.toFixed(1)}deg)`;
+      } else {
+        this.reticleVectorLine.style.display = 'none';
+      }
+    }
+  }
+
+  onGameStart() {
+    if (!this.isMobile && !this.isNativeApp && this.desktopMouseFlightPill) {
+      this.desktopMouseFlightPill.classList.remove('hidden');
     }
   }
 }

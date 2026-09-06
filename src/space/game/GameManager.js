@@ -189,6 +189,9 @@ export class GameManager {
     this.playerShip.shield = this.playerShip.maxShield;
     this.playerShip.triggerInvulnerability(2.5);
     this.state = 'PLAYING';
+    if (this.spaceHUD && this.spaceHUD.onGameStart) {
+      this.spaceHUD.onGameStart();
+    }
 
     if (this.gameMode === 'BOSS_RUSH') {
       this.startBossRushMode();
