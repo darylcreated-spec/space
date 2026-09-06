@@ -110,7 +110,9 @@ export class CollisionSystem {
         for (let j = gameManager.asteroids.length - 1; j >= 0; j--) {
           const rock = gameManager.asteroids[j];
           if (!rock || !rock.meshGroup || rock.isDead) continue;
-          const rDist = lPos.distanceTo(rock.meshGroup.position);
+          const rockPos = rock.meshGroup.position;
+          if (Math.abs(lPos.z - rockPos.z) > 6.0 || Math.abs(lPos.x - rockPos.x) > 6.0) continue;
+          const rDist = lPos.distanceTo(rockPos);
           if (rDist < (rock.radius || 3.0) + laser.radius) {
             laser.destroy();
             gameManager.lasers.splice(i, 1);

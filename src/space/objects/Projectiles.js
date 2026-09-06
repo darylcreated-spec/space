@@ -330,33 +330,49 @@ export class LaserBolt {
       const beamMat = new THREE.MeshBasicMaterial({ color: 0xff00bb, blending: THREE.AdditiveBlending });
       this.meshGroup.add(new THREE.Mesh(beamGeo, beamMat));
     } else {
-      const geos = getLaserGeometries(projectileType, isEnemy);
+      if (this._builtType === `STANDARD_${isEnemy}` && this.beamMesh) {
+        this.beamMesh.material = getLaserMaterial(colorHex);
+        if (this.glowMesh) this.glowMesh.material = getLaserMaterial(colorHex, true, 0.25);
+        if (this.muzzleMesh) this.muzzleMesh.material = getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff);
+      } else {
+        while (this.meshGroup.children.length > 0) {
+          this.meshGroup.remove(this.meshGroup.children[0]);
+        }
+        const geos = getLaserGeometries(projectileType, isEnemy);
+        const isMobile = this.gameManager ? this.gameManager.isMobile : false;
 
-      // Beam
-      this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
-      this.meshGroup.add(this.beamMesh);
+        // Beam
+        this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
+        this.meshGroup.add(this.beamMesh);
 
-      // Glow
-      this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.25));
-      this.meshGroup.add(this.glowMesh);
+        // Glow (desktop only — mobile bloom handles glow with zero draw call overhead)
+        if (!isMobile) {
+          this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.25));
+          this.meshGroup.add(this.glowMesh);
+        } else {
+          this.glowMesh = null;
+        }
 
-      // Core
-      this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
-      this.meshGroup.add(this.coreMesh);
+        // Core
+        this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
+        this.meshGroup.add(this.coreMesh);
 
-      // Muzzle
-      this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff));
-      this.muzzleMesh.position.z = -geos.len / 2;
-      this.meshGroup.add(this.muzzleMesh);
+        // Muzzle (desktop only)
+        if (!isMobile) {
+          this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff));
+          this.muzzleMesh.position.z = -geos.len / 2;
+          this.meshGroup.add(this.muzzleMesh);
+        } else {
+          this.muzzleMesh = null;
+        }
+        this._builtType = `STANDARD_${isEnemy}`;
+      }
     }
   }
 
   destroy() {
     this.isDead = true;
     this.meshGroup.visible = false;
-    if (this.meshGroup.parent) {
-      this.meshGroup.parent.remove(this.meshGroup);
-    }
   }
 
   update(dt) {
@@ -453,11 +469,17 @@ export class LaserBolt {
 
     this.meshGroup.position.addScaledVector(this.direction, this.speed * dt);
 
+    const isMobile = gm && gm.isMobile;
+    const maxZ = isMobile ? -85 : -160;
+    const minZ = isMobile ? 24 : 45;
+    const maxX = isMobile ? 38 : 60;
+    const maxY = isMobile ? 26 : 50;
+
     if (
-      this.meshGroup.position.z < -160 ||
-      this.meshGroup.position.z > 45 ||
-      Math.abs(this.meshGroup.position.x) > 60 ||
-      Math.abs(this.meshGroup.position.y) > 50
+      this.meshGroup.position.z < maxZ ||
+      this.meshGroup.position.z > minZ ||
+      Math.abs(this.meshGroup.position.x) > maxX ||
+      Math.abs(this.meshGroup.position.y) > maxY
     ) {
       this.destroy();
     }

@@ -1390,16 +1390,24 @@ export class GameManager {
   }
 
   spawnLaser(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, isCrit = false, projectileType = 'STANDARD') {
-    if (this.isMobile && isEnemy && this.lasers) {
-      let activeEnemyCount = 0;
-      for (let i = 0; i < this.lasers.length; i++) {
-        if (this.lasers[i].isEnemy && !this.lasers[i].isDead) activeEnemyCount++;
+    if (this.isMobile && this.lasers) {
+      if (isEnemy) {
+        let activeEnemyCount = 0;
+        for (let i = 0; i < this.lasers.length; i++) {
+          if (this.lasers[i].isEnemy && !this.lasers[i].isDead) activeEnemyCount++;
+        }
+        if (activeEnemyCount >= 14) return null;
+      } else {
+        let activePlayerCount = 0;
+        for (let i = 0; i < this.lasers.length; i++) {
+          if (!this.lasers[i].isEnemy && !this.lasers[i].isDead) activePlayerCount++;
+        }
+        if (activePlayerCount >= 12) return null;
       }
-      if (activeEnemyCount >= 14) return null;
     }
     let bolt = this.laserPool.find(l => l.isDead);
     if (!bolt) {
-      if (this.laserPool.length < 200) {
+      if (this.laserPool.length < 150) {
         bolt = new LaserBolt(this.spaceScene.scene, startPos, colorHex, isEnemy, targetDir, projectileType, this);
         this.laserPool.push(bolt);
       } else {
@@ -1412,8 +1420,8 @@ export class GameManager {
     if (isCrit) bolt.isCritical = true;
     if (!this.lasers.includes(bolt)) this.lasers.push(bolt);
 
-    // AAA Dynamic Muzzle Lighting Flash
-    if (!isEnemy && this.spaceScene && Math.random() < 0.4) {
+    // AAA Dynamic Muzzle Lighting Flash (Desktop only — protects mobile JS timer loop)
+    if (!this.isMobile && !isEnemy && this.spaceScene && Math.random() < 0.4) {
       this.spaceScene.triggerDynamicLightFlash(startPos, colorHex, 3.0, 0.07);
     }
 
@@ -1440,9 +1448,9 @@ export class GameManager {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0 || this.specialWeaponActive) return;
 
     // 📱 Mobile Optimization: Slower, punchier rapid fire cadence (reduces entity churn)
-    let delay = this.playerShip.laserFireDelay || (this.isMobile ? 0.15 : 0.10);
+    let delay = this.playerShip.laserFireDelay || (this.isMobile ? 0.18 : 0.10);
     if (this.isMobile) {
-      delay = Math.max(delay, 0.14);
+      delay = Math.max(delay, 0.18);
     }
     if (this.playerShip._dodgeBoostTimer > 0) {
       delay *= 0.8;
@@ -1491,8 +1499,9 @@ export class GameManager {
       this._tempWorldMuzzle.copy(offset);
       this.playerShip.meshGroup.localToWorld(this._tempWorldMuzzle);
       const bolt = this.spawnLaser(this._tempWorldMuzzle, color, false, null, false, projectileType);
-      if (bolt && isMobileTwin) {
-        bolt.damage = Math.round((bolt.damage || 20) * 1.85); // Fully preserves player DPS
+      if (bolt && this.isMobile) {
+        const mult = isMobileTwin ? 2.35 : 1.35; // Fully preserves player DPS at 0.18s cadence
+        bolt.damage = Math.round((bolt.damage || 22) * mult);
       }
       if (shipClass === 'DREADNOUGHT') {
         this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0xff5500);
