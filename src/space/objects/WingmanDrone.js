@@ -138,20 +138,20 @@ export class WingmanDrone {
 
   fireSupportBlaster(gameManager) {
     if (!gameManager) return;
-    const muzzleL = this.meshGroup.localToWorld(new THREE.Vector3(-0.45, 0, -0.8));
-    const muzzleR = this.meshGroup.localToWorld(new THREE.Vector3(0.45, 0, -0.8));
+    const isMobile = gameManager.isMobile;
 
     let targetDir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
+    const laserColor = this.currentDoctrine === 'FOCUS_FIRE' ? 0xff4400 : (this.currentDoctrine === 'SWARM_FLANK' ? 0x00ff88 : 0x00f3ff);
 
     if (this.currentDoctrine === 'FOCUS_FIRE') {
       // Aim directly at Active Boss or nearest Capital Ship
       const boss = gameManager.activeBoss;
       if (boss && boss.meshGroup && !boss.isDead) {
-        targetDir = new THREE.Vector3().subVectors(boss.meshGroup.position, muzzleL).normalize();
+        targetDir = new THREE.Vector3().subVectors(boss.meshGroup.position, this.meshGroup.position).normalize();
       } else if (gameManager.capitalShips.length > 0) {
         const c = gameManager.capitalShips[0];
         if (c && c.meshGroup && !c.isDead) {
-          targetDir = new THREE.Vector3().subVectors(c.meshGroup.position, muzzleL).normalize();
+          targetDir = new THREE.Vector3().subVectors(c.meshGroup.position, this.meshGroup.position).normalize();
         }
       }
     } else if (this.currentDoctrine === 'SWARM_FLANK') {
@@ -161,10 +161,19 @@ export class WingmanDrone {
       targetDir.normalize();
     }
 
-    const laserColor = this.currentDoctrine === 'FOCUS_FIRE' ? 0xff4400 : (this.currentDoctrine === 'SWARM_FLANK' ? 0x00ff88 : 0x00f3ff);
-    gameManager.spawnLaser(muzzleL, laserColor, false, targetDir);
-    gameManager.spawnLaser(muzzleR, laserColor, false, targetDir);
+    if (isMobile) {
+      // 📱 Mobile Optimization: Single focused heavy nose blaster per drone (halves active laser entities with 2x damage)
+      const noseMuzzle = this.meshGroup.localToWorld(new THREE.Vector3(0, 0, -0.9));
+      const bolt = gameManager.spawnLaser(noseMuzzle, laserColor, false, targetDir);
+      if (bolt) bolt.damage = Math.round((bolt.damage || 20) * 2.0);
+    } else {
+      const muzzleL = this.meshGroup.localToWorld(new THREE.Vector3(-0.45, 0, -0.8));
+      const muzzleR = this.meshGroup.localToWorld(new THREE.Vector3(0.45, 0, -0.8));
+      gameManager.spawnLaser(muzzleL, laserColor, false, targetDir);
+      gameManager.spawnLaser(muzzleR, laserColor, false, targetDir);
+    }
   }
+
 
   takeDamage(amount) {
     if (this.isDead) return;

@@ -90,9 +90,20 @@ export class WaveSpawner {
     const activeBattleships = this.gameManager.heavyBattleships ? this.gameManager.heavyBattleships.filter(b => !b.isDead).length : 0;
     const activeCarrier = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
 
+    const isMobile = this.gameManager.isMobile;
+    const activeHostiles = activeDrones + activeStealth + activeECM + activePhase + activeCruisers + activeBattleships + (activeCarrier ? 1 : 0);
+    const maxConcurrent = isMobile ? 5 : 9;
+
+    // Enforce active hostile concurrency throttle on mobile to prevent stutter
+    if (activeHostiles >= maxConcurrent) {
+      return;
+    }
+
     this.spawnTimer += dt;
-    // Dynamic spawn pacing: fast initial waves
-    const spawnInterval = activeCarrier || activeBattleships > 0 ? 1.3 : Math.max(0.65, 1.1 - this.currentWave * 0.06);
+    // Dynamic spawn pacing: on mobile, slightly slower, more tactical cadence
+    const baseInterval = activeCarrier || activeBattleships > 0 ? 1.4 : Math.max(0.70, 1.15 - this.currentWave * 0.05);
+    const spawnInterval = isMobile ? baseInterval * 1.45 : baseInterval;
+
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {
       this.spawnTimer = 0;

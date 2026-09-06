@@ -13,8 +13,10 @@ export class SpaceAudio {
 
     this._lastLaserPewTime = 0;
     this._lastExplosionTime = 0;
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
 
     // Multi-Platform User Gesture Unlock: instantly resumes Web Audio context
+
     this.setupUserGestureUnlock();
   }
 
@@ -157,8 +159,10 @@ export class SpaceAudio {
     this.ensureContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
-    if (this._lastLaserPewTime && now - this._lastLaserPewTime < 0.038) return;
+    const throttle = this.isMobile ? 0.075 : 0.038;
+    if (this._lastLaserPewTime && now - this._lastLaserPewTime < throttle) return;
     this._lastLaserPewTime = now;
+
 
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
