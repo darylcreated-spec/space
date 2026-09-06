@@ -688,82 +688,54 @@ export class SpaceScene {
     warpGroup.position.copy(position);
 
     // Flash sphere
-    const flashGeo = new THREE.SphereGeometry(22.0, 16, 16);
+    const flashGeo = new THREE.SphereGeometry(20.0, 10, 10);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
-      opacity: 0.98,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
     const flash = new THREE.Mesh(flashGeo, flashMat);
     warpGroup.add(flash);
 
-    // Spacetime Refraction Rings
-    const ringGeo = new THREE.TorusGeometry(32.0, 1.2, 12, 32);
+    // Spacetime Refraction Ring
+    const ringGeo = new THREE.RingGeometry(24.0, 27.0, 24);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
-      opacity: 0.95,
+      opacity: 0.90,
+      side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending
     });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     warpGroup.add(ring);
 
-    // Radial Hyperspace Speed Streak Lines
-    const streaks = [];
-    for (let s = 0; s < 18; s++) {
-      const angle = (s / 18) * Math.PI * 2;
-      const streakGeo = new THREE.CylinderGeometry(0.08, 0.35, 30.0, 4);
-      streakGeo.rotateX(Math.PI / 2);
-      const streakMat = new THREE.MeshBasicMaterial({
-        color: s % 2 === 0 ? 0x00f3ff : 0xffffff,
-        transparent: true,
-        opacity: 0.85,
-        blending: THREE.AdditiveBlending
-      });
-      const streak = new THREE.Mesh(streakGeo, streakMat);
-      streak.position.set(Math.cos(angle) * 12, Math.sin(angle) * 12, -10);
-      streak.rotation.z = angle;
-      warpGroup.add(streak);
-      streaks.push({ mesh: streak, mat: streakMat });
-    }
-
     this.scene.add(warpGroup);
-    this.addScreenShake(1.6);
+    this.addScreenShake(1.4);
 
-    // Cinematic Camera FOV Punch
-    const originalFov = this.camera.fov;
-    this.camera.fov = Math.min(90, originalFov + 18);
-    this.camera.updateProjectionMatrix();
+    const startTime = performance.now();
+    const duration = 650;
 
-    let t = 0;
-    const interval = setInterval(() => {
-      t += 0.04;
-      ring.scale.addScalar(0.24);
-      flash.scale.addScalar(0.18);
-      flashMat.opacity = Math.max(0, 0.98 - t * 1.6);
-      ringMat.opacity = Math.max(0, 0.95 - t * 1.4);
+    const animateWarp = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1.0, elapsed / duration);
 
-      streaks.forEach(st => {
-        st.mesh.scale.z += 0.35;
-        st.mat.opacity = Math.max(0, 0.85 - t * 1.5);
-      });
+      ring.scale.setScalar(1.0 + progress * 2.5);
+      flash.scale.setScalar(1.0 + progress * 1.8);
+      flashMat.opacity = Math.max(0, 0.95 * (1.0 - progress));
+      ringMat.opacity = Math.max(0, 0.90 * (1.0 - progress));
 
-      // Smoothly recover camera FOV
-      this.camera.fov += (originalFov - this.camera.fov) * 0.15;
-      this.camera.updateProjectionMatrix();
-
-      if (t >= 0.9) {
-        clearInterval(interval);
-        this.camera.fov = originalFov;
-        this.camera.updateProjectionMatrix();
+      if (progress < 1.0) {
+        requestAnimationFrame(animateWarp);
+      } else {
         this.scene.remove(warpGroup);
         flashGeo.dispose();
         flashMat.dispose();
         ringGeo.dispose();
         ringMat.dispose();
       }
-    }, 20);
+    };
+    requestAnimationFrame(animateWarp);
   }
 
   triggerBossIntroCamera(duration = 2.2) {

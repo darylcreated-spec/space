@@ -1,8 +1,31 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
+
+const _asteroidGeoCache = {};
+function getAsteroidGeometries(radius, sizeKey) {
+  const variant = Math.floor(Math.random() * 3);
+  const cacheKey = `${sizeKey}_${variant}`;
+  if (!_asteroidGeoCache[cacheKey]) {
+    const geo = new THREE.IcosahedronGeometry(radius, 2);
+    const posAttr = geo.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      const noise = 1.0 + (Math.random() - 0.5) * 0.55;
+      posAttr.setXYZ(i, posAttr.getX(i) * noise, posAttr.getY(i) * noise, posAttr.getZ(i) * noise);
+    }
+    geo.computeVertexNormals();
+    geo._isShared = true;
+
+    const wireGeo = new THREE.EdgesGeometry(geo);
+    wireGeo._isShared = true;
+
+    _asteroidGeoCache[cacheKey] = { geo, wireGeo };
+  }
+  return _asteroidGeoCache[cacheKey];
+}
 
 export class Asteroid {
   constructor(scene, options = {}) {
     this.scene = scene;
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
     this.isComet = options.isComet || false;
     this.particleManager = options.particleManager || null;
     this._wobbleOffset = Math.random() * Math.PI * 2;
@@ -78,37 +101,31 @@ export class Asteroid {
   buildRockMesh() {
     const R = this.radius;
 
-    // â”€â”€ Base geometry â€” more distorted for a jagged look â”€â”€
-    const geo = new THREE.IcosahedronGeometry(R, 2);
-    const posAttr = geo.attributes.position;
-    for (let i = 0; i < posAttr.count; i++) {
-      const noise = 1.0 + (Math.random() - 0.5) * 0.55;
-      posAttr.setXYZ(i, posAttr.getX(i) * noise, posAttr.getY(i) * noise, posAttr.getZ(i) * noise);
-    }
-    geo.computeVertexNormals();
+    // ── Pre-cached Shared Jagged Geometry & Edge Wireframe (Zero CPU generation during combat) ──
+    const { geo, wireGeo } = getAsteroidGeometries(R, this.sizeCategory);
 
     // Visual type variants
     let baseColor, emissiveColor, emissiveIntensity, wireColor;
     if (this._type === 0) {
-      // Rocky slate â€” dark metallic
+      // Rocky slate ── dark metallic
       baseColor = 0x4a5568;
       emissiveColor = 0x000000;
       emissiveIntensity = 0.0;
       wireColor = 0xff2244;
     } else if (this._type === 1) {
-      // Crystalline blue â€” alien mineral
+      // Crystalline blue ── alien mineral
       baseColor = 0x1a2a4a;
       emissiveColor = 0x0044aa;
       emissiveIntensity = 0.35;
       wireColor = 0x00aaff;
     } else if (this._type === 2) {
-      // Molten orange â€” volcanic/unstable
+      // Molten orange ── volcanic/unstable
       baseColor = 0x2a1008;
       emissiveColor = 0xff3300;
       emissiveIntensity = 0.5;
       wireColor = 0xff6600;
     } else {
-      // Comet â€” frost white / cyan trail
+      // Comet ── frost white / cyan trail
       baseColor = 0xd0f5ff;
       emissiveColor = 0x0088ff;
       emissiveIntensity = 1.5;
@@ -127,8 +144,7 @@ export class Asteroid {
     this.rockMesh = new THREE.Mesh(geo, this.rockMat);
     this.meshGroup.add(this.rockMesh);
 
-    // â”€â”€ Edge glow lines â€” ore veins â”€â”€
-    const wireGeo = new THREE.EdgesGeometry(geo);
+    // ── Edge glow lines ── ore veins ──
     this.wireMat = new THREE.LineBasicMaterial({
       color: wireColor,
       transparent: true,
@@ -137,20 +153,22 @@ export class Asteroid {
     this.wire = new THREE.LineSegments(wireGeo, this.wireMat);
     this.meshGroup.add(this.wire);
 
-    // â”€â”€ Glow point light for emissive asteroids â”€â”€
-    if (this._type === 2) {
-      this.glowLight = new THREE.PointLight(0xff4400, 1.5 * R, R * 6);
-      this.meshGroup.add(this.glowLight);
-    } else if (this._type === 1) {
-      this.glowLight = new THREE.PointLight(0x0066ff, 1.2 * R, R * 5);
-      this.meshGroup.add(this.glowLight);
-    } else if (this._type === 3) {
-      this.glowLight = new THREE.PointLight(0x00bbff, 2.0 * R, R * 8);
-      this.meshGroup.add(this.glowLight);
+    // ── Glow point light for emissive asteroids (Desktop only; on mobile, bloom shaders provide full neon radiance without GPU fillrate stall) ──
+    if (!this.isMobile) {
+      if (this._type === 2) {
+        this.glowLight = new THREE.PointLight(0xff4400, 1.5 * R, R * 6);
+        this.meshGroup.add(this.glowLight);
+      } else if (this._type === 1) {
+        this.glowLight = new THREE.PointLight(0x0066ff, 1.2 * R, R * 5);
+        this.meshGroup.add(this.glowLight);
+      } else if (this._type === 3) {
+        this.glowLight = new THREE.PointLight(0x00bbff, 2.0 * R, R * 8);
+        this.meshGroup.add(this.glowLight);
+      }
     }
 
-    // â”€â”€ Small surface detail bumps for large asteroids â”€â”€
-    if (this.sizeCategory === 'large') {
+    // ── Small surface detail bumps for large asteroids ──
+    if (this.sizeCategory === 'large' && !this.isMobile) {
       const craterMat = new THREE.MeshStandardMaterial({ color: 0x1a1f28, roughness: 0.99, flatShading: true });
       for (let i = 0; i < 5; i++) {
         const cr = new THREE.SphereGeometry(R * 0.2, 5, 5);
@@ -170,10 +188,11 @@ export class Asteroid {
   takeDamage(amount) {
     this.hp -= amount;
 
+    // Flash white on hit
     if (this.rockMat) {
-      this.rockMat.emissive.setHex(0xff2200);
-      this.rockMat.emissiveIntensity = 3.5;
-      if (this.wireMat) { this.wireMat.opacity = 1.0; }
+      this.rockMat.emissive.setHex(0xffffff);
+      this.rockMat.emissiveIntensity = 0.8;
+      if (this.wireMat) this.wireMat.opacity = 1.0;
       setTimeout(() => {
         if (this.isDead) return;
         if (this.rockMat) {
@@ -211,7 +230,7 @@ export class Asteroid {
   destroy() {
     this.scene.remove(this.meshGroup);
     this.meshGroup.traverse(child => {
-      if (child.geometry) child.geometry.dispose();
+      if (child.geometry && !child.geometry._isShared) child.geometry.dispose();
       if (child.material) child.material.dispose();
     });
   }

@@ -35,6 +35,14 @@ function generateDroneArmorTexture() {
   return texture;
 }
 
+let _cachedDroneArmorTexture = null;
+function getDroneArmorTexture() {
+  if (!_cachedDroneArmorTexture) {
+    _cachedDroneArmorTexture = generateDroneArmorTexture();
+  }
+  return _cachedDroneArmorTexture;
+}
+
 /**
  * Creates a continuous, smooth, sculpted aerodynamic lifting-body fuselage for drones.
  */
@@ -53,21 +61,24 @@ function createSmoothDroneFuselageGeo() {
     const z = 2.4 - v * 4.8;
 
     let halfWidth, halfHeight, yCenter;
-    if (z > 0.8) {
-      const t = (z - 0.8) / 1.6;
-      halfWidth = THREE.MathUtils.lerp(1.8, 0.45, Math.pow(t, 0.8));
-      halfHeight = THREE.MathUtils.lerp(0.9, 0.35, Math.pow(t, 0.8));
-      yCenter = THREE.MathUtils.lerp(0.1, 0.05, t);
-    } else if (z > -1.0) {
-      const t = (z - (-1.0)) / 1.8;
-      halfWidth = THREE.MathUtils.lerp(2.2, 1.8, Math.sin(t * Math.PI * 0.5));
-      halfHeight = THREE.MathUtils.lerp(1.1, 0.9, Math.sin(t * Math.PI * 0.5));
-      yCenter = 0.1;
+    if (v < 0.15) {
+      // Nose section
+      const nv = v / 0.15;
+      halfWidth = THREE.MathUtils.lerp(0.2, 1.2, Math.sqrt(nv));
+      halfHeight = THREE.MathUtils.lerp(0.15, 0.55, Math.sqrt(nv));
+      yCenter = THREE.MathUtils.lerp(0.0, 0.05, nv);
+    } else if (v < 0.65) {
+      // Main mid-fuselage
+      const mv = (v - 0.15) / 0.50;
+      halfWidth = THREE.MathUtils.lerp(1.2, 1.95, Math.sin(mv * Math.PI * 0.5));
+      halfHeight = THREE.MathUtils.lerp(0.55, 0.70, Math.sin(mv * Math.PI * 0.5));
+      yCenter = 0.05 - mv * 0.08;
     } else {
-      const t = (z - (-2.4)) / 1.4;
-      halfWidth = THREE.MathUtils.lerp(1.4, 2.2, Math.pow(t, 0.7));
-      halfHeight = THREE.MathUtils.lerp(0.7, 1.1, Math.pow(t, 0.7));
-      yCenter = THREE.MathUtils.lerp(0.0, 0.1, t);
+      // Aft boat-tail & engine taper
+      const av = (v - 0.65) / 0.35;
+      halfWidth = THREE.MathUtils.lerp(1.95, 1.1, av * av);
+      halfHeight = THREE.MathUtils.lerp(0.70, 0.45, av);
+      yCenter = -0.03 - av * 0.04;
     }
 
     for (let j = 0; j <= radSegments; j++) {
@@ -76,9 +87,9 @@ function createSmoothDroneFuselageGeo() {
       const cosT = Math.cos(theta);
       const sinT = Math.sin(theta);
 
-      const chine = Math.pow(Math.abs(cosT), 2.5) * 0.4;
-      const x = cosT * (halfWidth + chine);
-      const y = yCenter + sinT * halfHeight;
+      // Superellipse shaping
+      const x = Math.sign(cosT) * Math.pow(Math.abs(cosT), 0.85) * halfWidth;
+      const y = yCenter + Math.sign(sinT) * Math.pow(Math.abs(sinT), 0.95) * halfHeight;
 
       positions.push(x, y, z);
       uvs.push(u, v);
@@ -105,9 +116,18 @@ function createSmoothDroneFuselageGeo() {
   return geom;
 }
 
+let _cachedDroneFuselageGeo = null;
+function getDroneFuselageGeo() {
+  if (!_cachedDroneFuselageGeo) {
+    _cachedDroneFuselageGeo = createSmoothDroneFuselageGeo();
+  }
+  return _cachedDroneFuselageGeo;
+}
+
 export class EnemyDrone {
   constructor(scene, options = {}) {
     this.scene = scene;
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
     const opt = options || {};
 
     this.radius = 2.4;
@@ -151,7 +171,7 @@ export class EnemyDrone {
   }
 
   buildDroneMesh() {
-    const armorTex = generateDroneArmorTexture();
+    const armorTex = getDroneArmorTexture();
 
     // ── Monolithic Brutalist Empire PBR Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
@@ -211,13 +231,15 @@ export class EnemyDrone {
     });
     this.glowMaterials.push(this.thrusterGlowMat);
 
-    // Dedicated Key Spotlight
-    this.droneKeyLight = new THREE.PointLight(0xaad4ff, 3.5, 20);
-    this.droneKeyLight.position.set(0, 3.0, 4.0);
-    this.meshGroup.add(this.droneKeyLight);
+    // Dedicated Key Spotlight (Desktop only to protect mobile fillrate)
+    if (!this.isMobile) {
+      this.droneKeyLight = new THREE.PointLight(0xaad4ff, 3.5, 20);
+      this.droneKeyLight.position.set(0, 3.0, 4.0);
+      this.meshGroup.add(this.droneKeyLight);
+    }
 
     // ── 1. Smooth Continuous Lifting-Body Core Fuselage ──
-    const coreGeo = createSmoothDroneFuselageGeo();
+    const coreGeo = getDroneFuselageGeo();
     this.coreMesh = new THREE.Mesh(coreGeo, this.hullMat);
     this.meshGroup.add(this.coreMesh);
 

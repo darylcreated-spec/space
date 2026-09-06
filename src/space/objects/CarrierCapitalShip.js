@@ -109,6 +109,14 @@ function generateCarrierTextures() {
   return { diffuseMap, normalMap, emissiveMap };
 }
 
+let _cachedCarrierTextures = null;
+function getCarrierTextures() {
+  if (!_cachedCarrierTextures) {
+    _cachedCarrierTextures = generateCarrierTextures();
+  }
+  return _cachedCarrierTextures;
+}
+
 export class CarrierCapitalShip {
   constructor(scene, particleManager) {
     this.scene = scene;
@@ -126,6 +134,9 @@ export class CarrierCapitalShip {
     this.isDying = false;
     this.deathTimer = 3.8;
     this.hitRadius = 32.0;
+    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
+    this._tempV1 = new THREE.Vector3();
+    this._tempV2 = new THREE.Vector3();
 
     this.meshGroup = new THREE.Group();
     this.meshGroup.position.set(0, 8, -180);
@@ -175,7 +186,7 @@ export class CarrierCapitalShip {
   }
 
   _build() {
-    const { diffuseMap, normalMap, emissiveMap } = generateCarrierTextures();
+    const { diffuseMap, normalMap, emissiveMap } = getCarrierTextures();
 
     // ── Monolithic Brutalist Empire Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
@@ -224,16 +235,15 @@ export class CarrierCapitalShip {
     });
 
     // ── 🪟 Armored Sensor Glass (Crimson Visor) ──
-    this.glassMat = new THREE.MeshPhysicalMaterial({
+    this.glassMat = new THREE.MeshStandardMaterial({
       color: 0xff0022,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.65,
       roughness: 0.15,
       metalness: 0.85,
-      transmission: 0.60,
-      ior: 1.5,
-      side: THREE.DoubleSide,
-      depthWrite: false
+      emissive: 0xff0022,
+      emissiveIntensity: 0.8,
+      side: THREE.DoubleSide
     });
 
     // ── Structural Charred Titanium Framing Beams ──
@@ -900,17 +910,19 @@ export class CarrierCapitalShip {
       }
     });
 
-    if (this.particleManager && Math.random() < 0.85) {
+    if (this.particleManager && Math.random() < (this.isMobile ? 0.35 : 0.85)) {
       this.thrusterPositions.forEach(relP => {
-        const wp = this.meshGroup.localToWorld(relP.clone());
+        this._tempV1.copy(relP);
+        const wp = this.meshGroup.localToWorld(this._tempV1);
         this.particleManager.spawnEngineParticle(wp, 0xff3300);
       });
     }
 
     this.subsystems.forEach(sub => {
       if (sub.isDead || sub.hp < sub.maxHp * 0.5) {
-        if (this.particleManager && Math.random() < 0.4) {
-          const wp = this.meshGroup.localToWorld(sub.relPos.clone());
+        if (this.particleManager && Math.random() < (this.isMobile ? 0.2 : 0.4)) {
+          this._tempV1.copy(sub.relPos);
+          const wp = this.meshGroup.localToWorld(this._tempV1);
           this.particleManager.createLaserImpact(wp, new THREE.Vector3(0, 1, 0), sub.isDead ? 0x111111 : 0xff4400, 4);
         }
       }
@@ -918,10 +930,11 @@ export class CarrierCapitalShip {
 
     // ── 🎯 Smart Aiming with Clear Firing Arcs (Never Shoot Through the Ship) ──
     if (arrived) {
+      this._tempV1.copy(playerPos);
+      const localPlayer = this.meshGroup.worldToLocal(this._tempV1);
+
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh && t.barrelGroup) {
-          const localPlayer = this.meshGroup.worldToLocal(playerPos.clone());
-          
           // Constrain aiming angles to outward arcs so turrets never aim across/through the carrier's forward hull
           let targetX = localPlayer.x;
           const isLeftTurret = t.relPos.x < 0;
@@ -954,16 +967,17 @@ export class CarrierCapitalShip {
     // ── 🔫 Firing From Actual Physical Gun Muzzle Tips ──
     this.fireTimer -= dt;
     if (this.fireTimer <= 0) {
-      this.fireTimer = 0.85;
+      this.fireTimer = this.isMobile ? 1.2 : 0.85;
       const fireOrigins = [];
-      this.turrets.forEach(t => {
-        if (!t.isDead && t.barrelTips && t.barrelTips.length > 0) {
-          // Fire from each physical barrel tip extended outside the hull
-          t.barrelTips.forEach(tip => {
-            const muzzleWorldPos = tip.getWorldPosition(new THREE.Vector3());
-            fireOrigins.push(muzzleWorldPos);
-          });
-        }
+      const livingTurrets = this.turrets.filter(t => !t.isDead && t.barrelTips && t.barrelTips.length > 0);
+      const turretsToFire = this.isMobile ? livingTurrets.slice(0, 3) : livingTurrets;
+
+      turretsToFire.forEach(t => {
+        const tips = this.isMobile ? [t.barrelTips[0]] : t.barrelTips;
+        tips.forEach(tip => {
+          const muzzleWorldPos = tip.getWorldPosition(new THREE.Vector3());
+          fireOrigins.push(muzzleWorldPos);
+        });
       });
       if (fireOrigins.length > 0) {
         result.lasers = fireOrigins;
