@@ -26,7 +26,11 @@ export class ControlsManager {
     window.addEventListener('pointermove', this.onPointerMove.bind(this), { passive: false });
     window.addEventListener('pointerup', this.onPointerUp.bind(this));
     window.addEventListener('pointercancel', this.onPointerUp.bind(this));
+    window.addEventListener('lostpointercapture', this.onPointerUp.bind(this));
+    window.addEventListener('touchcancel', this.resetAllInputs.bind(this));
+    window.addEventListener('touchend', this.onPointerUp.bind(this));
   }
+
 
   resetAllInputs() {
     this.keys = {};
@@ -89,9 +93,9 @@ export class ControlsManager {
     if (e.target.closest('button, .modal-card, .space-top-bar, .action-btn, .modal-overlay')) return;
 
     // 3. Ergonomic Touch Steering Zone: Covers screen up to the right action button column (left 80%)
-    // Allows effortless transition between steering and tapping action knobs
     if (e.clientX > window.innerWidth * 0.80) return;
 
+    try { e.preventDefault(); } catch (err) {}
     this.activePointerId = e.pointerId;
     this.touchStartPos = { x: e.clientX, y: e.clientY };
     this.touchVector = { x: 0, y: 0 };
@@ -100,17 +104,21 @@ export class ControlsManager {
 
   onPointerMove(e) {
     if (this.activePointerId !== null && e.pointerId === this.activePointerId) {
+      try { e.preventDefault(); } catch (err) {}
       this.updateTouchVector(e.clientX, e.clientY);
     }
   }
 
   onPointerUp(e) {
-    if (this.activePointerId !== null && e.pointerId === this.activePointerId) {
-      this.activePointerId = null;
-      this.touchVector = { x: 0, y: 0 };
-      this.hideVirtualJoystick();
+    if (this.activePointerId !== null) {
+      if (!e || e.pointerId === this.activePointerId || e.type === 'pointercancel' || e.type === 'lostpointercapture') {
+        this.activePointerId = null;
+        this.touchVector = { x: 0, y: 0 };
+        this.hideVirtualJoystick();
+      }
     }
   }
+
 
   showVirtualJoystick(x, y) {
     const stick = document.getElementById('touch-joystick-stick');

@@ -31,6 +31,7 @@ import { AchievementSystem } from './AchievementSystem.js';
 import { HapticsManager } from '../engine/HapticsManager.js';
 import { DailyIncursionSystem } from './DailyIncursionSystem.js';
 import { FleetHangarUI } from '../ui/FleetHangarUI.js';
+import { PerformanceMonitor } from '../engine/PerformanceMonitor.js';
 
 export class GameManager {
   constructor(spaceScene, postProcessing, particleManager, spaceAudio, controlsManager) {
@@ -42,7 +43,7 @@ export class GameManager {
     this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
 
     this.fleetHangarUI = new FleetHangarUI(this);
-
+    this.perfMonitor = new PerformanceMonitor(this);
 
     this.state = 'START'; // 'START', 'PLAYING', 'HANGAR', 'GAME_OVER'
 
@@ -1843,6 +1844,7 @@ export class GameManager {
       this.spaceScene.update(dt, this.playerShip, this.activeBoss);
       this.particleManager.update();
       this.renderScene(dt);
+      if (this.perfMonitor) this.perfMonitor.update();
       return;
     }
 
@@ -2395,6 +2397,7 @@ export class GameManager {
     this.spaceScene.update(dt, this.playerShip, bossForCam);
     this.particleManager.update();
     this.renderScene(effectiveDt);
+    if (this.perfMonitor) this.perfMonitor.update();
   }
 
   spawnSentinelDrone() {
