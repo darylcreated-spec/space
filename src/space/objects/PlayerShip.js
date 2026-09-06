@@ -24,7 +24,7 @@ export class PlayerShip {
     this.currentPitch = 0;
     this.prevInput = { x: 0, y: 0 };
 
-    this.bounds = { minX: -65.0, maxX: 65.0, minY: -32.0, maxY: 32.0, minZ: -60.0, maxZ: 18.0 };
+    this.bounds = { minX: -22.0, maxX: 22.0, minY: -10.0, maxY: 14.0, minZ: -14.0, maxZ: 10.0 };
 
     this.laserCooldown = 0;
     this.pulseCooldown = 0;
@@ -1622,15 +1622,27 @@ export class PlayerShip {
       this.sentinelDrone.rotation.y = -droneAngle + Math.PI / 2;
     }
 
-    // ── Movement & Bounds ──
+    // ── Movement & Bounds (Strict Viewport Confinement) ──
+    const aspect = (typeof window !== 'undefined' && window.innerWidth && window.innerHeight)
+      ? (window.innerWidth / window.innerHeight)
+      : 1.77;
+    const isPortrait = aspect < 1.0;
+
+    // Confine ship so the player can NEVER fly out of view (adapting to portrait mobile vs landscape desktop)
+    const maxHalfX = isPortrait ? Math.min(10.5, Math.max(7.5, 15.0 * aspect)) : 22.0;
+    this.bounds.minX = -maxHalfX;
+    this.bounds.maxX = maxHalfX;
+    this.bounds.minY = isPortrait ? -11.0 : -10.0;
+    this.bounds.maxY = isPortrait ? 15.0 : 14.0;
+    this.bounds.minZ = -14.0;
+    this.bounds.maxZ = 10.0;
+
     const minX = this.bounds.minX;
     const maxX = this.bounds.maxX;
     const minY = this.bounds.minY;
     const maxY = this.bounds.maxY;
-
-    // Full 3D Flight Bounds Envelope (Zero Sticky Walls)
-    const minZ = this.bounds.minZ || -16.0;
-    const maxZ = this.bounds.maxZ || 16.0;
+    const minZ = this.bounds.minZ;
+    const maxZ = this.bounds.maxZ;
 
     if (this.isInspectingSolo) {
       this.meshGroup.position.set(0, 0.4, 2.5);
@@ -1660,9 +1672,30 @@ export class PlayerShip {
       this.meshGroup.position.y += this.velocity.y * dt;
       this.meshGroup.position.z += this.velocity.z * dt;
 
-      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
-      this.meshGroup.position.y = THREE.MathUtils.clamp(this.meshGroup.position.y, minY, maxY);
-      this.meshGroup.position.z = THREE.MathUtils.clamp(this.meshGroup.position.z, minZ, maxZ);
+      // Rigid boundary clamping & zero velocity bounce prevention (no sticking to walls)
+      if (this.meshGroup.position.x <= minX) {
+        this.meshGroup.position.x = minX;
+        if (this.velocity.x < 0) this.velocity.x = 0;
+      } else if (this.meshGroup.position.x >= maxX) {
+        this.meshGroup.position.x = maxX;
+        if (this.velocity.x > 0) this.velocity.x = 0;
+      }
+
+      if (this.meshGroup.position.y <= minY) {
+        this.meshGroup.position.y = minY;
+        if (this.velocity.y < 0) this.velocity.y = 0;
+      } else if (this.meshGroup.position.y >= maxY) {
+        this.meshGroup.position.y = maxY;
+        if (this.velocity.y > 0) this.velocity.y = 0;
+      }
+
+      if (this.meshGroup.position.z <= minZ) {
+        this.meshGroup.position.z = minZ;
+        if (this.velocity.z < 0) this.velocity.z = 0;
+      } else if (this.meshGroup.position.z >= maxZ) {
+        this.meshGroup.position.z = maxZ;
+        if (this.velocity.z > 0) this.velocity.z = 0;
+      }
 
       this.targetRoll = -inputDir.x * (this.isBoosting ? 0.95 : 0.75);
       this.targetPitch = inputDir.y * 0.35 + (this.velocity.z < -2 ? -0.15 : (this.velocity.z > 2 ? 0.12 : 0));

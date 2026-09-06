@@ -868,30 +868,33 @@ export class SpaceScene {
         }
       } else {
         // Dynamic Cinematic Boss Duel Tracking Mode:
-        // Wide-angle majestic third-person framing that keeps both the capital boss and dogfight sector in full view
+        // Wide-angle third-person framing keeping player craft centered in view and capital boss framed
+        const isPortrait = (window.innerWidth / window.innerHeight) < 1.0;
+        const camDistZ = isPortrait ? (pPos.z + 34.0) : (pPos.z + 30.0);
         this.targetCameraPos.set(
-          pPos.x * 0.48,
-          18.0 + pPos.y * 0.35,
-          pPos.z + 32.0
+          pPos.x * 0.72,
+          16.0 + pPos.y * 0.35,
+          camDistZ
         );
 
-        // Weighted lookAt target (40% player craft, 60% boss core)
+        // Weighted lookAt target (60% player craft, 40% boss core)
         this.targetLookAt.set(
-          pPos.x * 0.4 + bPos.x * 0.35,
-          pPos.y * 0.35 + bPos.y * 0.3,
+          pPos.x * 0.60 + bPos.x * 0.20,
+          pPos.y * 0.40 + bPos.y * 0.20,
           bPos.z * 0.45
         );
       }
     } else if (pPos) {
-      // Normal gameplay: dynamic adaptive framing tracking 3D open flight and wide flanking sweeps
+      // Normal gameplay: dynamic adaptive framing tracking 3D flight with guaranteed on-screen framing
       if (this.cameraMode === 'isometric') {
+        const isPortrait = (window.innerWidth / window.innerHeight) < 1.0;
         const flankDistance = Math.hypot(pPos.x, pPos.y);
-        const depthLag = Math.min(18.0, (pPos.z < 0 ? -pPos.z * 0.45 : 0));
-        const camHeight = 14.0 + pPos.y * 0.4 + flankDistance * 0.12;
-        const camDistZ = 24.0 + depthLag + (pPos.z > 0 ? pPos.z * 0.6 : pPos.z * 0.85);
+        const depthLag = Math.min(16.0, (pPos.z < 0 ? -pPos.z * 0.40 : 0));
+        const camHeight = (isPortrait ? 15.0 : 14.0) + pPos.y * 0.4 + flankDistance * 0.10;
+        const camDistZ = (isPortrait ? 27.0 : 24.0) + depthLag + (pPos.z > 0 ? pPos.z * 0.6 : pPos.z * 0.85);
 
-        this.targetCameraPos.set(pPos.x * 0.68, camHeight, camDistZ);
-        this.targetLookAt.set(pPos.x * 0.55, -1.0 + pPos.y * 0.4, pPos.z - 18.0);
+        this.targetCameraPos.set(pPos.x * 0.75, camHeight, camDistZ);
+        this.targetLookAt.set(pPos.x * 0.65, -1.0 + pPos.y * 0.4, pPos.z - 18.0);
       } else if (this.cameraMode === 'chase') {
         this.targetCameraPos.set(pPos.x * 0.85, 5.0 + pPos.y * 0.5, pPos.z + 18.0);
         this.targetLookAt.set(pPos.x * 0.75, pPos.y * 0.5, pPos.z - 35.0);
