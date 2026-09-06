@@ -256,9 +256,11 @@ export class EnemyDrone {
     this.eyeMesh.position.set(0, 0.15, 2.3);
     this.meshGroup.add(this.eyeMesh);
 
-    this.eyeLight = new THREE.PointLight(0xff0044, 3.0, 12);
-    this.eyeLight.position.set(0, 0.15, 2.5);
-    this.meshGroup.add(this.eyeLight);
+    if (!this.isMobile) {
+      this.eyeLight = new THREE.PointLight(0xff0044, 3.0, 12);
+      this.eyeLight.position.set(0, 0.15, 2.5);
+      this.meshGroup.add(this.eyeLight);
+    }
 
     // ── 3. Smooth Swept Delta Wings with Rounded Leading Edges ──
     this.cannons = [];
@@ -367,8 +369,14 @@ export class EnemyDrone {
       this.meshGroup.parent.remove(this.meshGroup);
     }
     this.meshGroup.traverse(c => {
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) c.material.dispose();
+      if (c.geometry && c.geometry !== _cachedDroneFuselageGeo) c.geometry.dispose();
+      if (c.material) {
+        if (Array.isArray(c.material)) {
+          c.material.forEach(m => m.dispose());
+        } else {
+          c.material.dispose();
+        }
+      }
     });
   }
 
@@ -453,9 +461,15 @@ export class EnemyDrone {
       this.fireTimer = (this.aiState === 'FLANKING_PURSUIT' ? 0.9 : 1.2) + Math.random() * 0.7;
       const activeCannons = this.cannons.filter(c => !c.isDead);
       const outLasers = [];
-      activeCannons.forEach(c => {
+      if (this.isMobile && activeCannons.length > 0) {
+        // Alternating single fire on mobile to halve active laser count while maintaining challenge
+        const c = activeCannons[Math.floor(Math.random() * activeCannons.length)];
         outLasers.push(c.mesh.getWorldPosition(new THREE.Vector3()));
-      });
+      } else {
+        activeCannons.forEach(c => {
+          outLasers.push(c.mesh.getWorldPosition(new THREE.Vector3()));
+        });
+      }
       return outLasers.length > 0 ? outLasers : [this.meshGroup.position.clone()];
     }
 

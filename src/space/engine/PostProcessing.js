@@ -177,7 +177,7 @@ export class PostProcessing {
     }
   }
 
-  update(dt, playerShip) {
+  update(dt, playerShip, rawDt = dt) {
     this.time += dt;
 
     // Hyper-Boost Dynamic Glow Surge
@@ -195,17 +195,18 @@ export class PostProcessing {
 
     // ── 🛡️ 60 FPS Mobile Performance Watchdog ──
     // If consecutive frames take longer than 28ms (< 35fps), temporarily bypass to direct render
+    const checkDt = (rawDt && !isNaN(rawDt) && rawDt > 0) ? rawDt : dt;
     if (this.fallbackDirectCooldown > 0) {
       this.fallbackDirectCooldown -= dt;
-    } else if (dt > 0.028 && this.composer && this.quality !== 'low') {
+    } else if (checkDt > 0.028 && this.composer && this.quality !== 'low') {
       this.fpsDropStreak++;
-      if (this.fpsDropStreak > 40) { // ~1 second of low fps
-        console.warn(`[PostFX] Low mobile FPS detected (${(1/dt).toFixed(0)} FPS) — optimizing to direct WebGL pipeline.`);
+      if (this.fpsDropStreak > 15) { // ~0.5s of low FPS or hitch
+        console.warn(`[PostFX] Low mobile FPS detected (${(1/checkDt).toFixed(0)} FPS) — optimizing to direct WebGL pipeline.`);
         this.setGraphicsQuality('low');
         this.fpsDropStreak = 0;
         this.fallbackDirectCooldown = 8.0; // Keep direct render for 8s
       }
-    } else if (dt < 0.018) {
+    } else if (checkDt < 0.018) {
       this.fpsDropStreak = Math.max(0, this.fpsDropStreak - 1);
     }
   }

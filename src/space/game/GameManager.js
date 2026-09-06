@@ -659,6 +659,10 @@ export class GameManager {
       // Assault Drones only deploy when Gorgon Supercarrier is active in the combat zone!
       return this.spawnStealthFighter(spawnPos);
     }
+    const activeDroneCount = this.drones ? this.drones.filter(d => !d.isDead).length : 0;
+    const maxDrones = this.isMobile ? 2 : 4;
+    if (activeDroneCount >= maxDrones) return null;
+
     const opts = spawnPos ? (spawnPos.isVector3 ? { x: spawnPos.x, y: spawnPos.y, z: spawnPos.z } : spawnPos) : {};
     const drone = new EnemyDrone(this.spaceScene.scene, opts);
     this.applyEnemyHpScaling(drone);
@@ -1341,7 +1345,7 @@ export class GameManager {
       for (let i = 0; i < this.lasers.length; i++) {
         if (this.lasers[i].isEnemy && !this.lasers[i].isDead) activeEnemyCount++;
       }
-      if (activeEnemyCount >= 20) return null;
+      if (activeEnemyCount >= 14) return null;
     }
     const bolt = this.spawnLaser(origin, color, true, dir, false, 'STANDARD');
     if (bolt && speed) bolt.speed = speed;
@@ -1386,6 +1390,13 @@ export class GameManager {
   }
 
   spawnLaser(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, isCrit = false, projectileType = 'STANDARD') {
+    if (this.isMobile && isEnemy && this.lasers) {
+      let activeEnemyCount = 0;
+      for (let i = 0; i < this.lasers.length; i++) {
+        if (this.lasers[i].isEnemy && !this.lasers[i].isDead) activeEnemyCount++;
+      }
+      if (activeEnemyCount >= 14) return null;
+    }
     let bolt = this.laserPool.find(l => l.isDead);
     if (!bolt) {
       if (this.laserPool.length < 200) {
@@ -1829,21 +1840,21 @@ export class GameManager {
     }
   }
 
-  renderScene(dt = 0.016) {
+  renderScene(dt = 0.016, rawDt = dt) {
     if (this.postProcessing) {
-      this.postProcessing.update(dt, this.playerShip);
+      this.postProcessing.update(dt, this.playerShip, rawDt);
       this.postProcessing.render();
     } else {
       this.spaceScene.renderer.render(this.spaceScene.scene, this.spaceScene.camera);
     }
   }
 
-  update(dt) {
+  update(dt, rawDt = dt) {
     if (this.state !== 'PLAYING') {
       this.playerShip.update(dt, { x: 0, y: 0 });
       this.spaceScene.update(dt, this.playerShip, this.activeBoss);
       this.particleManager.update();
-      this.renderScene(dt);
+      this.renderScene(dt, rawDt);
       if (this.perfMonitor) this.perfMonitor.update();
       return;
     }
@@ -2396,7 +2407,7 @@ export class GameManager {
     const bossForCam = this.activeBoss || this.carrierBoss || (this.heavyBattleships && this.heavyBattleships.find(b => !b.isDead)) || (this.capitalShips && this.capitalShips.find(c => !c.isDead));
     this.spaceScene.update(dt, this.playerShip, bossForCam);
     this.particleManager.update();
-    this.renderScene(effectiveDt);
+    this.renderScene(effectiveDt, rawDt);
     if (this.perfMonitor) this.perfMonitor.update();
   }
 

@@ -124,12 +124,13 @@ class OrbitalVanguardApp {
   animate(timestamp) {
     requestAnimationFrame(this.animate);
     if (!this.lastTime) this.lastTime = timestamp;
-    let dt = (timestamp - this.lastTime) / 1000;
+    const rawDt = (timestamp - this.lastTime) / 1000;
+    let dt = rawDt;
     if (isNaN(dt) || dt <= 0 || dt > 0.1) dt = 0.016;
     this.lastTime = timestamp;
 
     try {
-      this.spaceGameManager.update(dt);
+      this.spaceGameManager.update(dt, rawDt);
     } catch (err) {
       console.error('Game update error (frame survived):', err);
     }

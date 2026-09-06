@@ -147,7 +147,7 @@ export class CarrierCapitalShip {
 
     this.fireTimer = 0.85;
     this.missileTimer = 2.8;
-    this.droneLaunchTimer = 3.5;
+    this.droneLaunchTimer = this.isMobile ? 5.5 : 3.5;
     this.siegeCannonTimer = 5.5;
     this.siegeCharging = false;
 
@@ -256,19 +256,21 @@ export class CarrierCapitalShip {
     });
 
     // ── Dedicated Carrier Red/Magma Deck & Key Lights ──
-    const keyLight = new THREE.PointLight(0xffe0e0, 1.8, 90);
+    if (!this.isMobile) {
+      const deckLight = new THREE.PointLight(0xff3300, 3.5, 60);
+      deckLight.position.set(0, 12.0, 0);
+      this.meshGroup.add(deckLight);
+
+      const bridgeLight = new THREE.PointLight(0xff1133, 2.8, 40);
+      bridgeLight.position.set(0, 14.0, -4.0);
+      this.meshGroup.add(bridgeLight);
+    }
+
+    const keyLight = new THREE.PointLight(0xffe0e0, this.isMobile ? 1.4 : 1.8, this.isMobile ? 60 : 90);
     keyLight.position.set(0, 28.0, 5.0);
     this.meshGroup.add(keyLight);
 
-    const deckLight = new THREE.PointLight(0xff3300, 3.5, 60);
-    deckLight.position.set(0, 12.0, 0);
-    this.meshGroup.add(deckLight);
-
-    const bridgeLight = new THREE.PointLight(0xff1133, 2.8, 40);
-    bridgeLight.position.set(0, 14.0, -4.0);
-    this.meshGroup.add(bridgeLight);
-
-    const engineLight = new THREE.PointLight(0xff4400, 5.0, 60);
+    const engineLight = new THREE.PointLight(0xff4400, this.isMobile ? 3.0 : 5.0, this.isMobile ? 40 : 60);
     engineLight.position.set(0, 6.0, -38.0);
     this.meshGroup.add(engineLight);
 
@@ -989,9 +991,11 @@ export class CarrierCapitalShip {
     if (livingHangars.length > 0) {
       this.droneLaunchTimer -= dt;
       if (this.droneLaunchTimer <= 0) {
-        this.droneLaunchTimer = 3.8;
+        this.droneLaunchTimer = this.isMobile ? 6.5 : 3.8;
         const launches = [];
-        livingHangars.forEach(h => {
+        // On mobile, launch from 1 hangar at a time alternating to avoid sudden bursts
+        const hangarsToLaunch = this.isMobile ? [livingHangars[Math.floor(Math.random() * livingHangars.length)]] : livingHangars;
+        hangarsToLaunch.forEach(h => {
           const wp = this.meshGroup.localToWorld(h.relPos.clone());
           const isRight = h.relPos.x > 0;
           wp.x += isRight ? 3.5 : -3.5;

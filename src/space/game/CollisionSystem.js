@@ -9,6 +9,7 @@ export class CollisionSystem {
     // Pre-allocated reusable vectors to eliminate Garbage Collection thrashing
     this._tempVec1 = new THREE.Vector3();
     this._tempVec2 = new THREE.Vector3();
+    this._tempVecCarrier = new THREE.Vector3();
   }
 
   isFlankAttack(projectilePos, targetPos, playerPos) {
@@ -895,10 +896,10 @@ export class CollisionSystem {
         // Carrier Capital Ship Laser Hit Check (Turrets, Hangar Bays, Missile Pods, Hull)
         if (gameManager.carrierBoss && !gameManager.carrierBoss.isDead && gameManager.carrierBoss.meshGroup) {
           const carrier = gameManager.carrierBoss;
-          const carrierLocalPos = carrier.meshGroup.worldToLocal(lPos.clone());
+          this._tempVecCarrier.copy(lPos);
+          carrier.meshGroup.worldToLocal(this._tempVecCarrier);
           // Broad check within enlarged carrier bounding zone (65m length)
-          if (Math.abs(carrierLocalPos.x) < 22.0 && Math.abs(carrierLocalPos.y) < 12.0 && Math.abs(carrierLocalPos.z) < 36.0) {
-            this.particleManager.createExplosion(lPos, 0x00f3ff, 15);
+          if (Math.abs(this._tempVecCarrier.x) < 22.0 && Math.abs(this._tempVecCarrier.y) < 12.0 && Math.abs(this._tempVecCarrier.z) < 36.0) {
             let dmg = laser.isCritical ? 75 : 25;
             let hitRegistered = false;
 
@@ -909,6 +910,7 @@ export class CollisionSystem {
                   const tPos = t.mesh.getWorldPosition(this._tempVec1);
                   if (lPos.distanceTo(tPos) < 5.0) {
                     carrier.takeTurretDamage(t.id, dmg);
+                    this.particleManager.createExplosion(lPos, 0xff2244, 8);
                     hitRegistered = true;
                     break;
                   }
@@ -924,6 +926,7 @@ export class CollisionSystem {
                   const hitRadius = sub.id.includes('hangar') ? 6.5 : 5.0;
                   if (lPos.distanceTo(subPos) < hitRadius) {
                     carrier.takeSubsystemDamage(sub.id, dmg);
+                    this.particleManager.createExplosion(lPos, 0xffaa00, 10);
                     hitRegistered = true;
                     break;
                   }
@@ -933,6 +936,7 @@ export class CollisionSystem {
 
             // 3. Fallback: Main Hull Damage
             if (!hitRegistered) {
+              this.particleManager.createExplosion(lPos, 0x00f3ff, 8);
               const dead = carrier.takeDamage(dmg);
               if (dead) {
                 gameManager.addScore(carrier.scoreValue);
