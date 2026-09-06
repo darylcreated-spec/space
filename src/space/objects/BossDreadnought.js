@@ -134,41 +134,41 @@ export class BossDreadnought {
   buildBossMesh() {
     const hullTex = generateDreadnoughtHullTexture();
 
-    // Vibrant Obsidian Violet / Royal Indigo Hull with High Specular Sheen
+    // ── Monolithic Brutalist Empire Materials ──
     const hullMat = new THREE.MeshStandardMaterial({
-      color: 0x2b134d,
+      color: 0x191b1d, // Charcoal cast iron
       bumpMap: hullTex,
-      bumpScale: 0.18,
-      metalness: 0.95,
-      roughness: 0.18,
-      emissive: 0x15072b,
-      emissiveIntensity: 0.45
+      bumpScale: 0.24,
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     const armorTrussMat = new THREE.MeshStandardMaterial({
-      color: 0x421d74,
-      metalness: 0.98,
-      roughness: 0.14
+      color: 0x282a2e, // Slate grey concrete slab
+      metalness: 0.76,
+      roughness: 0.94 // Zero gloss
     });
 
     const goldAccentMat = new THREE.MeshStandardMaterial({
-      color: 0xffb700,
-      metalness: 0.95,
-      roughness: 0.22,
-      emissive: 0x3d2800,
-      emissiveIntensity: 0.35
+      color: 0x8b0000, // Stark blood-red faction stripe
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x3b0000,
+      emissiveIntensity: 0.45
     });
 
     const darkTrimMat = new THREE.MeshStandardMaterial({
-      color: 0x120822,
-      metalness: 0.98,
-      roughness: 0.2
+      color: 0x121314, // Dark mechanical structural steel
+      metalness: 0.90,
+      roughness: 0.92
     });
 
-    const glowCrimsonMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-    const glowMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff007f });
-    const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
-    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+    const glowCrimsonMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
+    const glowMagentaMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
+    const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
+    const glowAmberMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
 
     // ── 1. Faceted Central Warship Hull (48m length, 24m width, 8m height) ──
     const hullGeo = new THREE.BoxGeometry(22, 7, 44);

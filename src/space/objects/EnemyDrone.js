@@ -153,61 +153,61 @@ export class EnemyDrone {
   buildDroneMesh() {
     const armorTex = generateDroneArmorTexture();
 
-    // ── High-Definition Smooth PBR Materials (Stage 1 Crimson Magma Fleet) ──
+    // ── Monolithic Brutalist Empire PBR Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x220c12,
-      metalness: 0.9,
-      roughness: 0.18,
+      color: 0x191b1d, // Charcoal cast iron
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
       bumpMap: armorTex,
-      bumpScale: 0.14,
-      emissive: 0x3d0810,
-      emissiveIntensity: 0.4
+      bumpScale: 0.18,
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     this.armorPlateMat = new THREE.MeshStandardMaterial({
-      color: 0x941c28,
-      metalness: 0.94,
-      roughness: 0.14,
+      color: 0x282a2e, // Slate grey concrete slab
+      metalness: 0.76,
+      roughness: 0.94, // Zero gloss
       bumpMap: armorTex,
-      bumpScale: 0.16,
-      emissive: 0x600a14,
-      emissiveIntensity: 0.5
+      bumpScale: 0.22,
+      emissive: 0x0d0305,
+      emissiveIntensity: 0.20
     });
 
     this.trimMat = new THREE.MeshStandardMaterial({
-      color: 0xff4400,
-      metalness: 0.88,
-      roughness: 0.12,
-      emissive: 0x992200,
-      emissiveIntensity: 0.6
+      color: 0x8b0000, // Stark blood-red faction stripe
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x3b0000,
+      emissiveIntensity: 0.45
     });
 
     this.titaniumTrimMat = new THREE.MeshStandardMaterial({
-      color: 0xffaa00,
-      metalness: 0.98,
-      roughness: 0.08,
-      emissive: 0x552200,
-      emissiveIntensity: 0.35
+      color: 0x121314, // Dark mechanical structural steel
+      metalness: 0.90,
+      roughness: 0.92,
+      emissive: 0x040404,
+      emissiveIntensity: 0.1
     });
 
     this.redGlowMat = new THREE.MeshBasicMaterial({
-      color: 0xff0033,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
       opacity: 1.0
     });
     this.glowMaterials.push(this.redGlowMat);
 
     this.accentGlowMat = new THREE.MeshBasicMaterial({
-      color: 0xff5500,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
       opacity: 0.95
     });
     this.glowMaterials.push(this.accentGlowMat);
 
     this.thrusterGlowMat = new THREE.MeshBasicMaterial({
-      color: 0xff3300,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
-      opacity: 0.95
+      opacity: 1.0
     });
     this.glowMaterials.push(this.thrusterGlowMat);
 

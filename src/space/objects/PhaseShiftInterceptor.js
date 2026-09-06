@@ -33,17 +33,17 @@ export class PhaseShiftInterceptor {
   }
 
   buildMesh() {
-    // ── High-Tech Cyan-Obsidian Phase Shifting Composite ──
+    // ── Monolithic Brutalist Empire Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x0a1c24,
-      metalness: 0.95,
-      roughness: 0.14,
-      emissive: 0x003344,
-      emissiveIntensity: 0.6
+      color: 0x191b1d, // Charcoal cast iron
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x0a0204,
+      emissiveIntensity: 0.2
     });
 
     this.glowMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
       opacity: 0.95
     });

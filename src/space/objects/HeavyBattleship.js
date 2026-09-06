@@ -145,51 +145,51 @@ export class HeavyBattleship {
   buildShip() {
     this.armorTexture = generateBattleshipArmorTexture();
 
-    // ── High-Definition Crimson-Obsidian Alloy Armor Materials ──
+    // ── Monolithic Brutalist Empire PBR Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1f0d14,
+      color: 0x191b1d, // Charcoal cast iron
       bumpMap: this.armorTexture,
-      bumpScale: 0.14,
-      metalness: 0.88,
-      roughness: 0.22,
-      emissive: 0x3d0810,
-      emissiveIntensity: 0.35
+      bumpScale: 0.22,
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0x941c28,
-      metalness: 0.92,
-      roughness: 0.16,
+      color: 0x282a2e, // Slate grey concrete slab
+      metalness: 0.76,
+      roughness: 0.94, // Zero gloss
       bumpMap: this.armorTexture,
-      bumpScale: 0.16,
-      emissive: 0x600a14,
-      emissiveIntensity: 0.5
+      bumpScale: 0.26,
+      emissive: 0x0d0305,
+      emissiveIntensity: 0.20
     });
 
     this.darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x14080a,
-      metalness: 0.95,
-      roughness: 0.26,
-      emissive: 0x1a0408,
-      emissiveIntensity: 0.3
+      color: 0x121314, // Dark mechanical structural steel
+      metalness: 0.90,
+      roughness: 0.92,
+      emissive: 0x040404,
+      emissiveIntensity: 0.1
     });
 
     this.glowRedMat = new THREE.MeshBasicMaterial({
-      color: 0xff0033,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
-      opacity: 0.95,
+      opacity: 1.0,
       blending: THREE.AdditiveBlending
     });
 
     this.glowOrangeMat = new THREE.MeshBasicMaterial({
-      color: 0xff4400,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
       opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
 
     this.glowCyanMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
       opacity: 0.9,
       blending: THREE.AdditiveBlending

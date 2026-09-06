@@ -36,25 +36,25 @@ export class ECMJammerCorvette {
   }
 
   buildMesh() {
-    // ── High-Tech Obsidian-Amethyst Electronic Warfare Composite ──
+    // ── Monolithic Brutalist Empire Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x180a22,
-      metalness: 0.94,
-      roughness: 0.18,
-      emissive: 0x2c0840,
-      emissiveIntensity: 0.5
+      color: 0x191b1d, // Charcoal cast iron
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x0a0204,
+      emissiveIntensity: 0.2
     });
 
     this.trimMat = new THREE.MeshStandardMaterial({
-      color: 0xaa22ff,
-      metalness: 0.96,
-      roughness: 0.12,
-      emissive: 0x6600aa,
-      emissiveIntensity: 0.8
+      color: 0x8b0000, // Stark blood-red faction stripe
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x440000,
+      emissiveIntensity: 0.5
     });
 
     this.glowMat = new THREE.MeshBasicMaterial({
-      color: 0xd946ef,
+      color: 0xff0022, // Blinding crimson red
       transparent: true,
       opacity: 0.95
     });

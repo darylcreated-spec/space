@@ -282,24 +282,24 @@ export class CommandMothership {
   _build() {
     const hullTex = generateSmoothCrimsonTexture();
 
-    // ── AAA Smooth PBR Materials Palette ──
+    // ── Monolithic Brutalist Empire Materials ──
     const smoothCrimsonMat = new THREE.MeshStandardMaterial({
-      color: 0x3d0e18,
+      color: 0x191b1d, // Charcoal cast iron
       map: hullTex,
-      roughness: 0.18,
-      metalness: 0.95,
-      emissive: 0x1a060a,
-      emissiveIntensity: 0.45
+      roughness: 0.95, // Heavy matte, zero gloss
+      metalness: 0.84,
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     const darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x14060a,
-      roughness: 0.28,
-      metalness: 0.94
+      color: 0x282a2e, // Slate grey concrete slab
+      roughness: 0.94, // Zero gloss
+      metalness: 0.76
     });
 
-    const glowScarletMat = new THREE.MeshBasicMaterial({ color: 0xff0044 });
-    const glowMagmaMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
+    const glowScarletMat = new THREE.MeshBasicMaterial({ color: 0xff0022 }); // Blinding crimson red
+    const glowMagmaMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
 
     // ── 1. Seamless Continuous Sculpted Lifting-Body Fuselage ──
     const hullGeo = createSmoothLiftingBodyGeometry();

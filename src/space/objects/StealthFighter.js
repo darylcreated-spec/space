@@ -149,47 +149,48 @@ export class StealthFighter {
   buildMesh() {
     this.armorTexture = generateStealthArmorTexture();
 
-    // 1. Primary Stealth RAM Composite
+    // ── Monolithic Brutalist Empire Materials ──
+    // 1. Primary Ablative Cast Iron Composite
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x481820,
+      color: 0x191b1d, // Charcoal cast iron
       map: this.armorTexture,
-      metalness: 0.92,
-      roughness: 0.18,
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
       transparent: true,
       opacity: this.cloakOpacity,
       blending: THREE.NormalBlending
     });
 
-    // 2. Secondary Titanium Edge Armor
+    // 2. Secondary Slate Concrete Slab Plates
     this.titaniumMat = new THREE.MeshStandardMaterial({
-      color: 0xa83848,
-      metalness: 0.96,
-      roughness: 0.12,
+      color: 0x282a2e, // Slate grey concrete
+      metalness: 0.76,
+      roughness: 0.94,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 3. Magma Plasma Conduit
+    // 3. Blood-Red Faction Heraldry Conduit
     this.conduitMat = new THREE.MeshStandardMaterial({
-      color: 0x8c1822,
-      emissive: 0xff2200,
-      emissiveIntensity: 2.2,
-      metalness: 0.85,
-      roughness: 0.2,
+      color: 0x8b0000,
+      emissive: 0xaa0814,
+      emissiveIntensity: 2.5,
+      metalness: 0.52,
+      roughness: 0.88,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 4. Optical Oculus Material
+    // 4. Optical Oculus Material (Harsh Crimson)
     this.oculusMat = new THREE.MeshBasicMaterial({
-      color: 0xff1133,
+      color: 0xff0022,
       transparent: true,
       opacity: this.cloakOpacity
     });
 
-    // 5. Thruster Plasma Glow
+    // 5. Thruster Plasma Glow (Blinding Crimson Red)
     this.glowMat = new THREE.MeshBasicMaterial({
-      color: 0xff4400,
+      color: 0xff0022,
       transparent: true,
       opacity: this.cloakOpacity,
       blending: THREE.AdditiveBlending

@@ -177,60 +177,60 @@ export class CarrierCapitalShip {
   _build() {
     const { diffuseMap, normalMap, emissiveMap } = generateCarrierTextures();
 
-    // ── 🔴 Unified Wave 1 Crimson-Obsidian Composite Hull Material ──
+    // ── Monolithic Brutalist Empire Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
+      color: 0x191b1d, // Charcoal cast iron
       map: diffuseMap,
-      roughness: 0.28,
-      metalness: 0.85,
+      roughness: 0.95, // Heavy matte, zero gloss
+      metalness: 0.84,
       normalMap: normalMap,
-      emissive: 0x330810,
-      emissiveIntensity: 0.45
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     this.armorPlateMat = new THREE.MeshStandardMaterial({
-      color: 0x7e1c28,
-      roughness: 0.22,
-      metalness: 0.90,
-      emissive: 0x24060c,
-      emissiveIntensity: 0.35,
+      color: 0x282a2e, // Slate grey concrete slab
+      roughness: 0.94,
+      metalness: 0.76,
+      emissive: 0x0d0305,
+      emissiveIntensity: 0.20,
       normalMap: normalMap
     });
 
     this.keelMat = new THREE.MeshStandardMaterial({
-      color: 0x180b0f,
-      roughness: 0.35,
-      metalness: 0.92,
+      color: 0x121314, // Dark mechanical structural steel
+      roughness: 0.92,
+      metalness: 0.90,
       normalMap: normalMap
     });
 
     this.trimGoldMat = new THREE.MeshStandardMaterial({
-      color: 0xff2244,
-      metalness: 0.96,
-      roughness: 0.15,
-      emissive: 0x660814,
-      emissiveIntensity: 0.6
+      color: 0x8b0000, // Stark blood-red faction stripe
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x3b0000,
+      emissiveIntensity: 0.45
     });
 
     this.runwayMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
+      color: 0x1c1e20,
       map: diffuseMap,
-      roughness: 0.32,
-      metalness: 0.82,
+      roughness: 0.92,
+      metalness: 0.80,
       emissiveMap: emissiveMap,
-      emissive: 0xff2200,
-      emissiveIntensity: 0.85,
+      emissive: 0xff0022, // Blinding crimson red runway markings
+      emissiveIntensity: 1.5,
       normalMap: normalMap
     });
 
-    // ── 🪟 Smoked Ruby/Obsidian Armored Glass ──
+    // ── 🪟 Armored Sensor Glass (Crimson Visor) ──
     this.glassMat = new THREE.MeshPhysicalMaterial({
-      color: 0xff1133,
+      color: 0xff0022,
       transparent: true,
-      opacity: 0.35,
-      roughness: 0.02,
-      metalness: 0.92,
-      transmission: 0.90,
+      opacity: 0.5,
+      roughness: 0.15,
+      metalness: 0.85,
+      transmission: 0.60,
       ior: 1.5,
       side: THREE.DoubleSide,
       depthWrite: false

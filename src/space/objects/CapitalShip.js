@@ -115,41 +115,41 @@ export class CapitalShip {
   buildMesh() {
     this.armorTexture = generateCruiserArmorTexture();
 
-    // ── Vibrant AAA Sci-Fi Materials (Obsidian, Crimson Magma, Imperial Gold, Radiant Neon) ──
+    // ── Monolithic Brutalist Empire PBR Materials ──
     this.hullMat = new THREE.MeshStandardMaterial({
-      color: 0x1a0c10,
+      color: 0x191b1d, // Charcoal cast iron
       bumpMap: this.armorTexture,
-      bumpScale: 0.18,
-      metalness: 0.94,
-      roughness: 0.26,
-      emissive: 0x3d0810,
-      emissiveIntensity: 0.4
+      bumpScale: 0.22,
+      metalness: 0.84,
+      roughness: 0.95, // Heavy matte, zero gloss
+      emissive: 0x080203,
+      emissiveIntensity: 0.15
     });
 
     this.armorPlatesMat = new THREE.MeshStandardMaterial({
-      color: 0x9e1a28,
-      metalness: 0.88,
-      roughness: 0.22,
+      color: 0x282a2e, // Slate grey concrete slab
+      metalness: 0.76,
+      roughness: 0.94, // Zero gloss
       bumpMap: this.armorTexture,
-      bumpScale: 0.22,
-      emissive: 0x6e0e1a,
-      emissiveIntensity: 0.8
+      bumpScale: 0.26,
+      emissive: 0x0d0305,
+      emissiveIntensity: 0.20
     });
 
     this.goldTrimMat = new THREE.MeshStandardMaterial({
-      color: 0xffaa00,
-      metalness: 0.96,
-      roughness: 0.12,
-      emissive: 0x662a00,
-      emissiveIntensity: 0.6
+      color: 0x8b0000, // Stark blood-red faction stripe
+      metalness: 0.52,
+      roughness: 0.88,
+      emissive: 0x3b0000,
+      emissiveIntensity: 0.45
     });
 
     this.darkAlloyMat = new THREE.MeshStandardMaterial({
-      color: 0x14080a,
-      metalness: 0.95,
-      roughness: 0.28,
-      emissive: 0x1f0408,
-      emissiveIntensity: 0.35
+      color: 0x121314, // Dark mechanical structural steel
+      metalness: 0.90,
+      roughness: 0.92,
+      emissive: 0x040404,
+      emissiveIntensity: 0.1
     });
 
     // ── Damaged Sub-Structure Materials (Exposed Skeleton, Charred Slag, Sparking Conduits) ──
