@@ -66,6 +66,97 @@ function applyTriplanarUVs(geometry, repeatScale = 2.0) {
 }
 
 /**
+ * Procedural Photovoltaic Silicon Texture Generator
+ * Generates an authentic ultra-high detail solar cell texture with dark blue/indigo silicon wafers,
+ * silver conductive micro-traces, and gold collector busbars.
+ */
+function generatePhotovoltaicTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+
+  // Background deep space-grade antireflective coating (silicon blue)
+  const grad = ctx.createLinearGradient(0, 0, 512, 1024);
+  grad.addColorStop(0, '#06132b');
+  grad.addColorStop(0.5, '#0b2447');
+  grad.addColorStop(1, '#081736');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 1024);
+
+  // Individual photovoltaic silicon wafer cells (4 cols x 8 rows)
+  const cols = 4;
+  const rows = 8;
+  const cellW = 512 / cols;
+  const cellH = 1024 / rows;
+  const margin = 4;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = c * cellW + margin;
+      const y = r * cellH + margin;
+      const w = cellW - margin * 2;
+      const h = cellH - margin * 2;
+
+      // Silicon substrate
+      ctx.fillStyle = '#0a2a5e';
+      ctx.fillRect(x, y, w, h);
+
+      // Fine horizontal collector grid lines (silver micro-traces)
+      ctx.fillStyle = 'rgba(180, 220, 255, 0.4)';
+      for (let gy = y + 4; gy < y + h; gy += 6) {
+        ctx.fillRect(x, gy, w, 1);
+      }
+
+      // Vertical copper/silver grid lines
+      for (let gx = x + 8; gx < x + w; gx += 16) {
+        ctx.fillRect(gx, y, 1, h);
+      }
+
+      // Wafer border bevel
+      ctx.strokeStyle = 'rgba(0, 243, 255, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, w, h);
+    }
+  }
+
+  // Central Gold Busbars running down each column
+  for (let c = 0; c < cols; c++) {
+    const cx = c * cellW + cellW / 2;
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(cx - 2, 0, 4, 1024);
+
+    // Lateral gold contact pads
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.7)';
+    for (let r = 0; r < rows; r++) {
+      const cy = r * cellH + cellH / 2;
+      ctx.fillRect(cx - 8, cy - 2, 16, 4);
+    }
+  }
+
+  // Heavy structural outer frame and cell isolation borders
+  ctx.strokeStyle = '#223048';
+  ctx.lineWidth = 4;
+  for (let r = 0; r <= rows; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, r * cellH);
+    ctx.lineTo(512, r * cellH);
+    ctx.stroke();
+  }
+  for (let c = 0; c <= cols; c++) {
+    ctx.beginPath();
+    ctx.moveTo(c * cellW, 0);
+    ctx.lineTo(c * cellW, 1024);
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  return texture;
+}
+
+/**
  * SegmaCinematicDirector
  * Manages the interactive 3D opening cinematic sequence: "The Call of the Fleet Armada to Planet Segma"
  * Features:
@@ -141,6 +232,11 @@ export class SegmaCinematicDirector {
     // Thruster & VFX Arrays
     this.engineFXList = [];
     this.cinematicProjectiles = [];
+    this.stationSolarArrays = [];
+    this.destroyerRecoil = 0;
+    this.battleshipShudder = 0;
+    this.carrierShudder = 0;
+    this.stationCIWSTimer = 0;
 
     // Warp Sequence States
     this.warpTriggered = false;
@@ -356,6 +452,11 @@ export class SegmaCinematicDirector {
     this.cinematicProjectiles = [];
     this.engineFXList = [];
     this.alliedPortals = [];
+    this.stationSolarArrays = [];
+    this.destroyerRecoil = 0;
+    this.battleshipShudder = 0;
+    this.carrierShudder = 0;
+    this.stationCIWSTimer = 0;
 
     // 3. Load Fleet Assets
     await assetManager.loadFleetAssets();
@@ -610,6 +711,174 @@ export class SegmaCinematicDirector {
     return entry;
   }
 
+  /**
+   * Builds realistic high-detail solar panel arrays on either side of the Space Station Citadel.
+   * Features:
+   * - Twin heavy titanium outrigger booms extending laterally from port (-X) and starboard (+X)
+   * - Solar Alpha Rotary Joints (SARJ) with optical encoders & gimbal pivots
+   * - 4 extended photovoltaic solar wings per side (8 wings total) with procedural silicon cell textures
+   * - Space-grade gold multilayer insulation (MLI) thermal backing
+   * - Micro-meteoroid shielding frames, longitudinal tension guide wires, and cross-trusses
+   * - Active dual navigation strobes (red port, green starboard) and CIWS defensive weapon emplacements
+   */
+  buildSpaceStationSolarArrays(stationGroup) {
+    const photoTex = generatePhotovoltaicTexture();
+    photoTex.repeat.set(1, 2);
+
+    // Front: Photovoltaic silicon cells with metallic sheen
+    const solarFrontMat = new THREE.MeshStandardMaterial({
+      map: photoTex,
+      metalness: 0.85,
+      roughness: 0.25,
+      emissive: new THREE.Color(0x001a33),
+      emissiveIntensity: 0.35,
+      bumpMap: photoTex,
+      bumpScale: 0.08
+    });
+
+    // Back: Space-grade gold kapton multilayer insulation (MLI) thermal foil
+    const goldKaptonMat = new THREE.MeshStandardMaterial({
+      color: 0xffb700,
+      metalness: 0.95,
+      roughness: 0.3,
+      emissive: new THREE.Color(0x442200),
+      emissiveIntensity: 0.2
+    });
+
+    // Structural truss frame material (dark titanium alloy)
+    const trussMat = new THREE.MeshStandardMaterial({
+      color: 0x2a3848,
+      metalness: 0.8,
+      roughness: 0.4
+    });
+
+    // CIWS and weapon mount material
+    const weaponMat = new THREE.MeshStandardMaterial({
+      color: 0x182230,
+      metalness: 0.9,
+      roughness: 0.35
+    });
+
+    // Wing panel geometry: width 14, height 0.35, depth 38
+    const panelGeo = new THREE.BoxGeometry(14, 0.35, 38);
+    // Custom UVs for panel faces so solar cell texture displays cleanly on top & bottom
+    const pMaterials = [
+      trussMat,       // right (+x)
+      trussMat,       // left (-x)
+      solarFrontMat,  // top (+y) - photovoltaic active side
+      goldKaptonMat,  // bottom (-y) - gold thermal kapton
+      trussMat,       // front (+z)
+      trussMat        // back (-z)
+    ];
+
+    // Build port (-X, side = -1) and starboard (+X, side = 1) solar wings
+    [-1, 1].forEach((side) => {
+      const arrayBoomGroup = new THREE.Group();
+      arrayBoomGroup.position.set(side * 28, 0, 0);
+
+      // Primary cantilever tubular outrigger boom extending to side * 68 (world 96)
+      const boomLength = 68;
+      const boomGeo = new THREE.CylinderGeometry(1.6, 2.2, boomLength, 12);
+      boomGeo.rotateZ(side * Math.PI / 2);
+      const boomMesh = new THREE.Mesh(boomGeo, trussMat);
+      boomMesh.position.set(side * (boomLength / 2), 0, 0);
+      arrayBoomGroup.add(boomMesh);
+
+      // Structural triangular cross-truss lattice along the boom
+      const trussSteps = 5;
+      for (let s = 1; s <= trussSteps; s++) {
+        const tx = side * (s * 11);
+        const strutRingGeo = new THREE.TorusGeometry(2.8, 0.3, 6, 12);
+        strutRingGeo.rotateY(Math.PI / 2);
+        const strutRing = new THREE.Mesh(strutRingGeo, trussMat);
+        strutRing.position.set(tx, 0, 0);
+        arrayBoomGroup.add(strutRing);
+
+        // Diagonal tension brace wires
+        const diagGeo = new THREE.CylinderGeometry(0.12, 0.12, 12, 4);
+        diagGeo.rotateZ(Math.PI / 4 * side);
+        const diagMesh = new THREE.Mesh(diagGeo, trussMat);
+        diagMesh.position.set(tx, 0, 0);
+        arrayBoomGroup.add(diagMesh);
+      }
+
+      // Solar Alpha Rotary Joint (SARJ) - Gimbal rotation housing for solar tracking
+      const sarjHousingGeo = new THREE.CylinderGeometry(3.6, 3.6, 4.5, 16);
+      sarjHousingGeo.rotateZ(Math.PI / 2);
+      const sarjMesh = new THREE.Mesh(sarjHousingGeo, trussMat);
+      sarjMesh.position.set(side * (boomLength + 2), 0, 0);
+      arrayBoomGroup.add(sarjMesh);
+
+      // Gimbals for rotating solar arrays relative to local star light
+      const rotatingWingGroup = new THREE.Group();
+      rotatingWingGroup.position.set(side * (boomLength + 4), 0, 0);
+
+      // 4 Solar Panel Wings per side arranged in quad array (2 Fore, 2 Aft)
+      const wingOffsets = [
+        { x: side * 8, z: -24, pitch: 0.15 },
+        { x: side * 24, z: -24, pitch: 0.15 },
+        { x: side * 8, z: 24, pitch: 0.15 },
+        { x: side * 24, z: 24, pitch: 0.15 }
+      ];
+
+      wingOffsets.forEach((cfg) => {
+        const wingMesh = new THREE.Mesh(panelGeo, pMaterials);
+        wingMesh.position.set(cfg.x, 0, cfg.z);
+        wingMesh.rotation.x = cfg.pitch;
+        rotatingWingGroup.add(wingMesh);
+
+        // Longitudinal structural panel rib along center spine
+        const ribGeo = new THREE.BoxGeometry(0.6, 0.8, 40);
+        const ribMesh = new THREE.Mesh(ribGeo, trussMat);
+        ribMesh.position.set(cfg.x, 0, cfg.z);
+        ribMesh.rotation.x = cfg.pitch;
+        rotatingWingGroup.add(ribMesh);
+      });
+
+      // Wing tip navigation beacon (Port = Red, Starboard = Green)
+      const strobeColor = side === -1 ? 0xff2233 : 0x00ff66;
+      const strobeLight = new THREE.PointLight(strobeColor, 2.5, 30.0);
+      strobeLight.position.set(side * 34, 0, 0);
+      rotatingWingGroup.add(strobeLight);
+
+      const beaconGeo = new THREE.SphereGeometry(0.8, 8, 8);
+      const beaconMat = new THREE.MeshBasicMaterial({
+        color: strobeColor,
+        toneMapped: false
+      });
+      const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+      beaconMesh.position.set(side * 34, 0, 0);
+      rotatingWingGroup.add(beaconMesh);
+
+      // CIWS Point-Defense Turret mounted on SARJ outrigger node
+      const turretBaseGeo = new THREE.CylinderGeometry(1.8, 2.2, 1.2, 8);
+      const turretBase = new THREE.Mesh(turretBaseGeo, weaponMat);
+      turretBase.position.set(side * (boomLength + 2), 2.2, 0);
+      arrayBoomGroup.add(turretBase);
+
+      const barrelGeo = new THREE.CylinderGeometry(0.2, 0.2, 3.8, 6);
+      barrelGeo.rotateX(Math.PI / 2);
+      const barrelLeft = new THREE.Mesh(barrelGeo, weaponMat);
+      barrelLeft.position.set(side * (boomLength + 2) - 0.6, 2.8, -1.8);
+      arrayBoomGroup.add(barrelLeft);
+      const barrelRight = new THREE.Mesh(barrelGeo, weaponMat);
+      barrelRight.position.set(side * (boomLength + 2) + 0.6, 2.8, -1.8);
+      arrayBoomGroup.add(barrelRight);
+
+      arrayBoomGroup.add(rotatingWingGroup);
+      stationGroup.add(arrayBoomGroup);
+
+      // Keep reference for subtle sun-tracking rotation in update()
+      this.stationSolarArrays.push({
+        group: rotatingWingGroup,
+        side,
+        strobe: strobeLight,
+        beacon: beaconMesh,
+        ciwsMuzzles: [barrelLeft, barrelRight]
+      });
+    });
+  }
+
   buildAlliedArmada() {
     // 0. Dedicated Cinematic Key, Rim, and Planet Segma Fill Lights
     const keyLight = new THREE.DirectionalLight(0xfffaf0, 3.4);
@@ -646,6 +915,10 @@ export class SegmaCinematicDirector {
       this.alliedStation.scale.set(1.4, 1.4, 1.4);
       this.alliedStation.visible = true;
       this.applyAAAFactionMaterials(this.alliedStation, 'ALLIED', 4.0);
+
+      // Install realistic solar arrays on either side of the Space Station Citadel
+      this.buildSpaceStationSolarArrays(this.alliedStation);
+
       this.cinematicGroup.add(this.alliedStation);
     }
 
@@ -1251,25 +1524,31 @@ export class SegmaCinematicDirector {
       this.updatePlayerFlight(dt);
     }
 
-    // 6. Update Engine Plumes & Lighting
+    // 6. Timeline Event Handling (Phase transitions & triggers)
+    this.handleTimelineEvents(dt);
+
+    // 7. Update Dynamic Fleet Combat Maneuvering (Ship banking, pitch alignment, recoil)
+    this.updateFleetCombatManeuvers(dt);
+
+    // 8. Update Station Solar Panels & Navigation Strobes
+    this.updateStationSolarArrays(dt);
+
+    // 9. Update Engine Plumes & Lighting
     this.updateEngineFX(dt);
 
-    // 7. Update Cinematic Projectiles, Railgun Beams & Swarm Torpedoes
+    // 10. Update Cinematic Projectiles, Railgun Beams & Swarm Torpedoes
     this.updateProjectiles(dt);
     this.updateCinematicBattle(dt);
 
-    // 8. Update Escaping Stealth Prototype
+    // 11. Update Escaping Stealth Prototype
     this.updateStealthEscape(dt);
 
-    // 9. Timeline Event Handling
-    this.handleTimelineEvents(dt);
-
-    // 10. Update Enemy Warp Portals & Ship Emergence
+    // 12. Update Enemy Warp Portals & Ship Emergence
     if (this.warpTriggered && !this.warpCompleted) {
       this.updateWarpArrival(dt);
     }
 
-    // 11. Update Camera Positioning
+    // 13. Update Camera Positioning
     this.updateCamera(dt);
   }
 
@@ -1746,8 +2025,111 @@ export class SegmaCinematicDirector {
     }
   }
 
+  /**
+   * Updates Space Station solar panel arrays:
+   * - Rotates SARJ gimbals smoothly to simulate star-tracking
+   * - Flashes port and starboard wingtip navigation strobes in realistic aviation cadence
+   */
+  updateStationSolarArrays(dt) {
+    if (!this.stationSolarArrays || this.stationSolarArrays.length === 0) return;
+
+    // Slow solar tracking gimbal tilt
+    const sunTrackAngle = Math.sin(this.elapsedTime * 0.15) * 0.25;
+
+    // Aviation strobe cadence: short flash every 1.2 seconds
+    const strobeCycle = (this.elapsedTime % 1.2);
+    const isFlashing = strobeCycle < 0.12 || (strobeCycle > 0.22 && strobeCycle < 0.34);
+
+    this.stationSolarArrays.forEach((array) => {
+      if (array.group) {
+        array.group.rotation.x = sunTrackAngle;
+      }
+      if (array.strobe) {
+        array.strobe.intensity = isFlashing ? 4.5 : 0.4;
+      }
+      if (array.beacon && array.beacon.material) {
+        array.beacon.material.opacity = isFlashing ? 1.0 : 0.3;
+      }
+    });
+  }
+
+  /**
+   * Updates fleet warship combat maneuvering:
+   * - Allied Destroyer Aegis banks and maneuvers into direct-fire spinal railgun arc against enemy Battleship
+   * - Escort Frigate maneuvers into flanking broadside position, pitching up to unleash vertical missile pods
+   * - Enemy Battleship and Carrier push through hyperspace rift with heavy dreadnought inertia
+   * - Impact shudder & spinal recoil responses
+   */
+  updateFleetCombatManeuvers(dt) {
+    // Decay recoil and shudder
+    if (this.destroyerRecoil > 0) {
+      this.destroyerRecoil = Math.max(0, this.destroyerRecoil - dt * 14.0);
+    }
+    if (this.battleshipShudder > 0) {
+      this.battleshipShudder = Math.max(0, this.battleshipShudder - dt * 6.0);
+    }
+    if (this.carrierShudder > 0) {
+      this.carrierShudder = Math.max(0, this.carrierShudder - dt * 6.0);
+    }
+
+    // 1. Allied Destroyer Aegis Combat Maneuvering
+    if (this.alliedDestroyer && this.alliedWarpCompleted) {
+      if (this.battlePhase === 'BATTLE_ERUPTS') {
+        // Advance forward and bank into spinal firing position facing the Goliath Battleship
+        const targetDestPos = new THREE.Vector3(-36, 1, -82);
+        this.alliedDestroyer.position.lerp(targetDestPos, dt * 1.5);
+        // Apply spinal railgun recoil offset on Z
+        this.alliedDestroyer.position.z += this.destroyerRecoil;
+
+        // Dynamic combat attitude: bank slightly port (roll), pitch down towards Battleship
+        this.alliedDestroyer.rotation.z = THREE.MathUtils.lerp(this.alliedDestroyer.rotation.z, -0.18, dt * 3.0);
+        this.alliedDestroyer.rotation.x = THREE.MathUtils.lerp(this.alliedDestroyer.rotation.x, 0.08, dt * 3.0);
+        this.alliedDestroyer.rotation.y = THREE.MathUtils.lerp(this.alliedDestroyer.rotation.y, -0.06, dt * 3.0);
+      }
+    }
+
+    // 2. Allied Escort Frigate Combat Maneuvering
+    if (this.alliedEscort && this.alliedWarpCompleted) {
+      if (this.battlePhase === 'BATTLE_ERUPTS') {
+        // Flank outward to starboard and elevate to provide missile coverage
+        const targetFrigatePos = new THREE.Vector3(28, 12, -78);
+        this.alliedEscort.position.lerp(targetFrigatePos, dt * 1.8);
+
+        // Bank hard 30 degrees (roll: 0.35) so vertical missile decks angle directly at Carrier
+        this.alliedEscort.rotation.z = THREE.MathUtils.lerp(this.alliedEscort.rotation.z, 0.35, dt * 3.5);
+        this.alliedEscort.rotation.x = THREE.MathUtils.lerp(this.alliedEscort.rotation.x, -0.12, dt * 3.5);
+        this.alliedEscort.rotation.y = THREE.MathUtils.lerp(this.alliedEscort.rotation.y, 0.18, dt * 3.5);
+      }
+    }
+
+    // 3. Enemy Battleship Dreadnought Movement & Damage Shudder
+    if (this.enemyBattleship && !this.battleshipDestroyed && this.warpCompleted) {
+      // Advance with ominous momentum towards allied fleet
+      this.enemyBattleship.position.z += dt * 2.8;
+      // Kinetic impact shudder shake
+      if (this.battleshipShudder > 0) {
+        const shakeX = (Math.random() - 0.5) * this.battleshipShudder * 1.5;
+        const shakeY = (Math.random() - 0.5) * this.battleshipShudder * 1.2;
+        this.enemyBattleship.position.x += shakeX;
+        this.enemyBattleship.position.y += shakeY;
+      }
+    }
+
+    // 4. Enemy Carrier Movement & Damage Shudder
+    if (this.enemyCarrier && !this.carrierDestroyed && this.warpCompleted) {
+      // Advance forward while deploying interceptors
+      this.enemyCarrier.position.z += dt * 2.2;
+      if (this.carrierShudder > 0) {
+        const shakeX = (Math.random() - 0.5) * this.carrierShudder * 1.8;
+        const shakeY = (Math.random() - 0.5) * this.carrierShudder * 1.4;
+        this.enemyCarrier.position.x += shakeX;
+        this.enemyCarrier.position.y += shakeY;
+      }
+    }
+  }
+
   updateCinematicBattle(dt) {
-    // 1. Update and remove fading railgun beams
+    // 1. Update and remove fading railgun slugs and beams
     for (let i = this.cinematicBeams.length - 1; i >= 0; i--) {
       const beam = this.cinematicBeams[i];
       beam.life -= dt;
@@ -1763,46 +2145,70 @@ export class SegmaCinematicDirector {
       }
     }
 
-    // 2. Update and advance swarm torpedoes
+    // 2. Update and advance swarm torpedoes with dynamic rocket trails
     for (let i = this.cinematicTorpedoes.length - 1; i >= 0; i--) {
       const torp = this.cinematicTorpedoes[i];
       torp.t += dt * torp.speed;
       if (torp.t >= 1.0) {
         if (this.particleManager) {
-          this.particleManager.createExplosion(torp.to, 0x00aaff, 14, 1.4);
-          this.particleManager.createHitSparks(torp.to, 0x00f3ff);
+          this.particleManager.createExplosion(torp.to, 0x00aaff, 18, 1.8);
+          this.particleManager.createHitSparks(torp.to, 0x00f3ff, 12);
+          if (this.particleManager.spawnMetalDebris) {
+            this.particleManager.spawnMetalDebris(torp.to, 8, 0x6688aa);
+          }
         }
+        if (this.spaceAudio && this.spaceAudio.playExplosion) {
+          this.spaceAudio.playExplosion(1);
+        }
+        this.carrierShudder = Math.min(2.0, this.carrierShudder + 0.35);
         this.cinematicGroup.remove(torp.mesh);
         if (torp.mesh.geometry) torp.mesh.geometry.dispose();
         if (torp.mesh.material) torp.mesh.material.dispose();
         this.cinematicTorpedoes.splice(i, 1);
       } else {
-        // Curved path with slight arc
+        // Multi-stage proportional navigation trajectory: arc upward then dive toward target
         const curPos = new THREE.Vector3().lerpVectors(torp.from, torp.to, torp.t);
-        curPos.y += Math.sin(torp.t * Math.PI) * 4.0;
+        curPos.y += Math.sin(torp.t * Math.PI) * 6.5;
+        curPos.x += Math.sin(torp.t * Math.PI * 2.0 + torp.phase) * 2.2;
         torp.mesh.position.copy(curPos);
+
+        // Rocket exhaust trail sparks
+        if (this.particleManager && Math.random() > 0.35) {
+          this.particleManager.createHitSparks(curPos, 0x00f3ff, 2);
+        }
       }
     }
 
     // 3. Fire active fleet combat volleys while in battle phase
     if (this.battlePhase === 'BATTLE_ERUPTS') {
       this.alliedSalvoTimer -= dt;
-      if (this.alliedSalvoTimer <= 0) {
-        this.alliedSalvoTimer = 0.22;
+      this.stationCIWSTimer -= dt;
 
-        // Allied Destroyer fires heavy spinal railgun beams at Battleship
+      if (this.alliedSalvoTimer <= 0) {
+        this.alliedSalvoTimer = 0.20;
+
+        // Allied Destroyer fires hypervelocity spinal railgun slug at Battleship
         if (this.alliedDestroyer && !this.battleshipDestroyed && this.enemyBattleship) {
-          const fromPos = this.alliedDestroyer.position.clone().add(new THREE.Vector3(0, 0, -22));
+          const fromPos = this.alliedDestroyer.position.clone().add(new THREE.Vector3(0, 0, -26));
           const toPos = this.enemyBattleship.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 14,
-            (Math.random() - 0.5) * 6,
-            (Math.random() - 0.5) * 10
+            (Math.random() - 0.5) * 16,
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 12
           ));
-          this.fireRailgunBeam(fromPos, toPos, 0x00f3ff, 0.16);
+          this.fireRailgunBeam(fromPos, toPos, 0x00f3ff, 0.18, true);
+
+          // Spinal recoil kickback on Destroyer
+          this.destroyerRecoil = 0.95;
+          // Kinetic shudder on Battleship
+          this.battleshipShudder = Math.min(2.5, this.battleshipShudder + 0.5);
+
           if (this.particleManager) {
-            this.particleManager.createHitSparks(toPos, 0x00f3ff);
-            if (Math.random() > 0.4) {
-              this.particleManager.createExplosion(toPos, 0xff3300, 8, 1.0);
+            this.particleManager.createHitSparks(toPos, 0x00f3ff, 14);
+            if (this.particleManager.createEmpShockwave) {
+              this.particleManager.createEmpShockwave(toPos, 0x00f3ff, 12.0);
+            }
+            if (Math.random() > 0.3) {
+              this.particleManager.createExplosion(toPos, 0xff5500, 14, 1.4);
             }
           }
           if (this.spaceAudio && this.spaceAudio.playHeavyCannonSound) {
@@ -1810,15 +2216,15 @@ export class SegmaCinematicDirector {
           }
         }
 
-        // Allied Frigate fires Swarm Torpedoes at Carrier
+        // Allied Frigate fires VLS Swarm Torpedoes at Carrier
         if (this.alliedEscort && !this.carrierDestroyed && this.enemyCarrier) {
           const fromPos = this.alliedEscort.position.clone().add(new THREE.Vector3(
-            (Math.random() > 0.5 ? 4 : -4), 0, -16
+            (Math.random() > 0.5 ? 4.5 : -4.5), 2.0, -18
           ));
           const toPos = this.enemyCarrier.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 25,
-            (Math.random() - 0.5) * 8,
-            (Math.random() - 0.5) * 20
+            (Math.random() - 0.5) * 28,
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 22
           ));
           this.fireTorpedo(fromPos, toPos);
           if (this.spaceAudio && this.spaceAudio.playLaserPew) {
@@ -1826,34 +2232,56 @@ export class SegmaCinematicDirector {
           }
         }
 
-        // Player Vessel fires plasma bolts towards Carrier
+        // Player Vessel fires heavy plasma cannon bolts towards Carrier
         if (!this.carrierDestroyed && this.enemyCarrier) {
-          const playerMuzzle = this.playerPos.clone().add(new THREE.Vector3((Math.random() > 0.5 ? 3 : -3), 0, -10));
+          const playerMuzzle = this.playerPos.clone().add(new THREE.Vector3((Math.random() > 0.5 ? 3.5 : -3.5), 0, -12));
           const carrierHit = this.enemyCarrier.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 20, 0, (Math.random() - 0.5) * 15
+            (Math.random() - 0.5) * 24, 0, (Math.random() - 0.5) * 18
           ));
-          this.fireRailgunBeam(playerMuzzle, carrierHit, 0x00d0ff, 0.12);
+          this.fireRailgunBeam(playerMuzzle, carrierHit, 0x00d0ff, 0.14, false);
           if (this.particleManager) {
-            this.particleManager.createHitSparks(carrierHit, 0x00d0ff);
+            this.particleManager.createHitSparks(carrierHit, 0x00d0ff, 8);
           }
         }
 
-        // Enemy Battleship fires return red plasma bursts towards Allied line
+        // Enemy Battleship fires heavy red plasma bursts back at Allied line
         if (!this.battleshipDestroyed && this.enemyBattleship) {
-          const enemyMuzzle = this.enemyBattleship.position.clone().add(new THREE.Vector3(0, 0, 15));
-          const targetPos = new THREE.Vector3(-25 + (Math.random() - 0.5) * 20, 4, -30);
+          const enemyMuzzle = this.enemyBattleship.position.clone().add(new THREE.Vector3(0, 0, 18));
+          const targetPos = new THREE.Vector3(-32 + (Math.random() - 0.5) * 22, 2, -35);
           this.fireEnemyPlasma(enemyMuzzle, targetPos);
           if (this.spaceAudio && this.spaceAudio.playEnemyLaser) {
             this.spaceAudio.playEnemyLaser(-0.8);
           }
         }
       }
+
+      // Station CIWS Point-Defense Turrets fire high-frequency tracer streams
+      if (this.stationCIWSTimer <= 0 && this.alliedStation) {
+        this.stationCIWSTimer = 0.08;
+        if (this.stationSolarArrays && this.stationSolarArrays.length > 0) {
+          const arr = this.stationSolarArrays[Math.floor(Math.random() * this.stationSolarArrays.length)];
+          if (arr && arr.ciwsMuzzles) {
+            const muzzle = arr.ciwsMuzzles[Math.floor(Math.random() * arr.ciwsMuzzles.length)];
+            if (muzzle) {
+              const fromPos = new THREE.Vector3();
+              muzzle.getWorldPosition(fromPos);
+
+              const targetPos = (!this.carrierDestroyed && this.enemyCarrier)
+                ? this.enemyCarrier.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12, 0))
+                : new THREE.Vector3(30 + (Math.random() - 0.5) * 20, 10, -140);
+
+              this.fireRailgunBeam(fromPos, targetPos, 0x00ff88, 0.09, false);
+            }
+          }
+        }
+      }
     }
   }
 
-  fireRailgunBeam(from, to, colorHex = 0x00f3ff, duration = 0.16) {
+  fireRailgunBeam(from, to, colorHex = 0x00f3ff, duration = 0.16, hasSlug = false) {
     const dist = from.distanceTo(to);
-    const beamGeo = new THREE.CylinderGeometry(0.32, 0.32, dist, 6);
+    const beamRadius = hasSlug ? 0.48 : 0.28;
+    const beamGeo = new THREE.CylinderGeometry(beamRadius, beamRadius, dist, 6);
     beamGeo.rotateX(Math.PI / 2);
     const beamMat = new THREE.MeshBasicMaterial({
       color: colorHex,
@@ -1864,26 +2292,55 @@ export class SegmaCinematicDirector {
     const beam = new THREE.Mesh(beamGeo, beamMat);
     beam.position.copy(from).lerp(to, 0.5);
     beam.lookAt(to);
+
+    // If spinal railgun slug, add high-intensity bright white core
+    if (hasSlug) {
+      const coreGeo = new THREE.CylinderGeometry(0.18, 0.18, dist, 6);
+      coreGeo.rotateX(Math.PI / 2);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending
+      });
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      beam.add(coreMesh);
+
+      // Muzzle flash shockwave at firing port
+      if (this.particleManager && this.particleManager.createEmpShockwave) {
+        this.particleManager.createEmpShockwave(from, colorHex, 8.5);
+      }
+    }
+
     this.cinematicGroup.add(beam);
     this.cinematicBeams.push({ mesh: beam, life: duration, maxLife: duration });
   }
 
   fireTorpedo(from, to) {
-    const torpGeo = new THREE.SphereGeometry(0.65, 8, 8);
+    const torpGeo = new THREE.ConeGeometry(0.75, 2.2, 8);
+    torpGeo.rotateX(Math.PI / 2);
     const torpMat = new THREE.MeshBasicMaterial({
-      color: 0x00aaff,
+      color: 0x00f3ff,
       transparent: true,
       opacity: 0.95,
       blending: THREE.AdditiveBlending
     });
     const torp = new THREE.Mesh(torpGeo, torpMat);
     torp.position.copy(from);
+    torp.lookAt(to);
     this.cinematicGroup.add(torp);
-    this.cinematicTorpedoes.push({ mesh: torp, from: from.clone(), to: to.clone(), t: 0, speed: 2.4 });
+    this.cinematicTorpedoes.push({
+      mesh: torp,
+      from: from.clone(),
+      to: to.clone(),
+      t: 0,
+      speed: 2.2,
+      phase: Math.random() * Math.PI * 2
+    });
   }
 
   fireEnemyPlasma(from, to) {
-    const boltGeo = new THREE.CylinderGeometry(0.25, 0.25, 5.0, 6);
+    const boltGeo = new THREE.CylinderGeometry(0.32, 0.32, 6.0, 6);
     boltGeo.rotateX(Math.PI / 2);
     const boltMat = new THREE.MeshBasicMaterial({
       color: 0xff0033,
@@ -1899,7 +2356,7 @@ export class SegmaCinematicDirector {
     const dir = new THREE.Vector3().subVectors(to, from).normalize();
     this.cinematicProjectiles.push({
       mesh: bolt,
-      velocity: dir.multiplyScalar(210.0),
+      velocity: dir.multiplyScalar(220.0),
       life: 1.2
     });
   }
