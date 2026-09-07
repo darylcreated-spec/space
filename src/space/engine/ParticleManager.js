@@ -161,6 +161,10 @@ export class ParticleManager {
     }
   }
 
+  createHitSparks(pos, colorHex = 0x00f3ff, count = 8) {
+    this.spawnSparks(pos, new THREE.Vector3(0, 0, 1), colorHex, count);
+  }
+
   createExplosion(pos, colorHex = 0xff0077, count = 24, scale = 1.0) {
     const pool = this.explosionPool;
     const safeCount = Math.min(count, 28);

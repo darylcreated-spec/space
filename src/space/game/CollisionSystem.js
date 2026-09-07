@@ -361,9 +361,18 @@ export class CollisionSystem {
               }
               if (dead) {
                 gameManager.addScore(fighter.scoreValue);
-                gameManager.addScrap(35);
+                gameManager.addScrap(fighter.isEscapedPrototype ? 150 : 35);
                 gameManager.achievementSystem.recordDroneKill();
                 if (player && player.onKillHeal) player.onKillHeal();
+                if (fighter.isEscapedPrototype) {
+                  gameManager.spaceHUD?.showWaveBanner('PRIMARY TARGET NEUTRALIZED', 'ESCAPED STEALTH PROTOTYPE DESTROYED');
+                  gameManager.spaceHUD?.showRadioTransmission(
+                    'PRIORITY TARGET ELIMINATED! Escaped stealth prototype neutralized! Outstanding shooting, Vanguard!',
+                    'HIGH COMMAND',
+                    6.0
+                  );
+                  gameManager.voiceAnnouncer?.speak('Priority target eliminated! Escaped stealth prototype neutralized!', true, 'COMMAND');
+                }
               }
               if (!gameManager.activePerks.has('piercing')) {
                 hit = true;

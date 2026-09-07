@@ -242,13 +242,36 @@ export class GameManager {
     }
     this.segmaCinematicDirector.start(() => {
       this.startGame(1);
-      if (this.spaceHUD) {
-        this.spaceHUD.showRadioTransmission(
-          "Planet Segma orbital perimeter compromised! All Vanguard wings engage hostiles!",
-          "AWACS OVERLORD",
-          6.0
-        );
+      // Spawn escaped stealth prototype right ahead of player in Wave 1
+      const escapedStealth = this.spawnStealthFighter(new THREE.Vector3(0, 2, -65));
+      if (escapedStealth) {
+        escapedStealth.isEscapedPrototype = true;
+        escapedStealth.hp = 350;
+        escapedStealth.maxHp = 350;
+        escapedStealth.scoreValue = 1000;
+        escapedStealth.isCloaked = true;
+        escapedStealth.cloakOpacity = 0.15;
       }
+      setTimeout(() => {
+        if (this.spaceHUD) {
+          this.spaceHUD.showWaveBanner(
+            'MISSION OBJECTIVE: HUNT ESCAPED STEALTH VESSEL',
+            'PRIORITY TARGET // ELIMINATE BEFORE HYPERSPACE JUMP'
+          );
+          this.spaceHUD.showRadioTransmission(
+            "COMMANDER: An enemy stealth prototype escaped the armada's strike! Hunt it down and eliminate it before it jumps!",
+            'HIGH COMMAND',
+            7.5
+          );
+        }
+        if (this.voiceAnnouncer) {
+          this.voiceAnnouncer.speak(
+            'Priority directive: Hunt down and eliminate the escaped enemy stealth vessel!',
+            true,
+            'COMMAND'
+          );
+        }
+      }, 600);
     }, shipClass || this.selectedShipClass || 'INTERCEPTOR');
   }
 

@@ -740,8 +740,9 @@ export class SpaceScene {
       this.scene.fog.density = 0.0006;
     }
 
-    // Position Planet Segma prominently in the background
-    this.planetGroup.position.set(75, 40, -360);
+    // Position Planet Segma at bottom-right of viewport for movie director framing
+    this.planetGroup.position.set(115, -110, -290);
+    this.planetGroup.rotation.set(0.2, -0.4, 0.25);
   }
 
   buildDeepSpaceEnvironment() {
