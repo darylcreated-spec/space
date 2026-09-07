@@ -3388,12 +3388,76 @@ body:not(.is-mobile-browser) .virtual-joystick-dock {
   box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
 }
 
+.segma-btn-pill.active {
+  background: rgba(255, 170, 0, 0.25);
+  border-color: #ffaa00;
+  color: #ffea00;
+  box-shadow: 0 0 14px rgba(255, 170, 0, 0.5);
+}
+
+.segma-btn-pill.active .pill-dot {
+  background: #ffea00;
+  box-shadow: 0 0 8px #ffea00;
+}
+
+.segma-btn-pill.active-overview {
+  background: rgba(0, 243, 255, 0.28);
+  border-color: #00f3ff;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.6);
+}
+
+.segma-btn-pill.active-overview .pill-dot {
+  background: #00f3ff;
+  box-shadow: 0 0 8px #00f3ff;
+}
+
 .segma-btn-pill .pill-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: #00ff88;
   box-shadow: 0 0 6px #00ff88;
+}
+
+.segma-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 243, 255, 0.08);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.segma-btn-icon {
+  background: rgba(0, 243, 255, 0.15);
+  border: 1px solid rgba(0, 243, 255, 0.5);
+  color: #00f3ff;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.segma-btn-icon:hover {
+  background: rgba(0, 243, 255, 0.35);
+  box-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+  transform: scale(1.1);
+}
+
+.segma-zoom-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  color: #00ffea;
+  font-weight: 700;
+  min-width: 38px;
+  text-align: center;
 }
 
 .segma-btn-engage {

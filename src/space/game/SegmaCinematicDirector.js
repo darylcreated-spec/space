@@ -179,10 +179,21 @@ export class SegmaCinematicDirector {
     this.elapsedTime = 0;
     this.onCompleteCallback = null;
 
-    // Camera Modes: 'DIRECTOR', 'CHASE', 'COCKPIT'
+    // Camera Modes: 'DIRECTOR', 'PANORAMA', 'CHASE', 'COCKPIT'
     this.cameraMode = 'DIRECTOR';
-    this.cameraModes = ['DIRECTOR', 'CHASE', 'COCKPIT'];
+    this.cameraModes = ['DIRECTOR', 'PANORAMA', 'CHASE', 'COCKPIT'];
     this.cameraModeIndex = 0;
+
+    // Timeline Pause & Free Camera State
+    this.isPaused = false;
+
+    // Interactive Camera Zoom & Orbit Angle Controls (Zoom in/out, pitch, yaw)
+    this.cameraZoomFactor = 1.0;     // 0.4 (close) to 3.0 (ultra wide zoom out)
+    this.cameraOrbitAngleX = 0;      // Yaw rotation offset (-Math.PI to Math.PI)
+    this.cameraOrbitAngleY = 0;      // Pitch elevation offset (-0.6 to 1.0)
+    this.isOrbitDragging = false;
+    this.orbitPointerStart = { x: 0, y: 0 };
+    this.orbitStartAngles = { x: 0, y: 0 };
 
     // Controllable Player Ship Options: 'FRIGATE', 'DESTROYER', 'INTERCEPTOR'
     this.playerVesselOptions = ['FRIGATE', 'DESTROYER', 'INTERCEPTOR'];
@@ -274,6 +285,32 @@ export class SegmaCinematicDirector {
             <span class="telemetry-bracket">]</span>
           </div>
           <div class="segma-telemetry-right">
+            <div class="segma-zoom-controls">
+              <button id="btn-segma-zoom-out" class="segma-btn-icon" title="Zoom Out to View All Assets (-)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </button>
+              <span id="segma-zoom-level" class="segma-zoom-label" title="Camera Zoom Factor">100%</span>
+              <button id="btn-segma-zoom-in" class="segma-btn-icon" title="Zoom In (+)">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  <line x1="11" y1="8" x2="11" y2="14"></line>
+                  <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+              </button>
+              <button id="btn-segma-overview" class="segma-btn-pill" title="Toggle Fleet Overview Angle (O)">
+                <span class="pill-dot"></span>
+                <span>OVERVIEW (ALL ASSETS)</span>
+              </button>
+            </div>
+            <button id="btn-segma-pause" class="segma-btn-pill" title="Pause / Resume Cinematic Timeline (P)">
+              <span class="pill-dot"></span>
+              <span id="segma-pause-label">PAUSE (P)</span>
+            </button>
             <button id="btn-segma-camera" class="segma-btn-pill" title="Toggle Camera Perspective (C)">
               <span class="pill-dot"></span>
               <span id="segma-cam-label">CAM: DIRECTOR</span>
@@ -361,6 +398,13 @@ export class SegmaCinematicDirector {
     this.flightHint = document.getElementById('segma-flight-hint');
     this.tacticalDock = document.getElementById('segma-tactical-dock');
 
+    this.zoomLevelLabel = document.getElementById('segma-zoom-level');
+
+    document.getElementById('btn-segma-zoom-out')?.addEventListener('click', () => this.adjustCameraZoom(0.25));
+    document.getElementById('btn-segma-zoom-in')?.addEventListener('click', () => this.adjustCameraZoom(-0.25));
+    document.getElementById('btn-segma-overview')?.addEventListener('click', () => this.toggleOverviewCamera());
+    document.getElementById('btn-segma-pause')?.addEventListener('click', () => this.togglePause());
+
     document.getElementById('btn-segma-camera')?.addEventListener('click', () => this.cycleCameraMode());
     document.getElementById('btn-segma-ship')?.addEventListener('click', () => this.cycleVesselControl());
     document.getElementById('btn-segma-engage')?.addEventListener('click', () => this.confirmDefensivePositions());
@@ -378,17 +422,42 @@ export class SegmaCinematicDirector {
     // Lock formation button
     document.getElementById('btn-confirm-formation')?.addEventListener('click', () => this.confirmDefensivePositions());
 
-    // Mouse / Touch interaction for selecting & dragging ships in 3D
+    // Mouse / Touch interaction for selecting & dragging ships in 3D + free orbit camera control
     window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     window.addEventListener('pointermove', (e) => this.onPointerMove(e));
     window.addEventListener('pointerup', () => this.onPointerUp());
 
+    // Mouse wheel zoom in/out
+    window.addEventListener('wheel', (e) => {
+      if (!this.isActive) return;
+      // If pointer is over HUD buttons, let standard scroll happen
+      if (e.target.closest('#segma-tactical-dock') || e.target.closest('.segma-letterbox')) return;
+      e.preventDefault();
+      const zoomDelta = e.deltaY > 0 ? 0.15 : -0.15;
+      this.adjustCameraZoom(zoomDelta);
+    }, { passive: false });
+
     // Keyboard bindings for cinematic
     window.addEventListener('keydown', (e) => {
       if (!this.isActive) return;
-      if (e.code === 'KeyC') {
+      if (e.code === 'KeyP') {
+        e.preventDefault();
+        this.togglePause();
+      } else if (e.code === 'KeyC') {
         e.preventDefault();
         this.cycleCameraMode();
+      } else if (e.code === 'KeyO') {
+        e.preventDefault();
+        this.toggleOverviewCamera();
+      } else if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+        e.preventDefault();
+        this.adjustCameraZoom(0.2);
+      } else if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+        e.preventDefault();
+        this.adjustCameraZoom(-0.2);
+      } else if (e.code === 'Digit0' || e.code === 'Numpad0') {
+        e.preventDefault();
+        this.resetCameraAngleAndZoom();
       } else if (e.code === 'KeyV') {
         e.preventDefault();
         this.cycleVesselControl();
@@ -405,6 +474,14 @@ export class SegmaCinematicDirector {
   async start(onCompleteCallback = null, selectedShipClass = 'INTERCEPTOR') {
     this.isActive = true;
     this.elapsedTime = 0;
+    this.isPaused = false;
+    const pauseLabel = document.getElementById('segma-pause-label');
+    if (pauseLabel) pauseLabel.textContent = 'PAUSE (P)';
+    const pauseBtn = document.getElementById('btn-segma-pause');
+    if (pauseBtn) pauseBtn.classList.remove('active');
+    const overviewBtn = document.getElementById('btn-segma-overview');
+    if (overviewBtn) overviewBtn.classList.remove('active-overview');
+
     this.onCompleteCallback = onCompleteCallback;
     this.selectedShipClass = selectedShipClass || 'INTERCEPTOR';
     this.warpTriggered = false;
@@ -440,6 +517,23 @@ export class SegmaCinematicDirector {
     if (this.tacticalDock) {
       this.tacticalDock.classList.add('hidden');
     }
+
+    // Dismiss any start / pilot registration / menu modals that could obstruct the viewport
+    if (this.gameManager.spaceHUD && this.gameManager.spaceHUD.hideAllModals) {
+      this.gameManager.spaceHUD.hideAllModals();
+    }
+    const modalsToHide = ['modal-pilot-registration', 'space-modal-start', 'modal-registration', 'modal-start-menu', 'modal-pause'];
+    modalsToHide.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hidden');
+        el.style.display = 'none';
+      }
+    });
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.classList.add('hidden');
+      overlay.style.display = 'none';
+    });
 
     // 1. Setup Planet Segma celestial environment (framed bottom-right)
     this.gameManager.spaceScene.setupPlanetSegma();
@@ -522,39 +616,39 @@ export class SegmaCinematicDirector {
     const hullMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
       normalMap: pbr.normalMap,
-      normalScale: isAllied ? new THREE.Vector2(1.5, 1.5) : new THREE.Vector2(1.8, 1.8),
+      normalScale: isAllied ? new THREE.Vector2(1.2, 1.2) : new THREE.Vector2(1.5, 1.5),
       roughnessMap: pbr.roughnessMap,
       emissiveMap: pbr.emissiveMap,
-      color: isAllied ? 0x0f1c32 : 0x0c090e,
-      metalness: isAllied ? 0.94 : 0.92,
-      roughness: isAllied ? 0.26 : 0.30,
-      emissive: isAllied ? 0x00f3ff : 0xff1133,
-      emissiveIntensity: isAllied ? 0.35 : 0.45,
+      color: isAllied ? 0x142236 : 0x0c090e,
+      metalness: isAllied ? 0.90 : 0.92,
+      roughness: isAllied ? 0.35 : 0.30,
+      emissive: isAllied ? 0x002b44 : 0x330008,
+      emissiveIntensity: isAllied ? 0.15 : 0.25,
       envMap: envMap,
-      envMapIntensity: isAllied ? 1.8 : 1.4
+      envMapIntensity: isAllied ? 1.4 : 1.2
     });
 
     // 2. Anodized Accent Plating
     const accentMat = new THREE.MeshStandardMaterial({
       map: pbr.map,
       normalMap: pbr.normalMap,
-      normalScale: new THREE.Vector2(1.4, 1.4),
+      normalScale: new THREE.Vector2(1.2, 1.2),
       roughnessMap: pbr.roughnessMap,
-      color: isAllied ? 0x183b68 : 0xb00c18,
-      metalness: isAllied ? 0.95 : 0.88,
-      roughness: isAllied ? 0.18 : 0.22,
+      color: isAllied ? 0x1d4678 : 0xb00c18,
+      metalness: isAllied ? 0.92 : 0.88,
+      roughness: isAllied ? 0.25 : 0.22,
       envMap: envMap,
-      envMapIntensity: isAllied ? 2.0 : 1.7
+      envMapIntensity: isAllied ? 1.5 : 1.4
     });
 
     // 3. High-Intensity Emissive (Avionics / Conduits)
     const emissiveMat = new THREE.MeshStandardMaterial({
       color: isAllied ? 0x00f3ff : 0xff1133,
       emissive: isAllied ? 0x00f3ff : 0xff1133,
-      emissiveIntensity: isAllied ? 5.2 : 5.8,
-      roughness: 0.1,
-      metalness: 0.2,
-      toneMapped: false
+      emissiveIntensity: isAllied ? 1.2 : 1.6,
+      roughness: 0.2,
+      metalness: 0.1,
+      toneMapped: true
     });
 
     // 4. Exposed Tungsten Hardpoints & Machinery
@@ -910,9 +1004,9 @@ export class SegmaCinematicDirector {
         this.alliedStation.add(ringMesh);
       }
 
-      // Station placed overlooking Planet Segma's orbital rim (bottom right quadrant)
-      this.alliedStation.position.set(45, -16, -150);
-      this.alliedStation.scale.set(1.4, 1.4, 1.4);
+      // Station placed on starboard flank overlooking Planet Segma (x: 105, y: 15, z: -170)
+      this.alliedStation.position.set(105, 15, -170);
+      this.alliedStation.scale.set(1.15, 1.15, 1.15);
       this.alliedStation.visible = true;
       this.applyAAAFactionMaterials(this.alliedStation, 'ALLIED', 4.0);
 
@@ -1355,29 +1449,48 @@ export class SegmaCinematicDirector {
       if (closestKey) {
         this.selectTacticalShip(closestKey);
         this.isDraggingShip = true;
+        return;
       }
     }
+
+    // Otherwise, start camera orbit drag (click & drag anywhere to look around and change camera angle)
+    this.isOrbitDragging = true;
+    this.orbitPointerStart.x = e.clientX;
+    this.orbitPointerStart.y = e.clientY;
+    this.orbitStartAngles.x = this.cameraOrbitAngleX;
+    this.orbitStartAngles.y = this.cameraOrbitAngleY;
   }
 
   onPointerMove(e) {
-    if (!this.isActive || !this.isTacticalMode || !this.isDraggingShip) return;
+    if (!this.isActive) return;
 
-    this.updatePointerCoords(e);
-    this.raycaster.setFromCamera(this.pointer, this.camera);
+    if (this.isDraggingShip && this.isTacticalMode) {
+      this.updatePointerCoords(e);
+      this.raycaster.setFromCamera(this.pointer, this.camera);
 
-    const hitPoint = new THREE.Vector3();
-    if (this.raycaster.ray.intersectPlane(this.defensePlane, hitPoint)) {
-      const selected = this.tacticalShips[this.selectedShipKey];
-      if (selected) {
-        // Clamp to orbital operational boundaries
-        selected.targetPos.x = THREE.MathUtils.clamp(hitPoint.x, -70, 70);
-        selected.targetPos.z = THREE.MathUtils.clamp(hitPoint.z, -150, 10);
+      const hitPoint = new THREE.Vector3();
+      if (this.raycaster.ray.intersectPlane(this.defensePlane, hitPoint)) {
+        const selected = this.tacticalShips[this.selectedShipKey];
+        if (selected) {
+          // Clamp to orbital operational boundaries
+          selected.targetPos.x = THREE.MathUtils.clamp(hitPoint.x, -70, 70);
+          selected.targetPos.z = THREE.MathUtils.clamp(hitPoint.z, -150, 10);
+        }
       }
+    } else if (this.isOrbitDragging) {
+      // Dynamic camera angle rotation
+      const deltaX = (e.clientX - this.orbitPointerStart.x) * 0.005;
+      const deltaY = (e.clientY - this.orbitPointerStart.y) * 0.004;
+
+      this.cameraOrbitAngleX = this.orbitStartAngles.x - deltaX;
+      // Clamp pitch elevation
+      this.cameraOrbitAngleY = THREE.MathUtils.clamp(this.orbitStartAngles.y + deltaY, -0.6, 0.85);
     }
   }
 
   onPointerUp() {
     this.isDraggingShip = false;
+    this.isOrbitDragging = false;
   }
 
   prepareEnemyInvasionFleet() {
@@ -1471,6 +1584,89 @@ export class SegmaCinematicDirector {
     if (this.camLabel) {
       this.camLabel.textContent = `CAM: ${this.cameraMode}`;
     }
+    const btnOverview = document.getElementById('btn-segma-overview');
+    if (btnOverview) {
+      if (this.cameraMode === 'PANORAMA') btnOverview.classList.add('active-overview');
+      else btnOverview.classList.remove('active-overview');
+    }
+  }
+
+  /**
+   * Adjusts camera zoom factor smoothly between 0.4 (close-up) and 3.0 (ultra-wide tactical view)
+   * delta > 0 zooms out (larger distance / wider view), delta < 0 zooms in
+   */
+  adjustCameraZoom(delta) {
+    this.cameraZoomFactor = THREE.MathUtils.clamp(this.cameraZoomFactor + delta, 0.4, 3.0);
+    this.updateZoomDisplay();
+  }
+
+  /**
+   * Toggles the panoramic "OVERVIEW (ALL ASSETS)" camera mode
+   * Instantly frames the player craft, Space Station, solar arrays, Destroyer, Frigate,
+   * hostile dreadnoughts, and Planet Segma all within a single cinematic viewport.
+   */
+  toggleOverviewCamera() {
+    const btn = document.getElementById('btn-segma-overview');
+    if (this.cameraMode === 'PANORAMA') {
+      this.cameraMode = 'DIRECTOR';
+      this.cameraModeIndex = this.cameraModes.indexOf('DIRECTOR');
+      this.cameraZoomFactor = 1.0;
+      if (btn) btn.classList.remove('active-overview');
+    } else {
+      this.cameraMode = 'PANORAMA';
+      this.cameraModeIndex = this.cameraModes.indexOf('PANORAMA');
+      this.cameraZoomFactor = 1.0;
+      if (btn) btn.classList.add('active-overview');
+    }
+
+    if (this.camLabel) {
+      this.camLabel.textContent = `CAM: ${this.cameraMode}`;
+    }
+    this.updateZoomDisplay();
+  }
+
+  /**
+   * Toggles pausing the cinematic timeline
+   * When paused, time freezes while all camera controls (zoom, orbit angles, pan)
+   * remain completely interactive so the player can view and inspect all game assets.
+   */
+  togglePause() {
+    this.isPaused = !this.isPaused;
+    const label = document.getElementById('segma-pause-label');
+    if (label) {
+      label.textContent = this.isPaused ? 'RESUME (P)' : 'PAUSE (P)';
+    }
+    const btn = document.getElementById('btn-segma-pause');
+    if (btn) {
+      if (this.isPaused) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+    if (this.statusTag) {
+      if (this.isPaused) {
+        this._prePauseStatus = this.statusTag.textContent;
+        this.statusTag.textContent = 'TIMELINE PAUSED // FREE CAMERA & ZOOM ACTIVE';
+        this.statusTag.style.color = '#ffaa00';
+      } else if (this._prePauseStatus) {
+        this.statusTag.textContent = this._prePauseStatus;
+        this.statusTag.style.color = '#00f3ff';
+      }
+    }
+  }
+
+  /**
+   * Resets manual orbit angle offsets and zoom back to default
+   */
+  resetCameraAngleAndZoom() {
+    this.cameraZoomFactor = 1.0;
+    this.cameraOrbitAngleX = 0;
+    this.cameraOrbitAngleY = 0;
+    this.updateZoomDisplay();
+  }
+
+  updateZoomDisplay() {
+    if (this.zoomLevelLabel) {
+      this.zoomLevelLabel.textContent = `${Math.round(this.cameraZoomFactor * 100)}%`;
+    }
   }
 
   cycleVesselControl() {
@@ -1481,6 +1677,16 @@ export class SegmaCinematicDirector {
 
   update(dt) {
     if (!this.isActive) return;
+
+    // When paused, freeze timeline advance while keeping camera controls & ambient visual rotations active
+    if (this.isPaused) {
+      if (this.stationRing) {
+        this.stationRing.rotation.z += dt * 0.15;
+      }
+      this.updateCamera(dt);
+      return;
+    }
+
     this.elapsedTime += dt;
 
     // 1. Rotate Station Centrifugal Ring
@@ -1490,7 +1696,7 @@ export class SegmaCinematicDirector {
 
     // 2. Natural Space Station Antigravity Float
     if (this.alliedStation) {
-      this.alliedStation.position.y = -16 + Math.sin(this.elapsedTime * 0.8) * 1.2;
+      this.alliedStation.position.y = 15 + Math.sin(this.elapsedTime * 0.8) * 1.2;
     }
 
     // 3. Update Allied Armada Warp-In Arrival (0s - 4.5s)
@@ -2104,8 +2310,10 @@ export class SegmaCinematicDirector {
 
     // 3. Enemy Battleship Dreadnought Movement & Damage Shudder
     if (this.enemyBattleship && !this.battleshipDestroyed && this.warpCompleted) {
-      // Advance with ominous momentum towards allied fleet
-      this.enemyBattleship.position.z += dt * 2.8;
+      // Advance with ominous momentum towards allied fleet, holding at heavy bombardment range (-125)
+      if (this.enemyBattleship.position.z < -125) {
+        this.enemyBattleship.position.z += dt * 2.8;
+      }
       // Kinetic impact shudder shake
       if (this.battleshipShudder > 0) {
         const shakeX = (Math.random() - 0.5) * this.battleshipShudder * 1.5;
@@ -2117,8 +2325,10 @@ export class SegmaCinematicDirector {
 
     // 4. Enemy Carrier Movement & Damage Shudder
     if (this.enemyCarrier && !this.carrierDestroyed && this.warpCompleted) {
-      // Advance forward while deploying interceptors
-      this.enemyCarrier.position.z += dt * 2.2;
+      // Advance forward while deploying interceptors, holding at standoff launch range (-135)
+      if (this.enemyCarrier.position.z < -135) {
+        this.enemyCarrier.position.z += dt * 2.2;
+      }
       if (this.carrierShudder > 0) {
         const shakeX = (Math.random() - 0.5) * this.carrierShudder * 1.8;
         const shakeY = (Math.random() - 0.5) * this.carrierShudder * 1.4;
@@ -2204,9 +2414,6 @@ export class SegmaCinematicDirector {
 
           if (this.particleManager) {
             this.particleManager.createHitSparks(toPos, 0x00f3ff, 14);
-            if (this.particleManager.createEmpShockwave) {
-              this.particleManager.createEmpShockwave(toPos, 0x00f3ff, 12.0);
-            }
             if (Math.random() > 0.3) {
               this.particleManager.createExplosion(toPos, 0xff5500, 14, 1.4);
             }
@@ -2305,11 +2512,6 @@ export class SegmaCinematicDirector {
       });
       const coreMesh = new THREE.Mesh(coreGeo, coreMat);
       beam.add(coreMesh);
-
-      // Muzzle flash shockwave at firing port
-      if (this.particleManager && this.particleManager.createEmpShockwave) {
-        this.particleManager.createEmpShockwave(from, colorHex, 8.5);
-      }
     }
 
     this.cinematicGroup.add(beam);
@@ -2421,7 +2623,20 @@ export class SegmaCinematicDirector {
 
     const currentVessel = this.playerVesselOptions[this.currentVesselIndex];
 
-    if (this.cameraMode === 'DIRECTOR') {
+    if (this.cameraMode === 'PANORAMA') {
+      // PANORAMIC ALL-ASSETS OVERVIEW:
+      // High-angle strategic vantage point positioned to encompass:
+      // 1. Planet Segma & glowing atmospheric ring (bottom/side horizon)
+      // 2. Space Station Citadel & extended dual solar panel wings (starboard sector)
+      // 3. Allied Destroyer Aegis & Escort Frigate (center-port combat flank)
+      // 4. Player Controllable Flagship (anchoring formation foreground)
+      // 5. Hostile Goliath Battleship & Gorgon Carrier (forward invasion line)
+      const baseOverviewPos = new THREE.Vector3(-12.0, 72.0, 115.0);
+      const baseLookAt = new THREE.Vector3(18.0, 2.0, -85.0);
+
+      this.camTargetPos.copy(baseOverviewPos);
+      this.camLookAt.copy(baseLookAt);
+    } else if (this.cameraMode === 'DIRECTOR') {
       const t = this.elapsedTime;
       if (t < 5.0) {
         // Act I: Low dramatic wide angle framing Planet Segma at bottom-right while armada warps in
@@ -2489,7 +2704,27 @@ export class SegmaCinematicDirector {
       this.camLookAt.copy(this.playerPos).add(lookOffset.applyEuler(this.playerRot));
     }
 
-    this.camera.position.lerp(this.camTargetPos, dt * 4.5);
+    // Apply Interactive Zoom Scaling & Orbit Angle Offsets (Pitch & Yaw)
+    // Relative to the current camera look-at anchor point
+    const camOffset = new THREE.Vector3().subVectors(this.camTargetPos, this.camLookAt);
+
+    // Apply zoom multiplier (zoom factor > 1 pushes camera outward for wider asset coverage)
+    camOffset.multiplyScalar(this.cameraZoomFactor);
+
+    // Apply yaw orbit rotation around vertical axis (X angle)
+    if (this.cameraOrbitAngleX !== 0) {
+      camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraOrbitAngleX);
+    }
+
+    // Apply pitch elevation angle (Y angle)
+    if (this.cameraOrbitAngleY !== 0) {
+      const rightAxis = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraOrbitAngleX);
+      camOffset.applyAxisAngle(rightAxis, this.cameraOrbitAngleY);
+    }
+
+    this.camTargetPos.copy(this.camLookAt).add(camOffset);
+
+    this.camera.position.lerp(this.camTargetPos, dt * 5.0);
     this.camera.lookAt(this.camLookAt);
   }
 
