@@ -326,6 +326,68 @@
     </div>
   </div>
 
+  <!-- ==================== CINEMATIC STORY PROLOGUE MODAL ==================== -->
+  <div id="space-modal-cinematic" class="modal-overlay cinematic-modal-overlay hidden">
+    <div class="cinematic-widescreen-frame">
+      <!-- Top Letterbox Bar & Mission Telemetry -->
+      <div class="cinematic-letterbox letterbox-top">
+        <div class="cinematic-telemetry-left">
+          <span class="telemetry-bracket">[</span>
+          <span id="cinematic-chapter-tag" class="telemetry-text">CHAPTER I // THE GOLDEN FRONTIER</span>
+          <span class="telemetry-bracket">]</span>
+        </div>
+        <div class="cinematic-telemetry-right">
+          <span id="cinematic-location-tag" class="telemetry-location">EARTH ORBITAL DEFENSE GRID // AEGIS-7</span>
+          <button id="btn-skip-cinematic" class="btn-skip-cinematic" title="Skip Prologue (ESC / Space)">
+            <span>SKIP STORY</span>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+              <polygon points="5 4 15 12 5 20 5 4"/>
+              <line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2.5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main 21:9 Widescreen Visual Viewport -->
+      <div id="cinematic-viewport" class="cinematic-viewport">
+        <img id="cinematic-slide-img" class="cinematic-image-elem" src="/cinematics/prologue_1_frontier.jpg" alt="Prologue Story Scene" />
+        <div class="cinematic-vignette-overlay"></div>
+        <div class="cinematic-anamorphic-flare"></div>
+        <div class="cinematic-grid-overlay"></div>
+        <div class="cinematic-scanlines"></div>
+      </div>
+
+      <!-- Bottom Letterbox Bar & Subtitle Dialogue Card -->
+      <div class="cinematic-letterbox letterbox-bottom">
+        <div class="cinematic-dialogue-panel">
+          <div class="cinematic-speaker-row">
+            <span id="cinematic-speaker-tag" class="cinematic-speaker-badge">AWACS OVERLORD</span>
+            <div class="cinematic-audio-waveform">
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+              <span class="wave-bar"></span>
+            </div>
+          </div>
+          <div id="cinematic-dialogue-text" class="cinematic-dialogue-text">
+            Solar Era 2184. Humanity flourished beneath the Aegis Orbital Defense Array.
+          </div>
+        </div>
+
+        <div class="cinematic-bottom-nav">
+          <div id="cinematic-dots-container" class="cinematic-dots-wrap"></div>
+          <button id="btn-next-cinematic" class="btn-next-cinematic" title="Next Scene (Enter / Click)">
+            <span>NEXT</span>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== PILOT REGISTRATION & CLEARANCE TERMINAL ==================== -->
   <div id="space-modal-pilot-reg" class="modal-overlay">
     <div class="glass-panel modal-card pilot-reg-card">
@@ -709,7 +771,13 @@
 
       <!-- Pre-Game Hub Utility Buttons -->
       <div class="start-subhub-row" style="display:flex; gap:6px; width:100%; justify-content:center; flex-wrap:wrap;">
-        <button id="btn-toggle-god-start" class="btn-secondary" style="flex:1; min-width:125px; padding:8px 10px; font-size:12px; border-color:rgba(0,255,100,0.5); color:#00ff88;" title="Toggle Invulnerable Shield (God Mode for full campaign playthrough)">
+        <button id="btn-start-prologue" class="btn-secondary" style="flex:1; min-width:125px; padding:8px 10px; font-size:12px; border-color:rgba(0,243,255,0.7); color:#00f3ff; font-weight:700;" title="Watch Cinematic Story Prologue">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span>STORY PROLOGUE</span>
+        </button>
+        <button id="btn-toggle-god-start" class="btn-secondary" style="flex:1; min-width:115px; padding:8px 10px; font-size:12px; border-color:rgba(0,255,100,0.5); color:#00ff88;" title="Toggle Invulnerable Shield (God Mode for full campaign playthrough)">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#00ff88" stroke-width="2">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>

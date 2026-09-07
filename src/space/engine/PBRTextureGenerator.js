@@ -157,6 +157,18 @@ export function getPBRMaterialSet(theme = 'INTERCEPTOR') {
     panelColor2 = '#0d0407';
     accentGlow = '#ff0055';
     stencilText = 'THREAT // LEVIATHAN ARMADA';
+  } else if (theme === 'ALLIED_ARMADA') {
+    baseColor = '#0c1422';
+    panelColor1 = '#14243b';
+    panelColor2 = '#070f1a';
+    accentGlow = '#00f3ff';
+    stencilText = 'AEGIS // PLANET SEGMA DEFENSE CORPS';
+  } else if (theme === 'HOSTILE_ARMADA') {
+    baseColor = '#0b080d';
+    panelColor1 = '#1a0d14';
+    panelColor2 = '#070509';
+    accentGlow = '#ff1133';
+    stencilText = 'WARP THREAT // INVASION BATTLEGROUP';
   }
 
   // 1. Albedo Base Layer

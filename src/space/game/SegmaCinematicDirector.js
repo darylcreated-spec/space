@@ -1,0 +1,1622 @@
+import * as THREE from 'three';
+import { assetManager } from '../engine/AssetManager.js';
+import { getPBRMaterialSet } from '../engine/PBRTextureGenerator.js';
+
+/**
+ * Procedural Triplanar UV & Tangent Generator
+ * Eliminates polygon stretching and ensures textures and normal maps wrap accurately
+ * across complex hard-surface space fleet models.
+ */
+function applyTriplanarUVs(geometry, repeatScale = 2.0) {
+  if (!geometry || !geometry.attributes.position) return;
+
+  geometry.computeBoundingBox();
+  const bbox = geometry.boundingBox;
+  const size = new THREE.Vector3();
+  bbox.getSize(size);
+  const min = bbox.min;
+
+  const pos = geometry.attributes.position;
+  const count = pos.count;
+  const uvs = new Float32Array(count * 2);
+
+  if (!geometry.attributes.normal) {
+    geometry.computeVertexNormals();
+  }
+  const normAttr = geometry.attributes.normal;
+  const p = new THREE.Vector3();
+  const n = new THREE.Vector3();
+
+  for (let i = 0; i < count; i++) {
+    p.fromBufferAttribute(pos, i);
+    n.fromBufferAttribute(normAttr, i);
+
+    const nx = Math.abs(n.x);
+    const ny = Math.abs(n.y);
+    const nz = Math.abs(n.z);
+
+    let u, v;
+    if (ny >= nx && ny >= nz) {
+      // Top/bottom facing: map X and Z
+      u = (p.x - min.x) / (size.x || 1);
+      v = (p.z - min.z) / (size.z || 1);
+    } else if (nx >= ny && nx >= nz) {
+      // Side facing: map Z and Y
+      u = (p.z - min.z) / (size.z || 1);
+      v = (p.y - min.y) / (size.y || 1);
+    } else {
+      // Front/rear facing: map X and Y
+      u = (p.x - min.x) / (size.x || 1);
+      v = (p.y - min.y) / (size.y || 1);
+    }
+
+    uvs[i * 2] = u * repeatScale;
+    uvs[i * 2 + 1] = v * repeatScale;
+  }
+
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+  geometry.uvsNeedUpdate = true;
+  geometry.computeVertexNormals();
+
+  try {
+    geometry.computeTangents();
+  } catch (e) {
+    // Tangents fallback handled by standard Three.js shader pipeline
+  }
+}
+
+/**
+ * SegmaCinematicDirector
+ * Manages the interactive 3D opening cinematic sequence: "The Call of the Fleet Armada to Planet Segma"
+ * Features:
+ * - Space Station Citadel already stationed in orbit at Planet Segma
+ * - Hyperspace warp-in arrival of the Allied Armada (Flagship, Escort Frigate, Destroyer Aegis)
+ * - Interactive defensive positioning & formation assignment (Aegis Wedge, Citadel Guard, Flank Screen, free drag)
+ * - Hyperspace portal warp-in of hostile invasion fleet (Space Carrier & Heavy Battleship)
+ * - Smooth transition into active combat
+ */
+export class SegmaCinematicDirector {
+  constructor(gameManager) {
+    this.gameManager = gameManager;
+    this.scene = gameManager.spaceScene.scene;
+    this.camera = gameManager.spaceScene.camera;
+    this.spaceAudio = gameManager.spaceAudio;
+    this.particleManager = gameManager.particleManager;
+    this.controlsManager = gameManager.controlsManager;
+
+    this.isActive = false;
+    this.elapsedTime = 0;
+    this.onCompleteCallback = null;
+
+    // Camera Modes: 'DIRECTOR', 'CHASE', 'COCKPIT'
+    this.cameraMode = 'DIRECTOR';
+    this.cameraModes = ['DIRECTOR', 'CHASE', 'COCKPIT'];
+    this.cameraModeIndex = 0;
+
+    // Controllable Player Ship Options: 'FRIGATE', 'DESTROYER', 'INTERCEPTOR'
+    this.playerVesselOptions = ['FRIGATE', 'DESTROYER', 'INTERCEPTOR'];
+    this.currentVesselIndex = 0;
+    this.selectedShipClass = 'INTERCEPTOR';
+
+    // Cinematic Entities
+    this.cinematicGroup = new THREE.Group();
+    this.alliedStation = null;
+    this.stationRing = null;
+    this.alliedEscort = null;
+    this.alliedDestroyer = null;
+    this.enemyCarrier = null;
+    this.enemyBattleship = null;
+    this.warpPortalCarrier = null;
+    this.warpPortalBattleship = null;
+    this.deployedDrones = [];
+
+    // Allied Armada Warp Portals
+    this.alliedPortals = [];
+    this.alliedWarpProgress = 0;
+    this.alliedWarpCompleted = false;
+
+    // Tactical Defensive Positioning State
+    this.isTacticalMode = false;
+    this.selectedShipKey = 'PLAYER'; // 'PLAYER', 'FRIGATE', 'DESTROYER'
+    this.tacticalShips = {}; // { 'PLAYER': { mesh, targetPos, label, baseScale }, ... }
+    this.currentFormation = 'AEGIS'; // 'AEGIS', 'CITADEL', 'SCREEN'
+    this.raycaster = new THREE.Raycaster();
+    this.pointer = new THREE.Vector2();
+    this.isDraggingShip = false;
+    this.defensePlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -4); // Horizontal plane at Y=4
+    this.selectionRings = {}; // Visual 3D selection rings for each selectable ship
+
+    // Thruster & VFX Arrays
+    this.engineFXList = [];
+    this.cinematicProjectiles = [];
+
+    // Warp Sequence States
+    this.warpTriggered = false;
+    this.warpCompleted = false;
+    this.warpProgress = 0;
+
+    // Input & Flight
+    this.playerPos = new THREE.Vector3(0, 4, -20);
+    this.playerRot = new THREE.Euler(0, 0, 0, 'YXZ');
+    this.playerMesh = null;
+    this.playerBaseScale = 2.0;
+    this.fireTimer = 0;
+
+    // Camera Lerp Cache
+    this.camTargetPos = new THREE.Vector3();
+    this.camLookAt = new THREE.Vector3();
+
+    // PBR Material Cache
+    this.pbrMaterials = {};
+
+    this.createDomOverlay();
+  }
+
+  createDomOverlay() {
+    let container = document.getElementById('segma-cinematic-hud');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'segma-cinematic-hud';
+      container.className = 'segma-cinematic-hud hidden';
+      container.innerHTML = `
+        <div class="segma-letterbox top">
+          <div class="segma-telemetry-left">
+            <span class="telemetry-bracket">[</span>
+            <span id="segma-status-tag" class="telemetry-text">SECTOR SEGMA // ORBITAL DEFENSE PATROL</span>
+            <span class="telemetry-bracket">]</span>
+          </div>
+          <div class="segma-telemetry-right">
+            <button id="btn-segma-camera" class="segma-btn-pill" title="Toggle Camera Perspective (C)">
+              <span class="pill-dot"></span>
+              <span id="segma-cam-label">CAM: DIRECTOR</span>
+            </button>
+            <button id="btn-segma-ship" class="segma-btn-pill" title="Switch Controlled Fleet Vessel (V)">
+              <span class="pill-dot"></span>
+              <span id="segma-ship-label">VESSEL: FRIGATE</span>
+            </button>
+            <button id="btn-segma-engage" class="segma-btn-engage" title="Engage Combat / Skip Cinematic (Space)">
+              <span>ENGAGE COMBAT</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Interactive Tactical Formation & Defensive Positioning Dock -->
+        <div id="segma-tactical-dock" class="segma-tactical-dock hidden">
+          <div class="segma-tactical-header">
+            <span class="segma-tactical-title">DEFENSIVE FORMATION COMMAND</span>
+            <span class="segma-tactical-hint">DRAG OR SELECT WARSHIPS TO ASSIGN DEFENSIVE SECTOR PATROLS</span>
+          </div>
+          <div class="segma-tactical-actions">
+            <div class="segma-formation-presets">
+              <button id="btn-formation-aegis" class="segma-preset-btn active" title="V-Wedge Escort Defense">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 22 20 12 16 2 20 12 2"/>
+                </svg>
+                <span>AEGIS WEDGE</span>
+              </button>
+              <button id="btn-formation-citadel" class="segma-preset-btn" title="Orbital Citadel Shield">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>CITADEL GUARD</span>
+              </button>
+              <button id="btn-formation-screen" class="segma-preset-btn" title="Horizontal Flank Perimeter">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="2" y1="12" x2="22" y2="12"/><circle cx="6" cy="12" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="18" cy="12" r="3"/>
+                </svg>
+                <span>FLANK SCREEN</span>
+              </button>
+            </div>
+            <div class="segma-ship-selector-row">
+              <button id="btn-select-ship-player" class="segma-ship-btn active">FLAGSHIP (YOU)</button>
+              <button id="btn-select-ship-frigate" class="segma-ship-btn">ESCORT FRIGATE</button>
+              <button id="btn-select-ship-destroyer" class="segma-ship-btn">DESTROYER AEGIS</button>
+            </div>
+            <button id="btn-confirm-formation" class="segma-btn-lock-formation">
+              <span>LOCK FORMATION // ENGAGE</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="segma-reticle-wrap">
+          <div class="segma-flight-reticle"></div>
+          <div class="segma-flight-hint" id="segma-flight-hint">ALLIED FLEET ARRIVAL // DROPPING OUT OF HYPERSPACE</div>
+        </div>
+
+        <div class="segma-letterbox bottom">
+          <div class="segma-comms-panel">
+            <div class="segma-speaker-bar">
+              <span id="segma-speaker-name" class="segma-speaker-name">VANGUARD COMMAND</span>
+              <span class="segma-comm-badge">PRIORITY COMM // ORBITAL AEGIS</span>
+            </div>
+            <div id="segma-dialogue-text" class="segma-dialogue-text">
+              Distress Beacon Active at Planet Segma. Space Station Citadel holding orbit. Fleet armada dropping out of hyperspace now!
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+    }
+
+    this.hudElem = container;
+    this.camLabel = document.getElementById('segma-cam-label');
+    this.shipLabel = document.getElementById('segma-ship-label');
+    this.dialogueText = document.getElementById('segma-dialogue-text');
+    this.speakerName = document.getElementById('segma-speaker-name');
+    this.statusTag = document.getElementById('segma-status-tag');
+    this.flightHint = document.getElementById('segma-flight-hint');
+    this.tacticalDock = document.getElementById('segma-tactical-dock');
+
+    document.getElementById('btn-segma-camera')?.addEventListener('click', () => this.cycleCameraMode());
+    document.getElementById('btn-segma-ship')?.addEventListener('click', () => this.cycleVesselControl());
+    document.getElementById('btn-segma-engage')?.addEventListener('click', () => this.confirmDefensivePositions());
+
+    // Formation preset buttons
+    document.getElementById('btn-formation-aegis')?.addEventListener('click', () => this.applyFormationPreset('AEGIS'));
+    document.getElementById('btn-formation-citadel')?.addEventListener('click', () => this.applyFormationPreset('CITADEL'));
+    document.getElementById('btn-formation-screen')?.addEventListener('click', () => this.applyFormationPreset('SCREEN'));
+
+    // Ship selection buttons in tactical dock
+    document.getElementById('btn-select-ship-player')?.addEventListener('click', () => this.selectTacticalShip('PLAYER'));
+    document.getElementById('btn-select-ship-frigate')?.addEventListener('click', () => this.selectTacticalShip('FRIGATE'));
+    document.getElementById('btn-select-ship-destroyer')?.addEventListener('click', () => this.selectTacticalShip('DESTROYER'));
+
+    // Lock formation button
+    document.getElementById('btn-confirm-formation')?.addEventListener('click', () => this.confirmDefensivePositions());
+
+    // Mouse / Touch interaction for selecting & dragging ships in 3D
+    window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
+    window.addEventListener('pointermove', (e) => this.onPointerMove(e));
+    window.addEventListener('pointerup', () => this.onPointerUp());
+
+    // Keyboard bindings for cinematic
+    window.addEventListener('keydown', (e) => {
+      if (!this.isActive) return;
+      if (e.code === 'KeyC') {
+        e.preventDefault();
+        this.cycleCameraMode();
+      } else if (e.code === 'KeyV') {
+        e.preventDefault();
+        this.cycleVesselControl();
+      } else if (e.code === 'Space' && (this.elapsedTime > 3.0)) {
+        e.preventDefault();
+        this.confirmDefensivePositions();
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        this.endCinematic();
+      }
+    });
+  }
+
+  async start(onCompleteCallback = null, selectedShipClass = 'INTERCEPTOR') {
+    this.isActive = true;
+    this.elapsedTime = 0;
+    this.onCompleteCallback = onCompleteCallback;
+    this.selectedShipClass = selectedShipClass || 'INTERCEPTOR';
+    this.warpTriggered = false;
+    this.warpCompleted = false;
+    this.warpProgress = 0;
+    this.alliedWarpProgress = 0;
+    this.alliedWarpCompleted = false;
+    this.isTacticalMode = false;
+    this.cameraMode = 'DIRECTOR';
+    this.currentVesselIndex = 0;
+
+    document.body.classList.add('cinematic-active');
+    if (this.gameManager.playerShip && this.gameManager.playerShip.mesh) {
+      this.gameManager.playerShip.mesh.visible = false;
+    }
+
+    // Hide tactical formation dock on start
+    if (this.tacticalDock) {
+      this.tacticalDock.classList.add('hidden');
+    }
+
+    // 1. Setup Planet Segma celestial environment
+    this.gameManager.spaceScene.setupPlanetSegma();
+
+    // 2. Clear previous cinematic entities
+    this.scene.add(this.cinematicGroup);
+    while (this.cinematicGroup.children.length > 0) {
+      this.cinematicGroup.remove(this.cinematicGroup.children[0]);
+    }
+    this.cinematicProjectiles = [];
+    this.engineFXList = [];
+    this.alliedPortals = [];
+
+    // 3. Load Fleet Assets
+    await assetManager.loadFleetAssets();
+
+    // 4. Build Allied Armada in orbit around Planet Segma
+    // Station is already present; escort and destroyer will warp in
+    this.buildAlliedArmada();
+
+    // 5. Mount Player's Controllable Vessel (selected airframe)
+    this.mountPlayerVessel(this.selectedShipClass);
+
+    // 6. Register tactical fleet dictionary & selection rings
+    this.registerTacticalFleet();
+
+    // 7. Pre-position Enemy Warp Vessels (hidden initially)
+    this.prepareEnemyInvasionFleet();
+
+    // 8. Show Cinematic HUD
+    if (this.hudElem) {
+      this.hudElem.classList.remove('hidden');
+    }
+
+    // Initial audio greeting: Distress call at Planet Segma
+    if (this.spaceAudio && this.spaceAudio.playRadioSquelch) {
+      this.spaceAudio.playRadioSquelch();
+    }
+    if (this.gameManager.voiceAnnouncer) {
+      this.gameManager.voiceAnnouncer.speak(
+        "Priority Alert! Distress call received from Planet Segma! Space Station Citadel holding orbital perimeter. Allied fleet armada warping in!",
+        true,
+        "COMMAND"
+      );
+    }
+  }
+
+  /**
+   * Builds faction-specific AAA PBR materials
+   */
+  getFactionPBRMaterials(faction = 'ALLIED') {
+    if (this.pbrMaterials[faction]) {
+      return this.pbrMaterials[faction];
+    }
+
+    const envMap = this.scene.environment;
+    const isAllied = faction === 'ALLIED';
+    const themeKey = isAllied ? 'ALLIED_ARMADA' : 'HOSTILE_ARMADA';
+    const pbr = getPBRMaterialSet(themeKey);
+
+    // 1. Primary Hull Armor
+    const hullMat = new THREE.MeshStandardMaterial({
+      map: pbr.map,
+      normalMap: pbr.normalMap,
+      normalScale: isAllied ? new THREE.Vector2(1.5, 1.5) : new THREE.Vector2(1.8, 1.8),
+      roughnessMap: pbr.roughnessMap,
+      emissiveMap: pbr.emissiveMap,
+      color: isAllied ? 0x0f1c32 : 0x0c090e,
+      metalness: isAllied ? 0.94 : 0.92,
+      roughness: isAllied ? 0.26 : 0.30,
+      emissive: isAllied ? 0x00f3ff : 0xff1133,
+      emissiveIntensity: isAllied ? 0.35 : 0.45,
+      envMap: envMap,
+      envMapIntensity: isAllied ? 1.8 : 1.4
+    });
+
+    // 2. Anodized Accent Plating
+    const accentMat = new THREE.MeshStandardMaterial({
+      map: pbr.map,
+      normalMap: pbr.normalMap,
+      normalScale: new THREE.Vector2(1.4, 1.4),
+      roughnessMap: pbr.roughnessMap,
+      color: isAllied ? 0x183b68 : 0xb00c18,
+      metalness: isAllied ? 0.95 : 0.88,
+      roughness: isAllied ? 0.18 : 0.22,
+      envMap: envMap,
+      envMapIntensity: isAllied ? 2.0 : 1.7
+    });
+
+    // 3. High-Intensity Emissive (Avionics / Conduits)
+    const emissiveMat = new THREE.MeshStandardMaterial({
+      color: isAllied ? 0x00f3ff : 0xff1133,
+      emissive: isAllied ? 0x00f3ff : 0xff1133,
+      emissiveIntensity: isAllied ? 5.2 : 5.8,
+      roughness: 0.1,
+      metalness: 0.2,
+      toneMapped: false
+    });
+
+    // 4. Exposed Tungsten Hardpoints & Machinery
+    const machineryMat = new THREE.MeshStandardMaterial({
+      normalMap: pbr.normalMap,
+      normalScale: new THREE.Vector2(1.2, 1.2),
+      color: isAllied ? 0x181e26 : 0x161318,
+      metalness: 0.96,
+      roughness: 0.35,
+      envMap: envMap,
+      envMapIntensity: 1.2
+    });
+
+    // 5. Polarized Cockpit Glass / Visors
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: isAllied ? 0x040e18 : 0x0a0406,
+      emissive: isAllied ? 0x00d0ff : 0xff0044,
+      emissiveIntensity: isAllied ? 0.9 : 1.2,
+      metalness: 0.98,
+      roughness: 0.04,
+      envMap: envMap,
+      envMapIntensity: 2.8
+    });
+
+    const set = { hullMat, accentMat, emissiveMat, machineryMat, glassMat };
+    this.pbrMaterials[faction] = set;
+    return set;
+  }
+
+  /**
+   * Applies UV unwrap and AAA PBR materials to an imported GLTF object hierarchy
+   */
+  applyAAAFactionMaterials(obj, faction = 'ALLIED', repeatScale = 3.0) {
+    if (!obj) return;
+    const mats = this.getFactionPBRMaterials(faction);
+
+    obj.traverse((child) => {
+      if (child.isMesh) {
+        // 1. Generate triplanar UVs and normals
+        applyTriplanarUVs(child.geometry, repeatScale);
+
+        // 2. Assign high-tech PBR material based on component name
+        const childName = (child.name || '').toLowerCase();
+        const matName = (child.material && child.material.name ? child.material.name : '').toLowerCase();
+
+        if (childName.includes('accent') || matName.includes('accent')) {
+          child.material = mats.accentMat;
+        } else if (childName.includes('emissive') || matName.includes('emissive') || childName.includes('glow')) {
+          child.material = mats.emissiveMat;
+        } else if (childName.includes('machinery') || matName.includes('machinery') || childName.includes('gun') || childName.includes('rail')) {
+          child.material = mats.machineryMat;
+        } else if (childName.includes('glass') || matName.includes('glass') || childName.includes('canopy') || childName.includes('cockpit')) {
+          child.material = mats.glassMat;
+        } else {
+          child.material = mats.hullMat;
+        }
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+  }
+
+  /**
+   * Attaches dynamic afterburning engine plumes, shock diamonds, and real-time point lights
+   */
+  attachEngineThrusters(shipGroup, nozzlePositions, faction = 'ALLIED', baseRadius = 1.0, baseLength = 4.0) {
+    const isAllied = faction === 'ALLIED';
+    const flameColorHex = isAllied ? 0x00f3ff : 0xff3300;
+    const coreColorHex = 0xffffff;
+
+    // Outer plasma shroud cone
+    const flameGeo = new THREE.ConeGeometry(baseRadius, baseLength, 12);
+    flameGeo.rotateX(Math.PI / 2); // Base at nozzle, apex pointing backward (+Z)
+
+    const flameMat = new THREE.MeshStandardMaterial({
+      color: flameColorHex,
+      emissive: flameColorHex,
+      emissiveIntensity: isAllied ? 4.5 : 5.5,
+      transparent: true,
+      opacity: 0.92,
+      roughness: 0.0,
+      metalness: 0.0,
+      toneMapped: false,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    // Inner white-hot core cone
+    const coreGeo = new THREE.ConeGeometry(baseRadius * 0.45, baseLength * 0.7, 10);
+    coreGeo.rotateX(Math.PI / 2);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: coreColorHex,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+
+    const flames = [];
+    const shockDiamonds = [];
+    const lights = [];
+
+    nozzlePositions.forEach((pos) => {
+      const nozzleGroup = new THREE.Group();
+      nozzleGroup.position.set(pos.x, pos.y, pos.z);
+
+      // Outer plasma flame
+      const outerFlame = new THREE.Mesh(flameGeo, flameMat);
+      outerFlame.position.set(0, 0, baseLength * 0.5);
+      nozzleGroup.add(outerFlame);
+      flames.push(outerFlame);
+
+      // Inner white-hot core
+      const innerCore = new THREE.Mesh(coreGeo, coreMat);
+      innerCore.position.set(0, 0, baseLength * 0.35);
+      nozzleGroup.add(innerCore);
+      flames.push(innerCore);
+
+      // Mach shock diamond rings
+      for (let d = 0; d < 3; d++) {
+        const ringGeo = new THREE.RingGeometry(baseRadius * 0.15, baseRadius * (0.65 - d * 0.12), 12);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.85,
+          blending: THREE.AdditiveBlending
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(0, 0, baseLength * (0.28 + d * 0.22));
+        nozzleGroup.add(ring);
+        shockDiamonds.push(ring);
+      }
+
+      // Dynamic local point light casting glow on rear hull
+      const pLight = new THREE.PointLight(flameColorHex, isAllied ? 3.0 : 4.5, baseLength * 7.0);
+      pLight.position.set(0, 0, baseLength * 0.3);
+      nozzleGroup.add(pLight);
+      lights.push(pLight);
+
+      shipGroup.add(nozzleGroup);
+    });
+
+    const entry = {
+      group: shipGroup,
+      flames,
+      shockDiamonds,
+      lights,
+      baseLength,
+      faction,
+      isPlayer: false
+    };
+    this.engineFXList.push(entry);
+    return entry;
+  }
+
+  buildAlliedArmada() {
+    // 0. Dedicated Cinematic Key, Rim, and Planet Segma Fill Lights
+    const keyLight = new THREE.DirectionalLight(0xfffaf0, 3.4);
+    keyLight.position.set(80, 55, 45);
+    this.cinematicGroup.add(keyLight);
+
+    const planetRim = new THREE.DirectionalLight(0x00aaff, 2.6);
+    planetRim.position.set(-65, 25, -120);
+    this.cinematicGroup.add(planetRim);
+
+    const hostileWarmRim = new THREE.DirectionalLight(0xff2200, 1.8);
+    hostileWarmRim.position.set(50, -20, -150);
+    this.cinematicGroup.add(hostileWarmRim);
+
+    const ambLight = new THREE.AmbientLight(0x0e1828, 1.4);
+    this.cinematicGroup.add(ambLight);
+
+    // 1. Space Station Citadel (Defending Planet Segma)
+    // NOTE: The Space Station is ALREADY stationed in orbit around Planet Segma (not warping in!)
+    const stationMesh = assetManager.getFleetShipMesh('Vessel_Station_01');
+    const ringMesh = assetManager.getFleetShipMesh('Station_Habitat_Ring');
+
+    if (stationMesh) {
+      this.alliedStation = new THREE.Group();
+      this.alliedStation.add(stationMesh);
+
+      if (ringMesh) {
+        this.stationRing = ringMesh;
+        this.alliedStation.add(ringMesh);
+      }
+
+      this.alliedStation.position.set(-60, 26, -180);
+      this.alliedStation.scale.set(1.3, 1.3, 1.3);
+      this.alliedStation.visible = true;
+      this.applyAAAFactionMaterials(this.alliedStation, 'ALLIED', 4.0);
+      this.cinematicGroup.add(this.alliedStation);
+    }
+
+    // 2. Allied Escort Frigate (Warps in via Hyperspace portal)
+    const escortMesh = assetManager.getFleetShipMesh('Vessel_Frigate_01');
+    if (escortMesh) {
+      this.alliedEscort = escortMesh;
+      this.alliedEscort.position.set(32, 4, -40);
+      this.alliedEscort.rotation.y = 0;
+      this.alliedEscort.scale.set(0.001, 0.001, 0.001);
+      this.alliedEscort.visible = false;
+      this.applyAAAFactionMaterials(this.alliedEscort, 'ALLIED', 3.0);
+
+      // Attach dual afterburners to escort frigate
+      this.attachEngineThrusters(
+        this.alliedEscort,
+        [{ x: -3.2, y: 0, z: 24.0 }, { x: 3.2, y: 0, z: 24.0 }],
+        'ALLIED',
+        1.2,
+        5.5
+      );
+      this.cinematicGroup.add(this.alliedEscort);
+
+      // Escort warp portal
+      const portalFrigate = this.createWarpPortal(new THREE.Vector3(32, 4, -40), 0x00f3ff);
+      portalFrigate.visible = true;
+      portalFrigate.scale.set(1, 1, 1);
+      this.alliedPortals.push({
+        portal: portalFrigate,
+        ship: this.alliedEscort,
+        targetScale: 0.85,
+        startPos: new THREE.Vector3(32, 4, -80),
+        targetPos: new THREE.Vector3(32, 4, -40)
+      });
+    }
+
+    // 3. Allied Heavy Destroyer Aegis (Warps in via Hyperspace portal)
+    const destroyerMesh = assetManager.getFleetShipMesh('Vessel_Destroyer_01');
+    if (destroyerMesh) {
+      this.alliedDestroyer = destroyerMesh;
+      this.alliedDestroyer.position.set(-32, 4, -40);
+      this.alliedDestroyer.rotation.y = 0;
+      this.alliedDestroyer.scale.set(0.001, 0.001, 0.001);
+      this.alliedDestroyer.visible = false;
+      this.applyAAAFactionMaterials(this.alliedDestroyer, 'ALLIED', 4.0);
+
+      // Attach heavy twin direct-fire propulsion afterburners
+      this.attachEngineThrusters(
+        this.alliedDestroyer,
+        [{ x: -6.0, y: 0, z: 42.0 }, { x: 6.0, y: 0, z: 42.0 }],
+        'ALLIED',
+        2.0,
+        9.0
+      );
+      this.cinematicGroup.add(this.alliedDestroyer);
+
+      // Destroyer warp portal
+      const portalDestroyer = this.createWarpPortal(new THREE.Vector3(-32, 4, -40), 0x00f3ff);
+      portalDestroyer.visible = true;
+      portalDestroyer.scale.set(1.2, 1.2, 1.2);
+      this.alliedPortals.push({
+        portal: portalDestroyer,
+        ship: this.alliedDestroyer,
+        targetScale: 0.65,
+        startPos: new THREE.Vector3(-32, 4, -80),
+        targetPos: new THREE.Vector3(-32, 4, -40)
+      });
+    }
+  }
+
+  mountPlayerVessel(vesselType) {
+    if (this.playerMesh) {
+      this.cinematicGroup.remove(this.playerMesh);
+      this.playerMesh = null;
+    }
+
+    // Remove any previous player engine FX from list
+    this.engineFXList = this.engineFXList.filter((e) => !e.isPlayer);
+
+    if (vesselType === 'FRIGATE') {
+      const mesh = assetManager.getFleetShipMesh('Vessel_Frigate_01');
+      if (mesh) {
+        this.playerMesh = mesh;
+        this.playerBaseScale = 0.85;
+        this.playerMesh.scale.set(0.001, 0.001, 0.001);
+        this.applyAAAFactionMaterials(this.playerMesh, 'ALLIED', 3.0);
+
+        const pFX = this.attachEngineThrusters(
+          this.playerMesh,
+          [{ x: -3.2, y: 0, z: 24.0 }, { x: 3.2, y: 0, z: 24.0 }],
+          'ALLIED',
+          1.3,
+          6.0
+        );
+        pFX.isPlayer = true;
+      }
+    } else if (vesselType === 'DESTROYER') {
+      const mesh = assetManager.getFleetShipMesh('Vessel_Destroyer_01');
+      if (mesh) {
+        this.playerMesh = mesh;
+        this.playerBaseScale = 0.65;
+        this.playerMesh.scale.set(0.001, 0.001, 0.001);
+        this.applyAAAFactionMaterials(this.playerMesh, 'ALLIED', 4.0);
+
+        const pFX = this.attachEngineThrusters(
+          this.playerMesh,
+          [{ x: -6.0, y: 0, z: 42.0 }, { x: 6.0, y: 0, z: 42.0 }],
+          'ALLIED',
+          2.0,
+          9.0
+        );
+        pFX.isPlayer = true;
+      }
+    }
+
+    // Default fighter / interceptor
+    if (!this.playerMesh) {
+      const shipClassKey = ['INTERCEPTOR', 'STRIKE_FIGHTER', 'HEAVY_ASSAULT', 'STEALTH_RECON'].includes(vesselType)
+        ? vesselType
+        : 'INTERCEPTOR';
+
+      this.playerMesh = assetManager.createProceduralShipModel(shipClassKey);
+      this.playerBaseScale = 2.0;
+      this.playerMesh.scale.set(0.001, 0.001, 0.001);
+      this.applyAAAFactionMaterials(this.playerMesh, 'ALLIED', 2.0);
+
+      const pFX = this.attachEngineThrusters(
+        this.playerMesh,
+        [{ x: -0.6, y: -0.06, z: 2.1 }, { x: 0.6, y: -0.06, z: 2.1 }],
+        'ALLIED',
+        0.35,
+        2.2
+      );
+      pFX.isPlayer = true;
+    }
+
+    this.playerPos.set(0, 4, -20);
+    this.playerMesh.position.set(0, 4, -60);
+    this.playerMesh.visible = false;
+    this.cinematicGroup.add(this.playerMesh);
+
+    // Player Flagship warp portal
+    const portalPlayer = this.createWarpPortal(new THREE.Vector3(0, 4, -20), 0x00f3ff);
+    portalPlayer.visible = true;
+    portalPlayer.scale.set(0.9, 0.9, 0.9);
+    this.alliedPortals.push({
+      portal: portalPlayer,
+      ship: this.playerMesh,
+      targetScale: this.playerBaseScale,
+      startPos: new THREE.Vector3(0, 4, -60),
+      targetPos: new THREE.Vector3(0, 4, -20)
+    });
+
+    if (this.shipLabel) {
+      this.shipLabel.textContent = `VESSEL: ${vesselType}`;
+    }
+  }
+
+  registerTacticalFleet() {
+    this.tacticalShips = {
+      'PLAYER': {
+        key: 'PLAYER',
+        mesh: this.playerMesh,
+        targetPos: new THREE.Vector3(0, 4, -20),
+        label: 'FLAGSHIP (YOU)',
+        baseScale: this.playerBaseScale
+      },
+      'FRIGATE': {
+        key: 'FRIGATE',
+        mesh: this.alliedEscort,
+        targetPos: new THREE.Vector3(32, 4, -40),
+        label: 'ESCORT FRIGATE',
+        baseScale: 0.85
+      },
+      'DESTROYER': {
+        key: 'DESTROYER',
+        mesh: this.alliedDestroyer,
+        targetPos: new THREE.Vector3(-32, 4, -40),
+        label: 'DESTROYER AEGIS',
+        baseScale: 0.65
+      }
+    };
+
+    this.createSelectionRings();
+  }
+
+  createSelectionRings() {
+    // Remove existing selection rings
+    Object.values(this.selectionRings).forEach(ring => {
+      if (ring && ring.parent) ring.parent.remove(ring);
+    });
+    this.selectionRings = {};
+
+    Object.keys(this.tacticalShips).forEach(key => {
+      const shipData = this.tacticalShips[key];
+      if (!shipData || !shipData.mesh) return;
+
+      const group = new THREE.Group();
+
+      // Outer glowing ring
+      const ringGeo = new THREE.RingGeometry(8, 8.8, 36);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: key === this.selectedShipKey ? 0x00f3ff : 0x0077aa,
+        transparent: true,
+        opacity: key === this.selectedShipKey ? 0.9 : 0.45,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      group.add(ring);
+
+      // Inner dashed target reticle
+      const innerGeo = new THREE.RingGeometry(5.2, 5.8, 16);
+      innerGeo.rotateX(-Math.PI / 2);
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+      const inner = new THREE.Mesh(innerGeo, innerMat);
+      group.add(inner);
+
+      // Vertical holographic beacon cylinder
+      const beaconGeo = new THREE.CylinderGeometry(0.2, 0.2, 12, 8);
+      const beaconMat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending
+      });
+      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+      beacon.position.y = 6;
+      group.add(beacon);
+
+      group.position.copy(shipData.targetPos);
+      group.position.y = 0.5; // On defense plane
+      group.visible = false;
+      this.cinematicGroup.add(group);
+
+      this.selectionRings[key] = group;
+    });
+  }
+
+  enterTacticalPlacementMode() {
+    this.isTacticalMode = true;
+    if (this.tacticalDock) {
+      this.tacticalDock.classList.remove('hidden');
+    }
+
+    // Show selection rings
+    Object.values(this.selectionRings).forEach(ring => {
+      ring.visible = true;
+    });
+
+    if (this.flightHint) {
+      this.flightHint.innerHTML = 'TACTICAL PLACEMENT ACTIVE // DRAG OR SELECT WARSHIPS TO ASSIGN DEFENSIVE SECTOR PATROLS';
+    }
+
+    if (this.statusTag) {
+      this.statusTag.textContent = 'SECTOR SEGMA // TACTICAL FLEET FORMATION';
+    }
+
+    if (this.speakerName) {
+      this.speakerName.textContent = 'COMMAND ADMIRALTY';
+    }
+
+    if (this.dialogueText) {
+      this.dialogueText.textContent = 'Allied armada on station! Commander, select fleet defense formation or reposition your warships around Planet Segma.';
+    }
+
+    if (this.spaceAudio && this.spaceAudio.playTacticalNotification) {
+      this.spaceAudio.playTacticalNotification();
+    }
+
+    if (this.gameManager.voiceAnnouncer) {
+      this.gameManager.voiceAnnouncer.speak(
+        "Allied armada on station! Commander, assign defensive formation around Planet Segma.",
+        true,
+        "COMMAND"
+      );
+    }
+  }
+
+  applyFormationPreset(formationKey) {
+    this.currentFormation = formationKey;
+
+    // Update preset UI button states
+    ['aegis', 'citadel', 'screen'].forEach(k => {
+      const btn = document.getElementById(`btn-formation-${k}`);
+      if (btn) {
+        if (k === formationKey.toLowerCase()) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+
+    if (formationKey === 'AEGIS') {
+      // Classic V-Wedge Escort Defense
+      if (this.tacticalShips['PLAYER']) this.tacticalShips['PLAYER'].targetPos.set(0, 4, -20);
+      if (this.tacticalShips['FRIGATE']) this.tacticalShips['FRIGATE'].targetPos.set(34, 4, -45);
+      if (this.tacticalShips['DESTROYER']) this.tacticalShips['DESTROYER'].targetPos.set(-34, 4, -45);
+    } else if (formationKey === 'CITADEL') {
+      // Defensive perimeter encircling Space Station Citadel at (-60, 26, -180)
+      if (this.tacticalShips['PLAYER']) this.tacticalShips['PLAYER'].targetPos.set(-40, 16, -135);
+      if (this.tacticalShips['FRIGATE']) this.tacticalShips['FRIGATE'].targetPos.set(-20, 10, -150);
+      if (this.tacticalShips['DESTROYER']) this.tacticalShips['DESTROYER'].targetPos.set(-80, 12, -145);
+    } else if (formationKey === 'SCREEN') {
+      // Broad lateral flank barrier across the planetary approach
+      if (this.tacticalShips['PLAYER']) this.tacticalShips['PLAYER'].targetPos.set(0, 4, -30);
+      if (this.tacticalShips['FRIGATE']) this.tacticalShips['FRIGATE'].targetPos.set(50, 4, -30);
+      if (this.tacticalShips['DESTROYER']) this.tacticalShips['DESTROYER'].targetPos.set(-50, 4, -30);
+    }
+
+    // Play feedback chime
+    if (this.spaceAudio && this.spaceAudio.playTacticalNotification) {
+      this.spaceAudio.playTacticalNotification();
+    }
+  }
+
+  selectTacticalShip(shipKey) {
+    this.selectedShipKey = shipKey;
+
+    // Update tactical ship selector buttons
+    ['player', 'frigate', 'destroyer'].forEach(k => {
+      const btn = document.getElementById(`btn-select-ship-${k}`);
+      if (btn) {
+        if (k === shipKey.toLowerCase()) btn.classList.add('active');
+        else btn.classList.remove('active');
+      }
+    });
+
+    // Update 3D selection rings highlights
+    Object.keys(this.selectionRings).forEach(k => {
+      const ringGroup = this.selectionRings[k];
+      if (!ringGroup) return;
+      const isSelected = k === this.selectedShipKey;
+      ringGroup.traverse(child => {
+        if (child.isMesh && child.material) {
+          child.material.color.setHex(isSelected ? 0x00f3ff : 0x0077aa);
+          child.material.opacity = isSelected ? 0.95 : 0.45;
+        }
+      });
+    });
+  }
+
+  confirmDefensivePositions() {
+    if (!this.isActive) return;
+
+    // If tactical dock is active, confirm formation and trigger enemy invasion
+    if (this.tacticalDock && !this.tacticalDock.classList.contains('hidden')) {
+      this.tacticalDock.classList.add('hidden');
+    }
+
+    // Hide selection rings
+    Object.values(this.selectionRings).forEach(ring => {
+      ring.visible = false;
+    });
+
+    if (this.spaceAudio && this.spaceAudio.playBossWarning) {
+      this.spaceAudio.playBossWarning();
+    }
+
+    if (this.gameManager.voiceAnnouncer) {
+      this.gameManager.voiceAnnouncer.speak(
+        "Defensive positions locked! Subspace disturbance detected! All wings battle stations!",
+        true,
+        "COMMAND"
+      );
+    }
+
+    if (this.dialogueText) {
+      this.dialogueText.textContent = "Defensive positions locked! Massive enemy warp signatures emerging on long-range sensors!";
+    }
+
+    // If enemy hasn't ported in yet, advance timeline to trigger enemy warp immediately
+    if (!this.warpTriggered) {
+      this.elapsedTime = 11.8;
+    } else {
+      // Enemy already here: end cinematic and start battle
+      this.endCinematic();
+    }
+  }
+
+  updatePointerCoords(e) {
+    const rect = this.gameManager.spaceScene.renderer.domElement.getBoundingClientRect();
+    this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  onPointerDown(e) {
+    if (!this.isActive || !this.isTacticalMode) return;
+    // Don't drag if clicking UI elements
+    if (e.target.closest('#segma-tactical-dock') || e.target.closest('.segma-telemetry-right')) return;
+
+    this.updatePointerCoords(e);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    // Check if clicked directly on any tactical ship
+    const testObjects = [];
+    Object.keys(this.tacticalShips).forEach(k => {
+      const s = this.tacticalShips[k];
+      if (s && s.mesh && s.mesh.visible) {
+        testObjects.push({ key: k, obj: s.mesh });
+      }
+    });
+
+    const meshes = testObjects.map(t => t.obj);
+    const intersects = this.raycaster.intersectObjects(meshes, true);
+
+    if (intersects.length > 0) {
+      let hitMesh = intersects[0].object;
+      let matchedKey = null;
+      testObjects.forEach(t => {
+        t.obj.traverse(child => {
+          if (child === hitMesh) matchedKey = t.key;
+        });
+      });
+
+      if (matchedKey) {
+        this.selectTacticalShip(matchedKey);
+        this.isDraggingShip = true;
+        return;
+      }
+    }
+
+    // Check intersection with defense horizontal plane
+    const planeHit = new THREE.Vector3();
+    if (this.raycaster.ray.intersectPlane(this.defensePlane, planeHit)) {
+      // Find closest tactical ship within 22 units
+      let closestKey = null;
+      let minDist = 22;
+      Object.keys(this.tacticalShips).forEach(k => {
+        const s = this.tacticalShips[k];
+        if (s) {
+          const d = s.targetPos.distanceTo(planeHit);
+          if (d < minDist) {
+            minDist = d;
+            closestKey = k;
+          }
+        }
+      });
+
+      if (closestKey) {
+        this.selectTacticalShip(closestKey);
+        this.isDraggingShip = true;
+      }
+    }
+  }
+
+  onPointerMove(e) {
+    if (!this.isActive || !this.isTacticalMode || !this.isDraggingShip) return;
+
+    this.updatePointerCoords(e);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+
+    const hitPoint = new THREE.Vector3();
+    if (this.raycaster.ray.intersectPlane(this.defensePlane, hitPoint)) {
+      const selected = this.tacticalShips[this.selectedShipKey];
+      if (selected) {
+        // Clamp to orbital operational boundaries
+        selected.targetPos.x = THREE.MathUtils.clamp(hitPoint.x, -70, 70);
+        selected.targetPos.z = THREE.MathUtils.clamp(hitPoint.z, -150, 10);
+      }
+    }
+  }
+
+  onPointerUp() {
+    this.isDraggingShip = false;
+  }
+
+  prepareEnemyInvasionFleet() {
+    // 1. Enemy Space Carrier (Catamaran Flight Deck)
+    const carrierMesh = assetManager.getFleetShipMesh('Vessel_Carrier_01');
+    if (carrierMesh) {
+      this.enemyCarrier = carrierMesh;
+      this.enemyCarrier.position.set(55, 18, -150);
+      this.enemyCarrier.scale.set(0.001, 0.001, 0.001);
+      this.enemyCarrier.visible = false;
+      this.applyAAAFactionMaterials(this.enemyCarrier, 'HOSTILE', 4.5);
+
+      // Attach 4 heavy fusion afterburners to carrier catamaran hulls
+      this.attachEngineThrusters(
+        this.enemyCarrier,
+        [
+          { x: -19.0, y: 0, z: 54.0 },
+          { x: -15.0, y: 0, z: 54.0 },
+          { x: 15.0, y: 0, z: 54.0 },
+          { x: 19.0, y: 0, z: 54.0 }
+        ],
+        'HOSTILE',
+        2.4,
+        12.0
+      );
+      this.cinematicGroup.add(this.enemyCarrier);
+    }
+
+    // 2. Enemy Heavy Battleship (Direct Fire Flagship)
+    const bshipMesh = assetManager.getFleetShipMesh('Vessel_Destroyer_01');
+    if (bshipMesh) {
+      this.enemyBattleship = bshipMesh;
+      this.enemyBattleship.position.set(-40, -4, -140);
+      this.enemyBattleship.scale.set(0.001, 0.001, 0.001);
+      this.enemyBattleship.visible = false;
+      this.applyAAAFactionMaterials(this.enemyBattleship, 'HOSTILE', 4.0);
+
+      // Attach twin heavy fusion thrusters
+      this.attachEngineThrusters(
+        this.enemyBattleship,
+        [{ x: -6.0, y: 0, z: 42.0 }, { x: 6.0, y: 0, z: 42.0 }],
+        'HOSTILE',
+        2.2,
+        10.0
+      );
+      this.cinematicGroup.add(this.enemyBattleship);
+    }
+
+    // 3. Hyperspace Rupture Portals
+    this.warpPortalCarrier = this.createWarpPortal(new THREE.Vector3(55, 18, -150), 0xff1133);
+    this.warpPortalBattleship = this.createWarpPortal(new THREE.Vector3(-40, -4, -140), 0xff1133);
+  }
+
+  createWarpPortal(pos, colorHex) {
+    const group = new THREE.Group();
+    group.position.copy(pos);
+
+    // Inner gravitational singularity sphere
+    const coreGeo = new THREE.SphereGeometry(18, 24, 24);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x050510, side: THREE.DoubleSide });
+    group.add(new THREE.Mesh(coreGeo, coreMat));
+
+    // Outer swirling accretion warp rings
+    for (let r = 0; r < 3; r++) {
+      const ringGeo = new THREE.TorusGeometry(26 + r * 8, 1.8, 8, 36);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI * 0.5;
+      ring.rotation.y = (r * Math.PI) / 3;
+      group.add(ring);
+    }
+
+    // Dynamic portal illumination light
+    const portalLight = new THREE.PointLight(colorHex, 5.0, 220);
+    group.add(portalLight);
+
+    group.scale.set(0.001, 0.001, 0.001);
+    group.visible = false;
+    this.cinematicGroup.add(group);
+    return group;
+  }
+
+  cycleCameraMode() {
+    this.cameraModeIndex = (this.cameraModeIndex + 1) % this.cameraModes.length;
+    this.cameraMode = this.cameraModes[this.cameraModeIndex];
+    if (this.camLabel) {
+      this.camLabel.textContent = `CAM: ${this.cameraMode}`;
+    }
+  }
+
+  cycleVesselControl() {
+    this.currentVesselIndex = (this.currentVesselIndex + 1) % this.playerVesselOptions.length;
+    const vessel = this.playerVesselOptions[this.currentVesselIndex];
+    this.mountPlayerVessel(vessel);
+  }
+
+  update(dt) {
+    if (!this.isActive) return;
+    this.elapsedTime += dt;
+
+    // 1. Rotate Station Centrifugal Ring
+    if (this.stationRing) {
+      this.stationRing.rotation.z += dt * 0.35;
+    }
+
+    // 2. Natural Space Station Antigravity Float
+    if (this.alliedStation) {
+      this.alliedStation.position.y = 26 + Math.sin(this.elapsedTime * 0.8) * 1.2;
+    }
+
+    // 3. Update Allied Armada Warp-In Arrival (0s - 4.5s)
+    if (!this.alliedWarpCompleted) {
+      this.updateAlliedWarpEmergence(dt);
+    } else {
+      // Allied ships smoothly lerp to assigned tactical target positions
+      Object.keys(this.tacticalShips).forEach(key => {
+        const s = this.tacticalShips[key];
+        if (s && s.mesh) {
+          s.mesh.position.lerp(s.targetPos, dt * 4.0);
+        }
+      });
+    }
+
+    // 4. Update Selection Rings on Defense Plane
+    if (this.isTacticalMode) {
+      Object.keys(this.selectionRings).forEach(key => {
+        const ring = this.selectionRings[key];
+        const ship = this.tacticalShips[key];
+        if (ring && ship && ship.mesh) {
+          ring.position.x = ship.mesh.position.x;
+          ring.position.z = ship.mesh.position.z;
+          ring.rotation.y += dt * 0.6;
+        }
+      });
+    }
+
+    // 5. Update Player Ship Flight & Controls (if not actively dragging in tactical mode)
+    if (!this.isDraggingShip) {
+      this.updatePlayerFlight(dt);
+    }
+
+    // 6. Update Engine Plumes & Lighting
+    this.updateEngineFX(dt);
+
+    // 7. Update Cinematic Projectiles
+    this.updateProjectiles(dt);
+
+    // 8. Timeline Event Handling (Hostile warning & invasion warp)
+    this.handleTimelineEvents(dt);
+
+    // 9. Update Enemy Warp Portals & Ship Emergence
+    if (this.warpTriggered && !this.warpCompleted) {
+      this.updateWarpArrival(dt);
+    }
+
+    // 10. Update Camera Positioning
+    this.updateCamera(dt);
+  }
+
+  updateAlliedWarpEmergence(dt) {
+    this.alliedWarpProgress += dt * 0.35;
+    const p = THREE.MathUtils.clamp(this.alliedWarpProgress, 0, 1);
+
+    this.alliedPortals.forEach(entry => {
+      const portal = entry.portal;
+      const ship = entry.ship;
+
+      if (portal) {
+        portal.rotation.z += dt * 3.5;
+        // Vortex scale flares up then dissipates
+        const scaleFactor = Math.sin(p * Math.PI) * 1.8;
+        portal.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      }
+
+      if (ship) {
+        ship.visible = true;
+        // Emerge forward out of portal
+        const curScale = THREE.MathUtils.lerp(0.001, entry.targetScale, p);
+        ship.scale.set(curScale, curScale, curScale);
+        ship.position.lerpVectors(entry.startPos, entry.targetPos, p);
+      }
+    });
+
+    if (p >= 1.0) {
+      this.alliedWarpCompleted = true;
+      this.alliedPortals.forEach(entry => {
+        if (entry.portal) entry.portal.visible = false;
+      });
+      // Enter defensive placement mode once fleet has fully arrived
+      this.enterTacticalPlacementMode();
+    }
+  }
+
+  updateEngineFX(dt) {
+    const isBoost = this.controlsManager && typeof this.controlsManager.isBoosting === 'function'
+      ? this.controlsManager.isBoosting()
+      : !!(this.controlsManager && (this.controlsManager.keys?.['ShiftLeft'] || this.controlsManager.keys?.['ShiftRight']));
+
+    const flicker = Math.sin(this.elapsedTime * 35.0) * 0.08;
+
+    this.engineFXList.forEach((fx) => {
+      const isPlayer = fx.isPlayer;
+      const boostMult = isPlayer && isBoost ? 1.8 : 1.0;
+      const lengthScale = boostMult + flicker;
+
+      fx.flames.forEach((flame) => {
+        flame.scale.set(1.0 + (boostMult - 1.0) * 0.25, 1.0 + (boostMult - 1.0) * 0.25, lengthScale);
+      });
+
+      fx.shockDiamonds.forEach((dia, idx) => {
+        dia.scale.setScalar(1.0 + Math.sin(this.elapsedTime * 18.0 + idx) * 0.15 * boostMult);
+      });
+
+      fx.lights.forEach((light) => {
+        light.intensity = (fx.faction === 'ALLIED' ? 3.0 : 4.5) * (isPlayer && isBoost ? 1.7 : 1.0) + flicker * 2.0;
+      });
+    });
+  }
+
+  updatePlayerFlight(dt) {
+    if (!this.playerMesh || !this.alliedWarpCompleted) return;
+
+    // Read input from controls manager
+    const input = this.controlsManager ? this.controlsManager.getInputVector() : { x: 0, y: 0, z: 0 };
+    const isBoost = this.controlsManager && typeof this.controlsManager.isBoosting === 'function'
+      ? this.controlsManager.isBoosting()
+      : !!(this.controlsManager && (this.controlsManager.keys?.['ShiftLeft'] || this.controlsManager.keys?.['ShiftRight']));
+    const speed = (isBoost ? 45.0 : 25.0) * dt;
+
+    // Pitch & Yaw & Roll
+    const targetRoll = -input.x * 0.6;
+    const targetPitch = input.y * 0.35;
+    this.playerRot.z = THREE.MathUtils.lerp(this.playerRot.z, targetRoll, dt * 6.0);
+    this.playerRot.x = THREE.MathUtils.lerp(this.playerRot.x, targetPitch, dt * 6.0);
+    this.playerRot.y -= input.x * dt * 0.8;
+
+    this.playerMesh.rotation.copy(this.playerRot);
+
+    // Movement vectors
+    const forward = new THREE.Vector3(0, 0, -1).applyEuler(this.playerRot);
+    const right = new THREE.Vector3(1, 0, 0).applyEuler(this.playerRot);
+    const up = new THREE.Vector3(0, 1, 0).applyEuler(this.playerRot);
+
+    if (input.x !== 0 || input.y !== 0 || input.z !== 0) {
+      this.playerPos.addScaledVector(right, input.x * speed * 0.8);
+      this.playerPos.addScaledVector(up, input.y * speed * 0.8);
+      if (input.z !== 0) {
+        this.playerPos.addScaledVector(forward, -input.z * speed);
+      }
+
+      // Station-keeping bounds around Planet Segma defense corridor
+      this.playerPos.x = THREE.MathUtils.clamp(this.playerPos.x, -60, 60);
+      this.playerPos.y = THREE.MathUtils.clamp(this.playerPos.y, -18, 30);
+      this.playerPos.z = THREE.MathUtils.clamp(this.playerPos.z, -80, 10);
+
+      // Keep tactical targetPos in sync
+      if (this.tacticalShips['PLAYER']) {
+        this.tacticalShips['PLAYER'].targetPos.copy(this.playerPos);
+      }
+    }
+
+    // Weapon firing
+    this.fireTimer -= dt;
+    const isFiring = this.controlsManager && typeof this.controlsManager.isFiring === 'function'
+      ? this.controlsManager.isFiring()
+      : !!(this.controlsManager && this.controlsManager.isFiringLaser);
+
+    if (isFiring && this.fireTimer <= 0) {
+      this.firePlayerWeapon();
+      this.fireTimer = 0.14;
+    }
+  }
+
+  firePlayerWeapon() {
+    if (this.spaceAudio && this.spaceAudio.playLaserSound) {
+      this.spaceAudio.playLaserSound();
+    }
+
+    const currentVessel = this.playerVesselOptions[this.currentVesselIndex];
+    let muzzleSpread = 3.2;
+    let forwardOffset = -18.0;
+
+    if (currentVessel === 'DESTROYER') {
+      muzzleSpread = 5.5;
+      forwardOffset = -30.0;
+    } else if (currentVessel === 'INTERCEPTOR') {
+      muzzleSpread = 1.2;
+      forwardOffset = -2.5;
+    }
+
+    // Spawn twin high-speed plasma bolts
+    [-muzzleSpread, muzzleSpread].forEach((mx) => {
+      const localPos = new THREE.Vector3(mx, 0, forwardOffset).applyEuler(this.playerRot).add(this.playerPos);
+
+      // Plasma bolt geometry & material
+      const boltGeo = new THREE.CylinderGeometry(0.14, 0.14, 4.2, 8);
+      boltGeo.rotateX(Math.PI / 2);
+      const boltMat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending
+      });
+      const bolt = new THREE.Mesh(boltGeo, boltMat);
+      bolt.position.copy(localPos);
+      bolt.rotation.copy(this.playerRot);
+      this.cinematicGroup.add(bolt);
+
+      const forward = new THREE.Vector3(0, 0, -1).applyEuler(this.playerRot);
+      this.cinematicProjectiles.push({
+        mesh: bolt,
+        velocity: forward.multiplyScalar(240.0),
+        life: 1.8
+      });
+
+      // Muzzle sparks
+      if (this.particleManager) {
+        this.particleManager.createHitSparks(localPos, 0x00f3ff);
+      }
+    });
+
+    // Recoil kick on ship pitch
+    this.playerRot.x -= 0.02;
+  }
+
+  updateProjectiles(dt) {
+    for (let i = this.cinematicProjectiles.length - 1; i >= 0; i--) {
+      const p = this.cinematicProjectiles[i];
+      p.mesh.position.addScaledVector(p.velocity, dt);
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.cinematicGroup.remove(p.mesh);
+        this.cinematicProjectiles.splice(i, 1);
+      }
+    }
+  }
+
+  handleTimelineEvents(dt) {
+    const t = this.elapsedTime;
+
+    // Act II: Gravitational Singularity Warning Alert (at 8.0s)
+    if (t >= 8.0 && t < 12.0 && !this.warpTriggered) {
+      if (this.statusTag) {
+        this.statusTag.textContent = 'PRIORITY ALERT // GRAVITATIONAL SINGULARITY DETECTED';
+        this.statusTag.style.color = '#ff1133';
+      }
+      if (this.speakerName) {
+        this.speakerName.textContent = 'AEGIS TACTICAL AI';
+      }
+      if (this.dialogueText && this.dialogueText.textContent.indexOf('Cataclysmic') === -1) {
+        this.dialogueText.textContent =
+          'WARNING: Cataclysmic subspace displacement detected! Massive warp ruptures forming in Segma corridor!';
+        if (this.spaceAudio && this.spaceAudio.playBossWarning) {
+          this.spaceAudio.playBossWarning();
+        }
+        if (this.gameManager.voiceAnnouncer) {
+          this.gameManager.voiceAnnouncer.speak(
+            "WARNING: Cataclysmic subspace displacement detected! Massive warp ruptures forming in Segma corridor!",
+            true,
+            "AVIONICS"
+          );
+        }
+      }
+    }
+
+    // Act III: Trigger Hyperspace Warp-In (at 12.0s)
+    if (t >= 12.0 && !this.warpTriggered) {
+      this.warpTriggered = true;
+      if (this.warpPortalCarrier) this.warpPortalCarrier.visible = true;
+      if (this.warpPortalBattleship) this.warpPortalBattleship.visible = true;
+
+      if (this.speakerName) this.speakerName.textContent = 'AWACS OVERLORD';
+      if (this.statusTag) this.statusTag.textContent = 'WARP SIGNATURE CONFIRMED // HOSTILE INVASION ARMADA';
+      if (this.dialogueText) {
+        this.dialogueText.textContent =
+          'INVASION FLEET DETECTED! Space Carrier and Heavy Battleship have ported into Segma space! All stations to battle stations!';
+      }
+      if (this.spaceAudio && this.spaceAudio.playPlanetImpact) {
+        this.spaceAudio.playPlanetImpact();
+      }
+      if (this.gameManager.voiceAnnouncer) {
+        this.gameManager.voiceAnnouncer.speak(
+          "INVASION FLEET DETECTED! Space Carrier and Heavy Battleship have ported into Segma space! All wings weapons free!",
+          true,
+          "COMMAND"
+        );
+      }
+    }
+
+    // Act IV: Drone Wave Deployment (at 18.0s)
+    if (t >= 18.0 && this.deployedDrones.length === 0) {
+      this.spawnCarrierDroneWave();
+      if (this.flightHint) {
+        this.flightHint.innerHTML = 'HOSTILES IN BOUND // PRESS <strong style="color:#00f3ff;">[SPACE]</strong> TO ENGAGE IN COMBAT!';
+      }
+    }
+  }
+
+  updateWarpArrival(dt) {
+    this.warpProgress += dt * 0.45;
+    const p = THREE.MathUtils.clamp(this.warpProgress, 0, 1);
+
+    // Spin warp vortex rings
+    if (this.warpPortalCarrier && this.warpPortalCarrier.visible) {
+      this.warpPortalCarrier.rotation.z += dt * 4.0;
+      const ringScale = Math.sin(p * Math.PI) * 2.2;
+      this.warpPortalCarrier.scale.set(ringScale, ringScale, ringScale);
+    }
+    if (this.warpPortalBattleship && this.warpPortalBattleship.visible) {
+      this.warpPortalBattleship.rotation.z -= dt * 3.5;
+      const ringScale = Math.sin(p * Math.PI) * 2.2;
+      this.warpPortalBattleship.scale.set(ringScale, ringScale, ringScale);
+    }
+
+    // Materialize Carrier and Battleship from portal
+    if (p > 0.25) {
+      if (this.enemyCarrier) {
+        this.enemyCarrier.visible = true;
+        const s = THREE.MathUtils.lerp(0.001, 1.0, (p - 0.25) / 0.75);
+        this.enemyCarrier.scale.set(s, s, s);
+        this.enemyCarrier.position.z = -180 + (p - 0.25) * 45;
+      }
+      if (this.enemyBattleship) {
+        this.enemyBattleship.visible = true;
+        const s = THREE.MathUtils.lerp(0.001, 0.85, (p - 0.25) / 0.75);
+        this.enemyBattleship.scale.set(s, s, s);
+        this.enemyBattleship.position.z = -170 + (p - 0.25) * 55;
+      }
+    }
+
+    if (p >= 1.0) {
+      this.warpCompleted = true;
+      if (this.warpPortalCarrier) this.warpPortalCarrier.visible = false;
+      if (this.warpPortalBattleship) this.warpPortalBattleship.visible = false;
+    }
+  }
+
+  spawnCarrierDroneWave() {
+    const carrierPos = this.enemyCarrier ? this.enemyCarrier.position : new THREE.Vector3(70, 20, -140);
+    for (let i = 0; i < 4; i++) {
+      const droneMesh = assetManager.createProceduralShipModel('STEALTH');
+      droneMesh.scale.set(0.8, 0.8, 0.8);
+      droneMesh.position.set(carrierPos.x + (i % 2 === 0 ? -18 : 18), carrierPos.y, carrierPos.z + 10);
+      this.applyAAAFactionMaterials(droneMesh, 'HOSTILE', 2.0);
+      this.cinematicGroup.add(droneMesh);
+      this.deployedDrones.push({
+        mesh: droneMesh,
+        speed: 35.0 + i * 5,
+        offset: i
+      });
+    }
+  }
+
+  updateCamera(dt) {
+    if (!this.playerMesh) return;
+
+    const currentVessel = this.playerVesselOptions[this.currentVesselIndex];
+
+    if (this.cameraMode === 'DIRECTOR') {
+      // Sweeping cinematic orbit camera framing Planet Segma and armada
+      const angle = this.elapsedTime * 0.15;
+      const camX = this.playerPos.x + Math.sin(angle) * 38.0;
+      const camY = this.playerPos.y + 16.0 + Math.sin(this.elapsedTime * 0.25) * 3.0;
+      const camZ = this.playerPos.z + 58.0 + Math.cos(angle) * 20.0;
+      this.camTargetPos.set(camX, camY, camZ);
+      this.camLookAt.set(
+        this.playerPos.x * 0.4 - 10.0,
+        this.playerPos.y * 0.4 + 6.0,
+        this.playerPos.z - 75.0
+      );
+    } else if (this.cameraMode === 'CHASE') {
+      // Dynamic 3rd person chase camera tailored to capital vessel dimensions
+      let chaseOffset = new THREE.Vector3(0, 9.5, 42.0);
+      let lookOffset = new THREE.Vector3(0, 2.0, -80.0);
+
+      if (currentVessel === 'DESTROYER') {
+        chaseOffset.set(0, 14.0, 58.0);
+        lookOffset.set(0, 4.0, -90.0);
+      } else if (currentVessel === 'INTERCEPTOR') {
+        chaseOffset.set(0, 3.5, 14.0);
+        lookOffset.set(0, 0.5, -40.0);
+      }
+
+      this.camTargetPos.copy(this.playerPos).add(chaseOffset.applyEuler(this.playerRot));
+      this.camLookAt.copy(this.playerPos).add(lookOffset.applyEuler(this.playerRot));
+    } else if (this.cameraMode === 'COCKPIT') {
+      // 1st-person forward cockpit bridge perspective
+      let cockpitOffset = new THREE.Vector3(0, 2.4, -14.0);
+      let lookOffset = new THREE.Vector3(0, 2.0, -140.0);
+
+      if (currentVessel === 'DESTROYER') {
+        cockpitOffset.set(0, 5.2, -26.0);
+        lookOffset.set(0, 4.0, -160.0);
+      } else if (currentVessel === 'INTERCEPTOR') {
+        cockpitOffset.set(0, 0.5, -0.6);
+        lookOffset.set(0, 0.2, -60.0);
+      }
+
+      this.camTargetPos.copy(this.playerPos).add(cockpitOffset.applyEuler(this.playerRot));
+      this.camLookAt.copy(this.playerPos).add(lookOffset.applyEuler(this.playerRot));
+    }
+
+    this.camera.position.lerp(this.camTargetPos, dt * 4.5);
+    this.camera.lookAt(this.camLookAt);
+  }
+
+  endCinematic() {
+    if (!this.isActive) return;
+    this.isActive = false;
+
+    document.body.classList.remove('cinematic-active');
+    if (this.gameManager.playerShip) {
+      if (this.gameManager.playerShip.mesh) this.gameManager.playerShip.mesh.visible = true;
+      if (this.gameManager.playerShip.meshGroup) this.gameManager.playerShip.meshGroup.visible = true;
+    }
+
+    // Restore gameplay fog density
+    if (this.gameManager.spaceScene && this.gameManager.spaceScene.scene && this.gameManager.spaceScene.scene.fog) {
+      this.gameManager.spaceScene.scene.fog.density = 0.003;
+    }
+
+    // Clean up cinematic entities and projectiles
+    this.scene.remove(this.cinematicGroup);
+    this.cinematicProjectiles = [];
+    this.engineFXList = [];
+    this.alliedPortals = [];
+
+    // Hide Cinematic HUD
+    if (this.hudElem) {
+      this.hudElem.classList.add('hidden');
+    }
+
+    // Trigger completion callback to start gameplay
+    if (this.onCompleteCallback) {
+      const cb = this.onCompleteCallback;
+      this.onCompleteCallback = null;
+      cb();
+    }
+  }
+}

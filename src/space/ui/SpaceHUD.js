@@ -1,6 +1,9 @@
+import { CinematicManager } from './CinematicManager.js';
+
 export class SpaceHUD {
   constructor(gameManager) {
     this.gameManager = gameManager;
+    this.cinematicManager = new CinematicManager(this.gameManager, this);
 
     this.cacheElements();
     this.bindEvents();
@@ -45,6 +48,7 @@ export class SpaceHUD {
     this.btnStartSpaceText = document.getElementById('btn-start-space-text');
     this.btnResumeSave = document.getElementById('btn-resume-save');
     this.btnResumeSaveText = document.getElementById('btn-resume-save-text');
+    this.btnStartPrologue = document.getElementById('btn-start-prologue');
     this.btnStartHangar = document.getElementById('btn-start-hangar');
     this.btnStartFleet = document.getElementById('btn-start-fleet');
     this.highScoreVal = document.getElementById('space-high-score');
@@ -210,8 +214,15 @@ export class SpaceHUD {
   bindEvents() {
     const triggerStartIfInStartScreen = () => {
       if (this.gameManager.state === 'START') {
+        const pilotModal = document.getElementById('space-modal-pilot-reg') || document.getElementById('modal-pilot-registration');
+        if (pilotModal && !pilotModal.classList.contains('hidden')) return;
         if (this.modalStart) this.modalStart.classList.add('hidden');
-        this.gameManager.startGame();
+        const shipClass = this.selectedShipClass || 'INTERCEPTOR';
+        if (this.gameManager && this.gameManager.startSegmaCinematic) {
+          this.gameManager.startSegmaCinematic(shipClass);
+        } else {
+          this.gameManager.startGame();
+        }
       }
     };
 
@@ -694,6 +705,10 @@ export class SpaceHUD {
 
     // Global Key Triggers
     window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      const pilotModal = document.getElementById('space-modal-pilot-reg') || document.getElementById('modal-pilot-registration');
+      if (pilotModal && !pilotModal.classList.contains('hidden')) return;
+
       if (this.gameManager.state === 'START') {
         if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Enter'].includes(e.code) ||
             ['w', 'a', 's', 'd', 'W', 'A', 'S', 'D', ' '].includes(e.key)) {
@@ -837,7 +852,13 @@ export class SpaceHUD {
       this.btnStartGame.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.modalStart) this.modalStart.classList.add('hidden');
-        this.gameManager.startGame(1); // Start fresh new campaign at Stage 1
+        // Launch the interactive Planet Segma prologue cinematic with the selected ship class
+        const shipClass = this.selectedShipClass || 'INTERCEPTOR';
+        if (this.gameManager && this.gameManager.startSegmaCinematic) {
+          this.gameManager.startSegmaCinematic(shipClass);
+        } else {
+          this.gameManager.startGame(1);
+        }
       });
     }
 
@@ -846,6 +867,14 @@ export class SpaceHUD {
         e.stopPropagation();
         if (this.modalStart) this.modalStart.classList.add('hidden');
         this.gameManager.loadSavedGame(); // Load exact saved stage and loadout
+      });
+    }
+
+    if (this.btnStartPrologue) {
+      this.btnStartPrologue.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.modalStart) this.modalStart.classList.add('hidden');
+        this.gameManager.startSegmaCinematic();
       });
     }
 

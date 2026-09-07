@@ -76,6 +76,89 @@ export class AssetManager {
   }
 
   /**
+   * Loads the unified armada fleet GLB and caches individual ship models & sockets
+   */
+  async loadFleetAssets(url = '/models/Enemy_Fleet_Updated.glb') {
+    if (this.fleetLoaded) return this.fleetAssets;
+    if (this.fleetLoadingPromise) return this.fleetLoadingPromise;
+
+    this.fleetLoadingPromise = new Promise(async (resolve) => {
+      try {
+        if (!this.gltfLoader) await this.init();
+        if (!this.gltfLoader) {
+          resolve(null);
+          return;
+        }
+
+        this.gltfLoader.load(
+          url,
+          (gltf) => {
+            const scene = gltf.scene || gltf.scenes[0];
+            const assets = {
+              scene: scene,
+              ships: new Map(),
+              sockets: new Map()
+            };
+
+            const vesselNames = [
+              'Vessel_Frigate_01',
+              'Vessel_Destroyer_01',
+              'Vessel_Carrier_01',
+              'Vessel_Station_01',
+              'Station_Habitat_Ring'
+            ];
+
+            scene.traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.material) {
+                  child.material.side = THREE.DoubleSide;
+                }
+              }
+
+              if (vesselNames.includes(child.name)) {
+                assets.ships.set(child.name, child.clone(true));
+              }
+
+              if (child.name.startsWith('SOCKET_')) {
+                assets.sockets.set(child.name, child.position.clone());
+              }
+            });
+
+            this.fleetAssets = assets;
+            this.fleetLoaded = true;
+            this.fleetLoadingPromise = null;
+            resolve(assets);
+          },
+          undefined,
+          (err) => {
+            console.warn('AssetManager: Failed to load fleet assets from', url, err);
+            this.fleetLoadingPromise = null;
+            resolve(null);
+          }
+        );
+      } catch (e) {
+        console.warn('AssetManager: Fleet load exception', e);
+        this.fleetLoadingPromise = null;
+        resolve(null);
+      }
+    });
+
+    return this.fleetLoadingPromise;
+  }
+
+  /**
+   * Retrieves a cloned instance of a specific fleet ship mesh
+   */
+  getFleetShipMesh(shipName) {
+    if (!this.fleetAssets || !this.fleetAssets.ships.has(shipName)) {
+      return null;
+    }
+    return this.fleetAssets.ships.get(shipName).clone(true);
+  }
+
+  /**
    * Generates a procedural 3D model for specific ship classes
    */
   createProceduralShipModel(shipClass = 'INTERCEPTOR') {

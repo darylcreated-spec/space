@@ -373,6 +373,7 @@ export class LaserBolt {
   destroy() {
     this.isDead = true;
     this.meshGroup.visible = false;
+    this.meshGroup.position.set(9999, 9999, 9999);
   }
 
   update(dt) {

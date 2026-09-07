@@ -77,20 +77,20 @@ const AAACinematicShader = {
   `
 };
 
+import { deviceManager } from './DeviceManager.js';
+
 export class PostProcessing {
   constructor(renderer, scene, camera) {
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
 
-    this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+    this.deviceManager = deviceManager;
+    const profile = deviceManager.getProfile();
+    this.isMobile = profile.isMobile;
 
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
-    if (this.isMobile && !savedQuality) {
-      this.quality = 'balanced';
-    } else {
-      this.quality = savedQuality || 'balanced';
-    }
+    this.quality = savedQuality || deviceManager.getRecommendedQuality();
 
     this.boostAmount = 0.0;
     this.targetBoost = 0.0;
@@ -102,6 +102,12 @@ export class PostProcessing {
     if (this.quality !== 'low') {
       this._initComposer();
     }
+
+    // Subscribe to dynamic adaptive scaling
+    deviceManager.adaptiveScaler.onQualityChange((newQuality) => {
+      this.setGraphicsQuality(newQuality);
+    });
+
     window.addEventListener('resize', this.onResize.bind(this));
   }
 

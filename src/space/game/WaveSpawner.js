@@ -92,7 +92,8 @@ export class WaveSpawner {
 
     const isMobile = this.gameManager.isMobile;
     const activeHostiles = activeDrones + activeStealth + activeECM + activePhase + activeCruisers + activeBattleships + (activeCarrier ? 1 : 0);
-    const maxConcurrent = isMobile ? 5 : 9;
+    const budgets = this.gameManager.deviceManager?.getEntityBudgets() || { maxDrones: isMobile ? 3 : 8 };
+    const maxConcurrent = budgets.maxDrones ? budgets.maxDrones + 2 : (isMobile ? 5 : 9);
 
     // Enforce active hostile concurrency throttle on mobile to prevent stutter
     if (activeHostiles >= maxConcurrent) {

@@ -3000,4 +3000,673 @@ body:not(.is-mobile-browser) .virtual-joystick-dock {
   }
 }
 
+/* ══════════════════════════════════════════════════════════
+   🎬 CINEMATIC STORY PROLOGUE & CUTSCENE SYSTEM
+   ══════════════════════════════════════════════════════════ */
+
+.cinematic-modal-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #010408;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: opacity 0.4s ease-out;
+}
+
+.cinematic-modal-overlay.hidden {
+  display: none !important;
+}
+
+.cinematic-modal-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cinematic-widescreen-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #000000;
+  position: relative;
+  user-select: none;
+}
+
+/* Top & Bottom Letterbox Bars */
+.cinematic-letterbox {
+  background: #02070f;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+}
+
+.cinematic-letterbox.letterbox-top {
+  height: 52px;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.cinematic-letterbox.letterbox-bottom {
+  min-height: 96px;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(0, 243, 255, 0.2);
+  gap: 16px;
+  padding: 14px 28px;
+}
+
+/* Telemetry Header */
+.cinematic-telemetry-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-header);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+}
+
+.cinematic-telemetry-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.telemetry-location {
+  font-family: var(--font-code);
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  color: #5588aa;
+}
+
+/* Skip & Next Buttons */
+.btn-skip-cinematic {
+  background: rgba(255, 0, 85, 0.15);
+  border: 1px solid rgba(255, 0, 85, 0.5);
+  color: #ff3377;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-family: var(--font-header);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-skip-cinematic:hover {
+  background: rgba(255, 0, 85, 0.3);
+  border-color: #ff0055;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(255, 0, 85, 0.5);
+}
+
+.btn-next-cinematic {
+  background: rgba(0, 243, 255, 0.15);
+  border: 1px solid #00f3ff;
+  color: #00f3ff;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-family: var(--font-header);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-next-cinematic:hover {
+  background: rgba(0, 243, 255, 0.35);
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.6);
+  color: #ffffff;
+}
+
+/* 21:9 Visual Viewport */
+.cinematic-viewport {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  cursor: pointer;
+}
+
+.cinematic-image-elem {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  will-change: transform;
+}
+
+/* Ken Burns Pan & Zoom Keyframe Animations */
+.kenburns-zoom-in {
+  animation: kbZoomIn 9s ease-out forwards;
+}
+
+.kenburns-zoom-out {
+  animation: kbZoomOut 9s ease-out forwards;
+}
+
+.kenburns-pan-right {
+  animation: kbPanRight 9s ease-out forwards;
+}
+
+.kenburns-pan-left {
+  animation: kbPanLeft 9s ease-out forwards;
+}
+
+@keyframes kbZoomIn {
+  0% { transform: scale(1.0) translate(0, 0); }
+  100% { transform: scale(1.14) translate(-1%, -1%); }
+}
+
+@keyframes kbZoomOut {
+  0% { transform: scale(1.18) translate(1%, 1%); }
+  100% { transform: scale(1.02) translate(0, 0); }
+}
+
+@keyframes kbPanRight {
+  0% { transform: scale(1.1) translate(-2.5%, 0); }
+  100% { transform: scale(1.1) translate(2.5%, 0); }
+}
+
+@keyframes kbPanLeft {
+  0% { transform: scale(1.1) translate(2.5%, 0); }
+  100% { transform: scale(1.1) translate(-2.5%, 0); }
+}
+
+/* Atmospheric Overlays */
+.cinematic-vignette-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.75) 100%);
+  pointer-events: none;
+}
+
+.cinematic-anamorphic-flare {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 243, 255, 0.45), rgba(0, 243, 255, 0.7), rgba(0, 243, 255, 0.45), transparent);
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.5);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.cinematic-scanlines {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* Dialogue Subtitle Card */
+.cinematic-dialogue-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 900px;
+}
+
+.cinematic-speaker-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cinematic-speaker-badge {
+  font-family: var(--font-header);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #00f3ff;
+  color: #00f3ff;
+  background: rgba(0, 243, 255, 0.1);
+}
+
+/* Animated Equalizer Waveform */
+.cinematic-audio-waveform {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 12px;
+}
+
+.cinematic-audio-waveform .wave-bar {
+  width: 3px;
+  height: 100%;
+  background: var(--accent-cyan);
+  border-radius: 2px;
+  animation: wavePulse 0.8s infinite ease-in-out alternate;
+}
+
+.cinematic-audio-waveform .wave-bar:nth-child(2) { animation-delay: 0.15s; height: 60%; }
+.cinematic-audio-waveform .wave-bar:nth-child(3) { animation-delay: 0.3s; height: 90%; }
+.cinematic-audio-waveform .wave-bar:nth-child(4) { animation-delay: 0.45s; height: 40%; }
+.cinematic-audio-waveform .wave-bar:nth-child(5) { animation-delay: 0.6s; height: 75%; }
+
+@keyframes wavePulse {
+  0% { transform: scaleY(0.3); opacity: 0.4; }
+  100% { transform: scaleY(1.0); opacity: 1.0; }
+}
+
+.cinematic-dialogue-text {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #e2f4ff;
+  min-height: 2.8rem;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+/* Bottom Navigation & Progress Dots */
+.cinematic-bottom-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cinematic-dots-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cinematic-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.cinematic-dot.active {
+  width: 24px;
+  border-radius: 6px;
+  background: #00f3ff;
+  box-shadow: 0 0 10px #00f3ff;
+}
+
+/* ══════════════════════════════════════════════════════════
+   🪐 PLANET SEGMA INTERACTIVE 3D CINEMATIC HUD
+   ══════════════════════════════════════════════════════════ */
+.segma-cinematic-hud {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9998;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+}
+
+.segma-cinematic-hud.hidden {
+  display: none !important;
+}
+
+.segma-letterbox {
+  background: linear-gradient(180deg, rgba(2, 6, 14, 0.95), rgba(2, 6, 14, 0.7));
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: auto;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+}
+
+.segma-letterbox.bottom {
+  background: linear-gradient(0deg, rgba(2, 6, 14, 0.95), rgba(2, 6, 14, 0.7));
+  border-bottom: none;
+  border-top: 1px solid rgba(0, 243, 255, 0.3);
+  padding: 16px 28px;
+}
+
+.segma-telemetry-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.segma-telemetry-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.segma-btn-pill {
+  background: rgba(0, 243, 255, 0.12);
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  color: #00f3ff;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.segma-btn-pill:hover {
+  background: rgba(0, 243, 255, 0.25);
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+}
+
+.segma-btn-pill .pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 6px #00ff88;
+}
+
+.segma-btn-engage {
+  background: linear-gradient(135deg, #ff0055, #ff5500);
+  border: none;
+  color: #fff;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 800;
+  font-size: 0.88rem;
+  letter-spacing: 1.5px;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 16px rgba(255, 0, 85, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.segma-btn-engage:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 24px rgba(255, 0, 85, 0.8);
+}
+
+.segma-reticle-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.segma-flight-reticle {
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(0, 243, 255, 0.5);
+  border-radius: 50%;
+  position: relative;
+}
+
+.segma-flight-reticle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  background: #00f3ff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00f3ff;
+}
+
+.segma-flight-hint {
+  margin-top: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: rgba(220, 245, 255, 0.8);
+  letter-spacing: 1.5px;
+  background: rgba(2, 8, 18, 0.65);
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.segma-comms-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 900px;
+}
+
+.segma-speaker-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.segma-speaker-name {
+  color: #00f3ff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.segma-comm-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.12);
+  border: 1px solid rgba(0, 255, 136, 0.35);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.segma-dialogue-text {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #f0f8ff;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.35);
+}
+
+/* Cinematic Active State HUD Suppression */
+body.cinematic-active #hud-top-unified-bar,
+body.cinematic-active .boss-hp-panel,
+body.cinematic-active .wave-announcer,
+body.cinematic-active .autopilot-banner,
+body.cinematic-active .mobile-controls-right-edge,
+body.cinematic-active .desktop-mouse-flight-pill,
+body.cinematic-active .lockon-warning-banner,
+body.cinematic-active #space-comms-box,
+body.cinematic-active .cockpit-hud-overlay .scanlines,
+body.cinematic-active .cockpit-hud-overlay .vignette {
+  display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   🛡️ PLANET SEGMA TACTICAL FORMATION & DEFENSIVE DOCK
+   ══════════════════════════════════════════════════════════ */
+.segma-tactical-dock {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: rgba(4, 12, 28, 0.88);
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  padding: 12px 24px;
+  border-radius: 12px;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(0, 243, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: auto;
+  z-index: 9999;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.segma-tactical-dock.hidden {
+  display: none !important;
+}
+
+.segma-tactical-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+  padding-bottom: 6px;
+}
+
+.segma-tactical-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f3ff;
+  text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
+}
+
+.segma-tactical-hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: rgba(220, 245, 255, 0.75);
+}
+
+.segma-tactical-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.segma-formation-presets {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.segma-preset-btn {
+  background: rgba(0, 243, 255, 0.08);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  color: #c9e9ff;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.segma-preset-btn:hover {
+  background: rgba(0, 243, 255, 0.25);
+  border-color: #00f3ff;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+}
+
+.segma-preset-btn.active {
+  background: rgba(0, 243, 255, 0.35);
+  border-color: #00f3ff;
+  color: #00f3ff;
+  box-shadow: 0 0 16px rgba(0, 243, 255, 0.6);
+}
+
+.segma-ship-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.segma-ship-btn {
+  background: rgba(20, 35, 60, 0.7);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  color: #b0d4f1;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.segma-ship-btn:hover {
+  background: rgba(0, 243, 255, 0.2);
+  color: #fff;
+}
+
+.segma-ship-btn.active {
+  background: rgba(0, 243, 255, 0.35);
+  border-color: #00f3ff;
+  color: #00f3ff;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+}
+
+.segma-btn-lock-formation {
+  background: linear-gradient(135deg, #00ff88, #00bb66);
+  border: none;
+  color: #04101a;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 0.86rem;
+  letter-spacing: 1.5px;
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.segma-btn-lock-formation:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 28px rgba(0, 255, 136, 0.85);
+}
+
 

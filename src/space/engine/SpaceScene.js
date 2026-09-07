@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { deviceManager } from './DeviceManager.js';
 
 export class SpaceScene {
   constructor(container) {
@@ -7,15 +8,18 @@ export class SpaceScene {
       this.container = document.getElementById('canvas-container') || document.body;
     }
 
-    this.isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 768;
+    this.deviceManager = deviceManager;
+    const profile = deviceManager.getProfile();
+    this.isMobile = profile.isMobile;
 
     // 3D Deep Space Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x03050a); // Deep obsidian space void
     this.scene.fog = new THREE.FogExp2(0x03050a, 0.003);
 
-    // Perspective Camera
-    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+    // Perspective Camera - Adjust FOV for mobile portrait vs desktop ultra-wide
+    const initialFov = profile.isPortrait ? 72 : (profile.aspectRatio > 2.2 ? 54 : 60);
+    this.camera = new THREE.PerspectiveCamera(initialFov, window.innerWidth / window.innerHeight, 0.1, 2000);
 
     this.cameraMode = 'isometric';
     this.targetCameraPos = new THREE.Vector3();
@@ -26,18 +30,22 @@ export class SpaceScene {
     this.camera.position.copy(this.targetCameraPos);
     this.camera.lookAt(this.targetLookAt);
 
-    // WebGL Renderer
+    // WebGL Renderer - Configured by GPU Tier
+    const antialias = profile.gpuTier >= 2 && !profile.isMobile;
+    const precision = profile.gpuTier === 0 || profile.isMobile ? 'mediump' : 'highp';
+    const powerPref = profile.gpuTier >= 2 ? 'high-performance' : 'default';
+
     this.renderer = new THREE.WebGLRenderer({
-      antialias: !this.isMobile,
+      antialias,
       alpha: false,
-      precision: this.isMobile ? 'mediump' : 'highp',
+      precision,
       stencil: false,
-      powerPreference: 'high-performance'
+      powerPreference: powerPref
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
+    this.renderer.setPixelRatio(deviceManager.getOptimalPixelRatio());
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.toneMappingExposure = profile.gpuTier === 0 ? 1.0 : 1.2;
 
     this.renderer.domElement.style.position = 'absolute';
     this.renderer.domElement.style.top = '0';
@@ -573,9 +581,173 @@ export class SpaceScene {
     ]);
   }
 
+  createPlanetSegmaTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Deep sapphire ocean base
+    const oceanGrad = ctx.createLinearGradient(0, 0, 0, 512);
+    oceanGrad.addColorStop(0.0, '#020d20');
+    oceanGrad.addColorStop(0.3, '#04224a');
+    oceanGrad.addColorStop(0.5, '#073d74');
+    oceanGrad.addColorStop(0.7, '#04224a');
+    oceanGrad.addColorStop(1.0, '#020d20');
+    ctx.fillStyle = oceanGrad;
+    ctx.fillRect(0, 0, 1024, 512);
+
+    // Continental landmasses (Emerald & Turquoise Segma continents)
+    const continents = [
+      { x: 180, y: 180, rx: 120, ry: 90, col: '#0d5c48' },
+      { x: 260, y: 240, rx: 90, ry: 70, col: '#127a60' },
+      { x: 550, y: 200, rx: 180, ry: 110, col: '#0b4a3a' },
+      { x: 620, y: 270, rx: 110, ry: 85, col: '#168f70' },
+      { x: 880, y: 320, rx: 80, ry: 60, col: '#0d5c48' },
+      { x: 120, y: 360, rx: 70, ry: 50, col: '#127a60' },
+    ];
+
+    continents.forEach(c => {
+      ctx.fillStyle = c.col;
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y, c.rx, c.ry, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Coastal shallow turquoise waters
+      ctx.strokeStyle = '#00f3ff55';
+      ctx.lineWidth = 12;
+      ctx.stroke();
+    });
+
+    // Glowing Planetary Night City Grid Clusters (Megacities of Segma)
+    ctx.fillStyle = '#ffea00';
+    for (let i = 0; i < 180; i++) {
+      const qx = (i * 37) % 1024;
+      const qy = 120 + ((i * 43) % 280);
+      const sz = (i % 3 === 0) ? 3 : 1.5;
+      ctx.fillRect(qx, qy, sz, sz);
+    }
+
+    // Atmospheric Swirling Cloud Belts
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    for (let b = 0; b < 6; b++) {
+      const by = 80 + b * 65;
+      ctx.beginPath();
+      ctx.moveTo(0, by);
+      for (let x = 0; x <= 1024; x += 64) {
+        const offset = Math.sin(x * 0.02 + b) * 18;
+        ctx.lineTo(x, by + offset);
+      }
+      ctx.lineTo(1024, by + 35);
+      ctx.lineTo(0, by + 35);
+      ctx.fill();
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.ClampToEdgeWrapping;
+    return tex;
+  }
+
+  setupPlanetSegma() {
+    if (!this.planetGroup) {
+      this.planetGroup = new THREE.Group();
+      this.scene.add(this.planetGroup);
+    } else {
+      while (this.planetGroup.children.length > 0) {
+        const child = this.planetGroup.children[0];
+        this.planetGroup.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      }
+    }
+
+    // 1. Planet Segma Core Globe
+    const planetGeo = new THREE.SphereGeometry(140, 48, 48);
+    const planetTex = this.createPlanetSegmaTexture();
+    const planetMat = new THREE.MeshStandardMaterial({
+      map: planetTex,
+      roughness: 0.65,
+      metalness: 0.2
+    });
+    const segmaMesh = new THREE.Mesh(planetGeo, planetMat);
+    this.planetGroup.add(segmaMesh);
+
+    // 2. Rayleigh Atmospheric Glow Shell
+    const atmosGeo = new THREE.SphereGeometry(145, 32, 32);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.3,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide
+    });
+    this.planetGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
+
+    // 3. Shimmering Planetary Defense Energy Shield
+    const shieldGeo = new THREE.SphereGeometry(152, 32, 32);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00aaff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.22,
+      blending: THREE.AdditiveBlending
+    });
+    const shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+    this.planetGroup.add(shieldMesh);
+    this.planetShieldMesh = shieldMesh;
+
+    // 4. Orbital Defense Satellite Grid Ring
+    const satRingGeo = new THREE.TorusGeometry(185, 1.2, 8, 64);
+    satRingGeo.rotateX(Math.PI * 0.35);
+    const satRingMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending
+    });
+    this.planetGroup.add(new THREE.Mesh(satRingGeo, satRingMat));
+
+    // Orbital Satellites with blinking beacons
+    for (let s = 0; s < 8; s++) {
+      const angle = (s / 8) * Math.PI * 2;
+      const sx = Math.cos(angle) * 185;
+      const sy = Math.sin(angle) * Math.sin(Math.PI * 0.35) * 185;
+      const sz = Math.sin(angle) * Math.cos(Math.PI * 0.35) * 185;
+
+      const satMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 2.5, 2.5),
+        new THREE.MeshStandardMaterial({ color: 0x223344, metalness: 0.9, roughness: 0.2 })
+      );
+      satMesh.position.set(sx, sy, sz);
+
+      const beacon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.8, 6, 6),
+        new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+      );
+      beacon.position.set(0, 1.8, 0);
+      satMesh.add(beacon);
+
+      this.planetGroup.add(satMesh);
+    }
+
+    // Set cinematic fog density
+    if (this.scene.fog) {
+      this.originalFogDensity = this.scene.fog.density;
+      this.scene.fog.density = 0.0006;
+    }
+
+    // Position Planet Segma prominently in the background
+    this.planetGroup.position.set(75, 40, -360);
+  }
+
   buildDeepSpaceEnvironment() {
     // 1. Realistic Spherical Starfield (Smooth Circular Radial Glow, No Cubes)
-    const starCount = this.isMobile ? 1000 : 2200;
+    const budgets = this.deviceManager ? this.deviceManager.getEntityBudgets() : { starsCount: 2000, dustParticles: 400 };
+    const starCount = budgets.starsCount;
     const starGeo = new THREE.BufferGeometry();
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
@@ -650,7 +822,7 @@ export class SpaceScene {
     this.scene.add(this.planetGroup);
 
     // 4. Floating Interstellar Dust Particles (Realistic Round Glow)
-    const dustCount = this.isMobile ? 250 : 600;
+    const dustCount = budgets.dustParticles || (this.isMobile ? 250 : 600);
     const dustGeo = new THREE.BufferGeometry();
     const dustPositions = new Float32Array(dustCount * 3);
 
@@ -775,10 +947,18 @@ export class SpaceScene {
   }
 
   onWindowResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    const profile = this.deviceManager.getProfile();
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const isPortrait = h > w;
+
+    // Dynamically adjust FOV in portrait mode to keep ships in view
+    this.camera.fov = isPortrait ? 72 : (profile.aspectRatio > 2.2 ? 54 : 60);
+    this.camera.aspect = w / (h || 1);
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isMobile ? 1.0 : 1.5));
+
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(this.deviceManager.getOptimalPixelRatio());
   }
 
   update(dt, playerShip = null, activeBoss = null) {

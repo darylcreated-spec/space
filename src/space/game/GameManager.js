@@ -32,6 +32,8 @@ import { HapticsManager } from '../engine/HapticsManager.js';
 import { DailyIncursionSystem } from './DailyIncursionSystem.js';
 import { FleetHangarUI } from '../ui/FleetHangarUI.js';
 import { PerformanceMonitor } from '../engine/PerformanceMonitor.js';
+import { SegmaCinematicDirector } from './SegmaCinematicDirector.js';
+import { deviceManager } from '../engine/DeviceManager.js';
 
 export class GameManager {
   constructor(spaceScene, postProcessing, particleManager, spaceAudio, controlsManager) {
@@ -40,10 +42,12 @@ export class GameManager {
     this.particleManager = particleManager;
     this.spaceAudio = spaceAudio;
     this.controlsManager = controlsManager;
-    this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
+    this.deviceManager = deviceManager;
+    this.isMobile = deviceManager.getProfile().isMobile;
 
     this.fleetHangarUI = new FleetHangarUI(this);
     this.perfMonitor = new PerformanceMonitor(this);
+    this.segmaCinematicDirector = new SegmaCinematicDirector(this);
 
     this.state = 'START'; // 'START', 'PLAYING', 'HANGAR', 'GAME_OVER'
 
@@ -187,7 +191,11 @@ export class GameManager {
     }
     this.upgradeSystem.applyUpgradesToShip(this.playerShip);
     this.playerShip.shield = this.playerShip.maxShield;
-    this.playerShip.triggerInvulnerability(2.5);
+    this.playerShip.triggerInvulnerability(4.0);
+    if (this.playerShip) {
+      if (this.playerShip.mesh) this.playerShip.mesh.visible = true;
+      if (this.playerShip.meshGroup) this.playerShip.meshGroup.visible = true;
+    }
     this.state = 'PLAYING';
     if (this.spaceHUD && this.spaceHUD.onGameStart) {
       this.spaceHUD.onGameStart();
@@ -210,6 +218,38 @@ export class GameManager {
     }
     this.spaceAudio.ensureContext();
     this.spaceAudio.startDrone();
+  }
+
+  startSegmaCinematic(shipClass = null) {
+    this.state = 'CINEMATIC_SEGMA';
+    this.clearAllThreats();
+    if (this.playerShip) {
+      this.playerShip.shield = this.playerShip.maxShield;
+      this.playerShip.triggerInvulnerability(999);
+      if (this.playerShip.meshGroup) {
+        this.playerShip.meshGroup.visible = false;
+      }
+    }
+    if (shipClass) {
+      this.setSelectedShipClass(shipClass);
+    }
+    if (this.spaceHUD) {
+      this.spaceHUD.hideAllModals();
+    }
+    if (this.spaceAudio) {
+      this.spaceAudio.ensureContext();
+      this.spaceAudio.startDrone();
+    }
+    this.segmaCinematicDirector.start(() => {
+      this.startGame(1);
+      if (this.spaceHUD) {
+        this.spaceHUD.showRadioTransmission(
+          "Planet Segma orbital perimeter compromised! All Vanguard wings engage hostiles!",
+          "AWACS OVERLORD",
+          6.0
+        );
+      }
+    }, shipClass || this.selectedShipClass || 'INTERCEPTOR');
   }
 
   startBossRushMode() {
@@ -436,9 +476,27 @@ export class GameManager {
 
     this.lasers.forEach(l => l.destroy());
     this.lasers = [];
+    if (this.laserPool) {
+      this.laserPool.forEach(l => {
+        l.isDead = true;
+        if (l.meshGroup) {
+          l.meshGroup.visible = false;
+          l.meshGroup.position.set(9999, 9999, 9999);
+        }
+      });
+    }
 
     this.plasmaPulses.forEach(p => p.destroy());
     this.plasmaPulses = [];
+    if (this.plasmaPulsePool) {
+      this.plasmaPulsePool.forEach(p => {
+        p.isDead = true;
+        if (p.meshGroup) {
+          p.meshGroup.visible = false;
+          p.meshGroup.position.set(9999, 9999, 9999);
+        }
+      });
+    }
 
     this.playerSwarmMissiles.forEach(m => m.destroy());
     this.playerSwarmMissiles = [];
@@ -512,9 +570,27 @@ export class GameManager {
     // stale references after boss death / wave transition
     this.lasers.forEach(l => { try { l.destroy(); } catch(e) {} });
     this.lasers = [];
+    if (this.laserPool) {
+      this.laserPool.forEach(l => {
+        l.isDead = true;
+        if (l.meshGroup) {
+          l.meshGroup.visible = false;
+          l.meshGroup.position.set(9999, 9999, 9999);
+        }
+      });
+    }
 
     this.plasmaPulses.forEach(p => { try { p.destroy(); } catch(e) {} });
     this.plasmaPulses = [];
+    if (this.plasmaPulsePool) {
+      this.plasmaPulsePool.forEach(p => {
+        p.isDead = true;
+        if (p.meshGroup) {
+          p.meshGroup.visible = false;
+          p.meshGroup.position.set(9999, 9999, 9999);
+        }
+      });
+    }
 
     this.powerUps.forEach(p => { try { p.destroy(); } catch(e) {} });
     this.powerUps = [];
@@ -1862,6 +1938,18 @@ export class GameManager {
   }
 
   update(dt, rawDt = dt) {
+    if (this.state === 'CINEMATIC_SEGMA' || (this.segmaCinematicDirector && this.segmaCinematicDirector.isActive)) {
+      if (this.playerShip) {
+        if (this.playerShip.mesh) this.playerShip.mesh.visible = false;
+        if (this.playerShip.meshGroup) this.playerShip.meshGroup.visible = false;
+      }
+      this.segmaCinematicDirector.update(dt);
+      this.particleManager.update();
+      this.renderScene(dt, rawDt);
+      if (this.perfMonitor) this.perfMonitor.update();
+      return;
+    }
+
     if (this.state !== 'PLAYING') {
       this.playerShip.update(dt, { x: 0, y: 0 });
       this.spaceScene.update(dt, this.playerShip, this.activeBoss);

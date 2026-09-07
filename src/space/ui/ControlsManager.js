@@ -372,4 +372,12 @@ export class ControlsManager {
     this.invertY = !!invert;
     localStorage.setItem('starbound_mouse_inverty', this.invertY ? 'true' : 'false');
   }
+
+  isBoosting() {
+    return !!(this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['KeyR']);
+  }
+
+  isFiring() {
+    return !!(this.keys['Space'] || this.keys['KeyE']);
+  }
 }

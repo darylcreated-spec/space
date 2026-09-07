@@ -24,6 +24,7 @@ export class CollisionSystem {
 
   checkCollisions(gameManager) {
     if (gameManager.freezeFleetAI) return;
+    if (gameManager.state !== 'PLAYING') return;
     const player = gameManager.playerShip;
     if (!player || !player.meshGroup) return;
     const pPos = player.meshGroup.position;
@@ -100,7 +101,7 @@ export class CollisionSystem {
     // 2. Lasers vs Threats & Boss
     for (let i = gameManager.lasers.length - 1; i >= 0; i--) {
       const laser = gameManager.lasers[i];
-      if (!laser || !laser.meshGroup) continue;
+      if (!laser || !laser.meshGroup || laser.isDead) continue;
 
       const lPos = laser.meshGroup.position;
 

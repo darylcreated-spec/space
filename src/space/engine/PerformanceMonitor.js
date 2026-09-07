@@ -1,3 +1,5 @@
+import { deviceManager } from './DeviceManager.js';
+
 export class PerformanceMonitor {
   constructor(gameManager) {
     this.gameManager = gameManager;
@@ -16,15 +18,23 @@ export class PerformanceMonitor {
   }
 
   createUI() {
+    const profile = deviceManager.getProfile();
+    const browserName = typeof profile.browser === 'string' ? profile.browser : (profile.browser?.name || 'BROWSER');
+    const osName = profile.isIOS ? 'iOS' : (profile.isAndroid ? 'Android' : (profile.isDesktop ? 'Desktop' : 'OS'));
     this.pill = document.createElement('div');
     this.pill.id = 'perf-diagnostic-pill';
     this.pill.innerHTML = `
       <div id="perf-pill-summary" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
         <span id="perf-pill-dot" style="width:6px;height:6px;border-radius:50%;background:#00ff66;box-shadow:0 0 6px #00ff66;"></span>
         <span id="perf-pill-fps" style="font-family:monospace;font-size:10px;font-weight:700;color:#00f3ff;">60 FPS</span>
+        <span id="perf-pill-device" style="font-family:monospace;font-size:9px;color:#38bdf8;background:rgba(56,189,248,0.15);padding:1px 4px;border-radius:2px;">${browserName.toUpperCase()} • TIER ${profile.gpuTier}</span>
         <span id="perf-pill-stutters" style="font-family:monospace;font-size:9px;color:#94a3b8;">0 STUTTERS</span>
       </div>
       <div id="perf-pill-details" style="display:none;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.15);font-family:monospace;font-size:9px;color:#cbd5e1;line-height:1.4;">
+        <div>Device / Form: <span id="perf-detail-form" style="color:#00f3ff;">${(profile.formFactor || 'DEVICE').toUpperCase()} (${osName})</span></div>
+        <div>Renderer: <span id="perf-detail-gpu" style="color:#94a3b8;font-size:8px;">${(profile.gpuRenderer || 'WebGL').substring(0, 32)}</span></div>
+        <div>Screen / DPR: <span id="perf-detail-dpr">${profile.width}x${profile.height} @ ${profile.optimalPixelRatio}x (Native ${profile.rawDPR || 1.0}x)</span></div>
+        <div>Graphics Preset: <span id="perf-detail-quality" style="color:#22c55e;font-weight:bold;">${(deviceManager.adaptiveScaler?.currentQuality || 'BALANCED').toUpperCase()}</span></div>
         <div>Frame Time: <span id="perf-detail-ms">16.6ms</span></div>
         <div>Active Lasers: <span id="perf-detail-lasers">0</span></div>
         <div>Asteroids/Enemies: <span id="perf-detail-entities">0</span></div>
@@ -73,6 +83,9 @@ export class PerformanceMonitor {
     this.lastFrameTime = now;
     this.frameCount++;
     this.fpsTimer += delta;
+
+    // Feed runtime frame delta into deviceManager adaptive scaler
+    deviceManager.adaptiveScaler.reportFrame(delta);
 
     if (this.fpsTimer >= 500) {
       this.fps = Math.round((this.frameCount * 1000) / this.fpsTimer);
@@ -132,6 +145,8 @@ export class PerformanceMonitor {
     if (this.isExpanded) {
       const msElem = document.getElementById('perf-detail-ms');
       if (msElem) msElem.textContent = `${lastDelta.toFixed(1)}ms`;
+      const qElem = document.getElementById('perf-detail-quality');
+      if (qElem) qElem.textContent = deviceManager.adaptiveScaler.currentQuality.toUpperCase();
       const lElem = document.getElementById('perf-detail-lasers');
       if (lElem) lElem.textContent = this.gameManager?.lasers?.length || 0;
       const eElem = document.getElementById('perf-detail-entities');

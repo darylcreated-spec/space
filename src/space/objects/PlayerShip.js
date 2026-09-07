@@ -1360,8 +1360,8 @@ export class PlayerShip {
       return false; // ONLY God Mode grants permanent 100% damage immunity
     }
 
-    // Brief action-specific temporary i-frames
-    if (this.dodgeTimer > 0 || (this.invulnerableTimer > 0 && this.hasEmergencyAegisReboot)) {
+    // Brief action-specific temporary i-frames & spawn invulnerability
+    if (this.dodgeTimer > 0 || this.invulnerableTimer > 0) {
       return false;
     }
 
@@ -1383,6 +1383,11 @@ export class PlayerShip {
     if (this.shieldMat) this.shieldMat.opacity = 0.35;
     if (this.shieldMesh) this.shieldMesh.visible = true;
     this.updateDamageVisuals();
+
+    // Post-hit invulnerability grace period (i-frames: 0.45s) prevents multi-laser shotgun instant-death
+    if (this.shield > 0) {
+      this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.45);
+    }
 
     // ── 🎙️ Tactical Voice Radio: Shield Collapse & Near-Death Alert ──
     if (prevShield > 0 && this.shield <= 0) {
