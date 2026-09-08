@@ -941,7 +941,7 @@ export class TitanAsteroidBoss {
           out.push(wp);
           if (gm && gm.spawnEnemyLaser) {
             const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
-            gm.spawnEnemyLaser(wp, dir, 0xffaa00, 48);
+            gm.spawnEnemyLaser(wp, dir, 0xff2200, 48);
           }
         }
       });

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { assetManager } from '../engine/AssetManager.js';
 
 export class WingmanDrone {
   constructor(scene, particleManager, slot = 'LEFT') {
@@ -105,6 +106,17 @@ export class WingmanDrone {
     });
     this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
     this.meshGroup.add(this.shieldMesh);
+
+    // Asynchronously upgrade to authentic 3D escort frigate hull if loaded
+    assetManager.loadEscortFrigateModel().then(frigate => {
+      if (frigate && this.meshGroup && !this.isDead) {
+        if (this.bodyMesh) this.bodyMesh.visible = false;
+        frigate.scale.set(0.65, 0.65, 0.65);
+        frigate.position.set(0, 0, 0);
+        this.escortModel = frigate;
+        this.meshGroup.add(frigate);
+      }
+    });
   }
 
   update(dt, playerShip, gameManager) {
@@ -141,7 +153,7 @@ export class WingmanDrone {
     const isMobile = gameManager.isMobile;
 
     let targetDir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
-    const laserColor = this.currentDoctrine === 'FOCUS_FIRE' ? 0xff4400 : (this.currentDoctrine === 'SWARM_FLANK' ? 0x00ff88 : 0x00f3ff);
+    const laserColor = this.currentDoctrine === 'FOCUS_FIRE' ? 0x00ffff : (this.currentDoctrine === 'SWARM_FLANK' ? 0x55ffff : 0x00f3ff);
 
     if (this.currentDoctrine === 'FOCUS_FIRE') {
       // Aim directly at Active Boss or nearest Capital Ship

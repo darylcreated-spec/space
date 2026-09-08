@@ -35,13 +35,13 @@ export class PlayerSwarmMissile {
     });
     this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
 
-    // Explosive Ogive Seeker Nose Cone
+    // Explosive Ogive Seeker Nose Cone (Cyan Plasma)
     const noseGeo = new THREE.ConeGeometry(0.18, 0.75, 8);
     noseGeo.rotateX(-Math.PI / 2);
     const noseMat = new THREE.MeshStandardMaterial({
-      color: 0xff3300,
-      emissive: 0xff1100,
-      emissiveIntensity: 0.6,
+      color: 0x00d0ff,
+      emissive: 0x00f3ff,
+      emissiveIntensity: 0.8,
       metalness: 0.9,
       roughness: 0.2
     });
@@ -49,10 +49,10 @@ export class PlayerSwarmMissile {
     nose.position.set(0, 0, -1.35);
     this.meshGroup.add(nose);
 
-    // Infrared Optical Seeker Lens
+    // Optical Seeker Lens
     const seeker = new THREE.Mesh(
       new THREE.SphereGeometry(0.08, 8, 8),
-      new THREE.MeshBasicMaterial({ color: 0xffea00 })
+      new THREE.MeshBasicMaterial({ color: 0x00ffff })
     );
     seeker.position.set(0, 0, -1.75);
     this.meshGroup.add(seeker);
@@ -81,7 +81,7 @@ export class PlayerSwarmMissile {
 
     const flameGeo = new THREE.ConeGeometry(0.16, 0.9, 8);
     flameGeo.rotateX(Math.PI / 2);
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.9 });
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9 });
     const flame = new THREE.Mesh(flameGeo, flameMat);
     flame.position.set(0, 0, 1.6);
     this.meshGroup.add(flame);
@@ -196,18 +196,18 @@ export class PlayerSwarmMissile {
       this.meshGroup.lookAt(lookTarget);
     }
 
-    // Rocket Motor Fire and Smoke Particle Trails
+    // Rocket Motor Fire and Smoke Particle Trails (Cyan Plasma)
     if (this.particleManager) {
-      this.particleManager.spawnEngineParticle(curPos, 0xff5500);
+      this.particleManager.spawnEngineParticle(curPos, 0x00aaff);
       if (Math.random() < 0.6) {
-        this.particleManager.spawnEngineParticle(curPos, 0xffaa00);
+        this.particleManager.spawnEngineParticle(curPos, 0x00f3ff);
       }
     }
   }
 
   explode() {
     if (this.particleManager) {
-      this.particleManager.createExplosion(this.meshGroup.position, 0xff3300, 48, 2.2);
+      this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 48, 2.2);
       this.particleManager.createEmpShockwave(this.meshGroup.position, 18);
     }
     this.destroy();

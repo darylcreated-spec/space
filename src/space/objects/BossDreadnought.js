@@ -858,7 +858,7 @@ export class BossDreadnought {
             gameManager.spawnEnemyMissile(wp, playerPos);
           } else if (gameManager && gameManager.spawnEnemyLaser) {
             const dir = new THREE.Vector3().subVectors(playerPos, wp).normalize();
-            gameManager.spawnEnemyLaser(wp, dir, 0xffaa00, 42);
+            gameManager.spawnEnemyLaser(wp, dir, 0xff0044, 42);
           }
         }
       });

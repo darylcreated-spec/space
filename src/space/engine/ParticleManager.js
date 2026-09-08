@@ -244,8 +244,25 @@ export class ParticleManager {
     this.sonicDiscs.push({ mesh: disc, scale: 0.6, maxScale: 9.0, speed: 20.0 });
   }
 
-  createEmpShockwave(pos, maxRadius = 28) {
-    const ring = new THREE.Mesh(this._shockwaveGeo, this._shockwaveMat.clone());
+  createEmpShockwave(pos, colorOrRadius = 28, maybeRadius = 28) {
+    let color = 0x00f3ff;
+    let maxRadius = 28;
+
+    if (typeof colorOrRadius === 'number' && colorOrRadius > 500) {
+      // Called as createEmpShockwave(pos, colorHex, maxRadius)
+      color = colorOrRadius;
+      maxRadius = typeof maybeRadius === 'number' && maybeRadius <= 500 ? maybeRadius : 28;
+    } else if (typeof colorOrRadius === 'number') {
+      // Called as createEmpShockwave(pos, maxRadius)
+      maxRadius = colorOrRadius;
+      if (typeof maybeRadius === 'number' && maybeRadius > 500) {
+        color = maybeRadius;
+      }
+    }
+
+    const mat = this._shockwaveMat.clone();
+    mat.color.set(color);
+    const ring = new THREE.Mesh(this._shockwaveGeo, mat);
     ring.position.copy(pos);
     ring.rotation.x = Math.PI / 2;
     this.scene.add(ring);

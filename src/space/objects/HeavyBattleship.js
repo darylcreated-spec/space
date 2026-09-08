@@ -904,7 +904,7 @@ function createSmoothBattleshipHullGeo() {
           const origin = turret.mesh.getWorldPosition(new THREE.Vector3());
           const dir = new THREE.Vector3().subVectors(playerPos, origin).normalize();
           if (gameManager && gameManager.spawnEnemyLaser) {
-            gameManager.spawnEnemyLaser(origin, dir, 0xff7700, 52);
+            gameManager.spawnEnemyLaser(origin, dir, 0xff0044, 52);
           }
         }
       });

@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { assetManager } from '../engine/AssetManager.js';
 import { getPBRMaterialSet } from '../engine/PBRTextureGenerator.js';
+import { EnemyDrone } from '../objects/EnemyDrone.js';
+import { StealthFighter } from '../objects/StealthFighter.js';
+import { ECMJammerCorvette } from '../objects/ECMJammerCorvette.js';
 
 /**
  * Procedural Triplanar UV & Tangent Generator
@@ -211,6 +214,9 @@ export class SegmaCinematicDirector {
     this.warpPortalCarrier = null;
     this.warpPortalBattleship = null;
     this.deployedDrones = [];
+    this.waveEnemyDrones = [];
+    this.waveStealthFighters = [];
+    this.waveEcmCorvette = null;
     this.escapingStealthFighter = null;
     this.stealthFighterFX = null;
 
@@ -265,6 +271,26 @@ export class SegmaCinematicDirector {
     this.camTargetPos = new THREE.Vector3();
     this.camLookAt = new THREE.Vector3();
     this.camCurrentLookAt = new THREE.Vector3(16.0, 2.0, -85.0);
+
+    // Camera Micro-Shake & Trauma System
+    this.camTrauma = 0;
+
+    // Midground Orbital Space Debris Field
+    this.debrisField = [];
+
+    // Multi-Stage Hull Breaches State
+    this.battleshipBreachTimer = 0;
+    this.carrierBreachTimer = 0;
+
+    // Audio & Voice Timeline Triggers
+    this.shot1VoiceTriggered = false;
+    this.shot2WarpAudioTriggered = false;
+    this.shot2ImperialVoiceTriggered = false;
+    this.shot3ViperVoiceTriggered = false;
+    this.shot4FlybyAudioTriggered = false;
+    this.shot5BoostPromptActive = false;
+    this.shot5AutoTimer = 3.8;
+    this.boostEngaging = false;
 
     // PBR Material Cache
     this.pbrMaterials = {};
@@ -325,6 +351,18 @@ export class SegmaCinematicDirector {
           </div>
         </div>
 
+        <!-- 🚀 Interactive Hand-Off Boost Prompt (Shot 5) -->
+        <div id="segma-interactive-prompt" class="segma-interactive-prompt hidden">
+          <button id="btn-segma-boost-engage" class="segma-interactive-btn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>ENGAGE SUBSPACE BOOST</span>
+            <span class="segma-key-badge">SPACE / TAP</span>
+          </button>
+          <div id="segma-auto-timer" class="segma-auto-timer">AUTO-ENGAGING IN 3.8s...</div>
+        </div>
+
         <div class="segma-letterbox bottom">
           <div class="segma-comms-panel">
             <div class="segma-speaker-bar">
@@ -347,6 +385,8 @@ export class SegmaCinematicDirector {
     this.speakerName = document.getElementById('segma-speaker-name');
     this.statusTag = document.getElementById('segma-status-tag');
     this.zoomLevelLabel = document.getElementById('segma-zoom-level');
+    this.interactivePrompt = document.getElementById('segma-interactive-prompt');
+    this.autoTimerElem = document.getElementById('segma-auto-timer');
 
     document.getElementById('btn-segma-zoom-out')?.addEventListener('click', () => this.adjustCameraZoom(0.25));
     document.getElementById('btn-segma-zoom-in')?.addEventListener('click', () => this.adjustCameraZoom(-0.25));
@@ -354,7 +394,8 @@ export class SegmaCinematicDirector {
     document.getElementById('btn-segma-pause')?.addEventListener('click', () => this.togglePause());
 
     document.getElementById('btn-segma-camera')?.addEventListener('click', () => this.cycleCameraMode());
-    document.getElementById('btn-segma-engage')?.addEventListener('click', () => this.confirmDefensivePositions());
+    document.getElementById('btn-segma-engage')?.addEventListener('click', () => this.endCinematic());
+    document.getElementById('btn-segma-boost-engage')?.addEventListener('click', () => this.triggerInteractiveBoost());
 
     // Mouse / Touch interaction for selecting & dragging ships in 3D + free orbit camera control
     window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
@@ -395,11 +436,17 @@ export class SegmaCinematicDirector {
       } else if (e.code === 'KeyV') {
         e.preventDefault();
         this.cycleVesselControl();
-      } else if (e.code === 'Space' && (this.elapsedTime > 3.0)) {
+      } else if (e.code === 'Space') {
         e.preventDefault();
-        this.confirmDefensivePositions();
+        if (this.shot5BoostPromptActive && !this.boostEngaging) {
+          this.triggerInteractiveBoost();
+        } else {
+          this.endCinematic();
+        }
       } else if (e.code === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         this.endCinematic();
       }
     });
@@ -427,11 +474,11 @@ export class SegmaCinematicDirector {
     this.cameraMode = 'DIRECTOR';
     this.currentVesselIndex = 0;
 
-    // Initialize camera in Shot 1 grand establishing perspective
-    this.camTargetPos.set(-24.0, 72.0, 120.0);
-    this.camLookAt.set(16.0, 2.0, -85.0);
-    this.camCurrentLookAt.set(16.0, 2.0, -85.0);
-    this.camera.position.set(-24.0, 72.0, 120.0);
+    // Initialize camera in Shot 1 grand establishing perspective (open center screen)
+    this.camTargetPos.set(-18.0, 38.0, 85.0);
+    this.camLookAt.set(0.0, 2.0, -75.0);
+    this.camCurrentLookAt.set(0.0, 2.0, -75.0);
+    this.camera.position.set(-18.0, 38.0, 85.0);
     this.camera.lookAt(this.camCurrentLookAt);
     this.cameraZoomFactor = 1.0;
     this.cameraOrbitAngleX = 0;
@@ -444,6 +491,12 @@ export class SegmaCinematicDirector {
     this.carrierDestroyed = false;
     this.battleshipDestroyed = false;
     this.stealthEscaped = false;
+    this.dronesFirstWaveDestroyed = false;
+    this.dronesSecondWaveDestroyed = false;
+    this.ecmCorvetteDestroyed = false;
+    this.waveEnemyDrones = [];
+    this.waveStealthFighters = [];
+    this.waveEcmCorvette = null;
     this.battleExplosions = [];
     this.alliedSalvoTimer = 0;
     this.escapingStealthFighter = null;
@@ -451,6 +504,34 @@ export class SegmaCinematicDirector {
     this.stealthCloakTriggered = false;
     this.cinematicBeams = [];
     this.cinematicTorpedoes = [];
+
+    // Reset Director Micro-Shake, Debris, Audio & Interactive Boost Triggers
+    this.camTrauma = 0;
+    this.debrisField = [];
+    this.battleshipBreachTimer = 0;
+    this.carrierBreachTimer = 0;
+    this.shot1VoiceTriggered = false;
+    this.shot2WarpAudioTriggered = false;
+    this.shot2ImperialVoiceTriggered = false;
+    this.shot3ViperVoiceTriggered = false;
+    this.shot4FlybyAudioTriggered = false;
+    this.shot5BoostPromptActive = false;
+    this.shot5AutoTimer = 3.8;
+    this.boostEngaging = false;
+    if (this.interactivePrompt) {
+      this.interactivePrompt.classList.add('hidden');
+      this.interactivePrompt.innerHTML = `
+        <button id="btn-segma-boost-engage" class="segma-interactive-btn">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span>ENGAGE SUBSPACE BOOST</span>
+          <span class="segma-key-badge">SPACE / TAP</span>
+        </button>
+        <div id="segma-auto-timer" class="segma-auto-timer">AUTO-ENGAGING IN 3.8s...</div>
+      `;
+      document.getElementById('btn-segma-boost-engage')?.addEventListener('click', () => this.triggerInteractiveBoost());
+    }
 
     document.body.classList.add('cinematic-active');
     if (this.gameManager.playerShip && this.gameManager.playerShip.mesh) {
@@ -502,16 +583,19 @@ export class SegmaCinematicDirector {
     // 4. Build Allied Armada in orbit around Planet Segma
     this.buildAlliedArmada();
 
-    // 5. Mount Player's Controllable Vessel (selected airframe)
+    // 5. Build Midground Orbital Space Debris Field
+    this.createOrbitalDebrisField();
+
+    // 6. Mount Player's Controllable Vessel (selected airframe)
     this.mountPlayerVessel(this.selectedShipClass);
 
-    // 6. Register tactical fleet dictionary & selection rings
+    // 7. Register tactical fleet dictionary & selection rings
     this.registerTacticalFleet();
 
-    // 7. Pre-position Enemy Warp Vessels (hidden initially)
+    // 8. Pre-position Enemy Warp Vessels (hidden initially)
     this.prepareEnemyInvasionFleet();
 
-    // 8. Show Cinematic HUD
+    // 9. Show Cinematic HUD
     if (this.hudElem) {
       this.hudElem.classList.remove('hidden');
     }
@@ -948,9 +1032,10 @@ export class SegmaCinematicDirector {
         this.alliedStation.add(ringMesh);
       }
 
-      // Station placed on starboard flank overlooking Planet Segma (x: 105, y: 15, z: -170)
-      this.alliedStation.position.set(105, 15, -170);
-      this.alliedStation.scale.set(1.15, 1.15, 1.15);
+      // Station placed deep in background high-orbit overlooking Planet Segma (x: 160, y: 45, z: -275)
+      // Completely clear of the foreground camera so the central battlefield is 100% unobstructed
+      this.alliedStation.position.set(160, 45, -275);
+      this.alliedStation.scale.set(0.85, 0.85, 0.85);
       this.alliedStation.visible = true;
       this.applyAAAFactionMaterials(this.alliedStation, 'ALLIED', 4.0);
 
@@ -1441,16 +1526,15 @@ export class SegmaCinematicDirector {
   }
 
   prepareEnemyInvasionFleet() {
-    // 1. Enemy Space Carrier (Catamaran Flight Deck)
+    // 1. Hostile Invasion Flagship (Center-Rear Open Sector)
     const carrierMesh = assetManager.getFleetShipMesh('Vessel_Carrier_01');
     if (carrierMesh) {
       this.enemyCarrier = carrierMesh;
-      this.enemyCarrier.position.set(55, 18, -150);
+      this.enemyCarrier.position.set(0, 12, -155);
       this.enemyCarrier.scale.set(0.001, 0.001, 0.001);
       this.enemyCarrier.visible = false;
       this.applyAAAFactionMaterials(this.enemyCarrier, 'HOSTILE', 4.5);
 
-      // Attach 4 heavy fusion afterburners to carrier catamaran hulls
       this.attachEngineThrusters(
         this.enemyCarrier,
         [
@@ -1466,16 +1550,15 @@ export class SegmaCinematicDirector {
       this.cinematicGroup.add(this.enemyCarrier);
     }
 
-    // 2. Enemy Heavy Battleship (Direct Fire Flagship)
+    // 2. Hostile Heavy Battleship (Open Port Flank)
     const bshipMesh = assetManager.getFleetShipMesh('Vessel_Destroyer_01');
     if (bshipMesh) {
       this.enemyBattleship = bshipMesh;
-      this.enemyBattleship.position.set(-40, -4, -140);
+      this.enemyBattleship.position.set(-28, 6, -145);
       this.enemyBattleship.scale.set(0.001, 0.001, 0.001);
       this.enemyBattleship.visible = false;
       this.applyAAAFactionMaterials(this.enemyBattleship, 'HOSTILE', 4.0);
 
-      // Attach twin heavy fusion thrusters
       this.attachEngineThrusters(
         this.enemyBattleship,
         [{ x: -6.0, y: 0, z: 42.0 }, { x: 6.0, y: 0, z: 42.0 }],
@@ -1486,9 +1569,75 @@ export class SegmaCinematicDirector {
       this.cinematicGroup.add(this.enemyBattleship);
     }
 
-    // 3. Hyperspace Rupture Portals
-    this.warpPortalCarrier = this.createWarpPortal(new THREE.Vector3(55, 18, -150), 0xff1133);
-    this.warpPortalBattleship = this.createWarpPortal(new THREE.Vector3(-40, -4, -140), 0xff1133);
+    // 3. Authentic In-Game Wave 1 Crimson Drones (EnemyDrone)
+    // Deployed across the open center corridor in an aggressive arrowhead wedge
+    const droneOffsets = [
+      { x: 0, y: 4, z: -105 },
+      { x: -14, y: 6, z: -118 },
+      { x: 14, y: 6, z: -118 },
+      { x: -26, y: 8, z: -130 },
+      { x: 26, y: 8, z: -130 },
+      { x: 0, y: 10, z: -125 }
+    ];
+    this.waveEnemyDrones = [];
+    droneOffsets.forEach((off, idx) => {
+      const drone = new EnemyDrone(this.scene, { x: off.x, y: off.y, z: off.z });
+      this.scene.remove(drone.meshGroup);
+      drone.meshGroup.position.set(off.x, off.y, off.z);
+      drone.meshGroup.rotation.y = Math.PI; // Face forward towards player
+      drone.meshGroup.scale.set(0.001, 0.001, 0.001);
+      drone.meshGroup.visible = false;
+      this.cinematicGroup.add(drone.meshGroup);
+      this.waveEnemyDrones.push({
+        droneObj: drone,
+        mesh: drone.meshGroup,
+        basePos: new THREE.Vector3(off.x, off.y, off.z),
+        isDestroyed: false,
+        speed: 28.0 + idx * 2.5
+      });
+    });
+
+    // 4. Authentic In-Game Stealth Fighters (StealthFighter)
+    const stealthOffsets = [
+      { x: -34, y: 8, z: -122 },
+      { x: 34, y: 8, z: -122 }
+    ];
+    this.waveStealthFighters = [];
+    stealthOffsets.forEach((off, idx) => {
+      const sf = new StealthFighter(this.scene, this.particleManager, off);
+      this.scene.remove(sf.meshGroup);
+      sf.meshGroup.position.set(off.x, off.y, off.z);
+      sf.meshGroup.rotation.y = Math.PI;
+      sf.meshGroup.scale.set(0.001, 0.001, 0.001);
+      sf.meshGroup.visible = false;
+      this.cinematicGroup.add(sf.meshGroup);
+      this.waveStealthFighters.push({
+        stealthObj: sf,
+        mesh: sf.meshGroup,
+        basePos: new THREE.Vector3(off.x, off.y, off.z),
+        isDestroyed: false,
+        index: idx
+      });
+    });
+
+    // 5. Authentic In-Game ECM Jammer Corvette (ECMJammerCorvette)
+    const ecm = new ECMJammerCorvette(this.scene, this.particleManager, { x: 18, y: 2, z: -130 });
+    this.scene.remove(ecm.meshGroup);
+    ecm.meshGroup.position.set(18, 2, -130);
+    ecm.meshGroup.rotation.y = Math.PI;
+    ecm.meshGroup.scale.set(0.001, 0.001, 0.001);
+    ecm.meshGroup.visible = false;
+    this.cinematicGroup.add(ecm.meshGroup);
+    this.waveEcmCorvette = {
+      ecmObj: ecm,
+      mesh: ecm.meshGroup,
+      isDestroyed: false
+    };
+
+    // 6. Hyperspace Rupture Portals in the open center screen
+    this.warpPortalCarrier = this.createWarpPortal(new THREE.Vector3(0, 12, -155), 0xff1133);
+    this.warpPortalBattleship = this.createWarpPortal(new THREE.Vector3(-28, 6, -145), 0xff1133);
+    this.warpPortalEscort = this.createWarpPortal(new THREE.Vector3(20, 4, -135), 0xff1133);
   }
 
   createWarpPortal(pos, colorHex) {
@@ -1701,7 +1850,10 @@ export class SegmaCinematicDirector {
       this.updateWarpArrival(dt);
     }
 
-    // 13. Update Camera Positioning
+    // 13. Update Midground Orbital Space Debris Field
+    this.updateDebrisField(dt);
+
+    // 14. Update Camera Positioning & Procedural Micro-Shake
     this.updateCamera(dt);
   }
 
@@ -1886,9 +2038,36 @@ export class SegmaCinematicDirector {
   handleTimelineEvents(dt) {
     const t = this.elapsedTime;
 
+    // Ensure interactive prompt is hidden if timeline is before Shot 5
+    if (t < 20.8 && this.shot5BoostPromptActive) {
+      this.shot5BoostPromptActive = false;
+      if (this.interactivePrompt) {
+        this.interactivePrompt.classList.add('hidden');
+      }
+    }
+
     // ── ACT I: Armada Recall & Warp-In (0.0s – 5.0s) ──
     if (t < 5.0) {
       this.battlePhase = 'RECALL';
+      if (t >= 1.0 && !this.shot1VoiceTriggered) {
+        this.shot1VoiceTriggered = true;
+        if (this.speakerName) this.speakerName.textContent = 'ESCORT LEAD // VIPER-1';
+        if (this.statusTag) {
+          this.statusTag.textContent = 'ORBITAL PATROL // SECTOR SEGMA';
+          this.statusTag.style.color = '#00f3ff';
+        }
+        if (this.dialogueText) {
+          this.dialogueText.textContent =
+            'Viper-1 to Citadel Control: Defense grid Alpha secure. Atmospheric sensor readings over Segma Prime nominal.';
+        }
+        if (this.gameManager.voiceAnnouncer) {
+          this.gameManager.voiceAnnouncer.speak(
+            'Viper-1 to Citadel Control: Defense grid Alpha secure. Scans over Segma Prime nominal.',
+            false,
+            'VIPER'
+          );
+        }
+      }
     }
 
     // Ensure Allied Armada warp is finalized at t >= 5.0
@@ -1912,6 +2091,12 @@ export class SegmaCinematicDirector {
       if (this.warpPortalCarrier) this.warpPortalCarrier.visible = true;
       if (this.warpPortalBattleship) this.warpPortalBattleship.visible = true;
 
+      // Deep Sub-Bass Warp Drop Synthesis & Screen Trauma
+      if (this.spaceAudio && this.spaceAudio.playSubBassWarpDrop) {
+        this.spaceAudio.playSubBassWarpDrop();
+      }
+      this.addCameraShake(0.70);
+
       if (this.statusTag) {
         this.statusTag.textContent = 'SUBSPACE RUPTURE // HOSTILE CAPITAL FLEET DETECTED';
         this.statusTag.style.color = '#ff1133';
@@ -1929,9 +2114,6 @@ export class SegmaCinematicDirector {
       if (this.spaceAudio && this.spaceAudio.playBossWarning) {
         this.spaceAudio.playBossWarning();
       }
-      if (this.spaceAudio && this.spaceAudio.playPlanetImpact) {
-        this.spaceAudio.playPlanetImpact();
-      }
       if (this.gameManager.voiceAnnouncer) {
         this.gameManager.voiceAnnouncer.speak(
           'Warning: Cataclysmic subspace displacement detected! Hostile Battleship and Carrier rupturing hyperspace!',
@@ -1941,20 +2123,64 @@ export class SegmaCinematicDirector {
       }
     }
 
+    // Hostile Imperial Fleet transmission at 7.2s
+    if (t >= 7.2 && !this.shot2ImperialVoiceTriggered) {
+      this.shot2ImperialVoiceTriggered = true;
+      if (this.speakerName) {
+        this.speakerName.textContent = 'HOSTILE OVERLORD // CRIMSON FLEET';
+      }
+      if (this.statusTag) {
+        this.statusTag.textContent = 'HOSTILE TRANSMISSION // SECTOR BREACH';
+        this.statusTag.style.color = '#ff0033';
+      }
+      if (this.dialogueText) {
+        this.dialogueText.textContent =
+          'OVERLORD TRANSMISSION: Citadel Station, lower your defensive shields and surrender Sector Segma immediately. All resistance will be eradicated.';
+      }
+      if (this.gameManager.voiceAnnouncer) {
+        this.gameManager.voiceAnnouncer.speak(
+          'Citadel Station, lower your defensive shields and surrender Sector Segma immediately.',
+          true,
+          'IMPERIAL'
+        );
+      }
+    }
+
     // Ensure Hostile warp portals are finalized at t >= 9.0
     if (t >= 9.0 && !this.warpCompleted) {
       this.warpCompleted = true;
       if (this.warpPortalCarrier) this.warpPortalCarrier.visible = false;
       if (this.warpPortalBattleship) this.warpPortalBattleship.visible = false;
+      if (this.warpPortalEscort) this.warpPortalEscort.visible = false;
       if (this.enemyCarrier) {
         this.enemyCarrier.visible = true;
         this.enemyCarrier.scale.set(1.0, 1.0, 1.0);
-        this.enemyCarrier.position.z = -140;
+        this.enemyCarrier.position.z = -165;
       }
       if (this.enemyBattleship) {
         this.enemyBattleship.visible = true;
         this.enemyBattleship.scale.set(0.85, 0.85, 0.85);
-        this.enemyBattleship.position.z = -125;
+        this.enemyBattleship.position.z = -145;
+      }
+      if (this.waveEnemyDrones) {
+        this.waveEnemyDrones.forEach(d => {
+          if (d.mesh && !d.isDestroyed) {
+            d.mesh.visible = true;
+            d.mesh.scale.set(0.85, 0.85, 0.85);
+          }
+        });
+      }
+      if (this.waveStealthFighters) {
+        this.waveStealthFighters.forEach(sf => {
+          if (sf.mesh && !sf.isDestroyed) {
+            sf.mesh.visible = true;
+            sf.mesh.scale.set(1.0, 1.0, 1.0);
+          }
+        });
+      }
+      if (this.waveEcmCorvette && this.waveEcmCorvette.mesh && !this.waveEcmCorvette.isDestroyed) {
+        this.waveEcmCorvette.mesh.visible = true;
+        this.waveEcmCorvette.mesh.scale.set(0.9, 0.9, 0.9);
       }
     }
 
@@ -1981,17 +2207,133 @@ export class SegmaCinematicDirector {
         }
         if (this.dialogueText) {
           this.dialogueText.textContent =
-            'ALLIED ARMADA, ALL WEAPONS FREE! Concentrate all spinal railguns, torpedoes, and heavy batteries on the enemy Battleship and Carrier! Obliterate them!';
+            'ALLIED ARMADA, ALL WEAPONS FREE! Concentrate all spinal railguns, torpedoes, and heavy batteries on the enemy armada! Obliterate them!';
         }
         if (this.flightHint) {
           this.flightHint.innerHTML = 'FLEET ENGAGEMENT ACTIVE // ARMADA CONCENTRATING FIRE';
         }
         if (this.gameManager.voiceAnnouncer) {
           this.gameManager.voiceAnnouncer.speak(
-            'Allied armada, all weapons free! Concentrate all firepower on the enemy capital ships! Obliterate them!',
+            'Allied armada, all weapons free! Concentrate all firepower on the enemy fleet! Obliterate them!',
             true,
             'COMMAND'
           );
+        }
+      }
+
+      // Drone wave 1 destruction beat at 10.4s (interception by Allied fire)
+      if (t >= 10.4 && !this.dronesFirstWaveDestroyed) {
+        this.dronesFirstWaveDestroyed = true;
+        [0, 1].forEach(idx => {
+          if (this.waveEnemyDrones && this.waveEnemyDrones[idx]) {
+            const d = this.waveEnemyDrones[idx];
+            d.isDestroyed = true;
+            if (d.mesh) {
+              const p = d.mesh.position;
+              if (this.particleManager) {
+                this.particleManager.createExplosion(p, 0xff2200, 36, 2.2);
+                this.particleManager.createHitSparks(p, 0xff7700, 20);
+                if (this.particleManager.spawnMetalDebris) {
+                  this.particleManager.spawnMetalDebris(p, 14, 0x555555);
+                }
+              }
+              if (this.spaceAudio && this.spaceAudio.playExplosion) {
+                this.spaceAudio.playExplosion(1);
+              }
+              this.addCameraShake(0.18);
+              d.mesh.visible = false;
+            }
+          }
+        });
+      }
+
+      // Multi-stage secondary hull breaches on Goliath Battleship (10.8s - 12.4s)
+      if (t >= 10.8 && t < 12.4 && !this.battleshipDestroyed && this.enemyBattleship) {
+        this.battleshipBreachTimer -= dt;
+        if (this.battleshipBreachTimer <= 0) {
+          this.battleshipBreachTimer = 0.22;
+          const bp = this.enemyBattleship.position.clone().add(new THREE.Vector3(
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 8,
+            (Math.random() - 0.5) * 16
+          ));
+          if (this.particleManager) {
+            this.particleManager.createExplosion(bp, 0xff2200, 22, 1.5);
+            this.particleManager.createHitSparks(bp, 0xffaa00, 14);
+            if (this.particleManager.spawnMetalDebris) {
+              this.particleManager.spawnMetalDebris(bp, 8, 0x664433);
+            }
+          }
+          this.battleshipShudder = Math.min(2.5, this.battleshipShudder + 0.4);
+          this.addCameraShake(0.14);
+          if (this.spaceAudio && this.spaceAudio.playExplosion) {
+            this.spaceAudio.playExplosion(1);
+          }
+        }
+      }
+
+      // Viper-1 combat callout at 11.2s
+      if (t >= 11.2 && !this.shot3ViperVoiceTriggered) {
+        this.shot3ViperVoiceTriggered = true;
+        if (this.speakerName) this.speakerName.textContent = 'ESCORT LEAD // VIPER-1';
+        if (this.dialogueText) {
+          this.dialogueText.textContent =
+            'Viper-1 engaging hostile drone screen! Breaching port flank with concentrated cyan lasers!';
+        }
+        if (this.gameManager.voiceAnnouncer) {
+          this.gameManager.voiceAnnouncer.speak(
+            'Viper-1 engaging hostile drone screen! Breaching port flank with concentrated cyan lasers!',
+            false,
+            'VIPER'
+          );
+        }
+      }
+
+      // Drone wave 2 destruction beat at 11.6s
+      if (t >= 11.6 && !this.dronesSecondWaveDestroyed) {
+        this.dronesSecondWaveDestroyed = true;
+        [2, 3].forEach(idx => {
+          if (this.waveEnemyDrones && this.waveEnemyDrones[idx]) {
+            const d = this.waveEnemyDrones[idx];
+            d.isDestroyed = true;
+            if (d.mesh) {
+              const p = d.mesh.position;
+              if (this.particleManager) {
+                this.particleManager.createExplosion(p, 0xff4400, 36, 2.2);
+                this.particleManager.createHitSparks(p, 0xffaa00, 20);
+                if (this.particleManager.spawnMetalDebris) {
+                  this.particleManager.spawnMetalDebris(p, 14, 0x555555);
+                }
+              }
+              if (this.spaceAudio && this.spaceAudio.playExplosion) {
+                this.spaceAudio.playExplosion(1);
+              }
+              this.addCameraShake(0.18);
+              d.mesh.visible = false;
+            }
+          }
+        });
+      }
+
+      // ECM Jammer Corvette destruction beat at 12.0s with EMP discharge
+      if (t >= 12.0 && !this.ecmCorvetteDestroyed) {
+        this.ecmCorvetteDestroyed = true;
+        if (this.waveEcmCorvette && this.waveEcmCorvette.mesh) {
+          this.waveEcmCorvette.isDestroyed = true;
+          const p = this.waveEcmCorvette.mesh.position;
+          if (this.particleManager) {
+            this.particleManager.createExplosion(p, 0x00f3ff, 70, 3.4);
+            this.particleManager.createEmpShockwave(p, 0x00f3ff, 38.0);
+            this.particleManager.createHitSparks(p, 0xffffff, 28);
+            if (this.particleManager.spawnMetalDebris) {
+              this.particleManager.spawnMetalDebris(p, 22, 0x336688);
+            }
+          }
+          if (this.spaceAudio && this.spaceAudio.playExplosion) {
+            this.spaceAudio.playExplosion(0);
+          }
+          this.addCameraShake(0.35);
+          this.waveEcmCorvette.mesh.visible = false;
         }
       }
 
@@ -1999,6 +2341,31 @@ export class SegmaCinematicDirector {
       if (t >= 12.5 && !this.battleshipDestroyed) {
         this.battleshipDestroyed = true;
         this.destroyEnemyBattleship();
+      }
+
+      // Multi-stage secondary hull breaches on Gorgon Carrier (13.0s - 14.7s)
+      if (t >= 13.0 && t < 14.7 && !this.carrierDestroyed && this.enemyCarrier) {
+        this.carrierBreachTimer -= dt;
+        if (this.carrierBreachTimer <= 0) {
+          this.carrierBreachTimer = 0.24;
+          const cp = this.enemyCarrier.position.clone().add(new THREE.Vector3(
+            (Math.random() - 0.5) * 32,
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 24
+          ));
+          if (this.particleManager) {
+            this.particleManager.createExplosion(cp, 0xff0044, 28, 1.8);
+            this.particleManager.createHitSparks(cp, 0xffea00, 18);
+            if (this.particleManager.spawnMetalDebris) {
+              this.particleManager.spawnMetalDebris(cp, 10, 0x773344);
+            }
+          }
+          this.carrierShudder = Math.min(3.0, this.carrierShudder + 0.5);
+          this.addCameraShake(0.18);
+          if (this.spaceAudio && this.spaceAudio.playExplosion) {
+            this.spaceAudio.playExplosion(1);
+          }
+        }
       }
 
       // Carrier explosion beat at 14.8s
@@ -2010,12 +2377,21 @@ export class SegmaCinematicDirector {
 
     // ── ACT IV: Stealth Escape (15.8s – 20.8s) ──
     if (t >= 15.8) {
-      if (this.battlePhase !== 'FINISHED') {
+      if (this.battlePhase !== 'FINISHED' && this.battlePhase !== 'ENGAGE_PROMPT') {
         this.battlePhase = 'STEALTH_ESCAPE';
       }
 
       if (!this.escapingStealthFighter) {
         this.spawnEscapingStealthFighter();
+      }
+
+      // Spatial Doppler Flyby Sound as Stealth Fighter zooms past open center
+      if (t >= 17.2 && !this.shot4FlybyAudioTriggered) {
+        this.shot4FlybyAudioTriggered = true;
+        if (this.spaceAudio && this.spaceAudio.playFlybyDoppler) {
+          this.spaceAudio.playFlybyDoppler(1);
+        }
+        this.addCameraShake(0.40);
       }
 
       if (t >= 18.5 && !this.stealthEscaped) {
@@ -2044,15 +2420,55 @@ export class SegmaCinematicDirector {
       }
     }
 
-    // ── ACT V: Transition to Wave 1 (at 20.8s) ──
+    // ── ACT V: Interactive Transition to Wave 1 (at 20.8s+) ──
     if (t >= 20.8) {
-      this.battlePhase = 'FINISHED';
-      this.endCinematic();
+      if (this.battlePhase !== 'FINISHED') {
+        this.battlePhase = 'ENGAGE_PROMPT';
+      }
+
+      if (!this.shot5BoostPromptActive) {
+        this.shot5BoostPromptActive = true;
+        this.shot5AutoTimer = 3.8;
+        if (this.interactivePrompt) {
+          this.interactivePrompt.classList.remove('hidden');
+        }
+        if (this.statusTag) {
+          this.statusTag.textContent = 'INTERCEPT READY // ENGAGE SUBSPACE ENGINES';
+          this.statusTag.style.color = '#00f3ff';
+        }
+        if (this.speakerName) {
+          this.speakerName.textContent = 'AVIONICS // AEGIS-9';
+        }
+        if (this.dialogueText) {
+          this.dialogueText.textContent =
+            'Subspace engines primed! Press SPACE or tap button to engage pursuit vector into the asteroid sector!';
+        }
+        if (this.flightHint) {
+          this.flightHint.innerHTML = 'READY FOR COMBAT // PRESS SPACE OR TAP TO ENGAGE BOOST';
+        }
+        if (this.gameManager.voiceAnnouncer) {
+          this.gameManager.voiceAnnouncer.speak(
+            'Subspace engines primed. Ready to engage pursuit vector!',
+            true,
+            'AVIONICS'
+          );
+        }
+      }
+
+      if (this.shot5BoostPromptActive && !this.boostEngaging) {
+        this.shot5AutoTimer -= dt;
+        if (this.autoTimerElem) {
+          this.autoTimerElem.textContent = `AUTO-ENGAGING IN ${Math.max(0, this.shot5AutoTimer).toFixed(1)}s...`;
+        }
+        if (this.shot5AutoTimer <= 0) {
+          this.triggerInteractiveBoost();
+        }
+      }
     }
   }
 
   destroyEnemyBattleship() {
-    const pos = this.enemyBattleship ? this.enemyBattleship.position : new THREE.Vector3(-40, -4, -140);
+    const pos = this.enemyBattleship ? this.enemyBattleship.position : new THREE.Vector3(-28, 6, -145);
     if (this.particleManager) {
       this.particleManager.createExplosion(pos, 0xff2200, 110, 4.2);
       this.particleManager.createExplosion(pos, 0xffaa00, 80, 3.2);
@@ -2065,6 +2481,7 @@ export class SegmaCinematicDirector {
       this.spaceAudio.playExplosion(0);
       if (this.spaceAudio.playPlanetImpact) this.spaceAudio.playPlanetImpact();
     }
+    this.addCameraShake(0.80);
     if (this.enemyBattleship) {
       this.enemyBattleship.visible = false;
     }
@@ -2082,7 +2499,7 @@ export class SegmaCinematicDirector {
   }
 
   destroyEnemyCarrier() {
-    const pos = this.enemyCarrier ? this.enemyCarrier.position : new THREE.Vector3(55, 18, -150);
+    const pos = this.enemyCarrier ? this.enemyCarrier.position : new THREE.Vector3(38, 6, -165);
     if (this.particleManager) {
       this.particleManager.createExplosion(pos, 0xff0044, 140, 5.2);
       this.particleManager.createExplosion(pos, 0xffea00, 100, 4.0);
@@ -2096,6 +2513,7 @@ export class SegmaCinematicDirector {
       this.spaceAudio.playExplosion(0);
       if (this.spaceAudio.playPlanetImpact) this.spaceAudio.playPlanetImpact();
     }
+    this.addCameraShake(0.95);
     if (this.enemyCarrier) {
       this.enemyCarrier.visible = false;
     }
@@ -2113,20 +2531,20 @@ export class SegmaCinematicDirector {
   }
 
   spawnEscapingStealthFighter() {
-    const startPos = new THREE.Vector3(55, 18, -145);
-    this.escapingStealthFighter = assetManager.createProceduralShipModel('STEALTH');
-    this.escapingStealthFighter.position.copy(startPos);
-    this.escapingStealthFighter.scale.set(1.5, 1.5, 1.5);
-    this.applyAAAFactionMaterials(this.escapingStealthFighter, 'HOSTILE', 3.5);
-
-    // Twin crimson engine afterburners
-    this.attachEngineThrusters(
-      this.escapingStealthFighter,
-      [{ x: -1.2, y: 0, z: 4.0 }, { x: 1.2, y: 0, z: 4.0 }],
-      'HOSTILE',
-      1.4,
-      7.0
-    );
+    const startPos = new THREE.Vector3(18, 6, -135);
+    const sf = new StealthFighter(this.scene, this.particleManager, startPos);
+    this.scene.remove(sf.meshGroup);
+    sf.meshGroup.position.copy(startPos);
+    sf.meshGroup.scale.set(1.5, 1.5, 1.5);
+    sf.cloakOpacity = 1.0;
+    sf.targetCloakOpacity = 1.0;
+    sf.isCloaked = false;
+    if (sf.hullMat) {
+      sf.hullMat.transparent = true;
+      sf.hullMat.opacity = 1.0;
+    }
+    this.escapingStealthFighter = sf.meshGroup;
+    this.escapingStealthFighterObj = sf;
     this.cinematicGroup.add(this.escapingStealthFighter);
 
     this.stealthEscapeProgress = 0;
@@ -2140,7 +2558,7 @@ export class SegmaCinematicDirector {
       this.statusTag.style.color = '#ff0055';
     }
     if (this.speakerName) {
-      this.speakerName.textContent = 'AEGIS TACTICAL SURVEILLANCE';
+      this.speakerName.textContent = 'TACTICAL EW // GHOST-4';
     }
     if (this.dialogueText) {
       this.dialogueText.textContent =
@@ -2153,7 +2571,7 @@ export class SegmaCinematicDirector {
       this.gameManager.voiceAnnouncer.speak(
         'Warning! An advanced enemy stealth prototype slipped through the blast radius! It is cloaking and escaping into the asteroid corridor!',
         true,
-        'AVIONICS'
+        'GHOST'
       );
     }
   }
@@ -2163,10 +2581,10 @@ export class SegmaCinematicDirector {
     this.stealthEscapeProgress += dt * 0.22;
     const p = THREE.MathUtils.clamp(this.stealthEscapeProgress, 0, 1);
 
-    // Quadratic bezier curve from Carrier explosion through foreground to deep space
-    const p0 = new THREE.Vector3(55, 18, -145);
-    const p1 = new THREE.Vector3(12, 5, -45);
-    const p2 = new THREE.Vector3(-30, 12, -280);
+    // Quadratic bezier curve from Carrier blast through open center foreground to deep space
+    const p0 = new THREE.Vector3(18, 6, -135);
+    const p1 = new THREE.Vector3(0, 4, -40);
+    const p2 = new THREE.Vector3(-25, 15, -280);
 
     const oneMinusP = 1 - p;
     const curPos = new THREE.Vector3()
@@ -2233,6 +2651,69 @@ export class SegmaCinematicDirector {
       }
       if (array.beacon && array.beacon.material) {
         array.beacon.material.opacity = isFlashing ? 1.0 : 0.3;
+      }
+    });
+  }
+
+  /**
+   * Procedural Midground Orbital Space Debris Field
+   * Generates low-poly metallic armor fragments drifting in peripheral corridors,
+   * catching dynamic reflections from weapons fire while keeping the center 75% unobstructed.
+   */
+  createOrbitalDebrisField() {
+    this.debrisField = [];
+    const debrisCount = 14;
+    const debrisMat = new THREE.MeshStandardMaterial({
+      color: 0x334455,
+      metalness: 0.85,
+      roughness: 0.35
+    });
+
+    for (let i = 0; i < debrisCount; i++) {
+      let geo;
+      const rType = i % 3;
+      if (rType === 0) {
+        geo = new THREE.DodecahedronGeometry(0.7 + Math.random() * 0.8, 0);
+      } else if (rType === 1) {
+        geo = new THREE.BoxGeometry(0.5 + Math.random() * 0.7, 0.2 + Math.random() * 0.4, 1.2 + Math.random() * 1.5);
+      } else {
+        geo = new THREE.TetrahedronGeometry(0.8 + Math.random() * 0.9, 0);
+      }
+
+      const mesh = new THREE.Mesh(geo, debrisMat);
+      // Scatter on outer peripheral defense margins (keeping center open)
+      const side = (i % 2 === 0 ? 1 : -1);
+      const x = side * (24 + Math.random() * 28);
+      const y = -8 + Math.random() * 26;
+      const z = -35 - Math.random() * 75;
+      mesh.position.set(x, y, z);
+      mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+      this.cinematicGroup.add(mesh);
+      this.debrisField.push({
+        mesh,
+        rotVel: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.4,
+          (Math.random() - 0.5) * 0.5,
+          (Math.random() - 0.5) * 0.3
+        ),
+        driftVel: new THREE.Vector3(
+          (Math.random() - 0.5) * 0.6,
+          (Math.random() - 0.5) * 0.3,
+          (Math.random() - 0.5) * 0.6
+        )
+      });
+    }
+  }
+
+  updateDebrisField(dt) {
+    if (!this.debrisField) return;
+    this.debrisField.forEach(d => {
+      if (d.mesh) {
+        d.mesh.rotation.x += d.rotVel.x * dt;
+        d.mesh.rotation.y += d.rotVel.y * dt;
+        d.mesh.rotation.z += d.rotVel.z * dt;
+        d.mesh.position.addScaledVector(d.driftVel, dt);
       }
     });
   }
@@ -2438,6 +2919,40 @@ export class SegmaCinematicDirector {
             this.spaceAudio.playEnemyLaser(-0.8);
           }
         }
+
+        // Authentic In-Game Crimson Drones fire red plasma down center corridor
+        if (this.waveEnemyDrones) {
+          this.waveEnemyDrones.forEach((d, idx) => {
+            if (!d.isDestroyed && d.mesh && d.mesh.visible) {
+              if (Math.random() < 0.25) {
+                const muzzle = d.mesh.position.clone().add(new THREE.Vector3(0, 0, 2.5));
+                const targetPos = new THREE.Vector3(
+                  (Math.random() - 0.5) * 35,
+                  (Math.random() - 0.5) * 8,
+                  -25
+                );
+                this.fireEnemyPlasma(muzzle, targetPos);
+              }
+            }
+          });
+        }
+
+        // Authentic In-Game Stealth Fighters strafe and fire crimson bursts
+        if (this.waveStealthFighters) {
+          this.waveStealthFighters.forEach((sf, idx) => {
+            if (!sf.isDestroyed && sf.mesh && sf.mesh.visible) {
+              if (Math.random() < 0.20) {
+                const muzzle = sf.mesh.position.clone();
+                const targetPos = new THREE.Vector3(
+                  (Math.random() - 0.5) * 20,
+                  (Math.random() - 0.5) * 6,
+                  -20
+                );
+                this.fireEnemyPlasma(muzzle, targetPos);
+              }
+            }
+          });
+        }
       }
 
       // Station CIWS Point-Defense Turrets fire high-frequency tracer streams
@@ -2455,11 +2970,44 @@ export class SegmaCinematicDirector {
                 ? this.enemyCarrier.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12, 0))
                 : new THREE.Vector3(30 + (Math.random() - 0.5) * 20, 10, -140);
 
-              this.fireRailgunBeam(fromPos, targetPos, 0x00ff88, 0.09, false);
+              this.fireRailgunBeam(fromPos, targetPos, 0x00f3ff, 0.09, false);
             }
           }
         }
       }
+    }
+
+    // 4. Update dynamic combat flight maneuvering of in-game wave crafts (60fps)
+    if (this.waveEnemyDrones) {
+      this.waveEnemyDrones.forEach((d, idx) => {
+        if (!d.isDestroyed && d.mesh && d.mesh.visible) {
+          if (d.mesh.position.z < -45) {
+            d.mesh.position.z += dt * (d.speed || 30.0);
+          }
+          d.mesh.position.x = d.basePos.x + Math.sin(this.elapsedTime * 2.5 + idx) * 3.5;
+          d.mesh.position.y = d.basePos.y + Math.cos(this.elapsedTime * 2.0 + idx) * 1.8;
+          d.mesh.rotation.z = Math.sin(this.elapsedTime * 3.0 + idx) * 0.25;
+        }
+      });
+    }
+
+    if (this.waveStealthFighters) {
+      this.waveStealthFighters.forEach((sf, idx) => {
+        if (!sf.isDestroyed && sf.mesh && sf.mesh.visible) {
+          if (sf.mesh.position.z < -55) {
+            sf.mesh.position.z += dt * 18.0;
+          }
+          sf.mesh.position.x = sf.basePos.x + Math.sin(this.elapsedTime * 1.8 + idx * Math.PI) * 4.5;
+          sf.mesh.rotation.z = -Math.sign(sf.basePos.x) * 0.22;
+        }
+      });
+    }
+
+    if (this.waveEcmCorvette && !this.waveEcmCorvette.isDestroyed && this.waveEcmCorvette.mesh && this.waveEcmCorvette.mesh.visible) {
+      if (this.waveEcmCorvette.mesh.position.z < -70) {
+        this.waveEcmCorvette.mesh.position.z += dt * 8.0;
+      }
+      this.waveEcmCorvette.mesh.rotation.z = Math.sin(this.elapsedTime * 1.2) * 0.10;
     }
   }
 
@@ -2556,20 +3104,49 @@ export class SegmaCinematicDirector {
       const ringScale = Math.sin(p * Math.PI) * 2.2;
       this.warpPortalBattleship.scale.set(ringScale, ringScale, ringScale);
     }
+    if (this.warpPortalEscort && this.warpPortalEscort.visible) {
+      this.warpPortalEscort.rotation.z += dt * 3.8;
+      const ringScale = Math.sin(p * Math.PI) * 2.0;
+      this.warpPortalEscort.scale.set(ringScale, ringScale, ringScale);
+    }
 
-    // Materialize Carrier and Battleship from portal
+    // Materialize incursion fleet and in-game wave crafts from portal
     if (p > 0.25) {
+      const sFactor = (p - 0.25) / 0.75;
       if (this.enemyCarrier) {
         this.enemyCarrier.visible = true;
-        const s = THREE.MathUtils.lerp(0.001, 1.0, (p - 0.25) / 0.75);
+        const s = THREE.MathUtils.lerp(0.001, 1.0, sFactor);
         this.enemyCarrier.scale.set(s, s, s);
-        this.enemyCarrier.position.z = -180 + (p - 0.25) * 45;
+        this.enemyCarrier.position.z = -180 + sFactor * 25;
       }
       if (this.enemyBattleship) {
         this.enemyBattleship.visible = true;
-        const s = THREE.MathUtils.lerp(0.001, 0.85, (p - 0.25) / 0.75);
+        const s = THREE.MathUtils.lerp(0.001, 0.85, sFactor);
         this.enemyBattleship.scale.set(s, s, s);
-        this.enemyBattleship.position.z = -170 + (p - 0.25) * 55;
+        this.enemyBattleship.position.z = -170 + sFactor * 25;
+      }
+      if (this.waveEnemyDrones) {
+        this.waveEnemyDrones.forEach(d => {
+          if (d.mesh && !d.isDestroyed) {
+            d.mesh.visible = true;
+            const s = THREE.MathUtils.lerp(0.001, 0.85, sFactor);
+            d.mesh.scale.set(s, s, s);
+          }
+        });
+      }
+      if (this.waveStealthFighters) {
+        this.waveStealthFighters.forEach(sf => {
+          if (sf.mesh && !sf.isDestroyed) {
+            sf.mesh.visible = true;
+            const s = THREE.MathUtils.lerp(0.001, 1.0, sFactor);
+            sf.mesh.scale.set(s, s, s);
+          }
+        });
+      }
+      if (this.waveEcmCorvette && this.waveEcmCorvette.mesh && !this.waveEcmCorvette.isDestroyed) {
+        this.waveEcmCorvette.mesh.visible = true;
+        const s = THREE.MathUtils.lerp(0.001, 0.9, sFactor);
+        this.waveEcmCorvette.mesh.scale.set(s, s, s);
       }
     }
 
@@ -2577,6 +3154,7 @@ export class SegmaCinematicDirector {
       this.warpCompleted = true;
       if (this.warpPortalCarrier) this.warpPortalCarrier.visible = false;
       if (this.warpPortalBattleship) this.warpPortalBattleship.visible = false;
+      if (this.warpPortalEscort) this.warpPortalEscort.visible = false;
     }
   }
 
@@ -2599,10 +3177,10 @@ export class SegmaCinematicDirector {
   /**
    * Automated Hollywood Multi-Shot Camera Trajectory
    * Smooth Hermite S-curve interpolation capturing all battle assets:
-   * Shot 1 (0.0s - 5.5s): Grand orbital crane framing Planet Segma, Space Station with solar wings, and armada warp emergence
-   * Shot 2 (5.5s - 9.0s): Hostile incursion crane sweep showing crimson subspace rifts tearing open over Planet Segma as Goliath & Gorgon arrive
-   * Shot 3 (9.0s - 16.0s): High sweeping tactical combat tracking arc showing warship maneuvering, spinal railgun salvos, swarm torpedoes, CIWS tracers, and destruction of both enemy capital behemoths
-   * Shot 4 (16.0s - 20.8s): Low-angle dramatic flyby tracking shot following the escaped enemy stealth fighter as it screams past camera and cloaks
+   * Shot 1 (0.0s - 5.5s): Grand orbital crane framing Planet Segma on left, Space Station far off in high orbit (160, 45, -275), center 75% of screen completely open space looking down the defense corridor
+   * Shot 2 (5.5s - 9.0s): Hostile incursion crane sweep showing crimson subspace rifts tearing open over Planet Segma as in-game wave fleet (Drones, Stealth, ECM, Dreadnoughts) arrives
+   * Shot 3 (9.0s - 16.0s): High sweeping tactical combat tracking arc showing warship maneuvering, spinal railgun salvos, swarm torpedoes, CIWS tracers, and destruction of enemy drones, ECM corvette, and capital behemoths
+   * Shot 4 (16.0s - 20.8s): Low-angle dramatic flyby tracking shot following the authentic enemy stealth fighter as it screams past open center screen and cloaks
    * Shot 5 (20.8s+): Smooth match-cut dolly right behind the player flagship as letterbox dissolves and Wave 1 begins
    */
   updateDirectorCameraTrajectory(t) {
@@ -2611,75 +3189,75 @@ export class SegmaCinematicDirector {
       const u = t / 5.5;
       const s = u * u * (3 - 2 * u); // Smoothstep cubic Hermite
       this.camTargetPos.set(
-        THREE.MathUtils.lerp(-24.0, -8.0, s),
-        THREE.MathUtils.lerp(72.0, 48.0, s),
-        THREE.MathUtils.lerp(120.0, 92.0, s)
+        THREE.MathUtils.lerp(-18.0, -4.0, s),
+        THREE.MathUtils.lerp(38.0, 32.0, s),
+        THREE.MathUtils.lerp(85.0, 72.0, s)
       );
       this.camLookAt.set(
-        THREE.MathUtils.lerp(16.0, 10.0, s),
-        THREE.MathUtils.lerp(2.0, 6.0, s),
-        THREE.MathUtils.lerp(-85.0, -110.0, s)
+        THREE.MathUtils.lerp(0.0, 0.0, s),
+        THREE.MathUtils.lerp(2.0, 4.0, s),
+        THREE.MathUtils.lerp(-75.0, -100.0, s)
       );
     } else if (t < 9.0) {
       // Shot 2: Hostile incursion crane sweep (5.5s - 9.0s)
       const u = (t - 5.5) / 3.5;
       const s = u * u * (3 - 2 * u);
       this.camTargetPos.set(
-        THREE.MathUtils.lerp(-8.0, 18.0, s),
-        THREE.MathUtils.lerp(48.0, 36.0, s),
-        THREE.MathUtils.lerp(92.0, 68.0, s)
+        THREE.MathUtils.lerp(-4.0, 8.0, s),
+        THREE.MathUtils.lerp(32.0, 26.0, s),
+        THREE.MathUtils.lerp(72.0, 58.0, s)
       );
       this.camLookAt.set(
-        THREE.MathUtils.lerp(10.0, 8.0, s),
-        THREE.MathUtils.lerp(6.0, 8.0, s),
-        THREE.MathUtils.lerp(-110.0, -145.0, s)
+        THREE.MathUtils.lerp(0.0, 0.0, s),
+        THREE.MathUtils.lerp(4.0, 6.0, s),
+        THREE.MathUtils.lerp(-100.0, -135.0, s)
       );
     } else if (t < 16.0) {
       // Shot 3: Sweeping tactical combat tracking arc (9.0s - 16.0s)
       const u = (t - 9.0) / 7.0;
       const s = u * u * (3 - 2 * u);
-      // Sweeping arc banking from starboard to port while capturing the full theater of battle
-      const sweepX = -32.0 + Math.sin(u * Math.PI) * 28.0;
-      const sweepY = THREE.MathUtils.lerp(38.0, 24.0, s);
-      const sweepZ = THREE.MathUtils.lerp(75.0, 42.0, s);
+      // Sweeping arc banking from starboard to port while capturing the full theater of battle in open center
+      const sweepX = -20.0 + Math.sin(u * Math.PI) * 26.0;
+      const sweepY = THREE.MathUtils.lerp(28.0, 20.0, s);
+      const sweepZ = THREE.MathUtils.lerp(55.0, 38.0, s);
       this.camTargetPos.set(sweepX, sweepY, sweepZ);
 
-      // Focus pans dynamically across targets: Carrier -> Battleship explosion -> Fleet
-      let targetFocusX = 8.0;
-      if (t >= 12.0 && t < 14.5) {
-        targetFocusX = -40.0; // Focus on Battleship explosion
-      } else if (t >= 14.5) {
-        targetFocusX = 55.0;  // Focus on Carrier cataclysmic explosion
+      // Focus pans dynamically across targets: Center fleet -> Battleship explosion -> Carrier explosion
+      let targetFocusX = 0.0;
+      if (t >= 12.0 && t < 14.2) {
+        targetFocusX = -28.0; // Focus on Battleship explosion
+      } else if (t >= 14.2) {
+        targetFocusX = 38.0;  // Focus on Carrier cataclysmic explosion
       }
       this.camLookAt.set(
         THREE.MathUtils.lerp(this.camLookAt.x, targetFocusX, 0.08),
-        8.0,
-        -140.0
+        6.0,
+        -135.0
       );
     } else if (t < 20.8) {
       // Shot 4: Low-angle dramatic flyby tracking shot following escaping stealth fighter (16.0s - 20.8s)
       if (this.escapingStealthFighter) {
         const sPos = this.escapingStealthFighter.position;
-        // Camera tracks slightly below and behind the stealth fighter as it breaks away
+        // Camera tracks slightly below and behind the stealth fighter as it breaks away through open center
         const u = (t - 16.0) / 4.8;
         this.camTargetPos.set(
-          sPos.x + THREE.MathUtils.lerp(18.0, -12.0, u),
-          sPos.y + THREE.MathUtils.lerp(6.0, 14.0, u),
-          sPos.z + THREE.MathUtils.lerp(35.0, 65.0, u)
+          sPos.x + THREE.MathUtils.lerp(12.0, -8.0, u),
+          sPos.y + THREE.MathUtils.lerp(4.0, 8.0, u),
+          sPos.z + THREE.MathUtils.lerp(24.0, 42.0, u)
         );
         this.camLookAt.set(
           sPos.x,
           sPos.y,
-          sPos.z - 30.0
+          sPos.z - 25.0
         );
       } else {
-        this.camTargetPos.set(0, 18.0, 52.0);
-        this.camLookAt.set(0, 4.0, -90.0);
+        this.camTargetPos.set(0, 16.0, 48.0);
+        this.camLookAt.set(0, 4.0, -80.0);
       }
     } else {
       // Shot 5: Smooth match-cut dolly right behind the player flagship for gameplay transition (20.8s+)
-      this.camTargetPos.set(this.playerPos.x, this.playerPos.y + 9.5, this.playerPos.z + 42.0);
-      this.camLookAt.set(this.playerPos.x, this.playerPos.y + 2.0, this.playerPos.z - 80.0);
+      this.camTargetPos.set(this.playerPos.x, this.playerPos.y + 8.5, this.playerPos.z + 38.0);
+      this.camLookAt.set(this.playerPos.x, this.playerPos.y + 1.5, this.playerPos.z - 75.0);
     }
   }
 
@@ -2692,7 +3270,7 @@ export class SegmaCinematicDirector {
       // PANORAMIC ALL-ASSETS OVERVIEW:
       // High-angle strategic vantage point positioned to encompass:
       // 1. Planet Segma & glowing atmospheric ring (bottom/side horizon)
-      // 2. Space Station Citadel & extended dual solar panel wings (starboard sector)
+      // 2. Space Station Citadel & extended dual solar panel wings (high orbit background)
       // 3. Allied Destroyer Aegis & Escort Frigate (center-port combat flank)
       // 4. Player Controllable Flagship (anchoring formation foreground)
       // 5. Hostile Goliath Battleship & Gorgon Carrier (forward invasion line)
@@ -2758,11 +3336,87 @@ export class SegmaCinematicDirector {
     this.camera.position.lerp(this.camTargetPos, dt * 5.0);
     this.camCurrentLookAt.lerp(this.camLookAt, dt * 5.0);
     this.camera.lookAt(this.camCurrentLookAt);
+
+    // Apply procedural camera micro-shake (distance-scaled & event trauma)
+    if (this.camTrauma > 0) {
+      this.camTrauma = Math.max(0, this.camTrauma - dt * 1.5);
+      const shake = this.camTrauma * this.camTrauma;
+      const pitchShake = (Math.random() - 0.5) * 0.85 * shake;
+      const yawShake = (Math.random() - 0.5) * 0.95 * shake;
+      const rollShake = (Math.random() - 0.5) * 0.65 * shake;
+
+      this.camera.rotation.x += pitchShake * 0.04;
+      this.camera.rotation.y += yawShake * 0.04;
+      this.camera.rotation.z += rollShake * 0.04;
+    }
+  }
+
+  addCameraShake(amount) {
+    this.camTrauma = Math.min(1.0, this.camTrauma + amount);
+  }
+
+  triggerInteractiveBoost() {
+    if (this.boostEngaging || !this.isActive) return;
+    this.boostEngaging = true;
+
+    // 1. Procedural audio ignition roar & bass punch
+    if (this.spaceAudio && this.spaceAudio.playSubspaceIgnition) {
+      this.spaceAudio.playSubspaceIgnition();
+    }
+
+    // 2. Camera Trauma
+    this.addCameraShake(0.95);
+
+    // 3. UI Status feedback
+    if (this.interactivePrompt) {
+      this.interactivePrompt.innerHTML = `
+        <div class="segma-interactive-btn" style="background: rgba(0, 243, 255, 0.6); border-color: #ffffff; transform: scale(1.08);">
+          <span>SUBSPACE BOOST ENGAGED</span>
+          <span class="segma-key-badge">100% THRUST</span>
+        </div>
+      `;
+    }
+    if (this.statusTag) {
+      this.statusTag.textContent = 'PURSUIT ACTIVE // SUBSPACE DRIVE MAXIMUM';
+      this.statusTag.style.color = '#00f3ff';
+    }
+    if (this.dialogueText) {
+      this.dialogueText.textContent = 'WARP DRIVE ENGAGED // COMMENCING HIGH-SPEED SECTOR PURSUIT';
+    }
+
+    // 4. Dynamic FOV Punch effect into Wave 1
+    if (this.camera) {
+      const origFov = this.camera.fov || 60;
+      this.camera.fov = 85;
+      this.camera.updateProjectionMatrix();
+
+      let fovElapsed = 0;
+      const fovInterval = setInterval(() => {
+        fovElapsed += 0.04;
+        this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, origFov, 0.22);
+        this.camera.updateProjectionMatrix();
+        if (fovElapsed >= 0.5) {
+          clearInterval(fovInterval);
+          this.camera.fov = origFov;
+          this.camera.updateProjectionMatrix();
+          this.endCinematic();
+        }
+      }, 30);
+    } else {
+      setTimeout(() => this.endCinematic(), 500);
+    }
   }
 
   endCinematic() {
     if (!this.isActive) return;
     this.isActive = false;
+
+    if (this.interactivePrompt) {
+      this.interactivePrompt.classList.add('hidden');
+    }
+    this.debrisField = [];
+    this.boostEngaging = false;
+    this.shot5BoostPromptActive = false;
 
     document.body.classList.remove('cinematic-active');
     if (this.gameManager.playerShip) {
@@ -2782,7 +3436,11 @@ export class SegmaCinematicDirector {
     this.cinematicTorpedoes = [];
     this.engineFXList = [];
     this.alliedPortals = [];
+    this.waveEnemyDrones = [];
+    this.waveStealthFighters = [];
+    this.waveEcmCorvette = null;
     this.escapingStealthFighter = null;
+    this.escapingStealthFighterObj = null;
 
     // Hide Cinematic HUD
     if (this.hudElem) {

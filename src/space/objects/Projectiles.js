@@ -60,7 +60,7 @@ function getLaserMaterial(colorHex, transparent = false, opacity = 1.0) {
 }
 
 export class LaserBolt {
-  constructor(scene, startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, projectileType = 'STANDARD', gameManager = null) {
+  constructor(scene, startPos, colorHex = null, isEnemy = false, targetDir = null, projectileType = 'STANDARD', gameManager = null) {
     this.scene = scene;
     this.gameManager = gameManager;
     this.meshGroup = new THREE.Group();
@@ -69,7 +69,7 @@ export class LaserBolt {
     this.scene.add(this.meshGroup);
   }
 
-  reset(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, projectileType = 'STANDARD', gameManager = null) {
+  reset(startPos, colorHex = null, isEnemy = false, targetDir = null, projectileType = 'STANDARD', gameManager = null) {
     if (gameManager) this.gameManager = gameManager;
     else if (!this.gameManager && typeof window !== 'undefined' && window.spaceGameManager) {
       this.gameManager = window.spaceGameManager;
@@ -82,6 +82,28 @@ export class LaserBolt {
     this.isSiphon = false;
     this.appliesEmp = false;
     this.aoeRadius = 0;
+
+    // Strict Color Enforcement: Enemies = RED, Player & Assisting Craft = CYAN
+    if (isEnemy) {
+      if (!colorHex) {
+        colorHex = 0xff0033;
+      } else {
+        const r = (colorHex >> 16) & 0xff;
+        const g = (colorHex >> 8) & 0xff;
+        const b = colorHex & 0xff;
+        // If not predominantly red, force to 0xff0033
+        if (r < 0xcc || g > 0x44 || b > 0x55) {
+          colorHex = 0xff0033;
+        }
+      }
+    } else {
+      if (projectileType === 'RAILGUN') {
+        colorHex = 0x00ffff;
+      } else {
+        colorHex = 0x00f3ff;
+      }
+    }
+    this.colorHex = colorHex;
 
     if (this.hitEntities) this.hitEntities.clear();
     else this.hitEntities = new Set();
@@ -114,7 +136,8 @@ export class LaserBolt {
       const isCrit = Math.random() < 0.35;
       this.isCritical = isCrit;
       this.damage = isCrit ? 75 : 25;
-      if (isCrit) colorHex = 0xff00ff; // Bright neon magenta on crit
+      colorHex = isCrit ? 0x00ffff : 0x00f3ff;
+      this.colorHex = colorHex;
     } else if (projectileType === 'RAILGUN') {
       this.damage = 1250;
       this.speed = 260;
@@ -122,12 +145,14 @@ export class LaserBolt {
       this.isPiercing = true;
       this.isCritical = true;
       colorHex = 0x00ffff;
+      this.colorHex = colorHex;
     } else if (projectileType === 'TACHYON_BEAM') {
       this.damage = 65;
       this.speed = 290;
       this.radius = 1.8;
       this.isPiercing = true;
-      colorHex = 0xff00bb;
+      colorHex = 0x00ffff;
+      this.colorHex = colorHex;
     } else {
       // STANDARD / INTERCEPTOR
       this.damage = 22;
@@ -148,6 +173,11 @@ export class LaserBolt {
     while (this.meshGroup.children.length > 0) {
       this.meshGroup.remove(this.meshGroup.children[0]);
     }
+    this.beamMesh = null;
+    this.glowMesh = null;
+    this.coreMesh = null;
+    this.muzzleMesh = null;
+    this._builtType = null;
 
     if (projectileType === 'FLAK') {
       // 1. Aerodynamic Rocket Body (Dark metallic alloy)
@@ -160,13 +190,13 @@ export class LaserBolt {
       });
       this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
 
-      // 2. Heavy Explosive Ogive Warhead Nose
+      // 2. Heavy Explosive Ogive Warhead Nose (Cyan Plasma)
       const warheadGeo = new THREE.ConeGeometry(0.22, 0.85, 8);
       warheadGeo.rotateX(-Math.PI / 2);
       const warheadMat = new THREE.MeshStandardMaterial({
-        color: 0xff3300,
-        emissive: 0xff1100,
-        emissiveIntensity: 0.5,
+        color: 0x00d0ff,
+        emissive: 0x00f3ff,
+        emissiveIntensity: 0.8,
         metalness: 0.88,
         roughness: 0.22
       });
@@ -177,7 +207,7 @@ export class LaserBolt {
       // 3. Optical Seeker Lens
       const seeker = new THREE.Mesh(
         new THREE.SphereGeometry(0.09, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0xffea00 })
+        new THREE.MeshBasicMaterial({ color: 0x00ffff })
       );
       seeker.position.set(0, 0, -1.9);
       this.meshGroup.add(seeker);
@@ -206,7 +236,7 @@ export class LaserBolt {
 
       const flame = new THREE.Mesh(
         new THREE.ConeGeometry(0.18, 0.95, 8),
-        new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.9 })
+        new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.9 })
       );
       flame.rotateX(Math.PI / 2);
       flame.position.set(0, 0, 1.7);
@@ -216,10 +246,10 @@ export class LaserBolt {
       const bodyGeo = new THREE.CylinderGeometry(0.12, 0.14, 2.4, 8);
       bodyGeo.rotateX(Math.PI / 2);
       const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x06281a,
+        color: 0x061e28,
         metalness: 0.94,
         roughness: 0.18,
-        emissive: 0x004422,
+        emissive: 0x003344,
         emissiveIntensity: 0.6
       });
       this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
@@ -228,8 +258,8 @@ export class LaserBolt {
       const warheadGeo = new THREE.ConeGeometry(0.18, 0.75, 8);
       warheadGeo.rotateX(-Math.PI / 2);
       const warheadMat = new THREE.MeshStandardMaterial({
-        color: 0x00ff88,
-        emissive: 0x00ff88,
+        color: 0x00f3ff,
+        emissive: 0x00f3ff,
         emissiveIntensity: 1.2,
         roughness: 0.1
       });
@@ -240,7 +270,7 @@ export class LaserBolt {
       // 3. Dual Concentric Electromagnetic Induction Rings
       [-0.4, 0.4].forEach((rz, i) => {
         const ringGeo = new THREE.TorusGeometry(0.24, 0.03, 6, 16);
-        const ringMat = new THREE.MeshBasicMaterial({ color: i === 0 ? 0x00ff88 : 0x00f3ff });
+        const ringMat = new THREE.MeshBasicMaterial({ color: i === 0 ? 0x00ffff : 0x00f3ff });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.position.set(0, 0, rz);
         this.meshGroup.add(ring);
@@ -262,23 +292,23 @@ export class LaserBolt {
       // 5. Tachyon Nozzle Glow
       const glowLens = new THREE.Mesh(
         new THREE.SphereGeometry(0.12, 8, 8),
-        new THREE.MeshBasicMaterial({ color: 0x00ff88 })
+        new THREE.MeshBasicMaterial({ color: 0x00ffff })
       );
       glowLens.position.set(0, 0, 1.25);
       this.meshGroup.add(glowLens);
     } else if (projectileType === 'CRIT_DART') {
       // 1. Hyper-Velocity Tachyon Needle Fuselage
-      const needleColor = this.isCritical ? 0xff00ff : 0xaa00ff;
-      const coreColor = this.isCritical ? 0xffffff : 0xdd88ff;
+      const needleColor = this.isCritical ? 0x00ffff : 0x00d0ff;
+      const coreColor = this.isCritical ? 0xffffff : 0x99f3ff;
 
       const bodyGeo = new THREE.CylinderGeometry(0.06, 0.08, 3.8, 6);
       bodyGeo.rotateX(Math.PI / 2);
       const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x160824,
+        color: 0x041824,
         metalness: 0.96,
         roughness: 0.15,
         emissive: needleColor,
-        emissiveIntensity: this.isCritical ? 1.5 : 0.6
+        emissiveIntensity: this.isCritical ? 1.5 : 0.8
       });
       this.meshGroup.add(new THREE.Mesh(bodyGeo, bodyMat));
 
@@ -327,13 +357,13 @@ export class LaserBolt {
     } else if (projectileType === 'TACHYON_BEAM') {
       const beamGeo = new THREE.CylinderGeometry(0.14, 0.14, 5.2, 8);
       beamGeo.rotateX(Math.PI / 2);
-      const beamMat = new THREE.MeshBasicMaterial({ color: 0xff00bb, blending: THREE.AdditiveBlending });
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, blending: THREE.AdditiveBlending });
       this.meshGroup.add(new THREE.Mesh(beamGeo, beamMat));
     } else {
       if (this._builtType === `STANDARD_${isEnemy}` && this.beamMesh) {
         this.beamMesh.material = getLaserMaterial(colorHex);
         if (this.glowMesh) this.glowMesh.material = getLaserMaterial(colorHex, true, 0.25);
-        if (this.muzzleMesh) this.muzzleMesh.material = getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff);
+        if (this.muzzleMesh) this.muzzleMesh.material = getLaserMaterial(isEnemy ? 0xff0033 : (this.isCritical ? 0x00ffff : 0xffffff));
       } else {
         while (this.meshGroup.children.length > 0) {
           this.meshGroup.remove(this.meshGroup.children[0]);
@@ -359,7 +389,7 @@ export class LaserBolt {
 
         // Muzzle (desktop only)
         if (!isMobile) {
-          this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(this.isCritical ? 0xff00ff : 0xffffff));
+          this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(isEnemy ? 0xff0033 : (this.isCritical ? 0x00ffff : 0xffffff)));
           this.muzzleMesh.position.z = -geos.len / 2;
           this.meshGroup.add(this.muzzleMesh);
         } else {
@@ -388,15 +418,15 @@ export class LaserBolt {
 
     // Dynamic Rocket Motor Exhaust for Heavy Missiles
     if (this.projectileType === 'FLAK' && gm && gm.particleManager) {
-      gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xff4400);
+      gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00aaff);
       if (Math.random() < 0.6) {
-        gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xffaa00);
+        gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
       }
     }
 
     // Dynamic Tachyon Spark Trail for Homing Plasma Darts
     if (this.projectileType === 'HOMING' && gm && gm.particleManager) {
-      gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00ff88);
+      gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00ffff);
       if (Math.random() < 0.5) {
         gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
       }
@@ -404,7 +434,7 @@ export class LaserBolt {
 
     // Dynamic Tachyon Needle Trail for Void Reaper
     if (this.projectileType === 'CRIT_DART' && gm && gm.particleManager) {
-      const pColor = this.isCritical ? 0xff00ff : 0xaa00ff;
+      const pColor = this.isCritical ? 0x00ffff : 0x00d0ff;
       gm.particleManager.spawnEngineParticle(this.meshGroup.position, pColor);
       if (this.isCritical && Math.random() < 0.6) {
         gm.particleManager.spawnEngineParticle(this.meshGroup.position, 0xffffff);
@@ -501,9 +531,9 @@ function getPlasmaResources() {
     };
     plasmaMatCache = {
       haloMat: new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.14 }),
-      rMat1: new THREE.MeshBasicMaterial({ color: 0xff00cc }),
+      rMat1: new THREE.MeshBasicMaterial({ color: 0x00ffff }),
       rMat2: new THREE.MeshBasicMaterial({ color: 0x00f3ff }),
-      rMat3: new THREE.MeshBasicMaterial({ color: 0x8800ff }),
+      rMat3: new THREE.MeshBasicMaterial({ color: 0x0088ff }),
       centerMat: new THREE.MeshBasicMaterial({ color: 0xffffff }),
     };
   }
@@ -586,7 +616,7 @@ export class PlasmaPulse {
 
     if (this.particleManager) {
       this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
-      if (Math.random() < 0.5) this.particleManager.spawnEngineParticle(this.meshGroup.position, 0xff00cc);
+      if (Math.random() < 0.5) this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00ffff);
     }
 
     if (this.meshGroup.position.z < -160) this.destroy();

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { getPBRMaterialSet, createAAAPBRMaterial } from '../engine/PBRTextureGenerator.js';
+import { assetManager } from '../engine/AssetManager.js';
 
 export class PlayerShip {
   constructor(scene, particleManager) {
@@ -182,7 +183,11 @@ export class PlayerShip {
     this.shieldMesh.visible = false;
     this.meshGroup.add(this.shieldMesh);
 
-    if (this.shipClass === 'INTERCEPTOR') {
+    if (this.shipClass === 'ION_STRIKER') {
+      this.buildIonStrikerMesh();
+    } else if (this.shipClass === 'ORBITAL_SHUTTLE') {
+      this.buildOrbitalShuttleMesh();
+    } else if (this.shipClass === 'INTERCEPTOR') {
       this.buildInterceptorMesh();
     } else if (this.shipClass === 'DREADNOUGHT') {
       this.buildDreadnoughtMesh();
@@ -195,6 +200,99 @@ export class PlayerShip {
     } else {
       this.buildInterceptorMesh();
     }
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // ⚡ 3D GLB CRAFT: ION STRIKER (PrimaryIonDrive 3D Hull)
+  // ────────────────────────────────────────────────────────────
+  buildIonStrikerMesh() {
+    this.maxShield = 110;
+    this.shield = 110;
+    this.speed = 40;
+    this.laserFireDelay = 0.055;
+    this.dodgeMaxCooldown = 1.0;
+    this.maxSwarmCD = 2.8;
+
+    // Procedural Fallback Fuselage
+    const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x122238, metalness: 0.9, roughness: 0.2 });
+    const fallbackGeo = new THREE.ConeGeometry(1.2, 5.0, 6);
+    fallbackGeo.rotateX(-Math.PI / 2);
+    const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
+    this.meshGroup.add(fallbackMesh);
+
+    // Engine Exhaust Flamer & Shock Diamonds
+    const flameGeo = new THREE.ConeGeometry(0.35, 1.4, 8);
+    flameGeo.rotateX(Math.PI / 2);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.85 });
+    const flameMesh = new THREE.Mesh(flameGeo, flameMat);
+    flameMesh.position.set(0, 0, 2.2);
+    this.meshGroup.add(flameMesh);
+    this.flameMeshes.push(flameMesh);
+
+    this.muzzleOffsets = [
+      new THREE.Vector3(-1.1, 0, -2.2),
+      new THREE.Vector3(1.1, 0, -2.2)
+    ];
+    this.engineTrailOffsets = [
+      new THREE.Vector3(0, 0, 2.2)
+    ];
+
+    // Asynchronously load dedicated 3D GLB Ion Fighter
+    assetManager.loadPlayerShipModel('INTERCEPTOR').then(craft => {
+      if (craft && this.meshGroup) {
+        fallbackMesh.visible = false;
+        craft.position.set(0, 0, 0);
+        this.meshGroup.add(craft);
+      }
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // 🚀 3D GLB CRAFT: ORBITAL SHUTTLE (Spacecraft Shuttle 3D Hull)
+  // ────────────────────────────────────────────────────────────
+  buildOrbitalShuttleMesh() {
+    this.maxShield = 160;
+    this.shield = 160;
+    this.speed = 30;
+    this.laserFireDelay = 0.075;
+    this.dodgeMaxCooldown = 1.5;
+    this.maxSwarmCD = 3.5;
+
+    // Procedural Fallback Fuselage
+    const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x2a2e36, metalness: 0.85, roughness: 0.3 });
+    const fallbackGeo = new THREE.BoxGeometry(2.2, 1.4, 5.5);
+    const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
+    this.meshGroup.add(fallbackMesh);
+
+    // Twin Thruster Nozzles
+    [-0.6, 0.6].forEach(x => {
+      const fGeo = new THREE.ConeGeometry(0.28, 1.2, 8);
+      fGeo.rotateX(Math.PI / 2);
+      const fMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.85 });
+      const fMesh = new THREE.Mesh(fGeo, fMat);
+      fMesh.position.set(x, 0.2, 2.6);
+      this.meshGroup.add(fMesh);
+      this.flameMeshes.push(fMesh);
+    });
+
+    this.muzzleOffsets = [
+      new THREE.Vector3(-1.4, 0, -2.0),
+      new THREE.Vector3(0, -0.4, -2.6),
+      new THREE.Vector3(1.4, 0, -2.0)
+    ];
+    this.engineTrailOffsets = [
+      new THREE.Vector3(-0.6, 0.2, 2.6),
+      new THREE.Vector3(0.6, 0.2, 2.6)
+    ];
+
+    // Asynchronously load NASA Space Shuttle GLB
+    assetManager.loadPlayerShipModel('JUGGERNAUT').then(craft => {
+      if (craft && this.meshGroup) {
+        fallbackMesh.visible = false;
+        craft.position.set(0, 0, 0);
+        this.meshGroup.add(craft);
+      }
+    });
   }
 
   // ────────────────────────────────────────────────────────────

@@ -967,5 +967,225 @@ export class SpaceAudio {
       whiteNoise.onended = () => { try { whiteNoise.disconnect(); noiseFilter.disconnect(); noiseGain.disconnect(); } catch (e) {} };
     } catch (e) {}
   }
+
+  /**
+   * Procedural Sub-Bass Warp Drop / Subspace Displacement Boom
+   * A heavy, physical low-frequency drop (135Hz -> 28Hz) simulating massive dreadnoughts tearing through hyperspace.
+   */
+  playSubBassWarpDrop() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      // Primary Sub Bass Oscillator (Sine + Triangle blend)
+      const subOsc = this.ctx.createOscillator();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(135, now);
+      subOsc.frequency.exponentialRampToValueAtTime(32, now + 1.8);
+      subOsc.frequency.linearRampToValueAtTime(24, now + 2.8);
+
+      const subGain = this.ctx.createGain();
+      subGain.gain.setValueAtTime(0.001, now);
+      subGain.gain.linearRampToValueAtTime(0.75, now + 0.12);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.8);
+
+      // Low-pass resonant filter
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(550, now);
+      filter.frequency.exponentialRampToValueAtTime(65, now + 2.2);
+      filter.Q.setValueAtTime(4.0, now);
+
+      // Harmonic distortion layer (Sawtooth pitched 1 octave lower)
+      const harmOsc = this.ctx.createOscillator();
+      harmOsc.type = 'triangle';
+      harmOsc.frequency.setValueAtTime(67.5, now);
+      harmOsc.frequency.exponentialRampToValueAtTime(16, now + 2.0);
+
+      const harmGain = this.ctx.createGain();
+      harmGain.gain.setValueAtTime(0.001, now);
+      harmGain.gain.linearRampToValueAtTime(0.35, now + 0.15);
+      harmGain.gain.exponentialRampToValueAtTime(0.001, now + 2.4);
+
+      subOsc.connect(filter);
+      harmOsc.connect(filter);
+      filter.connect(subGain);
+      subGain.connect(outputNode);
+
+      subOsc.start(now);
+      harmOsc.start(now);
+      subOsc.stop(now + 2.9);
+      harmOsc.stop(now + 2.9);
+
+      subOsc.onended = () => {
+        try {
+          subOsc.disconnect();
+          harmOsc.disconnect();
+          filter.disconnect();
+          subGain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
+
+  /**
+   * Procedural Stereo Doppler Flyby
+   * Spatialized pitch-shifted turbine whistle & supersonic particle displacement whoosh.
+   */
+  playFlybyDoppler(panDir = 1) {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const dur = 1.6;
+      // 1. High-speed turbine engine whine
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sawtooth';
+      // Doppler curve: ascends sharply on approach, peaks at flyby midpoint, drops rapidly on egress
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(1150, now + dur * 0.42);
+      osc.frequency.exponentialRampToValueAtTime(180, now + dur);
+
+      const oscFilter = this.ctx.createBiquadFilter();
+      oscFilter.type = 'bandpass';
+      oscFilter.frequency.setValueAtTime(600, now);
+      oscFilter.frequency.exponentialRampToValueAtTime(1800, now + dur * 0.45);
+      oscFilter.frequency.exponentialRampToValueAtTime(350, now + dur);
+      oscFilter.Q.setValueAtTime(3.5, now);
+
+      const oscGain = this.ctx.createGain();
+      oscGain.gain.setValueAtTime(0.001, now);
+      oscGain.gain.linearRampToValueAtTime(0.35, now + dur * 0.40);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      // 2. Air / particle displacement white noise whoosh
+      const bufferSize = Math.floor(this.ctx.sampleRate * dur);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(200, now);
+      noiseFilter.frequency.exponentialRampToValueAtTime(1400, now + dur * 0.42);
+      noiseFilter.frequency.exponentialRampToValueAtTime(180, now + dur);
+      noiseFilter.Q.setValueAtTime(1.8, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.001, now);
+      noiseGain.gain.linearRampToValueAtTime(0.28, now + dur * 0.42);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+      // Stereo Panning (Directional flyby across ears)
+      let panner = null;
+      if (this.ctx.createStereoPanner) {
+        panner = this.ctx.createStereoPanner();
+        const startPan = panDir > 0 ? -0.92 : 0.92;
+        const endPan = panDir > 0 ? 0.92 : -0.92;
+        panner.pan.setValueAtTime(startPan, now);
+        panner.pan.linearRampToValueAtTime(endPan, now + dur);
+      }
+
+      osc.connect(oscFilter);
+      oscFilter.connect(oscGain);
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+
+      const targetDest = panner || outputNode;
+      oscGain.connect(targetDest);
+      noiseGain.connect(targetDest);
+      if (panner) panner.connect(outputNode);
+
+      osc.start(now);
+      noiseSource.start(now);
+      osc.stop(now + dur);
+      noiseSource.stop(now + dur);
+
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          oscFilter.disconnect();
+          oscGain.disconnect();
+          noiseSource.disconnect();
+          noiseFilter.disconnect();
+          noiseGain.disconnect();
+          if (panner) panner.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
+
+  /**
+   * Procedural Subspace Boost Ignition
+   * High-energy engine flare, reactor spool, and hypersonic bass thump.
+   */
+  playSubspaceIgnition() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      // 1. Spool-up rising tone
+      const spool = this.ctx.createOscillator();
+      spool.type = 'sawtooth';
+      spool.frequency.setValueAtTime(90, now);
+      spool.frequency.exponentialRampToValueAtTime(460, now + 0.35);
+
+      const spoolFilter = this.ctx.createBiquadFilter();
+      spoolFilter.type = 'lowpass';
+      spoolFilter.frequency.setValueAtTime(220, now);
+      spoolFilter.frequency.exponentialRampToValueAtTime(1600, now + 0.35);
+
+      const spoolGain = this.ctx.createGain();
+      spoolGain.gain.setValueAtTime(0.01, now);
+      spoolGain.gain.linearRampToValueAtTime(0.40, now + 0.30);
+      spoolGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+      // 2. Heavy Sub Bass Punch
+      const punch = this.ctx.createOscillator();
+      punch.type = 'sine';
+      punch.frequency.setValueAtTime(140, now + 0.28);
+      punch.frequency.exponentialRampToValueAtTime(38, now + 0.95);
+
+      const punchGain = this.ctx.createGain();
+      punchGain.gain.setValueAtTime(0.001, now);
+      punchGain.gain.setValueAtTime(0.70, now + 0.30);
+      punchGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+      spool.connect(spoolFilter);
+      spoolFilter.connect(spoolGain);
+      spoolGain.connect(outputNode);
+
+      punch.connect(punchGain);
+      punchGain.connect(outputNode);
+
+      spool.start(now);
+      spool.stop(now + 0.72);
+      punch.start(now + 0.28);
+      punch.stop(now + 1.25);
+
+      punch.onended = () => {
+        try {
+          spool.disconnect();
+          spoolFilter.disconnect();
+          spoolGain.disconnect();
+          punch.disconnect();
+          punchGain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
 }
 

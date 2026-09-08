@@ -1491,7 +1491,17 @@ export class GameManager {
     }
   }
 
-  spawnLaser(startPos, colorHex = 0x00f3ff, isEnemy = false, targetDir = null, isCrit = false, projectileType = 'STANDARD') {
+  spawnLaser(startPos, colorHex = null, isEnemy = false, targetDir = null, isCrit = false, projectileType = 'STANDARD') {
+    if (isEnemy) {
+      if (!colorHex || colorHex === 0x00f3ff || colorHex === 0x00ffff || colorHex === 0x00ff88 || colorHex === 0xaa22ff || colorHex === 0x00ff66) {
+        colorHex = 0xff0033;
+      }
+    } else {
+      if (!colorHex || colorHex === 0xff0033 || colorHex === 0xff0044 || colorHex === 0xff0055 || colorHex === 0xff3300) {
+        colorHex = (projectileType === 'RAILGUN') ? 0x00ffff : 0x00f3ff;
+      }
+    }
+
     if (this.isMobile && this.lasers) {
       if (isEnemy) {
         let activeEnemyCount = 0;
@@ -1524,7 +1534,7 @@ export class GameManager {
 
     // AAA Dynamic Muzzle Lighting Flash (Desktop only — protects mobile JS timer loop)
     if (!this.isMobile && !isEnemy && this.spaceScene && Math.random() < 0.4) {
-      this.spaceScene.triggerDynamicLightFlash(startPos, colorHex, 3.0, 0.07);
+      this.spaceScene.triggerDynamicLightFlash(startPos, colorHex || 0x00f3ff, 3.0, 0.07);
     }
 
     return bolt;
@@ -1565,21 +1575,21 @@ export class GameManager {
 
     if (shipClass === 'DREADNOUGHT') {
       projectileType = 'FLAK';
-      color = 0xff3300;
+      color = 0x00f3ff;
       this.playerShip.triggerBarrelRecoil();
       this.spaceScene.addScreenShake(0.28);
     } else if (shipClass === 'TACTICIAN') {
       projectileType = 'HOMING';
-      color = 0x00ff88;
+      color = 0x00f3ff;
     } else if (shipClass === 'REAPER') {
       projectileType = 'CRIT_DART';
-      color = 0xaa00ff;
+      color = 0x00ffff;
     } else if (shipClass === 'SENTINEL') {
       projectileType = 'STANDARD';
       color = 0x00e5ff;
     }
 
-    if (this.overchargeTimer > 0) color = 0xffea00;
+    if (this.overchargeTimer > 0) color = 0x00ffff;
     if (this.hapticsManager) this.hapticsManager.triggerLaser();
 
     if (!this._tempWorldMuzzle) {
@@ -1606,11 +1616,11 @@ export class GameManager {
         bolt.damage = Math.round((bolt.damage || 22) * mult);
       }
       if (shipClass === 'DREADNOUGHT') {
-        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0xff5500);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00aaff);
       } else if (shipClass === 'TACTICIAN') {
-        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00ff88);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00f3ff);
       } else if (shipClass === 'REAPER') {
-        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0xcc00ff);
+        this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00ffff);
       } else if (shipClass === 'SENTINEL') {
         this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00e5ff);
       }
@@ -1700,7 +1710,7 @@ export class GameManager {
     const startPos = new THREE.Vector3(0, 0, -2.0).add(pPos);
 
     if (Math.random() < 0.35) {
-      this.spawnLaser(startPos, 0xff00bb, false, new THREE.Vector3(0, 0, -1), false, 'TACHYON_BEAM');
+      this.spawnLaser(startPos, 0x00ffff, false, new THREE.Vector3(0, 0, -1), false, 'TACHYON_BEAM');
       this.spaceScene.addScreenShake(0.12);
     }
   }
@@ -1780,9 +1790,9 @@ export class GameManager {
     const shipClass = this.playerShip.shipClass || 'INTERCEPTOR';
     const numMissiles = shipClass === 'DREADNOUGHT' ? 8 : 6;
     let themeColor = 0x00f3ff;
-    if (shipClass === 'DREADNOUGHT') themeColor = 0xff0044;
-    else if (shipClass === 'TACTICIAN') themeColor = 0x00ff88;
-    else if (shipClass === 'REAPER') themeColor = 0xaa00ff;
+    if (shipClass === 'DREADNOUGHT') themeColor = 0x00d0ff;
+    else if (shipClass === 'TACTICIAN') themeColor = 0x00ffff;
+    else if (shipClass === 'REAPER') themeColor = 0x00f3ff;
     else if (shipClass === 'SENTINEL') themeColor = 0x00e5ff;
 
     for (let i = 0; i < numMissiles; i++) {
@@ -1795,7 +1805,7 @@ export class GameManager {
         this.playerSwarmMissiles.push(missile);
         this.spaceAudio.playMissileLaunch(sideOffset);
         if (this.particleManager) {
-          this.particleManager.spawnEngineParticle(launchPos, 0xff5500);
+          this.particleManager.spawnEngineParticle(launchPos, 0x00f3ff);
         }
       }, i * 65);
     }
@@ -2139,7 +2149,7 @@ export class GameManager {
         if (ecmFire && Array.isArray(ecmFire)) {
           ecmFire.forEach(ePos => {
             this._tempTargetDir.subVectors(pPos, ePos).normalize();
-            this.spawnLaser(ePos, 0xaa22ff, true, this._tempTargetDir, false, 'STANDARD');
+            this.spawnLaser(ePos, 0xff0033, true, this._tempTargetDir, false, 'STANDARD');
           });
           this.spaceAudio.playLaserPew();
         }
@@ -2166,7 +2176,7 @@ export class GameManager {
         if (pFire && Array.isArray(pFire)) {
           pFire.forEach(pos => {
             this._tempTargetDir.subVectors(pPos, pos).normalize();
-            this.spawnLaser(pos, 0x00f3ff, true, this._tempTargetDir, false, 'STANDARD');
+            this.spawnLaser(pos, 0xff0033, true, this._tempTargetDir, false, 'STANDARD');
           });
           this.spaceAudio.playLaserPew();
         }
@@ -2254,7 +2264,7 @@ export class GameManager {
           if (carrierStatus && carrierStatus.lasers && Array.isArray(carrierStatus.lasers)) {
             carrierStatus.lasers.forEach(tPos => {
               const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
-              this.spawnLaser(tPos, 0x00ff66, true, targetDir);
+              this.spawnLaser(tPos, 0xff0044, true, targetDir);
             });
             this.spaceAudio.playLaserPew();
           }
@@ -2362,7 +2372,7 @@ export class GameManager {
               if (salvo.homingMissiles && Array.isArray(salvo.homingMissiles)) {
                 salvo.homingMissiles.forEach(m => {
                   const targetDir = new THREE.Vector3().subVectors(pPos, m.pos).normalize();
-                  this.spawnLaser(m.pos, 0xffaa00, true, targetDir, false, 'HOMING');
+                  this.spawnLaser(m.pos, 0xff1122, true, targetDir, false, 'HOMING');
                 });
                 if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();
               }
@@ -2379,7 +2389,7 @@ export class GameManager {
                 salvo.solarLances.forEach(origin => {
                   for (let a = -0.4; a <= 0.4; a += 0.2) {
                     const dir = new THREE.Vector3(a, 0, 1).normalize();
-                    this.spawnLaser(origin, 0xff7700, true, dir);
+                    this.spawnLaser(origin, 0xff2200, true, dir);
                   }
                 });
                 if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();
@@ -2390,7 +2400,7 @@ export class GameManager {
                 salvo.gravitonWaves.forEach(origin => {
                   for (let a = -0.5; a <= 0.5; a += 0.25) {
                     const dir = new THREE.Vector3(a, Math.sin(a * 3) * 0.2, 1).normalize();
-                    this.spawnLaser(origin, 0xaa00ff, true, dir);
+                    this.spawnLaser(origin, 0xff0044, true, dir);
                   }
                 });
                 if (this.spaceAudio.playHeavyCannonSound) this.spaceAudio.playHeavyCannonSound();

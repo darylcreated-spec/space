@@ -12,6 +12,7 @@ export class AssetManager {
     this.audioBuffers = new Map();
     this.loadingPromises = new Map();
     this.gltfLoader = null;
+    this.textureLoader = new THREE.TextureLoader();
   }
 
   async init() {
@@ -21,6 +22,32 @@ export class AssetManager {
     } catch (e) {
       console.warn('GLTFLoader dynamic import failed, procedural meshes will be used', e);
     }
+  }
+
+  /**
+   * Loads and caches a 2D/cubemap texture
+   */
+  loadTexture(url, sRGB = false) {
+    if (this.textures.has(url)) {
+      return this.textures.get(url);
+    }
+    const tex = this.textureLoader.load(
+      url,
+      (t) => {
+        if (sRGB && THREE.SRGBColorSpace) {
+          t.colorSpace = THREE.SRGBColorSpace;
+        }
+      },
+      undefined,
+      (err) => {
+        console.warn(`AssetManager: Failed to load texture from ${url}`, err);
+      }
+    );
+    if (sRGB && THREE.SRGBColorSpace) {
+      tex.colorSpace = THREE.SRGBColorSpace;
+    }
+    this.textures.set(url, tex);
+    return tex;
   }
 
   /**
@@ -215,6 +242,99 @@ export class AssetManager {
     }
 
     return group;
+  }
+
+  /**
+   * Rescales and centers a 3D model automatically to a target bounding dimension
+   */
+  normalizeModelSize(model, targetMaxDimension = 5.0, centerPivot = true) {
+    if (!model) return;
+    model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0.0001) {
+      const scale = targetMaxDimension / maxDim;
+      model.scale.multiplyScalar(scale);
+      if (centerPivot) {
+        model.position.sub(center.clone().multiplyScalar(scale));
+      }
+    }
+  }
+
+  /**
+   * Loads the authentic orbital Space Station model (ISS or Citadel)
+   */
+  async loadSpaceStationModel() {
+    // Try ISS GLB first, fallback to Citadel station from fleet GLB
+    const iss = await this.loadModel('/models/Space_Station_ISS.glb', 'Space_Station_ISS');
+    if (iss) {
+      const wrapper = new THREE.Group();
+      wrapper.name = 'SpaceStation_ISS';
+      this.normalizeModelSize(iss, 32.0, true);
+      wrapper.add(iss);
+      return wrapper;
+    }
+    await this.loadFleetAssets();
+    const citadel = this.getFleetShipMesh('Vessel_Station_01');
+    if (citadel) {
+      const wrapper = new THREE.Group();
+      wrapper.name = 'SpaceStation_Citadel';
+      this.normalizeModelSize(citadel, 32.0, true);
+      wrapper.add(citadel);
+      const ring = this.getFleetShipMesh('Station_Habitat_Ring');
+      if (ring) {
+        this.normalizeModelSize(ring, 32.0, true);
+        wrapper.add(ring);
+      }
+      return wrapper;
+    }
+    return null;
+  }
+
+  /**
+   * Loads a dedicated player spacecraft 3D model
+   */
+  async loadPlayerShipModel(shipClass = 'INTERCEPTOR') {
+    if (shipClass === 'STEALTH' || shipClass === 'INTERCEPTOR') {
+      const ionFighter = await this.loadModel('/models/Spacecraft_Ion_Fighter.glb', 'Spacecraft_Ion_Fighter');
+      if (ionFighter) {
+        const wrapper = new THREE.Group();
+        wrapper.name = 'PlayerCraft_Ion';
+        this.normalizeModelSize(ionFighter, 4.2, true);
+        wrapper.add(ionFighter);
+        return wrapper;
+      }
+    } else if (shipClass === 'JUGGERNAUT' || shipClass === 'TITAN') {
+      const shuttle = await this.loadModel('/models/Spacecraft_Shuttle.glb', 'Spacecraft_Shuttle');
+      if (shuttle) {
+        const wrapper = new THREE.Group();
+        wrapper.name = 'PlayerCraft_Shuttle';
+        this.normalizeModelSize(shuttle, 5.0, true);
+        wrapper.add(shuttle);
+        return wrapper;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Loads an escort frigate model for wingmen
+   */
+  async loadEscortFrigateModel() {
+    await this.loadFleetAssets();
+    const frigate = this.getFleetShipMesh('Vessel_Frigate_01');
+    if (frigate) {
+      const wrapper = new THREE.Group();
+      wrapper.name = 'Wingman_Frigate';
+      this.normalizeModelSize(frigate, 3.2, true);
+      wrapper.add(frigate);
+      return wrapper;
+    }
+    return null;
   }
 }
 

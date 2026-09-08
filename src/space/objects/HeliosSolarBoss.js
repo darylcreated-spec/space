@@ -185,9 +185,9 @@ export class HeliosSolarBoss {
       const muzzle = c.mesh.localToWorld(new THREE.Vector3(0, 0, -2.0));
       const targetDir = new THREE.Vector3().subVectors(pPos, muzzle).normalize();
       if (gameManager.spawnEnemyLaser) {
-        gameManager.spawnEnemyLaser(muzzle, targetDir, 0xffaa00, 48);
+        gameManager.spawnEnemyLaser(muzzle, targetDir, 0xff2200, 48);
       } else {
-        gameManager.spawnLaser(muzzle, 0xffaa00, true, targetDir);
+        gameManager.spawnLaser(muzzle, 0xff2200, true, targetDir);
       }
     });
   }

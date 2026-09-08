@@ -3539,6 +3539,85 @@ body.cinematic-active .hud-top-unified-bar {
   border: 1px solid rgba(0, 243, 255, 0.2);
 }
 
+/* ── 🚀 Interactive Hand-off Prompt (Shot 5) ── */
+.segma-interactive-prompt {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  z-index: 10000;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.segma-interactive-prompt.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(20px);
+}
+
+.segma-interactive-btn {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.25), rgba(0, 136, 255, 0.4));
+  border: 1.5px solid #00f3ff;
+  color: #ffffff;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 2px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 0 24px rgba(0, 243, 255, 0.5), inset 0 0 12px rgba(0, 243, 255, 0.25);
+  animation: segmaPromptPulse 1.8s infinite ease-in-out;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.segma-interactive-btn:hover {
+  transform: scale(1.06);
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.4), rgba(0, 136, 255, 0.6));
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.8), inset 0 0 16px rgba(0, 243, 255, 0.4);
+}
+
+.segma-interactive-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 0 45px rgba(0, 243, 255, 1.0);
+}
+
+.segma-key-badge {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(0, 243, 255, 0.7);
+  color: #00f3ff;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.segma-auto-timer {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: rgba(0, 243, 255, 0.75);
+  letter-spacing: 1px;
+}
+
+@keyframes segmaPromptPulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.4), inset 0 0 10px rgba(0, 243, 255, 0.2);
+    border-color: rgba(0, 243, 255, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(0, 243, 255, 0.75), inset 0 0 18px rgba(0, 243, 255, 0.35);
+    border-color: #ffffff;
+  }
+}
+
 .segma-comms-panel {
   display: flex;
   flex-direction: column;

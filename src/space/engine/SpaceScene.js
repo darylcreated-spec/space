@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { deviceManager } from './DeviceManager.js';
+import { assetManager } from './AssetManager.js';
 
 export class SpaceScene {
   constructor(container) {
@@ -80,8 +81,9 @@ export class SpaceScene {
     // Lighting setup
     this.setupLighting();
 
-    // Build Deep Space Environment (No grid, no planet)
+    // Build Deep Space Environment & Photorealistic Planet Segma with Orbital Station
     this.buildDeepSpaceEnvironment();
+    this.setupPlanetSegma();
 
     // Entity groups
     this.entitiesGroup = new THREE.Group();
@@ -665,29 +667,69 @@ export class SpaceScene {
       }
     }
 
-    // 1. Planet Segma Core Globe
-    const planetGeo = new THREE.SphereGeometry(140, 48, 48);
-    const planetTex = this.createPlanetSegmaTexture();
+    // 1. Planet Segma Core Globe with 4K Photorealistic PBR Textures
+    const planetGeo = new THREE.SphereGeometry(140, 64, 64);
+    
+    // Load high-resolution 4K/2K texture maps
+    const diffuseTex = assetManager.loadTexture('/textures/planets/planet_segma_diffuse_4k.jpg', true);
+    const normalTex = assetManager.loadTexture('/textures/planets/planet_segma_normal_2k.jpg');
+    const specTex = assetManager.loadTexture('/textures/planets/planet_segma_specular_2k.jpg');
+    const nightTex = assetManager.loadTexture('/textures/planets/planet_segma_night_4k.jpg', true);
+
     const planetMat = new THREE.MeshStandardMaterial({
-      map: planetTex,
-      roughness: 0.65,
-      metalness: 0.2
+      map: diffuseTex || this.createPlanetSegmaTexture(),
+      normalMap: normalTex || null,
+      normalScale: new THREE.Vector2(0.75, 0.75),
+      roughnessMap: specTex || null,
+      roughness: 0.68,
+      metalness: 0.18,
+      emissiveMap: nightTex || null,
+      emissive: new THREE.Color(0xffe699),
+      emissiveIntensity: 0.65
     });
     const segmaMesh = new THREE.Mesh(planetGeo, planetMat);
+    this.planetCoreMesh = segmaMesh;
     this.planetGroup.add(segmaMesh);
 
-    // 2. Rayleigh Atmospheric Glow Shell
+    // 2. Separate Dynamic Atmospheric Cloud Sphere
+    const cloudGeo = new THREE.SphereGeometry(141.8, 64, 64);
+    const cloudTex = assetManager.loadTexture('/textures/planets/planet_segma_clouds_1k.png', true);
+    const cloudMat = new THREE.MeshStandardMaterial({
+      map: cloudTex,
+      transparent: true,
+      opacity: 0.72,
+      blending: THREE.NormalBlending,
+      depthWrite: false
+    });
+    const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+    this.planetCloudMesh = cloudMesh;
+    this.planetGroup.add(cloudMesh);
+
+    // 3. Natural Orbital Moon with High-Res Surface Map
+    const moonGeo = new THREE.SphereGeometry(18, 32, 32);
+    const moonTex = assetManager.loadTexture('/textures/planets/planet_segma_moon_1k.jpg', true);
+    const moonMat = new THREE.MeshStandardMaterial({
+      map: moonTex,
+      roughness: 0.88,
+      metalness: 0.08
+    });
+    const moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    moonMesh.position.set(-210, 65, -60);
+    this.planetMoonMesh = moonMesh;
+    this.planetGroup.add(moonMesh);
+
+    // 4. Rayleigh Atmospheric Glow Shell
     const atmosGeo = new THREE.SphereGeometry(145, 32, 32);
     const atmosMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.28,
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide
     });
     this.planetGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
 
-    // 3. Shimmering Planetary Defense Energy Shield
+    // 5. Shimmering Planetary Defense Energy Shield
     const shieldGeo = new THREE.SphereGeometry(152, 32, 32);
     const shieldMat = new THREE.MeshBasicMaterial({
       color: 0x00aaff,
@@ -700,7 +742,7 @@ export class SpaceScene {
     this.planetGroup.add(shieldMesh);
     this.planetShieldMesh = shieldMesh;
 
-    // 4. Orbital Defense Satellite Grid Ring
+    // 6. Orbital Defense Satellite Grid Ring
     const satRingGeo = new THREE.TorusGeometry(185, 1.2, 8, 64);
     satRingGeo.rotateX(Math.PI * 0.35);
     const satRingMat = new THREE.MeshBasicMaterial({
@@ -743,6 +785,42 @@ export class SpaceScene {
     // Position Planet Segma at bottom-right of viewport for movie director framing
     this.planetGroup.position.set(115, -110, -290);
     this.planetGroup.rotation.set(0.2, -0.4, 0.25);
+
+    // Setup Orbital Defense Space Station in high orbit
+    this.setupOrbitalStation();
+  }
+
+  setupOrbitalStation() {
+    if (this.orbitalStationGroup) {
+      this.scene.remove(this.orbitalStationGroup);
+    }
+    this.orbitalStationGroup = new THREE.Group();
+    this.orbitalStationGroup.name = 'OrbitalStationGroup';
+    this.scene.add(this.orbitalStationGroup);
+
+    // Position in high orbit overlooking Planet Segma
+    this.orbitalStationGroup.position.set(85, 15, -230);
+    this.orbitalStationGroup.rotation.set(0.15, 0.45, -0.1);
+
+    // Load authentic orbital Space Station 3D model
+    assetManager.loadSpaceStationModel().then(stationModel => {
+      if (stationModel && this.orbitalStationGroup) {
+        this.orbitalStationGroup.add(stationModel);
+        this.orbitalStationModel = stationModel;
+      }
+    });
+
+    // Orbital defense perimeter beacons & communication array
+    const beaconGreenMat = new THREE.MeshBasicMaterial({ color: 0x00ff88 });
+    const beaconRedMat = new THREE.MeshBasicMaterial({ color: 0xff2255 });
+    [-22, 22].forEach(x => {
+      const bG = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), beaconGreenMat);
+      bG.position.set(x, 4, 0);
+      this.orbitalStationGroup.add(bG);
+      const bR = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), beaconRedMat);
+      bR.position.set(x, -4, 0);
+      this.orbitalStationGroup.add(bR);
+    });
   }
 
   buildDeepSpaceEnvironment() {
@@ -1105,9 +1183,21 @@ export class SpaceScene {
       this.camera.updateProjectionMatrix();
     }
 
-    // Atmosphere & Planet Slow Rotation
+    // Dynamic Multi-Layer Celestial & Station Rotation
     if (this.planetGroup) {
-      this.planetGroup.rotation.y += dt * 0.012;
+      this.planetGroup.rotation.y += dt * 0.008;
+      if (this.planetCloudMesh) {
+        this.planetCloudMesh.rotation.y += dt * 0.015;
+      }
+      if (this.planetMoonMesh) {
+        this._moonAngle = (this._moonAngle || 0) + dt * 0.02;
+        this.planetMoonMesh.position.x = Math.cos(this._moonAngle) * 215;
+        this.planetMoonMesh.position.z = Math.sin(this._moonAngle) * 85 - 60;
+        this.planetMoonMesh.rotation.y += dt * 0.01;
+      }
+    }
+    if (this.orbitalStationGroup) {
+      this.orbitalStationGroup.rotation.y += dt * 0.016;
     }
     if (this.nebulaGroup) {
       this.nebulaGroup.rotation.z += dt * 0.002;
@@ -1254,14 +1344,43 @@ export class SpaceScene {
     let dustColor = 0x00f3ff;
 
     if (stageNum === 1) {
-      // 🪐 STAGE 1: Orbital Corridor IV // Sapphire Gas Giant & Ring
-      const planetGeo = new THREE.SphereGeometry(85, 32, 32);
-      const planetTex = this.createGasGiantTexture([
-        [0.0, '#041226'], [0.2, '#08284d'], [0.35, '#00e1ff'],
-        [0.48, '#0b3560'], [0.65, '#00a6ff'], [0.82, '#0d4078'], [1.0, '#031022']
-      ]);
-      const planetMat = new THREE.MeshStandardMaterial({ map: planetTex, roughness: 0.85, metalness: 0.1 });
-      this.planetGroup.add(new THREE.Mesh(planetGeo, planetMat));
+      // 🪐 STAGE 1: Orbital Corridor IV // Photorealistic Planet Segma & Planetary Rings
+      const planetGeo = new THREE.SphereGeometry(88, 48, 48);
+      const diffuseTex = assetManager.loadTexture('/textures/planets/planet_segma_diffuse_4k.jpg', true);
+      const normalTex = assetManager.loadTexture('/textures/planets/planet_segma_normal_2k.jpg');
+      const specTex = assetManager.loadTexture('/textures/planets/planet_segma_specular_2k.jpg');
+      const nightTex = assetManager.loadTexture('/textures/planets/planet_segma_night_4k.jpg', true);
+
+      const planetMat = new THREE.MeshStandardMaterial({
+        map: diffuseTex || this.createGasGiantTexture([
+          [0.0, '#041226'], [0.2, '#08284d'], [0.35, '#00e1ff'],
+          [0.48, '#0b3560'], [0.65, '#00a6ff'], [0.82, '#0d4078'], [1.0, '#031022']
+        ]),
+        normalMap: normalTex || null,
+        normalScale: new THREE.Vector2(0.7, 0.7),
+        roughnessMap: specTex || null,
+        roughness: 0.72,
+        metalness: 0.16,
+        emissiveMap: nightTex || null,
+        emissive: new THREE.Color(0xffe28a),
+        emissiveIntensity: 0.55
+      });
+      const planetMesh = new THREE.Mesh(planetGeo, planetMat);
+      this.planetGroup.add(planetMesh);
+
+      // Dynamic Cloud Sphere Layer
+      const cloudGeo = new THREE.SphereGeometry(89.2, 48, 48);
+      const cloudTex = assetManager.loadTexture('/textures/planets/planet_segma_clouds_1k.png', true);
+      const cloudMat = new THREE.MeshStandardMaterial({
+        map: cloudTex,
+        transparent: true,
+        opacity: 0.68,
+        blending: THREE.NormalBlending,
+        depthWrite: false
+      });
+      const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+      this.planetCloudMesh = cloudMesh;
+      this.planetGroup.add(cloudMesh);
 
       const ringGeo = new THREE.RingGeometry(110, 185, 64);
       ringGeo.rotateX(Math.PI * 0.38); ringGeo.rotateZ(Math.PI * 0.12);
@@ -1280,13 +1399,37 @@ export class SpaceScene {
       if (this.warmBackLight) this.warmBackLight.color.setHex(0xff0066);
     } else if (stageNum === 2) {
       // 🌍 STAGE 2: Ring of Light // Terraformed Oceanic World & Distant Halo Ring Arc
-      const planetGeo = new THREE.SphereGeometry(75, 32, 32);
-      const planetTex = this.createOceanicWorldTexture();
-      const planetMat = new THREE.MeshStandardMaterial({ map: planetTex, roughness: 0.75, metalness: 0.15 });
+      const planetGeo = new THREE.SphereGeometry(78, 48, 48);
+      const diffuseTex = assetManager.loadTexture('/textures/planets/planet_segma_diffuse_4k.jpg', true);
+      const normalTex = assetManager.loadTexture('/textures/planets/planet_segma_normal_2k.jpg');
+      const specTex = assetManager.loadTexture('/textures/planets/planet_segma_specular_2k.jpg');
+
+      const planetMat = new THREE.MeshStandardMaterial({
+        map: diffuseTex || this.createOceanicWorldTexture(),
+        normalMap: normalTex || null,
+        normalScale: new THREE.Vector2(0.8, 0.8),
+        roughnessMap: specTex || null,
+        roughness: 0.65,
+        metalness: 0.18
+      });
       this.planetGroup.add(new THREE.Mesh(planetGeo, planetMat));
 
+      // Dynamic Cloud Layer
+      const cloudGeo = new THREE.SphereGeometry(79.2, 48, 48);
+      const cloudTex = assetManager.loadTexture('/textures/planets/planet_segma_clouds_1k.png', true);
+      const cloudMat = new THREE.MeshStandardMaterial({
+        map: cloudTex,
+        transparent: true,
+        opacity: 0.72,
+        blending: THREE.NormalBlending,
+        depthWrite: false
+      });
+      const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+      this.planetCloudMesh = cloudMesh;
+      this.planetGroup.add(cloudMesh);
+
       // Atmospheric Rayleigh Limb Glow Rim
-      const atmosGeo = new THREE.SphereGeometry(78.5, 32, 32);
+      const atmosGeo = new THREE.SphereGeometry(81.5, 32, 32);
       const atmosMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, side: THREE.BackSide });
       this.planetGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
 
@@ -1307,10 +1450,14 @@ export class SpaceScene {
       if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00ffaa);
       if (this.warmBackLight) this.warmBackLight.color.setHex(0xffaa00);
     } else if (stageNum === 3) {
-      // 🌑 STAGE 3: Selene Shield // Cratered Lunar Moon with Geothermal Fissures
-      const moonGeo = new THREE.SphereGeometry(70, 32, 32);
-      const moonTex = this.createLunarMoonTexture();
-      const moonMat = new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.92, metalness: 0.25 });
+      // 🌑 STAGE 3: Selene Shield // Cratered Lunar Moon with High-Res Texture
+      const moonGeo = new THREE.SphereGeometry(72, 48, 48);
+      const moonTex = assetManager.loadTexture('/textures/planets/planet_segma_moon_1k.jpg', true);
+      const moonMat = new THREE.MeshStandardMaterial({
+        map: moonTex || this.createLunarMoonTexture(),
+        roughness: 0.92,
+        metalness: 0.15
+      });
       this.planetGroup.add(new THREE.Mesh(moonGeo, moonMat));
 
       // Orbital Defense Satellite Relay Rings
@@ -1541,6 +1688,11 @@ export class SpaceScene {
     // Update Dust Particles Material Color
     if (this.dustPoints && this.dustPoints.material) {
       this.dustPoints.material.color.setHex(dustColor);
+    }
+
+    // Maintain Orbital Space Station defense sentinel in high orbit
+    if (stageNum <= 3) {
+      this.setupOrbitalStation();
     }
   }
 }
