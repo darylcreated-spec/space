@@ -264,6 +264,7 @@ export class SegmaCinematicDirector {
     // Camera Lerp Cache
     this.camTargetPos = new THREE.Vector3();
     this.camLookAt = new THREE.Vector3();
+    this.camCurrentLookAt = new THREE.Vector3(16.0, 2.0, -85.0);
 
     // PBR Material Cache
     this.pbrMaterials = {};
@@ -315,63 +316,13 @@ export class SegmaCinematicDirector {
               <span class="pill-dot"></span>
               <span id="segma-cam-label">CAM: DIRECTOR</span>
             </button>
-            <button id="btn-segma-ship" class="segma-btn-pill" title="Switch Controlled Fleet Vessel (V)">
-              <span class="pill-dot"></span>
-              <span id="segma-ship-label">VESSEL: FRIGATE</span>
-            </button>
-            <button id="btn-segma-engage" class="segma-btn-engage" title="Engage Combat / Skip Cinematic (Space)">
-              <span>ENGAGE COMBAT</span>
+            <button id="btn-segma-engage" class="segma-btn-engage" title="Skip Cinematic Movie to Wave 1 (Space)">
+              <span>SKIP MOVIE (SPACE)</span>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3"/>
               </svg>
             </button>
           </div>
-        </div>
-
-        <!-- Interactive Tactical Formation & Defensive Positioning Dock -->
-        <div id="segma-tactical-dock" class="segma-tactical-dock hidden">
-          <div class="segma-tactical-header">
-            <span class="segma-tactical-title">DEFENSIVE FORMATION COMMAND</span>
-            <span class="segma-tactical-hint">DRAG OR SELECT WARSHIPS TO ASSIGN DEFENSIVE SECTOR PATROLS</span>
-          </div>
-          <div class="segma-tactical-actions">
-            <div class="segma-formation-presets">
-              <button id="btn-formation-aegis" class="segma-preset-btn active" title="V-Wedge Escort Defense">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="12 2 22 20 12 16 2 20 12 2"/>
-                </svg>
-                <span>AEGIS WEDGE</span>
-              </button>
-              <button id="btn-formation-citadel" class="segma-preset-btn" title="Orbital Citadel Shield">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>
-                </svg>
-                <span>CITADEL GUARD</span>
-              </button>
-              <button id="btn-formation-screen" class="segma-preset-btn" title="Horizontal Flank Perimeter">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="2" y1="12" x2="22" y2="12"/><circle cx="6" cy="12" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="18" cy="12" r="3"/>
-                </svg>
-                <span>FLANK SCREEN</span>
-              </button>
-            </div>
-            <div class="segma-ship-selector-row">
-              <button id="btn-select-ship-player" class="segma-ship-btn active">FLAGSHIP (YOU)</button>
-              <button id="btn-select-ship-frigate" class="segma-ship-btn">ESCORT FRIGATE</button>
-              <button id="btn-select-ship-destroyer" class="segma-ship-btn">DESTROYER AEGIS</button>
-            </div>
-            <button id="btn-confirm-formation" class="segma-btn-lock-formation">
-              <span>LOCK FORMATION // ENGAGE</span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="segma-reticle-wrap">
-          <div class="segma-flight-reticle"></div>
-          <div class="segma-flight-hint" id="segma-flight-hint">ALLIED FLEET ARRIVAL // DROPPING OUT OF HYPERSPACE</div>
         </div>
 
         <div class="segma-letterbox bottom">
@@ -395,9 +346,6 @@ export class SegmaCinematicDirector {
     this.dialogueText = document.getElementById('segma-dialogue-text');
     this.speakerName = document.getElementById('segma-speaker-name');
     this.statusTag = document.getElementById('segma-status-tag');
-    this.flightHint = document.getElementById('segma-flight-hint');
-    this.tacticalDock = document.getElementById('segma-tactical-dock');
-
     this.zoomLevelLabel = document.getElementById('segma-zoom-level');
 
     document.getElementById('btn-segma-zoom-out')?.addEventListener('click', () => this.adjustCameraZoom(0.25));
@@ -406,21 +354,7 @@ export class SegmaCinematicDirector {
     document.getElementById('btn-segma-pause')?.addEventListener('click', () => this.togglePause());
 
     document.getElementById('btn-segma-camera')?.addEventListener('click', () => this.cycleCameraMode());
-    document.getElementById('btn-segma-ship')?.addEventListener('click', () => this.cycleVesselControl());
     document.getElementById('btn-segma-engage')?.addEventListener('click', () => this.confirmDefensivePositions());
-
-    // Formation preset buttons
-    document.getElementById('btn-formation-aegis')?.addEventListener('click', () => this.applyFormationPreset('AEGIS'));
-    document.getElementById('btn-formation-citadel')?.addEventListener('click', () => this.applyFormationPreset('CITADEL'));
-    document.getElementById('btn-formation-screen')?.addEventListener('click', () => this.applyFormationPreset('SCREEN'));
-
-    // Ship selection buttons in tactical dock
-    document.getElementById('btn-select-ship-player')?.addEventListener('click', () => this.selectTacticalShip('PLAYER'));
-    document.getElementById('btn-select-ship-frigate')?.addEventListener('click', () => this.selectTacticalShip('FRIGATE'));
-    document.getElementById('btn-select-ship-destroyer')?.addEventListener('click', () => this.selectTacticalShip('DESTROYER'));
-
-    // Lock formation button
-    document.getElementById('btn-confirm-formation')?.addEventListener('click', () => this.confirmDefensivePositions());
 
     // Mouse / Touch interaction for selecting & dragging ships in 3D + free orbit camera control
     window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
@@ -492,6 +426,16 @@ export class SegmaCinematicDirector {
     this.isTacticalMode = false;
     this.cameraMode = 'DIRECTOR';
     this.currentVesselIndex = 0;
+
+    // Initialize camera in Shot 1 grand establishing perspective
+    this.camTargetPos.set(-24.0, 72.0, 120.0);
+    this.camLookAt.set(16.0, 2.0, -85.0);
+    this.camCurrentLookAt.set(16.0, 2.0, -85.0);
+    this.camera.position.set(-24.0, 72.0, 120.0);
+    this.camera.lookAt(this.camCurrentLookAt);
+    this.cameraZoomFactor = 1.0;
+    this.cameraOrbitAngleX = 0;
+    this.cameraOrbitAngleY = 0;
 
     // Reset Cinematic Battle & Stealth Escape State
     this.battlePhase = 'RECALL';
@@ -1260,22 +1204,25 @@ export class SegmaCinematicDirector {
   }
 
   enterTacticalPlacementMode() {
-    this.isTacticalMode = true;
+    this.isTacticalMode = false;
     if (this.tacticalDock) {
-      this.tacticalDock.classList.remove('hidden');
+      this.tacticalDock.classList.add('hidden');
     }
 
-    // Show selection rings
+    // Hide selection rings - zero manual placement
     Object.values(this.selectionRings).forEach(ring => {
-      ring.visible = true;
+      if (ring) ring.visible = false;
     });
 
+    // Automatically establish Aegis fleet defense formation
+    this.applyFormationPreset('AEGIS');
+
     if (this.flightHint) {
-      this.flightHint.innerHTML = 'TACTICAL PLACEMENT ACTIVE // DRAG OR SELECT WARSHIPS TO ASSIGN DEFENSIVE SECTOR PATROLS';
+      this.flightHint.innerHTML = 'ARMADA IN FORMATION // AEGIS DEFENSIVE POSTURE ASSUMED';
     }
 
     if (this.statusTag) {
-      this.statusTag.textContent = 'SECTOR SEGMA // TACTICAL FLEET FORMATION';
+      this.statusTag.textContent = 'SECTOR SEGMA // ALLIED ARMADA DEPLOYED';
     }
 
     if (this.speakerName) {
@@ -1283,7 +1230,7 @@ export class SegmaCinematicDirector {
     }
 
     if (this.dialogueText) {
-      this.dialogueText.textContent = 'Allied armada on station! Commander, select fleet defense formation or reposition your warships around Planet Segma.';
+      this.dialogueText.textContent = 'Allied armada on station! Fleet has assumed Aegis defensive posture around Planet Segma.';
     }
 
     if (this.spaceAudio && this.spaceAudio.playTacticalNotification) {
@@ -1292,7 +1239,7 @@ export class SegmaCinematicDirector {
 
     if (this.gameManager.voiceAnnouncer) {
       this.gameManager.voiceAnnouncer.speak(
-        "Allied armada on station! Commander, assign defensive formation around Planet Segma.",
+        "Allied armada on station! Fleet in defensive formation around Planet Segma.",
         true,
         "COMMAND"
       );
@@ -1944,6 +1891,20 @@ export class SegmaCinematicDirector {
       this.battlePhase = 'RECALL';
     }
 
+    // Ensure Allied Armada warp is finalized at t >= 5.0
+    if (t >= 5.0 && !this.alliedWarpCompleted) {
+      this.alliedWarpCompleted = true;
+      this.alliedPortals.forEach(entry => {
+        if (entry.portal) entry.portal.visible = false;
+        if (entry.ship) {
+          entry.ship.visible = true;
+          entry.ship.scale.set(entry.targetScale, entry.targetScale, entry.targetScale);
+          entry.ship.position.copy(entry.targetPos);
+        }
+      });
+      this.enterTacticalPlacementMode();
+    }
+
     // ── ACT II: Hostile Incursion (5.0s – 9.0s) ──
     if (t >= 5.0 && t < 9.0 && !this.warpTriggered) {
       this.battlePhase = 'WARP_IN';
@@ -1977,6 +1938,23 @@ export class SegmaCinematicDirector {
           true,
           'AVIONICS'
         );
+      }
+    }
+
+    // Ensure Hostile warp portals are finalized at t >= 9.0
+    if (t >= 9.0 && !this.warpCompleted) {
+      this.warpCompleted = true;
+      if (this.warpPortalCarrier) this.warpPortalCarrier.visible = false;
+      if (this.warpPortalBattleship) this.warpPortalBattleship.visible = false;
+      if (this.enemyCarrier) {
+        this.enemyCarrier.visible = true;
+        this.enemyCarrier.scale.set(1.0, 1.0, 1.0);
+        this.enemyCarrier.position.z = -140;
+      }
+      if (this.enemyBattleship) {
+        this.enemyBattleship.visible = true;
+        this.enemyBattleship.scale.set(0.85, 0.85, 0.85);
+        this.enemyBattleship.position.z = -125;
       }
     }
 
@@ -2618,6 +2596,93 @@ export class SegmaCinematicDirector {
     }
   }
 
+  /**
+   * Automated Hollywood Multi-Shot Camera Trajectory
+   * Smooth Hermite S-curve interpolation capturing all battle assets:
+   * Shot 1 (0.0s - 5.5s): Grand orbital crane framing Planet Segma, Space Station with solar wings, and armada warp emergence
+   * Shot 2 (5.5s - 9.0s): Hostile incursion crane sweep showing crimson subspace rifts tearing open over Planet Segma as Goliath & Gorgon arrive
+   * Shot 3 (9.0s - 16.0s): High sweeping tactical combat tracking arc showing warship maneuvering, spinal railgun salvos, swarm torpedoes, CIWS tracers, and destruction of both enemy capital behemoths
+   * Shot 4 (16.0s - 20.8s): Low-angle dramatic flyby tracking shot following the escaped enemy stealth fighter as it screams past camera and cloaks
+   * Shot 5 (20.8s+): Smooth match-cut dolly right behind the player flagship as letterbox dissolves and Wave 1 begins
+   */
+  updateDirectorCameraTrajectory(t) {
+    if (t < 5.5) {
+      // Shot 1: Grand orbital crane (0.0s - 5.5s)
+      const u = t / 5.5;
+      const s = u * u * (3 - 2 * u); // Smoothstep cubic Hermite
+      this.camTargetPos.set(
+        THREE.MathUtils.lerp(-24.0, -8.0, s),
+        THREE.MathUtils.lerp(72.0, 48.0, s),
+        THREE.MathUtils.lerp(120.0, 92.0, s)
+      );
+      this.camLookAt.set(
+        THREE.MathUtils.lerp(16.0, 10.0, s),
+        THREE.MathUtils.lerp(2.0, 6.0, s),
+        THREE.MathUtils.lerp(-85.0, -110.0, s)
+      );
+    } else if (t < 9.0) {
+      // Shot 2: Hostile incursion crane sweep (5.5s - 9.0s)
+      const u = (t - 5.5) / 3.5;
+      const s = u * u * (3 - 2 * u);
+      this.camTargetPos.set(
+        THREE.MathUtils.lerp(-8.0, 18.0, s),
+        THREE.MathUtils.lerp(48.0, 36.0, s),
+        THREE.MathUtils.lerp(92.0, 68.0, s)
+      );
+      this.camLookAt.set(
+        THREE.MathUtils.lerp(10.0, 8.0, s),
+        THREE.MathUtils.lerp(6.0, 8.0, s),
+        THREE.MathUtils.lerp(-110.0, -145.0, s)
+      );
+    } else if (t < 16.0) {
+      // Shot 3: Sweeping tactical combat tracking arc (9.0s - 16.0s)
+      const u = (t - 9.0) / 7.0;
+      const s = u * u * (3 - 2 * u);
+      // Sweeping arc banking from starboard to port while capturing the full theater of battle
+      const sweepX = -32.0 + Math.sin(u * Math.PI) * 28.0;
+      const sweepY = THREE.MathUtils.lerp(38.0, 24.0, s);
+      const sweepZ = THREE.MathUtils.lerp(75.0, 42.0, s);
+      this.camTargetPos.set(sweepX, sweepY, sweepZ);
+
+      // Focus pans dynamically across targets: Carrier -> Battleship explosion -> Fleet
+      let targetFocusX = 8.0;
+      if (t >= 12.0 && t < 14.5) {
+        targetFocusX = -40.0; // Focus on Battleship explosion
+      } else if (t >= 14.5) {
+        targetFocusX = 55.0;  // Focus on Carrier cataclysmic explosion
+      }
+      this.camLookAt.set(
+        THREE.MathUtils.lerp(this.camLookAt.x, targetFocusX, 0.08),
+        8.0,
+        -140.0
+      );
+    } else if (t < 20.8) {
+      // Shot 4: Low-angle dramatic flyby tracking shot following escaping stealth fighter (16.0s - 20.8s)
+      if (this.escapingStealthFighter) {
+        const sPos = this.escapingStealthFighter.position;
+        // Camera tracks slightly below and behind the stealth fighter as it breaks away
+        const u = (t - 16.0) / 4.8;
+        this.camTargetPos.set(
+          sPos.x + THREE.MathUtils.lerp(18.0, -12.0, u),
+          sPos.y + THREE.MathUtils.lerp(6.0, 14.0, u),
+          sPos.z + THREE.MathUtils.lerp(35.0, 65.0, u)
+        );
+        this.camLookAt.set(
+          sPos.x,
+          sPos.y,
+          sPos.z - 30.0
+        );
+      } else {
+        this.camTargetPos.set(0, 18.0, 52.0);
+        this.camLookAt.set(0, 4.0, -90.0);
+      }
+    } else {
+      // Shot 5: Smooth match-cut dolly right behind the player flagship for gameplay transition (20.8s+)
+      this.camTargetPos.set(this.playerPos.x, this.playerPos.y + 9.5, this.playerPos.z + 42.0);
+      this.camLookAt.set(this.playerPos.x, this.playerPos.y + 2.0, this.playerPos.z - 80.0);
+    }
+  }
+
   updateCamera(dt) {
     if (!this.playerMesh) return;
 
@@ -2637,41 +2702,7 @@ export class SegmaCinematicDirector {
       this.camTargetPos.copy(baseOverviewPos);
       this.camLookAt.copy(baseLookAt);
     } else if (this.cameraMode === 'DIRECTOR') {
-      const t = this.elapsedTime;
-      if (t < 5.0) {
-        // Act I: Low dramatic wide angle framing Planet Segma at bottom-right while armada warps in
-        const angle = t * 0.08;
-        this.camTargetPos.set(
-          this.playerPos.x - 24.0 + Math.sin(angle) * 8.0,
-          this.playerPos.y + 14.0,
-          this.playerPos.z + 46.0
-        );
-        this.camLookAt.set(
-          this.playerPos.x + 8.0,
-          this.playerPos.y + 2.0,
-          this.playerPos.z - 70.0
-        );
-      } else if (t < 9.0) {
-        // Act II: Hostile Incursion - over-the-shoulder view looking at the ominous crimson warp vortexes
-        this.camTargetPos.set(-12.0, 16.0, 38.0);
-        this.camLookAt.set(10.0, 8.0, -145.0);
-      } else if (t < 15.8) {
-        // Act III: Broad combat tracking shot - allied armada unleashing broadsides at capital ships
-        const combatPan = (t - 9.0) * 0.12;
-        this.camTargetPos.set(-28.0 + Math.sin(combatPan) * 14.0, 18.0, 28.0);
-        const focusX = this.carrierDestroyed ? -40.0 : (this.battleshipDestroyed ? 55.0 : 8.0);
-        this.camLookAt.set(focusX, 6.0, -145.0);
-      } else {
-        // Act IV: Dramatic tracking shot following the escaping stealth fighter
-        if (this.escapingStealthFighter) {
-          const sPos = this.escapingStealthFighter.position;
-          this.camTargetPos.set(sPos.x + 16.0, sPos.y + 8.0, sPos.z + 36.0);
-          this.camLookAt.set(sPos.x, sPos.y, sPos.z - 40.0);
-        } else {
-          this.camTargetPos.set(0, 14.0, 48.0);
-          this.camLookAt.set(0, 4.0, -90.0);
-        }
-      }
+      this.updateDirectorCameraTrajectory(this.elapsedTime);
     } else if (this.cameraMode === 'CHASE') {
       // Dynamic 3rd person chase camera tailored to capital vessel dimensions
       let chaseOffset = new THREE.Vector3(0, 9.5, 42.0);
@@ -2725,7 +2756,8 @@ export class SegmaCinematicDirector {
     this.camTargetPos.copy(this.camLookAt).add(camOffset);
 
     this.camera.position.lerp(this.camTargetPos, dt * 5.0);
-    this.camera.lookAt(this.camLookAt);
+    this.camCurrentLookAt.lerp(this.camLookAt, dt * 5.0);
+    this.camera.lookAt(this.camCurrentLookAt);
   }
 
   endCinematic() {

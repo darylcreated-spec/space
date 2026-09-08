@@ -3317,7 +3317,19 @@ body:not(.is-mobile-browser) .virtual-joystick-dock {
 
 /* ══════════════════════════════════════════════════════════
    🪐 PLANET SEGMA INTERACTIVE 3D CINEMATIC HUD
-   ══════════════════════════════════════════════════════════ */
+/* Hide standard gameplay HUD, touch controls, and reticles during movie opening */
+body.cinematic-active #hud-space,
+body.cinematic-active .hud-container,
+body.cinematic-active .space-hud,
+body.cinematic-active .cockpit-hud-overlay,
+body.cinematic-active .virtual-joystick-dock,
+body.cinematic-active .mobile-controls-right-edge,
+body.cinematic-active .hud-top-unified-bar {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .segma-cinematic-hud {
   position: fixed;
   inset: 0;
