@@ -2213,6 +2213,40 @@ export class GameManager {
 
   renderScene(dt = 0.016, rawDt = dt) {
     if (this.postProcessing) {
+      // Graviton Lensing & Spacetime Curvature
+      let gravitonSet = false;
+      const isWave8OrSingularity = (this.waveSpawner && this.waveSpawner.currentWave === 8) ||
+        (this.activeBoss && (this.activeBoss.constructor?.name === 'SingularityHarbinger' || (this.activeBoss.bossTitle && this.activeBoss.bossTitle.includes('Singularity'))));
+
+      if (this.activeBoss && !this.activeBoss.isDead && isWave8OrSingularity && this.spaceScene?.camera) {
+        if (!this._gravitonScreenPos) this._gravitonScreenPos = new THREE.Vector3();
+        const bPos = this.activeBoss.meshGroup ? this.activeBoss.meshGroup.position : (this.activeBoss.position || new THREE.Vector3(0, 0, -20));
+        this._gravitonScreenPos.copy(bPos);
+        this._gravitonScreenPos.project(this.spaceScene.camera);
+        if (this._gravitonScreenPos.z < 1.0) {
+          const uvX = (this._gravitonScreenPos.x + 1.0) * 0.5;
+          const uvY = (this._gravitonScreenPos.y + 1.0) * 0.5;
+          this.postProcessing.setGravitonLens({ x: uvX, y: uvY }, 0.24, 0.12);
+          gravitonSet = true;
+        }
+      } else if (this.activeNukeDetonation && this.activeNukeDetonation.timer > 0 && this.spaceScene?.camera) {
+        this.activeNukeDetonation.timer -= dt;
+        if (!this._gravitonScreenPos) this._gravitonScreenPos = new THREE.Vector3();
+        this._gravitonScreenPos.copy(this.activeNukeDetonation.pos);
+        this._gravitonScreenPos.project(this.spaceScene.camera);
+        if (this._gravitonScreenPos.z < 1.0) {
+          const uvX = (this._gravitonScreenPos.x + 1.0) * 0.5;
+          const uvY = (this._gravitonScreenPos.y + 1.0) * 0.5;
+          const nukeRadius = 0.35 * Math.min(1.0, this.activeNukeDetonation.timer / 1.0);
+          this.postProcessing.setGravitonLens({ x: uvX, y: uvY }, nukeRadius, 0.16);
+          gravitonSet = true;
+        }
+      }
+
+      if (!gravitonSet) {
+        this.postProcessing.setGravitonLens(null);
+      }
+
       this.postProcessing.update(dt, this.playerShip, rawDt);
       this.postProcessing.render();
     } else {

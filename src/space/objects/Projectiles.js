@@ -756,6 +756,7 @@ export class AntiMatterNuke {
     }
 
     if (gm) {
+      gm.activeNukeDetonation = { pos: this.meshGroup.position.clone(), timer: 1.5 };
       gm.spaceScene?.addScreenShake(2.5);
       gm.spaceAudio?.playEmpPulse?.();
       gm.spaceHUD?.showWaveBanner('SUB-SPACE DETONATION', 'TACTICAL ANTI-MATTER WARHEAD TRIGGERED!');

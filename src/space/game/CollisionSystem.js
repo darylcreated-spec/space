@@ -139,7 +139,7 @@ export class CollisionSystem {
           laser.destroy();
           gameManager.lasers.splice(i, 1);
 
-          const dead = player.takeDamage(12);
+          const dead = player.takeDamage(12, lPos);
           this.particleManager.createExplosion(pPos, 0xff0055, 15);
           this.spaceAudio.playExplosion();
           this.spaceScene.addScreenShake(0.6);
@@ -1200,7 +1200,7 @@ export class CollisionSystem {
         // Minor shield friction ripple & visual spark
         if (!player._lastShieldBump || Date.now() - player._lastShieldBump > 600) {
           player._lastShieldBump = Date.now();
-          player.takeDamage(8);
+          player.takeDamage(8, pPos);
           this.particleManager.createLaserImpact(pPos, pushDir, 0x00f3ff, 12);
           this.spaceAudio.playLaserPew();
           this.spaceScene.addScreenShake(0.6);
@@ -1227,7 +1227,7 @@ export class CollisionSystem {
           }
         } else {
           // Heavy continuous superlaser burn damage
-          const dead = player.takeDamage(45);
+          const dead = player.takeDamage(45, bPos);
           this.particleManager.createLaserImpact(pPos, new THREE.Vector3(0, 0, 1), 0x00f3ff, 15);
           this.spaceScene.addScreenShake(2.5);
           if (dead) {
@@ -1247,7 +1247,7 @@ export class CollisionSystem {
         rock.isDead = true;
         const isDread = player.shipClass === 'DREADNOUGHT';
         const dmgTaken = isDread ? 6 : 25;
-        const dead = player.takeDamage(dmgTaken);
+        const dead = player.takeDamage(dmgTaken, rock.meshGroup.position);
         this.particleManager.createExplosion(pPos, isDread ? 0xff5500 : 0xff0055, isDread ? 45 : 30, isDread ? 2.0 : 1.0);
         this.spaceAudio.playExplosion();
         this.spaceScene.addScreenShake(isDread ? 0.7 : 1.2);
@@ -1260,7 +1260,7 @@ export class CollisionSystem {
         drone.isDead = true;
         const isDread = player.shipClass === 'DREADNOUGHT';
         const dmgTaken = isDread ? 8 : 35;
-        const dead = player.takeDamage(dmgTaken);
+        const dead = player.takeDamage(dmgTaken, drone.meshGroup.position);
         this.particleManager.createExplosion(pPos, isDread ? 0xff3300 : 0xff0055, isDread ? 45 : 35, isDread ? 2.0 : 1.0);
         this.spaceAudio.playExplosion();
         this.spaceScene.addScreenShake(isDread ? 0.8 : 1.5);
@@ -1273,7 +1273,7 @@ export class CollisionSystem {
         ship.isDead = true;
         const isDread = player.shipClass === 'DREADNOUGHT';
         const dmgTaken = isDread ? 15 : 50;
-        const dead = player.takeDamage(dmgTaken);
+        const dead = player.takeDamage(dmgTaken, ship.meshGroup.position);
         this.particleManager.createExplosion(pPos, 0x00aaff, 45);
         this.spaceAudio.playExplosion();
         this.spaceScene.addScreenShake(2.0);

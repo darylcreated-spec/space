@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { getPBRMaterialSet, createAAAPBRMaterial } from '../engine/PBRTextureGenerator.js';
 import { assetManager } from '../engine/AssetManager.js';
+import { createHexShieldMaterial } from '../engine/HexShieldShader.js';
+import { VolumetricTrailRenderer } from '../engine/VolumetricTrailRenderer.js';
 
 export class PlayerShip {
   constructor(scene, particleManager) {
@@ -81,6 +83,8 @@ export class PlayerShip {
     this.wingtipLights = [];
     this.wingtipBeacons = [];
     this.engineTrailOffsets = [];
+    this.volumetricTrails = [];
+    this.hitRingIndex = 0;
     this.rcsPorts = [];
 
     // Articulated Sub-Meshes
@@ -127,6 +131,10 @@ export class PlayerShip {
     this.reaperWingL = null;
     this.reaperWingR = null;
     this.sentinelDrone = null;
+    if (this.volumetricTrails) {
+      this.volumetricTrails.forEach(t => t.destroy());
+      this.volumetricTrails = [];
+    }
   }
 
   buildCockpitInterior(parentGroup, canopyColorHex = 0x00f3ff) {
@@ -169,22 +177,15 @@ export class PlayerShip {
     this.clearShipMesh();
     this.shipClass = className || 'INTERCEPTOR';
 
-    // Hexagonal Shield Dome
-    const shieldGeo = new THREE.IcosahedronGeometry(3.3, 2);
+    // Procedural Hexagonal Energy Shield Dome with Fresnel & Hit Ripples
+    const shieldGeo = new THREE.IcosahedronGeometry(3.4, 3);
     let shieldColor = 0x00f3ff;
     if (this.shipClass === 'DREADNOUGHT') shieldColor = 0xff0044;
     else if (this.shipClass === 'TACTICIAN') shieldColor = 0x00ff88;
     else if (this.shipClass === 'REAPER') shieldColor = 0xaa00ff;
     else if (this.shipClass === 'SENTINEL') shieldColor = 0x00e5ff;
 
-    this.shieldMat = new THREE.MeshBasicMaterial({
-      color: shieldColor,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
+    this.shieldMat = createHexShieldMaterial(shieldColor);
     this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
     this.shieldMesh.visible = false;
     this.meshGroup.add(this.shieldMesh);
@@ -206,6 +207,59 @@ export class PlayerShip {
     } else {
       this.buildInterceptorMesh();
     }
+
+    this.initVolumetricTrails();
+  }
+
+  initVolumetricTrails() {
+    if (this.volumetricTrails) {
+      this.volumetricTrails.forEach(t => t.destroy());
+    }
+    this.volumetricTrails = [];
+
+    let trailColor = 0x00f3ff;
+    if (this.shipClass === 'INTERCEPTOR') trailColor = 0x00f3ff;
+    else if (this.shipClass === 'DREADNOUGHT') trailColor = 0xff0044;
+    else if (this.shipClass === 'TACTICIAN') trailColor = 0x00ff88;
+    else if (this.shipClass === 'REAPER') trailColor = 0xaa00ff;
+    else if (this.shipClass === 'SENTINEL') trailColor = 0x00e5ff;
+
+    const offsets = (this.engineTrailOffsets && this.engineTrailOffsets.length > 0)
+      ? this.engineTrailOffsets
+      : [new THREE.Vector3(0, 0, 2.0)];
+
+    offsets.forEach(offset => {
+      const trail = new VolumetricTrailRenderer(this.scene, {
+        maxPoints: 24,
+        lifetime: 0.38,
+        startWidth: 0.34,
+        endWidth: 0.04,
+        colorHex: trailColor
+      });
+      trail.localOffset = offset.clone();
+      this.volumetricTrails.push(trail);
+    });
+  }
+
+  addShieldHit(worldHitPos = null, intensity = 1.0) {
+    if (!this.shieldMesh || !this.shieldMat || !this.shieldMat.uniforms) return;
+
+    let localHit = new THREE.Vector3(0, 0, 1);
+    if (worldHitPos) {
+      localHit.copy(worldHitPos);
+      this.shieldMesh.worldToLocal(localHit);
+      localHit.normalize().multiplyScalar(3.4);
+    }
+
+    const idx = (this.hitRingIndex || 0) % 4;
+    this.shieldMat.uniforms.uHitPoints.value[idx].copy(localHit);
+    this.shieldMat.uniforms.uHitTimes.value[idx] = 0.0;
+    this.shieldMat.uniforms.uHitIntensities.value[idx] = Math.min(2.5, intensity);
+    this.hitRingIndex = (idx + 1) % 4;
+
+    this.shieldMat.uniforms.uOverallOpacity.value = 1.0;
+    this.shieldRippleTimer = 0.85;
+    this.shieldMesh.visible = true;
   }
 
   // ────────────────────────────────────────────────────────────
@@ -1448,17 +1502,15 @@ export class PlayerShip {
     this.moltenHeat = Math.min(1.0, this.moltenHeat + 0.25);
   }
 
-  applyRepulsorDeflection(forceVec) {
+  applyRepulsorDeflection(forceVec, hitPos = null) {
     if (!forceVec) return;
     this.velocity.x += forceVec.x;
     this.velocity.y += forceVec.y;
     this.velocity.z += forceVec.z;
-    this.shieldRippleTimer = Math.max(this.shieldRippleTimer, 0.45);
-    if (this.shieldMat) this.shieldMat.opacity = 0.35;
-    if (this.shieldMesh) this.shieldMesh.visible = true;
+    this.addShieldHit(hitPos, 1.2);
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, hitPos = null) {
     const isGod = (this.gameManager && this.gameManager.isGodMode) || (window.spaceGameManager && window.spaceGameManager.isGodMode);
     if (isGod) {
       return false; // ONLY God Mode grants permanent 100% damage immunity
@@ -1483,9 +1535,7 @@ export class PlayerShip {
 
     const prevShield = this.shield;
     this.shield = Math.max(0, this.shield - finalAmount);
-    this.shieldRippleTimer = 0.65; // Bring up shield display for 0.65 second
-    if (this.shieldMat) this.shieldMat.opacity = 0.35;
-    if (this.shieldMesh) this.shieldMesh.visible = true;
+    this.addShieldHit(hitPos, Math.min(2.5, finalAmount / 12.0));
     this.updateDamageVisuals();
     this.gameManager?.spaceAudio?.playSubBassHullThud?.();
 
@@ -1545,8 +1595,7 @@ export class PlayerShip {
 
   healShield(amount) {
     this.shield = Math.min(this.maxShield, this.shield + amount);
-    this.shieldRippleTimer = 0.35;
-    if (this.shieldMat) this.shieldMat.opacity = 0.7;
+    this.addShieldHit(null, 0.8);
     this.updateDamageVisuals();
   }
 
@@ -1653,19 +1702,25 @@ export class PlayerShip {
 
     const currentSpeed = this.speed * (this.isBoosting ? 2.0 : 1.0);
 
-    // Shield Hexagonal Lattice decay (0.65 second display on collision)
-    if (this.shieldRippleTimer > 0) {
-      this.shieldRippleTimer -= dt;
-      if (this.shieldMat) {
-        this.shieldMat.opacity = Math.min(0.35, (this.shieldRippleTimer / 0.65) * 0.35);
+    // Hexagonal Energy Shield Shader & Multi-Point Ripple Updates
+    if (this.shieldMat && this.shieldMat.uniforms) {
+      this.shieldMat.uniforms.uTime.value += dt;
+      for (let i = 0; i < 4; i++) {
+        this.shieldMat.uniforms.uHitTimes.value[i] += dt;
       }
-      if (this.shieldMesh) {
-        this.shieldMesh.visible = true;
-        this.shieldMesh.rotation.z += 4.5 * dt;
-        this.shieldMesh.rotation.y += 3.0 * dt;
+      if (this.shieldRippleTimer > 0) {
+        this.shieldRippleTimer -= dt;
+        const op = Math.min(1.0, this.shieldRippleTimer / 0.85);
+        this.shieldMat.uniforms.uOverallOpacity.value = op;
+        if (this.shieldMesh) {
+          this.shieldMesh.visible = true;
+          this.shieldMesh.rotation.z += 1.5 * dt;
+          this.shieldMesh.rotation.y += 0.8 * dt;
+        }
+      } else {
+        this.shieldMat.uniforms.uOverallOpacity.value = 0.0;
+        if (this.shieldMesh) this.shieldMesh.visible = false;
       }
-    } else {
-      if (this.shieldMesh) this.shieldMesh.visible = false;
     }
 
     // ── Mechanical Articulation Updates ──
@@ -1912,6 +1967,19 @@ export class PlayerShip {
         if (this.isBoosting) {
           // Dynamic afterburner boost kinetic spark flare
           this.particleManager.spawnSparks(worldPos, new THREE.Vector3(0, 0, 1), pColor, 2);
+        }
+      });
+    }
+
+    // 3D Volumetric Continuous Ribbon Engine Trails Update
+    if (this.volumetricTrails && this.volumetricTrails.length > 0) {
+      const cam = this.camera || (this.gameManager && this.gameManager.spaceScene && this.gameManager.spaceScene.camera) || (window.spaceGameManager && window.spaceGameManager.spaceScene && window.spaceGameManager.spaceScene.camera);
+      if (!this._tempTrailWorldPos) this._tempTrailWorldPos = new THREE.Vector3();
+      this.volumetricTrails.forEach(trail => {
+        if (trail.localOffset) {
+          this._tempTrailWorldPos.copy(trail.localOffset);
+          this.meshGroup.localToWorld(this._tempTrailWorldPos);
+          trail.update(this._tempTrailWorldPos, dt, cam, this.isBoosting);
         }
       });
     }
