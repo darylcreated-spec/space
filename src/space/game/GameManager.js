@@ -101,6 +101,7 @@ export class GameManager {
     this.heavyBattleships = [];
     this.cargoPods = [];
     this.activeTelescope = null;
+    this.activeFlares = [];
     this.cargoPodSpawnTimer = 0;
     this.radarPingTimer = 0;
     this.powerUps = [];
@@ -1793,6 +1794,36 @@ export class GameManager {
     this.firePlasmaPulse();
   }
 
+  deployFlares() {
+    if (this.state !== 'PLAYING' || !this.playerShip) return;
+    const flares = this.playerShip.deployFlares();
+    if (!flares || flares.length === 0) return;
+
+    flares.forEach(f => {
+      const flareGeo = new THREE.SphereGeometry(0.35, 8, 8);
+      const flareMat = new THREE.MeshBasicMaterial({
+        color: 0xffea00,
+        transparent: true,
+        opacity: 0.95
+      });
+      const flareMesh = new THREE.Mesh(flareGeo, flareMat);
+      flareMesh.position.copy(f.position);
+      this.spaceScene.scene.add(flareMesh);
+
+      f.mesh = flareMesh;
+      f.geo = flareGeo;
+      f.mat = flareMat;
+      this.activeFlares.push(f);
+    });
+
+    if (this.spaceAudio?.playChaffDeploy) {
+      this.spaceAudio.playChaffDeploy();
+    }
+    if (this.spaceHUD) {
+      this.spaceHUD.updateFlares(this.playerShip.flareCharges, this.playerShip.maxFlareCharges);
+    }
+  }
+
   firePlasmaPulse() {
     if (this.state !== 'PLAYING' || this.playerShip.pulseCooldown > 0) return;
 
@@ -2684,6 +2715,36 @@ export class GameManager {
       }
     }
 
+    // Update active countermeasures flares
+    if (this.activeFlares && this.activeFlares.length > 0) {
+      for (let i = this.activeFlares.length - 1; i >= 0; i--) {
+        const flare = this.activeFlares[i];
+        flare.life -= dt;
+        flare.position.addScaledVector(flare.velocity, dt);
+        flare.velocity.multiplyScalar(0.96);
+
+        if (flare.mesh) {
+          flare.mesh.position.copy(flare.position);
+          const progress = Math.max(0, flare.life / flare.maxLife);
+          flare.mat.opacity = progress * 0.95;
+          flare.mesh.scale.setScalar(0.8 + (1.0 - progress) * 0.8);
+        }
+
+        if (Math.random() < 0.5 && this.particleManager) {
+          this.particleManager.spawnSparks(flare.position, flare.velocity, 0xffaa00, 1);
+        }
+
+        if (flare.life <= 0) {
+          if (flare.mesh) {
+            this.spaceScene.scene.remove(flare.mesh);
+            flare.geo.dispose();
+            flare.mat.dispose();
+          }
+          this.activeFlares.splice(i, 1);
+        }
+      }
+    }
+
     // Tactical Radar Sonar Threat Pings
     if (this.state === 'PLAYING' && this.spaceAudio) {
       this.radarPingTimer = (this.radarPingTimer || 0) + dt;
@@ -2745,12 +2806,26 @@ export class GameManager {
               ? "⚠️ GORGON HEAVY SUPERCARRIER ⚠️" 
               : "⚠️ ENEMY TARGET ⚠️")),
         overchargeActive: this.overchargeTimer > 0,
-        stasisActive: this.stasisTimer > 0
+        stasisActive: this.stasisTimer > 0,
+        flareCharges: this.playerShip.flareCharges,
+        flareMaxCharges: this.playerShip.maxFlareCharges
       });
 
       this.spaceHUD.updateAttitudeLadder(this.playerShip);
       const primaryTarget = this.getNearestForwardTarget();
       this.spaceHUD.updateLeadTargeting(this.playerShip, primaryTarget, this.spaceScene.camera);
+
+      // 3D Holographic Tactical Radar Globe
+      if (this.spaceHUD.renderHoloRadar) {
+        this.spaceHUD.renderHoloRadar(
+          this.playerShip,
+          this.getAllActiveEnemies(),
+          this.getAllActiveAllies(),
+          this.cargoPods,
+          this.activeTelescope,
+          effectiveDt
+        );
+      }
     }
 
     // 7. Update Scene & Render
@@ -2875,5 +2950,57 @@ export class GameManager {
       this.particleManager.createExplosion(this.sentinelDrone.position, 0x00f3ff, 5, 0.4);
       this.spaceAudio.playLaserPew(this.sentinelDrone.position.x);
     }
+  }
+
+  getAllActiveEnemies() {
+    const list = [];
+    if (this.drones) {
+      for (let i = 0; i < this.drones.length; i++) {
+        const d = this.drones[i];
+        if (d && !d.isDead && d.meshGroup) list.push(d);
+      }
+    }
+    if (this.stealthFighters) {
+      for (let i = 0; i < this.stealthFighters.length; i++) {
+        const s = this.stealthFighters[i];
+        if (s && !s.isDead && s.meshGroup) list.push(s);
+      }
+    }
+    if (this.ecmCorvettes) {
+      for (let i = 0; i < this.ecmCorvettes.length; i++) {
+        const c = this.ecmCorvettes[i];
+        if (c && !c.isDead && c.meshGroup) list.push(c);
+      }
+    }
+    if (this.phaseInterceptors) {
+      for (let i = 0; i < this.phaseInterceptors.length; i++) {
+        const p = this.phaseInterceptors[i];
+        if (p && !p.isDead && p.meshGroup) list.push(p);
+      }
+    }
+    if (this.heavyBattleships) {
+      for (let i = 0; i < this.heavyBattleships.length; i++) {
+        const b = this.heavyBattleships[i];
+        if (b && !b.isDead && b.meshGroup) list.push(b);
+      }
+    }
+    if (this.activeBoss && !this.activeBoss.isDead && this.activeBoss.meshGroup) {
+      list.push(this.activeBoss);
+    }
+    if (this.carrierBoss && !this.carrierBoss.isDead && this.carrierBoss.meshGroup) {
+      list.push(this.carrierBoss);
+    }
+    return list;
+  }
+
+  getAllActiveAllies() {
+    const list = [];
+    if (this.activeTelescope && !this.activeTelescope.isDead && this.activeTelescope.meshGroup) {
+      list.push(this.activeTelescope);
+    }
+    if (this.sentinelDrone && this.sentinelDrone.meshGroup) {
+      list.push(this.sentinelDrone);
+    }
+    return list;
   }
 }

@@ -503,6 +503,41 @@ export class LaserBolt {
       }
     }
 
+    // Enemy Homing Missiles seeking Player (or Decoyed by Active Thermal Flares)
+    if (this.projectileType === 'HOMING' && this.isEnemy && gm && gm.playerShip && gm.playerShip.meshGroup) {
+      let targetPos = gm.playerShip.meshGroup.position;
+      let nearestFlare = null;
+      let minFlareDist = 120;
+
+      if (gm.activeFlares && gm.activeFlares.length > 0) {
+        for (const flare of gm.activeFlares) {
+          const d = this.meshGroup.position.distanceTo(flare.position);
+          if (d < minFlareDist) {
+            minFlareDist = d;
+            nearestFlare = flare;
+          }
+        }
+      }
+
+      if (nearestFlare) {
+        targetPos = nearestFlare.position;
+        if (minFlareDist < 3.5) {
+          if (gm.particleManager) {
+            gm.particleManager.spawnExplosion(this.meshGroup.position, 1.2, 0xffaa00);
+          }
+          if (gm.spaceAudio && gm.spaceAudio.playSmallExplosion) {
+            gm.spaceAudio.playSmallExplosion();
+          }
+          this.destroy();
+          return;
+        }
+      }
+
+      const desiredDir = new THREE.Vector3().subVectors(targetPos, this.meshGroup.position).normalize();
+      this.direction.lerp(desiredDir, 5.0 * dt).normalize();
+      this.meshGroup.lookAt(new THREE.Vector3().addVectors(this.meshGroup.position, this.direction));
+    }
+
     this.meshGroup.position.addScaledVector(this.direction, this.speed * dt);
 
     const isMobile = gm && gm.isMobile;

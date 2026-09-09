@@ -337,6 +337,20 @@ export class SpaceHUD {
       });
     }
 
+    const btnDeployFlares = document.getElementById('btn-deploy-flares');
+    if (btnDeployFlares) {
+      btnDeployFlares.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        triggerStartIfInStartScreen();
+        this.gameManager.deployFlares();
+      });
+      btnDeployFlares.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.deployFlares();
+      });
+    }
+
     // Mode Selector Buttons
     const btnModeCampaign = document.getElementById('btn-mode-campaign');
     const btnModeBossRush = document.getElementById('btn-mode-bossrush');
@@ -743,6 +757,10 @@ export class SpaceHUD {
         this.gameManager.toggleGodMode();
       }
       if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
+        this.gameManager.spaceAudio.vibrate(12);
+        this.gameManager.deployFlares();
+      }
+      if (e.code === 'KeyV' || e.key === 'v' || e.key === 'V') {
         this.gameManager.spaceAudio.vibrate(10);
         this.gameManager.spaceScene.toggleCameraMode();
       }
@@ -1480,6 +1498,21 @@ export class SpaceHUD {
         else this.btnHyperBoost.classList.remove('active-boost');
       }
     }
+
+    // Dynamic Canopy Damage Glass Fractures
+    if (data.playerShield !== undefined) {
+      this.updateCanopyDamage(data.playerShield, data.playerMaxShield || 90);
+    }
+
+    // Aerospace Military Rank Progression
+    if (data.score !== undefined) {
+      this.updatePilotRank(data.score);
+    }
+
+    // Thermal Decoy Countermeasure Flares
+    if (data.flareCharges !== undefined) {
+      this.updateFlares(data.flareCharges, data.flareMaxCharges || 3);
+    }
   }
 
   updateBossHealth(ratio, title = null) {
@@ -1513,6 +1546,327 @@ export class SpaceHUD {
     if (this.objectiveBarContainer) {
       this.objectiveBarContainer.classList.add('hidden');
     }
+  }
+
+  /**
+   * Elite Dangerous / Squadrons 3D Holographic Tactical Radar Globe
+   * Renders isometric spherical wireframe radar with 3D elevation stalks and color-coded entity blips
+   */
+  renderHoloRadar(playerShip, enemies, allies, cargoPods, telescope, dt = 0.016) {
+    if (!this.cockpitHoloRadarCanvas || !this.cockpitHoloRadarCtx) {
+      this.cockpitHoloRadarCanvas = document.getElementById('cockpit-holo-radar');
+      if (this.cockpitHoloRadarCanvas) {
+        this.cockpitHoloRadarCtx = this.cockpitHoloRadarCanvas.getContext('2d');
+      } else {
+        return;
+      }
+    }
+    const ctx = this.cockpitHoloRadarCtx;
+    const w = this.cockpitHoloRadarCanvas.width;
+    const h = this.cockpitHoloRadarCanvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const R = 64; // sphere radius
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Update sweep rotation
+    this._radarSweepAngle = (this._radarSweepAngle || 0) + dt * 2.8;
+
+    ctx.save();
+
+    // 1. Equatorial Plane Disk (perspective tilt: height is R * 0.42)
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.32)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, R, R * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner Concentric Range Rings (33% and 66%)
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.16)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, R * 0.66, R * 0.66 * 0.42, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, R * 0.33, R * 0.33 * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Meridian Longitudinal Arc
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.18)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, R * 0.25, R, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Outer spherical boundary circle
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.28)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Crosshair axes on equatorial disk
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+    ctx.beginPath();
+    ctx.moveTo(cx - R, cy);
+    ctx.lineTo(cx + R, cy);
+    ctx.moveTo(cx, cy - R * 0.42);
+    ctx.lineTo(cx, cy + R * 0.42);
+    ctx.stroke();
+
+    // 2. Sweeping Holographic Radar Beam with phosphorescent glow
+    const sweepX = cx + Math.cos(this._radarSweepAngle) * R;
+    const sweepY = cy + Math.sin(this._radarSweepAngle) * (R * 0.42);
+    ctx.strokeStyle = 'rgba(0, 243, 255, 0.65)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(sweepX, sweepY);
+    ctx.stroke();
+
+    // 3. Player Vessel Glyph (Cyan delta chevron pointing forward)
+    ctx.fillStyle = '#00f3ff';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 6);
+    ctx.lineTo(cx - 4, cy + 4);
+    ctx.lineTo(cx, cy + 2);
+    ctx.lineTo(cx + 4, cy + 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // 4. Transform & Project 3D Entities onto Holo-Globe
+    if (playerShip && playerShip.meshGroup) {
+      const pPos = playerShip.meshGroup.position;
+      const maxRange = 180;
+      const yaw = playerShip.currentYaw || 0;
+      const cosY = Math.cos(-yaw);
+      const sinY = Math.sin(-yaw);
+
+      const drawBlip = (targetPos, colorHex, isLarge = false) => {
+        const rx = targetPos.x - pPos.x;
+        const ry = targetPos.y - pPos.y;
+        const rz = targetPos.z - pPos.z;
+
+        // Rotate by player yaw
+        const rotX = rx * cosY - rz * sinY;
+        const rotZ = rx * sinY + rz * cosY;
+
+        const dist2D = Math.hypot(rotX, rotZ);
+        if (dist2D > maxRange) return;
+
+        const normX = rotX / maxRange;
+        const normZ = rotZ / maxRange;
+
+        // Disk projection (forward -Z maps to up -Y)
+        const diskX = cx + normX * R;
+        const diskY = cy + normZ * (R * 0.42);
+
+        // Vertical elevation stalk from disk baseline to target altitude
+        const stalkLen = Math.max(-28, Math.min(28, (ry / maxRange) * 48));
+        const blipY = diskY - stalkLen;
+
+        // Stalk line
+        ctx.strokeStyle = colorHex;
+        ctx.globalAlpha = 0.45;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(diskX, diskY);
+        ctx.lineTo(diskX, blipY);
+        ctx.stroke();
+
+        // Disk footprint dot
+        ctx.fillStyle = colorHex;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(diskX, diskY, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Blip head
+        ctx.globalAlpha = 0.95;
+        ctx.beginPath();
+        ctx.arc(diskX, blipY, isLarge ? 3.5 : 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      };
+
+      // Draw Enemies (Red #ff0055)
+      if (enemies && enemies.length > 0) {
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          if (e && e.meshGroup) drawBlip(e.meshGroup.position, '#ff0055', !!e.isBoss);
+        }
+      }
+
+      // Draw Allies (Cyan #00f3ff)
+      if (allies && allies.length > 0) {
+        for (let i = 0; i < allies.length; i++) {
+          const a = allies[i];
+          if (a && a.meshGroup) drawBlip(a.meshGroup.position, '#00f3ff', true);
+        }
+      }
+
+      // Draw Cargo Salvage Pods (Gold #ffdd00)
+      if (cargoPods && cargoPods.length > 0) {
+        for (let i = 0; i < cargoPods.length; i++) {
+          const c = cargoPods[i];
+          if (c && c.meshGroup && !c.isDead) drawBlip(c.meshGroup.position, '#ffdd00', false);
+        }
+      }
+    }
+
+    ctx.restore();
+  }
+
+  /**
+   * Cockpit Canopy Glass Fractures based on shield damage
+   */
+  updateCanopyDamage(shield, maxShield = 90) {
+    if (!this.glassTier1) {
+      this.glassTier1 = document.getElementById('glass-cracks-tier1');
+      this.glassTier2 = document.getElementById('glass-cracks-tier2');
+      this.glassTier3 = document.getElementById('glass-cracks-tier3');
+    }
+    const ratio = Math.max(0, shield / maxShield);
+
+    if (this.glassTier1) {
+      this.glassTier1.classList.toggle('hidden', ratio >= 0.5);
+    }
+    if (this.glassTier2) {
+      this.glassTier2.classList.toggle('hidden', ratio >= 0.25);
+    }
+    if (this.glassTier3) {
+      this.glassTier3.classList.toggle('hidden', ratio > 0.05);
+    }
+  }
+
+  /**
+   * Cockpit EMP Glitch & CRT Chromatic Split Animation
+   */
+  triggerEmpGlitch(duration = 450) {
+    if (!this.cockpitEmpGlitch) {
+      this.cockpitEmpGlitch = document.getElementById('cockpit-emp-glitch');
+    }
+    if (!this.cockpitEmpGlitch) return;
+
+    this.cockpitEmpGlitch.classList.remove('hidden');
+    if (this.gameManager.spaceAudio?.playEmpGlitchSound) {
+      this.gameManager.spaceAudio.playEmpGlitchSound();
+    }
+    if (this._empGlitchTimer) clearTimeout(this._empGlitchTimer);
+    this._empGlitchTimer = setTimeout(() => {
+      if (this.cockpitEmpGlitch) this.cockpitEmpGlitch.classList.add('hidden');
+    }, duration);
+  }
+
+  /**
+   * Thermal Decoy Flares Telemetry
+   */
+  updateFlares(charges, maxCharges = 3) {
+    if (!this.hudFlaresPips) {
+      this.hudFlaresPips = document.getElementById('hud-flares-pips');
+    }
+    if (this.hudFlaresPips) {
+      const pips = this.hudFlaresPips.querySelectorAll('.flare-pip');
+      pips.forEach((pip, idx) => {
+        pip.classList.toggle('active', idx < charges);
+      });
+    }
+    if (!this.cdRingFlare) {
+      this.cdRingFlare = document.getElementById('cd-ring-flare');
+    }
+    if (this.cdRingFlare && this.gameManager.playerShip) {
+      const cd = this.gameManager.playerShip.flareCooldown || 0;
+      this.cdRingFlare.style.opacity = cd > 0 ? '1' : '0';
+    }
+  }
+
+  /**
+   * Aerospace Military Rank Insignia Progression
+   */
+  getRankData(score) {
+    if (score >= 35000) {
+      return {
+        name: 'FLEET ADMIRAL',
+        tier: 5,
+        color: '#ffdd00',
+        svg: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffdd00" stroke-width="2"><polygon points="12 2 15 8 22 9 17 14 18 21 12 18 6 21 7 14 2 9 9 8 12 2"/><circle cx="12" cy="12" r="2" fill="#ffdd00"/></svg>`
+      };
+    } else if (score >= 18000) {
+      return {
+        name: 'CAPTAIN',
+        tier: 4,
+        color: '#00f3ff',
+        svg: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00f3ff" stroke-width="2"><path d="M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6l8-4z"/><polyline points="8 10 12 7 16 10"/></svg>`
+      };
+    } else if (score >= 7500) {
+      return {
+        name: 'COMMANDER',
+        tier: 3,
+        color: '#00f3ff',
+        svg: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00f3ff" stroke-width="2"><polyline points="6 15 12 10 18 15"/><polyline points="6 19 12 14 18 19"/><circle cx="12" cy="6" r="1.5" fill="#00f3ff"/></svg>`
+      };
+    } else if (score >= 2500) {
+      return {
+        name: 'LIEUTENANT',
+        tier: 2,
+        color: '#00f3ff',
+        svg: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#00f3ff" stroke-width="2"><polyline points="6 13 12 8 18 13"/><polyline points="6 18 12 13 18 18"/></svg>`
+      };
+    } else {
+      return {
+        name: 'ENSIGN',
+        tier: 1,
+        color: '#8bbdd9',
+        svg: `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8bbdd9" stroke-width="2"><polyline points="6 15 12 9 18 15"/></svg>`
+      };
+    }
+  }
+
+  updatePilotRank(score) {
+    const rank = this.getRankData(score);
+    if (!this.currentRank || this.currentRank.name !== rank.name) {
+      const prevTier = this.currentRank ? this.currentRank.tier : 0;
+      this.currentRank = rank;
+
+      if (!this.hudPilotRank) {
+        this.hudPilotRank = document.getElementById('hud-pilot-rank');
+      }
+      if (this.hudPilotRank) {
+        this.hudPilotRank.textContent = rank.name;
+        this.hudPilotRank.style.color = rank.color;
+      }
+      if (!this.hudRankIconWrap) {
+        this.hudRankIconWrap = document.getElementById('hud-rank-icon-wrap');
+      }
+      if (this.hudRankIconWrap) {
+        this.hudRankIconWrap.innerHTML = rank.svg;
+      }
+
+      if (prevTier > 0 && rank.tier > prevTier) {
+        this.showRankPromotionBanner(rank);
+      }
+    }
+  }
+
+  showRankPromotionBanner(rank) {
+    if (!this.rankPromotionBanner) {
+      this.rankPromotionBanner = document.getElementById('space-rank-promotion-banner');
+      this.promotionRankTitle = document.getElementById('promotion-rank-title');
+      this.promotionBadgeIcon = document.getElementById('promotion-badge-icon');
+    }
+    if (!this.rankPromotionBanner) return;
+
+    if (this.promotionRankTitle) {
+      this.promotionRankTitle.textContent = `PROMOTED TO ${rank.name}`;
+      this.promotionRankTitle.style.color = rank.color;
+    }
+    if (this.promotionBadgeIcon) {
+      this.promotionBadgeIcon.innerHTML = rank.svg;
+    }
+
+    this.rankPromotionBanner.classList.remove('hidden');
+    if (this.gameManager.spaceAudio?.playVictoryArpeggio) {
+      this.gameManager.spaceAudio.playVictoryArpeggio();
+    }
+    if (this._promotionBannerTimer) clearTimeout(this._promotionBannerTimer);
+    this._promotionBannerTimer = setTimeout(() => {
+      if (this.rankPromotionBanner) this.rankPromotionBanner.classList.add('hidden');
+    }, 3800);
   }
 
   updateAutoPilotUI(isActive) {

@@ -84,6 +84,7 @@ export class SpaceScene {
     // Build Deep Space Environment & Photorealistic Planet Segma with Orbital Station
     this.buildDeepSpaceEnvironment();
     this.setupPlanetSegma();
+    this.initCelestialBackdrop();
 
     // Entity groups
     this.entitiesGroup = new THREE.Group();
@@ -115,8 +116,8 @@ export class SpaceScene {
   }
 
   setupLighting() {
-    const ambient = new THREE.AmbientLight(0x223355, 0.85);
-    this.scene.add(ambient);
+    this.ambientLight = new THREE.AmbientLight(0x223355, 0.85);
+    this.scene.add(this.ambientLight);
 
     // Primary High-Dynamic-Range Sun Key Light
     this.sunLight = new THREE.DirectionalLight(0xffffff, 2.8);
@@ -980,12 +981,17 @@ export class SpaceScene {
     this.cometSpawnTimer = 3.0;
   }
 
+  /**
+   * Relativistic Hyperspace Warp Tunnel
+   * Generates high-velocity star streak tunnel lines, concentric spacetime shock rings,
+   * camera FOV dilation stretch (60° -> 105°), and sonic hyperdrive booms
+   */
   triggerHyperspaceWarp(position) {
     const warpGroup = new THREE.Group();
-    warpGroup.position.copy(position);
+    warpGroup.position.copy(position || new THREE.Vector3(0, 0, -60));
 
-    // Flash sphere
-    const flashGeo = new THREE.SphereGeometry(20.0, 10, 10);
+    // 1. Spacetime Dilation Flash Sphere
+    const flashGeo = new THREE.SphereGeometry(30.0, 14, 14);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
@@ -995,8 +1001,8 @@ export class SpaceScene {
     const flash = new THREE.Mesh(flashGeo, flashMat);
     warpGroup.add(flash);
 
-    // Spacetime Refraction Ring
-    const ringGeo = new THREE.RingGeometry(24.0, 27.0, 24);
+    // 2. Spacetime Refraction Rings
+    const ringGeo = new THREE.RingGeometry(24.0, 32.0, 32);
     const ringMat = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
@@ -1007,32 +1013,174 @@ export class SpaceScene {
     const ring = new THREE.Mesh(ringGeo, ringMat);
     warpGroup.add(ring);
 
+    // 3. Relativistic Star Streak Lines Accelerating Along Z Axis
+    const streakCount = 42;
+    const streakPositions = new Float32Array(streakCount * 6);
+    for (let i = 0; i < streakCount; i++) {
+      const rad = 6 + Math.random() * 26;
+      const ang = Math.random() * Math.PI * 2;
+      const x = Math.cos(ang) * rad;
+      const y = Math.sin(ang) * rad;
+      const z1 = -30 - Math.random() * 40;
+      const z2 = z1 + 80 + Math.random() * 80;
+
+      streakPositions[i * 6] = x;
+      streakPositions[i * 6 + 1] = y;
+      streakPositions[i * 6 + 2] = z1;
+      streakPositions[i * 6 + 3] = x;
+      streakPositions[i * 6 + 4] = y;
+      streakPositions[i * 6 + 5] = z2;
+    }
+    const streakGeo = new THREE.BufferGeometry();
+    streakGeo.setAttribute('position', new THREE.BufferAttribute(streakPositions, 3));
+    const streakMat = new THREE.LineBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    const streakLines = new THREE.LineSegments(streakGeo, streakMat);
+    warpGroup.add(streakLines);
+
     this.scene.add(warpGroup);
-    this.addScreenShake(1.4);
+    this.addScreenShake(1.6);
+
+    if (this.gameManager?.spaceAudio?.playHyperspaceSpoolBoom) {
+      this.gameManager.spaceAudio.playHyperspaceSpoolBoom();
+    }
+
+    const baseFov = this.camera.fov || 60;
+    const maxWarpFov = Math.min(105, baseFov + 38);
 
     const startTime = performance.now();
-    const duration = 650;
+    const duration = 750;
 
     const animateWarp = (now) => {
       const elapsed = now - startTime;
       const progress = Math.min(1.0, elapsed / duration);
 
-      ring.scale.setScalar(1.0 + progress * 2.5);
-      flash.scale.setScalar(1.0 + progress * 1.8);
+      ring.scale.setScalar(1.0 + progress * 3.4);
+      flash.scale.setScalar(1.0 + progress * 2.4);
       flashMat.opacity = Math.max(0, 0.95 * (1.0 - progress));
       ringMat.opacity = Math.max(0, 0.90 * (1.0 - progress));
+      streakMat.opacity = Math.max(0, 0.95 * (1.0 - progress));
+
+      // Relativistic camera FOV dilation stretch & recovery snap
+      if (progress < 0.35) {
+        const p = progress / 0.35;
+        this.camera.fov = baseFov + (maxWarpFov - baseFov) * p;
+      } else {
+        const p = (progress - 0.35) / 0.65;
+        this.camera.fov = maxWarpFov - (maxWarpFov - baseFov) * Math.pow(p, 0.7);
+      }
+      this.camera.updateProjectionMatrix();
 
       if (progress < 1.0) {
         requestAnimationFrame(animateWarp);
       } else {
+        this.camera.fov = baseFov;
+        this.camera.updateProjectionMatrix();
         this.scene.remove(warpGroup);
         flashGeo.dispose();
         flashMat.dispose();
         ringGeo.dispose();
         ringMat.dispose();
+        streakGeo.dispose();
+        streakMat.dispose();
       }
     };
     requestAnimationFrame(animateWarp);
+  }
+
+  /**
+   * Initializes the deep space celestial panorama dome for NASA JWST astrophotography backdrops
+   */
+  initCelestialBackdrop() {
+    if (this.celestialDomeMesh) return;
+    const domeGeo = new THREE.SphereGeometry(950, 48, 24);
+    domeGeo.scale(-1, 1, 1); // Face inward
+
+    this.celestialDomeMat = new THREE.MeshBasicMaterial({
+      map: null,
+      transparent: true,
+      opacity: 0.0,
+      depthWrite: false,
+      side: THREE.BackSide
+    });
+
+    this.celestialDomeMesh = new THREE.Mesh(domeGeo, this.celestialDomeMat);
+    this.celestialDomeMesh.rotation.y = Math.PI * 0.5;
+    this.scene.add(this.celestialDomeMesh);
+
+    this.currentSectorWave = 1;
+    this.targetBackdropOpacity = 0.0;
+  }
+
+  /**
+   * Sets sector background to real public domain NASA JWST deep space imagery for Wave 2 and above!
+   */
+  updateJWSTBackdrop(waveNum) {
+    if (!this.celestialDomeMesh) {
+      this.initCelestialBackdrop();
+    }
+    this.currentSectorWave = waveNum;
+
+    let texturePath = null;
+    let targetAmbientHex = 0x223355;
+    let targetSunHex = 0xffffff;
+
+    if (waveNum === 1) {
+      // Sector 1: Earth / Segma Orbit (Default Milky Way)
+      this.targetBackdropOpacity = 0.0;
+      targetAmbientHex = 0x223355;
+      targetSunHex = 0xffffff;
+    } else if (waveNum === 2) {
+      // Sector 2: Carina Nebula (NGC 3324) - Cosmic Cliffs & Golden Starlight Nursery
+      texturePath = '/codex/jwst_carina_nebula.jpg';
+      this.targetBackdropOpacity = 0.92;
+      targetAmbientHex = 0x553311;
+      targetSunHex = 0xffd599;
+    } else if (waveNum === 3) {
+      // Sector 3: Pillars of Creation (Eagle Nebula M16) - Emerald/Cyan Interstellar Gas Towers
+      texturePath = '/codex/jwst_pillars_of_creation.jpg';
+      this.targetBackdropOpacity = 0.92;
+      targetAmbientHex = 0x113333;
+      targetSunHex = 0xaaffea;
+    } else if (waveNum === 4) {
+      // Sector 4: Phantom Galaxy (M74) - Grand-Design Spiral Galaxy Pinwheel Core
+      texturePath = '/codex/jwst_phantom_galaxy.jpg';
+      this.targetBackdropOpacity = 0.90;
+      targetAmbientHex = 0x331144;
+      targetSunHex = 0xffea88;
+    } else {
+      // Sector 5+: Southern Ring Nebula (NGC 3132) - Planetary Nebula Shockwaves
+      texturePath = '/codex/jwst_southern_ring.jpg';
+      this.targetBackdropOpacity = 0.92;
+      targetAmbientHex = 0x113344;
+      targetSunHex = 0xff8844;
+    }
+
+    if (texturePath) {
+      try {
+        const tex = assetManager.loadTexture(texturePath, true);
+        if (tex) {
+          this.celestialDomeMat.map = tex;
+          this.celestialDomeMat.needsUpdate = true;
+        }
+      } catch (e) {
+        console.warn('Could not load sector texture:', texturePath, e);
+      }
+    }
+
+    // Trigger relativistic hyperspace warp tunnel transition
+    this.triggerHyperspaceWarp(new THREE.Vector3(0, 0, -60));
+
+    if (this.ambientLight) {
+      this.ambientLight.color.setHex(targetAmbientHex);
+    }
+    if (this.sunLight) {
+      this.sunLight.color.setHex(targetSunHex);
+    }
   }
 
   triggerBossIntroCamera(duration = 2.2) {
@@ -1094,6 +1242,13 @@ export class SpaceScene {
     if (this.orbitalProbeGroup) {
       this.orbitalProbeGroup.rotation.y += dt * 0.05;
       this.orbitalProbeGroup.rotation.x += dt * 0.015;
+    }
+
+    // Smoothly interpolate celestial backdrop opacity & gentle cosmic rotation
+    if (this.celestialDomeMesh && this.celestialDomeMat) {
+      this.celestialDomeMesh.rotation.y += dt * 0.0008;
+      const targetOp = this.targetBackdropOpacity || 0.0;
+      this.celestialDomeMat.opacity += (targetOp - this.celestialDomeMat.opacity) * Math.min(1.0, dt * 2.5);
     }
 
     if (this.dustPoints) {
@@ -1364,6 +1519,7 @@ export class SpaceScene {
 
   setStageEnvironment(stageNum = 1) {
     this.currentStageNum = stageNum;
+    this.updateJWSTBackdrop(stageNum);
 
     // 1. Cleanly Dispose & Rebuild Planet Group (Celestial Body / Megastructure)
     if (this.planetGroup) {

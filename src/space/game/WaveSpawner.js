@@ -69,18 +69,18 @@ export class WaveSpawner {
   }
 
   getWaveSubtitle() {
-    if (this.currentWave === 1) return 'STAGE 1: IRON MANTLE // CARRIER INCURSION & TITAN ASTEROID COLOSSUS';
-    if (this.currentWave === 2) return 'STAGE 2: RING OF LIGHT // HALO MEGASTRUCTURE & FLEET CARRIER';
-    if (this.currentWave === 3) return 'STAGE 3: SELENE SHIELD // LUNAR CITADEL & HEAVY BATTLESHIP';
-    if (this.currentWave === 4) return 'STAGE 4: SANCTUARY STATION // O\'NEILL CYLINDER & DUAL CAPITAL FLEET';
-    if (this.currentWave === 5) return 'STAGE 5: EXTINCTION PROTOCOL // GRAND ARMADA ESCALATION & COMMAND MOTHERSHIP';
-    if (this.currentWave === 6) return 'STAGE 6: DYSON SWARM FORGE // SOLAR MEGA-FORGE & HELIOS COLOSSUS';
-    if (this.currentWave === 7) return 'STAGE 7: SOLAR FORGE // CORONAL HARVEST & IGNIS TITAN DEVOURER';
-    if (this.currentWave === 8) return 'STAGE 8: EVENT HORIZON // SINGULARITY CRADLE & OBLIVION HARBINGER';
-    if (this.currentWave === 9) return 'STAGE 9: CRYO ABYSS // BOREAS METHANE ICE-BELT & FROST PHANTOMS';
-    if (this.currentWave === 10) return 'STAGE 10: NULL SECTOR // ELECTROMAGNETIC GHOST NEBULA';
-    if (this.currentWave === 11) return 'STAGE 11: DYSON NEXUS // ANCIENT MEGASTRUCTURE ASSEMBLY TRENCH';
-    if (this.currentWave === 12) return 'STAGE 12: HYPER-GATEWAY // SOVEREIGN APEX & THE FIRST INTELLIGENCE';
+    if (this.currentWave === 1) return 'SECTOR 1: SEGMA ORBIT // CARRIER INCURSION & TITAN COLOSSUS';
+    if (this.currentWave === 2) return 'SECTOR 2: CARINA NEBULA // COSMIC CLIFFS NGC 3324 & HALO CITADEL';
+    if (this.currentWave === 3) return 'SECTOR 3: PILLARS OF CREATION // EAGLE NEBULA M16 & JWST DEFENSE';
+    if (this.currentWave === 4) return 'SECTOR 4: PHANTOM GALAXY // GRAND DESIGN SPIRAL M74 DUAL CAPITAL FLEET';
+    if (this.currentWave === 5) return 'SECTOR 5: SOUTHERN RING // NGC 3132 PLANETARY NEBULA & GRAND MOTHERSHIP';
+    if (this.currentWave === 6) return 'SECTOR 6: DYSON SWARM FORGE // SOLAR MEGA-FORGE & HELIOS COLOSSUS';
+    if (this.currentWave === 7) return 'SECTOR 7: SOLAR FORGE // CORONAL HARVEST & IGNIS TITAN DEVOURER';
+    if (this.currentWave === 8) return 'SECTOR 8: EVENT HORIZON // SINGULARITY CRADLE & OBLIVION HARBINGER';
+    if (this.currentWave === 9) return 'SECTOR 9: CRYO ABYSS // BOREAS METHANE ICE-BELT & FROST PHANTOMS';
+    if (this.currentWave === 10) return 'SECTOR 10: NULL SECTOR // ELECTROMAGNETIC GHOST NEBULA';
+    if (this.currentWave === 11) return 'SECTOR 11: DYSON NEXUS // ANCIENT MEGASTRUCTURE ASSEMBLY TRENCH';
+    if (this.currentWave === 12) return 'SECTOR 12: HYPER-GATEWAY // SOVEREIGN APEX & THE FIRST INTELLIGENCE';
     return `ENDLESS SECTOR DEFENSE - PHASE ${this.currentWave}`;
   }
 

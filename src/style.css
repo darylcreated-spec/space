@@ -3972,4 +3972,386 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
   box-shadow: 0 0 28px rgba(0, 255, 136, 0.85);
 }
 
+/* ==========================================================================
+   AAA IMMERSION: 3D HOLO-RADAR, DAMAGE CRACKS, EMP GLITCH, FLARES & CODEX
+   ========================================================================== */
+
+/* ── 1. 3D Holographic Tactical Radar Globe ── */
+.cockpit-holo-radar-wrapper {
+  position: absolute;
+  bottom: 18px;
+  left: 20px;
+  width: 170px;
+  pointer-events: none;
+  z-index: 45;
+  user-select: none;
+}
+
+@media (max-width: 1024px) {
+  .cockpit-holo-radar-wrapper {
+    left: auto;
+    right: 88px;
+    bottom: 14px;
+    width: 140px;
+  }
+}
+
+.holo-radar-frame {
+  background: rgba(3, 10, 24, 0.72);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  border-radius: 12px;
+  padding: 6px 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(0, 243, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.holo-radar-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 1px;
+}
+
+.radar-title {
+  color: var(--accent-cyan, #00f3ff);
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+}
+
+.radar-range {
+  color: #ffdd00;
+  font-weight: 700;
+}
+
+.cockpit-holo-radar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 30, 50, 0.6) 0%, rgba(2, 8, 18, 0.95) 75%);
+  box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.25);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+}
+
+@media (max-width: 1024px) {
+  .cockpit-holo-radar {
+    width: 124px;
+    height: 124px;
+  }
+}
+
+.holo-radar-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+
+.radar-legend-hostile { color: #ff0055; }
+.radar-legend-allied { color: #00f3ff; }
+.radar-legend-cargo { color: #ffdd00; }
+
+/* ── 2. Dynamic Cockpit Canopy Glass Fractures ── */
+.cockpit-damage-fx {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 55;
+  overflow: hidden;
+}
+
+.cockpit-glass-cracks {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.glass-crack-tier {
+  transition: opacity 0.3s ease;
+}
+
+/* ── 3. EMP Digital Glitch & CRT Chromatic Split ── */
+.cockpit-emp-glitch {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 60;
+  mix-blend-mode: screen;
+  animation: empScanlineGlitch 0.45s infinite steps(2);
+}
+
+.emp-glitch-scanlines {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 243, 255, 0.15),
+    rgba(0, 243, 255, 0.15) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.emp-glitch-displacement {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255, 0, 85, 0.18), rgba(0, 243, 255, 0.18));
+  filter: blur(1px);
+}
+
+@keyframes empScanlineGlitch {
+  0% { transform: translate(0, 0); opacity: 0.8; }
+  25% { transform: translate(-4px, 2px); opacity: 0.95; }
+  50% { transform: translate(5px, -3px); opacity: 0.7; }
+  75% { transform: translate(-2px, -1px); opacity: 0.88; }
+  100% { transform: translate(0, 0); opacity: 0.8; }
+}
+
+/* ── 4. Deployable Flares Telemetry & Action Button ── */
+.top-flares-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 25, 45, 0.6);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 170, 0, 0.3);
+}
+
+.top-flares-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #ffaa00;
+  letter-spacing: 1px;
+}
+
+.top-flares-pips {
+  display: flex;
+  gap: 4px;
+}
+
+.flare-pip {
+  width: 7px;
+  height: 12px;
+  background: rgba(255, 170, 0, 0.2);
+  border: 1px solid rgba(255, 170, 0, 0.4);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.flare-pip.active {
+  background: #ffaa00;
+  border-color: #ffe688;
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.9);
+}
+
+.action-btn.flare-btn {
+  border-color: rgba(255, 170, 0, 0.4);
+}
+
+.action-btn.flare-btn:hover {
+  border-color: #ffaa00;
+  box-shadow: 0 0 16px rgba(255, 170, 0, 0.6);
+}
+
+.action-btn.flare-btn .action-svg {
+  stroke: #ffaa00;
+}
+
+/* ── 5. In-Flight Rank Promotion Banner ── */
+.rank-promotion-banner {
+  position: absolute;
+  top: 78px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(90deg, rgba(3, 10, 28, 0.92), rgba(6, 25, 60, 0.95), rgba(3, 10, 28, 0.92));
+  border: 1px solid #00f3ff;
+  border-radius: 8px;
+  padding: 10px 24px;
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.6), inset 0 0 15px rgba(0, 243, 255, 0.2);
+  z-index: 100;
+  animation: rankPromotionPop 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  pointer-events: none;
+}
+
+@keyframes rankPromotionPop {
+  0% { transform: translateX(-50%) translateY(-20px) scale(0.85); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+}
+
+.rank-promotion-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.rank-promotion-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.64rem;
+  letter-spacing: 2px;
+  color: var(--accent-cyan, #00f3ff);
+}
+
+.rank-promotion-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(0, 243, 255, 0.8);
+}
+
+.top-pilot-info-col {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.top-pilot-rank {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #ffaa00;
+  letter-spacing: 1px;
+}
+
+/* ── 6. NASA JWST Deep Space Codex Gallery ── */
+.hangar-tabs-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.hangar-tab-btn {
+  background: rgba(10, 25, 50, 0.6);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  color: #8bbdd9;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hangar-tab-btn:hover {
+  background: rgba(0, 243, 255, 0.2);
+  color: #fff;
+}
+
+.hangar-tab-btn.active {
+  background: rgba(0, 243, 255, 0.35);
+  border-color: #00f3ff;
+  color: #00f3ff;
+  box-shadow: 0 0 14px rgba(0, 243, 255, 0.5);
+}
+
+.codex-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.codex-card {
+  background: rgba(6, 16, 36, 0.75);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.codex-card:hover {
+  border-color: #00f3ff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 243, 255, 0.25);
+}
+
+.codex-card.locked {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+  cursor: not-allowed;
+}
+
+.codex-preview-thumb {
+  width: 100%;
+  height: 135px;
+  object-fit: cover;
+  border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.codex-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.codex-card-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.codex-card-tag {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--accent-cyan, #00f3ff);
+}
+
+.codex-card-desc {
+  font-size: 0.72rem;
+  color: #b0cce3;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+
+.codex-telemetry-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: #ffaa00;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
 

@@ -1393,5 +1393,114 @@ export class SpaceAudio {
       };
     } catch (e) {}
   }
+
+  /**
+   * Tactical Countermeasures: Pneumatic ejection pop & burning magnesium flare sizzle
+   */
+  playChaffDeploy() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      // 1. Pneumatic Thump
+      const thumpOsc = this.ctx.createOscillator();
+      thumpOsc.type = 'triangle';
+      thumpOsc.frequency.setValueAtTime(190, now);
+      thumpOsc.frequency.exponentialRampToValueAtTime(42, now + 0.12);
+
+      const thumpGain = this.ctx.createGain();
+      thumpGain.gain.setValueAtTime(0.24, now);
+      thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+      thumpOsc.connect(thumpGain);
+      thumpGain.connect(outputNode);
+      thumpOsc.start(now);
+      thumpOsc.stop(now + 0.15);
+
+      // 2. Burning Magnesium Sizzle (White Noise through High-Pass Filter)
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.4);
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.45));
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const hpFilter = this.ctx.createBiquadFilter();
+      hpFilter.type = 'bandpass';
+      hpFilter.frequency.setValueAtTime(3200, now);
+      hpFilter.Q.setValueAtTime(3.0, now);
+
+      const sizzleGain = this.ctx.createGain();
+      sizzleGain.gain.setValueAtTime(0.18, now);
+      sizzleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+      noise.connect(hpFilter);
+      hpFilter.connect(sizzleGain);
+      sizzleGain.connect(outputNode);
+
+      noise.start(now);
+      noise.stop(now + 0.42);
+
+      noise.onended = () => {
+        try {
+          thumpOsc.disconnect();
+          thumpGain.disconnect();
+          noise.disconnect();
+          hpFilter.disconnect();
+          sizzleGain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
+
+  /**
+   * Cockpit EMP Glitch & Digital CRT Static Zap
+   */
+  playEmpGlitchSound() {
+    this.ensureContext();
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1400, now);
+      osc.frequency.linearRampToValueAtTime(300, now + 0.08);
+      osc.frequency.linearRampToValueAtTime(950, now + 0.16);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.28);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1200, now);
+      filter.Q.setValueAtTime(4.0, now);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(outputNode);
+
+      osc.start(now);
+      osc.stop(now + 0.32);
+
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          filter.disconnect();
+          gain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
 }
 

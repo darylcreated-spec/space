@@ -58,6 +58,50 @@ export class FleetHangarUI {
       }
     ];
 
+    // NASA JWST Astrophotography Codex Catalog
+    this.codexEntries = [
+      {
+        id: 'CARINA',
+        name: 'CARINA NEBULA // COSMIC CLIFFS',
+        catalog: 'NGC 3324 // CARINA CONSTELLATION',
+        image: '/codex/jwst_carina_nebula.jpg',
+        instrument: 'JWST NIRCam / MIRI Dual Infrared',
+        distance: '7,600 LIGHT-YEARS',
+        unlockWave: 1,
+        desc: 'Dramatic jagged mountains of glowing interstellar gas and dust sculpted by high-energy stellar winds from newborn stars. Infrared detectors reveal infant stars previously obscured by thick dust curtains.'
+      },
+      {
+        id: 'PILLARS',
+        name: 'PILLARS OF CREATION // EAGLE NEBULA',
+        catalog: 'MESSIER 16 // SERPENS CAUDA',
+        image: '/codex/jwst_pillars_of_creation.jpg',
+        instrument: 'JWST Near-Infrared Camera (NIRCam)',
+        distance: '6,500 LIGHT-YEARS',
+        unlockWave: 2,
+        desc: 'Massive towering columns of cool interstellar hydrogen gas where new stars condense inside dense gravitational knots. Semi-translucent gas reveals bright crimson protostars with supersonic shock fronts.'
+      },
+      {
+        id: 'PHANTOM',
+        name: 'PHANTOM GALAXY // GRAND DESIGN',
+        catalog: 'MESSIER 74 // NGC 628 PISCES',
+        image: '/codex/jwst_phantom_galaxy.jpg',
+        instrument: 'JWST Mid-Infrared Instrument (MIRI)',
+        distance: '32,000,000 LIGHT-YEARS',
+        unlockWave: 3,
+        desc: 'A grand-design spiral galaxy seen face-on, displaying pristine symmetrical spiral arms. MIRI cuts through interstellar haze to map delicate filaments of polycyclic aromatic hydrocarbons winding from the luminous nuclear star cluster.'
+      },
+      {
+        id: 'SOUTHERN_RING',
+        name: 'SOUTHERN RING // EIGHT-BURST NEBULA',
+        catalog: 'NGC 3132 // VELA CONSTELLATION',
+        image: '/codex/jwst_southern_ring.jpg',
+        instrument: 'JWST NIRCam / MIRI Comparative Bands',
+        distance: '2,500 LIGHT-YEARS',
+        unlockWave: 4,
+        desc: 'A planetary nebula with concentric shells of incandescent gas ejected by dying central stars. JWST revealed for the first time that the dimmer central star is cloaked in deep dust, actively transferring mass in a binary choreography.'
+      }
+    ];
+
     this._createDOM();
   }
 
@@ -75,10 +119,15 @@ export class FleetHangarUI {
             <span class="hangar-badge">FLEET DOCK // REFIT</span>
             <h2 class="hangar-title">TACTICAL STARFIGHTER HANGAR</h2>
           </div>
+          <div class="hangar-tabs-nav">
+            <button id="tab-hangar-fleet" class="hangar-tab-btn active">STARFIGHTERS</button>
+            <button id="tab-hangar-codex" class="hangar-tab-btn">NASA JWST CODEX</button>
+          </div>
           <button id="btn-close-hangar" class="hangar-close-btn">&times;</button>
         </div>
 
-        <div class="hangar-body">
+        <!-- 1. Starfighters Refit View -->
+        <div id="hangar-fleet-view" class="hangar-tab-view hangar-body">
           <!-- Left: 3D Holographic Turntable Canvas -->
           <div class="hangar-preview-panel">
             <div class="preview-canvas-container">
@@ -136,7 +185,7 @@ export class FleetHangarUI {
               </div>
 
               <div class="hardpoint-slot">
-                <label>THRUSTER MANIFOLD</label>
+                <label>PROPULSION MANIFOLD</label>
                 <select id="sel-thruster-manifold" class="hangar-select">
                   <option value="DEFAULT">Standard Ion Drive</option>
                   <option value="AFTERBURNER">Hyper-Boost Afterburner (+35% Top Speed)</option>
@@ -156,6 +205,35 @@ export class FleetHangarUI {
             </div>
           </div>
         </div>
+
+        <!-- 2. NASA JWST Deep Space Codex View -->
+        <div id="hangar-codex-view" class="hangar-tab-view hidden" style="padding: 18px 22px; width: 100%; box-sizing: border-box;">
+          <div class="codex-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div>
+                <h3 style="font-family: 'Orbitron', sans-serif; color: #fff; font-size: 0.95rem; margin: 0; letter-spacing: 1px;">DEEP SPACE ASTROPHOTOGRAPHY ARCHIVES</h3>
+                <span style="font-family: 'Share Tech Mono', monospace; color: var(--accent-cyan); font-size: 0.65rem;">AUTHENTIC PUBLIC DOMAIN NASA / STScI JAMES WEBB SPACE TELESCOPE EXPLORATION</span>
+              </div>
+              <span id="codex-unlocked-tag" style="font-family: 'Share Tech Mono', monospace; color: #ffaa00; font-size: 0.72rem; background: rgba(255,170,0,0.12); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(255,170,0,0.3);">UNLOCKED: 4 / 4 ARCHIVES</span>
+            </div>
+            <div class="codex-grid" id="codex-cards-grid">
+              ${this.codexEntries.map(e => `
+                <div class="codex-card" data-codex-id="${e.id}">
+                  <img src="${e.image}" alt="${e.name}" class="codex-preview-thumb" />
+                  <div class="codex-card-body">
+                    <span class="codex-card-tag">${e.catalog}</span>
+                    <div class="codex-card-title">${e.name}</div>
+                    <div class="codex-card-desc">${e.desc}</div>
+                    <div class="codex-telemetry-row">
+                      <span>DIST: ${e.distance}</span>
+                      <span>BAND: ${e.instrument}</span>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -167,6 +245,27 @@ export class FleetHangarUI {
     document.getElementById('btn-prev-ship')?.addEventListener('click', () => this.prevShip());
     document.getElementById('btn-next-ship')?.addEventListener('click', () => this.nextShip());
     document.getElementById('btn-equip-launch')?.addEventListener('click', () => this.equipAndLaunch());
+
+    // Tab Navigation
+    const tabFleet = document.getElementById('tab-hangar-fleet');
+    const tabCodex = document.getElementById('tab-hangar-codex');
+    const viewFleet = document.getElementById('hangar-fleet-view');
+    const viewCodex = document.getElementById('hangar-codex-view');
+
+    tabFleet?.addEventListener('click', () => {
+      tabFleet.classList.add('active');
+      tabCodex?.classList.remove('active');
+      viewFleet?.classList.remove('hidden');
+      viewCodex?.classList.add('hidden');
+    });
+
+    tabCodex?.addEventListener('click', () => {
+      tabCodex.classList.add('active');
+      tabFleet?.classList.remove('active');
+      viewCodex?.classList.remove('hidden');
+      viewFleet?.classList.add('hidden');
+      this._updateCodexCards();
+    });
 
     // Hook HUD Hangar Button
     document.querySelectorAll('#btn-hangar, .btn-hangar-open, [data-action="hangar"]').forEach(btn => {
@@ -385,6 +484,137 @@ export class FleetHangarUI {
       .btn-hangar-launch:hover {
         transform: translateY(-1px);
         box-shadow: 0 0 24px rgba(0, 243, 255, 0.7);
+      }
+
+      /* Tab Navigation */
+      .hangar-tabs-nav {
+        display: flex;
+        gap: 8px;
+      }
+      .hangar-tab-btn {
+        background: rgba(0, 243, 255, 0.08);
+        border: 1px solid rgba(0, 243, 255, 0.3);
+        color: #8fa0b5;
+        font-family: 'Orbitron', -apple-system, sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        padding: 6px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .hangar-tab-btn:hover {
+        background: rgba(0, 243, 255, 0.18);
+        color: #fff;
+      }
+      .hangar-tab-btn.active {
+        background: rgba(0, 243, 255, 0.25);
+        border-color: #00f3ff;
+        color: #00f3ff;
+        box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+      }
+      .hangar-tab-view.hidden {
+        display: none !important;
+      }
+
+      /* Codex UI Styles */
+      .codex-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+      }
+      .codex-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+        gap: 14px;
+        max-height: 72vh;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      @media (max-width: 600px) {
+        .codex-grid { grid-template-columns: 1fr; }
+      }
+      .codex-card {
+        background: rgba(6, 16, 28, 0.85);
+        border: 1px solid rgba(0, 243, 255, 0.25);
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        cursor: pointer;
+        position: relative;
+      }
+      .codex-card:hover {
+        border-color: rgba(0, 243, 255, 0.6);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 243, 255, 0.2);
+      }
+      .codex-card.locked {
+        filter: grayscale(0.9) brightness(0.6);
+        opacity: 0.6;
+        border-color: rgba(255, 255, 255, 0.1);
+        cursor: not-allowed;
+      }
+      .codex-card.locked::after {
+        content: '🔒 REACH SECTOR TO DECRYPT';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.85);
+        color: #ffaa00;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 11px;
+        letter-spacing: 1px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #ffaa00;
+        pointer-events: none;
+      }
+      .codex-preview-thumb {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+        display: block;
+      }
+      .codex-card-body {
+        padding: 10px 14px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .codex-card-tag {
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 10px;
+        color: #ffaa00;
+        letter-spacing: 1px;
+      }
+      .codex-card-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #00f3ff;
+        letter-spacing: 0.5px;
+      }
+      .codex-card-desc {
+        font-size: 11px;
+        line-height: 1.45;
+        color: #a0b2c6;
+      }
+      .codex-telemetry-row {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px dashed rgba(0, 243, 255, 0.15);
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 10px;
+        color: var(--accent-cyan, #00f3ff);
       }
     `;
     document.head.appendChild(style);
@@ -622,5 +852,61 @@ export class FleetHangarUI {
       }
     }
     this.close();
+  }
+
+  _updateCodexCards() {
+    const currentWave = this.gameManager?.waveSpawner?.currentWave || 1;
+    let unlockedCount = 0;
+
+    const cards = document.querySelectorAll('.codex-card');
+    cards.forEach(card => {
+      const id = card.getAttribute('data-codex-id');
+      const entry = this.codexEntries.find(e => e.id === id);
+      if (!entry) return;
+
+      const isUnlocked = currentWave >= entry.unlockWave;
+      if (isUnlocked) {
+        unlockedCount++;
+        card.classList.remove('locked');
+      } else {
+        card.classList.add('locked');
+      }
+
+      // Add click preview/celestial setting if not already attached
+      if (!card.dataset.hasListener) {
+        card.dataset.hasListener = 'true';
+        card.addEventListener('click', () => {
+          if (card.classList.contains('locked')) {
+            if (this.gameManager?.spaceAudio) {
+              this.gameManager.spaceAudio.playWarningAlarm();
+            }
+            return;
+          }
+
+          // Trigger sound and notify player
+          if (this.gameManager?.spaceAudio) {
+            this.gameManager.spaceAudio.playChaffDeploy?.();
+          }
+
+          // Apply selected backdrop directly to celestial dome
+          if (this.gameManager?.spaceScene) {
+            this.gameManager.spaceScene.setStageEnvironment(entry.unlockWave + 1);
+          }
+
+          if (this.gameManager?.spaceHUD) {
+            this.gameManager.spaceHUD.showRadioTransmission(
+              `CELESTIAL HARMONICS LOCKED: ${entry.name} [${entry.catalog}]`,
+              "ASTROPHYSICS CODEX",
+              4.5
+            );
+          }
+        });
+      }
+    });
+
+    const tag = document.getElementById('codex-unlocked-tag');
+    if (tag) {
+      tag.textContent = `UNLOCKED: ${unlockedCount} / ${this.codexEntries.length} ARCHIVES`;
+    }
   }
 }
