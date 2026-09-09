@@ -1901,6 +1901,22 @@ export class SpaceHUD {
     }
   }
 
+  triggerHitMarker(isCritical = false) {
+    if (!this.hitMarker) {
+      this.hitMarker = document.getElementById('reticle-hit-marker');
+    }
+    if (this.hitMarker) {
+      this.hitMarker.classList.remove('active', 'crit');
+      void this.hitMarker.offsetWidth;
+      if (isCritical) this.hitMarker.classList.add('crit');
+      this.hitMarker.classList.add('active');
+      clearTimeout(this._hitMarkerTimer);
+      this._hitMarkerTimer = setTimeout(() => {
+        if (this.hitMarker) this.hitMarker.classList.remove('active', 'crit');
+      }, 85);
+    }
+  }
+
   onGameStart() {
     if (!this.isMobile && !this.isNativeApp && this.desktopMouseFlightPill) {
       this.desktopMouseFlightPill.classList.remove('hidden');

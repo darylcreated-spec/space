@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SpaceDebrisSystem } from './SpaceDebrisSystem.js';
+import { assetManager } from './AssetManager.js';
 
 export class ParticleManager {
   constructor(scene) {
@@ -9,21 +10,29 @@ export class ParticleManager {
     this.lightningArcs = [];
     this.fireballs = [];
     this.metalDebris = [];
+    this.muzzleFlashes = [];
+
+    // Preload Kenney CC0 particle VFX textures
+    this.textures = assetManager.loadParticleTextures();
 
     // 1. Reusable Engine Thruster Particle Pool (250 particles)
-    this.enginePool = this._buildParticlePool(250, 0.45);
+    this.enginePool = this._buildParticlePool(250, 0.55, this.textures.flame);
     this.engineIndex = 0;
 
     // 2. Reusable Explosion Particle Pool (500 particles)
-    this.explosionPool = this._buildParticlePool(500, 0.75);
+    this.explosionPool = this._buildParticlePool(500, 1.1, this.textures.flame);
     this.explosionIndex = 0;
 
     // 3. High-Velocity Ricochet Spark Pool (300 particles)
-    this.sparkPool = this._buildParticlePool(300, 0.32);
+    this.sparkPool = this._buildParticlePool(300, 0.45, this.textures.spark);
     this.sparkIndex = 0;
 
-    // 4. Reusable RCS Micro-Jet Pool (150 particles)
-    this.rcsPool = this._buildParticlePool(150, 0.28);
+    // 4. Volumetric Smoke Venting Pool (200 particles)
+    this.smokePool = this._buildParticlePool(200, 1.6, this.textures.smoke);
+    this.smokeIndex = 0;
+
+    // 5. Reusable RCS Micro-Jet Pool (150 particles)
+    this.rcsPool = this._buildParticlePool(150, 0.35, this.textures.flame);
     this.rcsIndex = 0;
 
     this._tempColor = new THREE.Color();
@@ -49,7 +58,7 @@ export class ParticleManager {
     this.spaceDebris = new SpaceDebrisSystem(this.scene, 512);
   }
 
-  _buildParticlePool(count, defaultSize) {
+  _buildParticlePool(count, defaultSize, texture = null) {
     const geo = new THREE.BufferGeometry();
     const positions = new Float32Array(count * 3).fill(9999);
     const colors = new Float32Array(count * 3);
@@ -65,6 +74,8 @@ export class ParticleManager {
 
     const mat = new THREE.PointsMaterial({
       size: defaultSize,
+      map: texture || null,
+      alphaTest: texture ? 0.01 : 0.0,
       vertexColors: true,
       transparent: true,
       opacity: 0.9,
@@ -195,11 +206,87 @@ export class ParticleManager {
       pool.decays[idx] = 0.035 + Math.random() * 0.03;
     }
 
-    // Spawn rich incandescent spark shower
+    // Spawn rich incandescent spark shower with spark_02 alpha texture
     this.spawnSparks(pos, new THREE.Vector3(0, 0, 1), 0xffaa00, 14);
 
     // Spawn Volumetric Expanding Fireball
     this.createVolumetricFireball(pos, scale * 3.5, colorHex);
+
+    // Spawn billowing smoke puffs with smoke_04 alpha texture
+    this.spawnSmokePuff(pos, null, 0x556677, 6);
+
+    // Spawn expanding shockwave ring with circle_05 alpha texture
+    this.createTexturedShockwave(pos, scale * 12.0, colorHex);
+  }
+
+  spawnSmokePuff(pos, vel = null, colorHex = 0x667788, count = 5) {
+    const pool = this.smokePool;
+    if (!pool) return;
+    this._tempColor.setHex(colorHex);
+
+    for (let i = 0; i < count; i++) {
+      const idx = this.smokeIndex % pool.count;
+      this.smokeIndex++;
+
+      pool.positions[idx * 3] = pos.x + (Math.random() - 0.5) * 0.5;
+      pool.positions[idx * 3 + 1] = pos.y + (Math.random() - 0.5) * 0.5;
+      pool.positions[idx * 3 + 2] = pos.z + (Math.random() - 0.5) * 0.5;
+
+      pool.colors[idx * 3] = this._tempColor.r;
+      pool.colors[idx * 3 + 1] = this._tempColor.g;
+      pool.colors[idx * 3 + 2] = this._tempColor.b;
+
+      const spd = 0.25 + Math.random() * 0.45;
+      pool.velX[idx] = (vel ? vel.x : (Math.random() - 0.5)) * spd;
+      pool.velY[idx] = (vel ? vel.y : (Math.random() - 0.5)) * spd;
+      pool.velZ[idx] = (vel ? vel.z : (Math.random() - 0.5)) * spd;
+
+      pool.lives[idx] = 1.0;
+      pool.decays[idx] = 0.022 + Math.random() * 0.018;
+    }
+  }
+
+  spawnMuzzleFlash(pos, colorHex = 0x00f3ff, scale = 1.8, rotZ = 0) {
+    if (!this.textures || !this.textures.muzzle) return;
+    const mat = new THREE.SpriteMaterial({
+      map: this.textures.muzzle,
+      color: colorHex,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    mat.rotation = rotZ || (Math.random() * Math.PI * 2);
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.copy(pos);
+    sprite.scale.set(scale, scale, 1);
+    this.scene.add(sprite);
+
+    this.muzzleFlashes.push({ sprite, life: 1.0, decay: 22.0 });
+  }
+
+  createTexturedShockwave(pos, maxRadius = 16, colorHex = 0x00f3ff) {
+    if (!this.textures || !this.textures.shockwave) return;
+    const mat = new THREE.SpriteMaterial({
+      map: this.textures.shockwave,
+      color: colorHex,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.copy(pos);
+    sprite.scale.set(1.0, 1.0, 1.0);
+    this.scene.add(sprite);
+
+    this.shockwaves.push({
+      sprite,
+      currentRadius: 1.0,
+      maxRadius,
+      speed: maxRadius * 0.075,
+      opacity: 0.95
+    });
   }
 
   createLaserImpact(pos, normal = new THREE.Vector3(0, 0, 1), colorHex = 0x00f3ff, count = 10) {
@@ -287,7 +374,21 @@ export class ParticleManager {
     this._updatePool(this.enginePool);
     this._updatePool(this.explosionPool);
     this._updatePool(this.sparkPool);
+    if (this.smokePool) this._updatePool(this.smokePool);
     this._updatePool(this.rcsPool);
+
+    // Update Muzzle Flashes
+    for (let i = this.muzzleFlashes.length - 1; i >= 0; i--) {
+      const mf = this.muzzleFlashes[i];
+      mf.life -= mf.decay * delta;
+      if (mf.life <= 0) {
+        this.scene.remove(mf.sprite);
+        if (mf.sprite.material) mf.sprite.material.dispose();
+        this.muzzleFlashes.splice(i, 1);
+      } else {
+        mf.sprite.material.opacity = mf.life * 0.95;
+      }
+    }
 
     // Update Volumetric Fireballs
     for (let i = this.fireballs.length - 1; i >= 0; i--) {
@@ -304,19 +405,24 @@ export class ParticleManager {
       }
     }
 
-    // Update EMP Shockwaves
+    // Update EMP Shockwaves & Holographic Rings
     for (let i = this.shockwaves.length - 1; i >= 0; i--) {
       const sw = this.shockwaves[i];
+      const targetObj = sw.sprite || sw.mesh;
       sw.currentRadius += sw.speed;
 
       if (sw.currentRadius >= sw.maxRadius) {
-        this.scene.remove(sw.mesh);
-        if (sw.mesh.material) sw.mesh.material.dispose();
+        if (targetObj) {
+          this.scene.remove(targetObj);
+          if (targetObj.material) targetObj.material.dispose();
+        }
         this.shockwaves.splice(i, 1);
       } else {
-        sw.mesh.scale.set(sw.currentRadius, sw.currentRadius, 1);
-        const progress = sw.currentRadius / sw.maxRadius;
-        sw.mesh.material.opacity = Math.max(0, (1 - progress) * 0.95);
+        if (targetObj) {
+          targetObj.scale.set(sw.currentRadius, sw.currentRadius, 1);
+          const progress = sw.currentRadius / sw.maxRadius;
+          targetObj.material.opacity = Math.max(0, (1 - progress) * 0.95);
+        }
       }
     }
 
@@ -400,13 +506,25 @@ export class ParticleManager {
       this.metalDebris = [];
     }
 
+    // Purge muzzle flashes
+    if (this.muzzleFlashes) {
+      this.muzzleFlashes.forEach(mf => {
+        if (mf && mf.sprite) {
+          this.scene.remove(mf.sprite);
+          if (mf.sprite.material) mf.sprite.material.dispose();
+        }
+      });
+      this.muzzleFlashes = [];
+    }
+
     // Purge shockwaves
     if (this.shockwaves) {
       this.shockwaves.forEach(sw => {
-        if (sw && sw.mesh) {
-          if (sw.mesh.parent) sw.mesh.parent.remove(sw.mesh);
-          else this.scene.remove(sw.mesh);
-          if (sw.mesh.material) sw.mesh.material.dispose();
+        const obj = sw.sprite || sw.mesh;
+        if (obj) {
+          if (obj.parent) obj.parent.remove(obj);
+          else this.scene.remove(obj);
+          if (obj.material) obj.material.dispose();
         }
       });
       this.shockwaves = [];

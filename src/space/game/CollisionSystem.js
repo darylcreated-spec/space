@@ -22,7 +22,14 @@ export class CollisionSystem {
     return isRearFlank || isLateralFlank;
   }
 
+  _triggerHitMarker(isCritical = false) {
+    if (this.gameManager && this.gameManager.spaceHUD && this.gameManager.spaceHUD.triggerHitMarker) {
+      this.gameManager.spaceHUD.triggerHitMarker(isCritical);
+    }
+  }
+
   checkCollisions(gameManager) {
+    this.gameManager = gameManager;
     if (gameManager.freezeFleetAI) return;
     if (gameManager.state !== 'PLAYING') return;
     const player = gameManager.playerShip;
@@ -157,6 +164,7 @@ export class CollisionSystem {
           const rockPhysicalRadius = (rock.radius || 3.0) * 0.75 + 0.3;
           if (dist < rockPhysicalRadius) {
             laser.hitEntities.add(rock.meshGroup.uuid);
+            this._triggerHitMarker(laser.isCritical);
             let dmg = laser.damage || 25;
             if (laser.isCritical) {
               this.particleManager.createExplosion(lPos, 0xff0044, 25);
@@ -242,6 +250,7 @@ export class CollisionSystem {
           const dronePhysicalRadius = 1.3;
           if (dist < dronePhysicalRadius) {
             laser.hitEntities.add(drone.meshGroup.uuid);
+            this._triggerHitMarker(laser.isCritical);
             let dmg = laser.damage || 20;
 
             const isFlank = this.isFlankAttack(lPos, dPos, pPos);
@@ -307,6 +316,7 @@ export class CollisionSystem {
             const dist = lPos.distanceTo(sPos);
             if (dist < ship.radius + laser.radius) {
               laser.hitEntities.add(ship.meshGroup.uuid);
+              this._triggerHitMarker(laser.isCritical);
               let dmg = 20;
 
               const isFlank = this.isFlankAttack(lPos, sPos, pPos);
@@ -354,6 +364,7 @@ export class CollisionSystem {
             if (!fighter || fighter.isDead || !fighter.meshGroup) continue;
 
             if (lPos.distanceTo(fighter.meshGroup.position) < fighter.radius + laser.radius) {
+              this._triggerHitMarker(laser.isCritical);
               const dead = fighter.takeDamage(laser.isCritical ? 75 : 25, lPos);
               this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0xbf00ff);
               if (this.particleManager.spawnMetalDebris) {
@@ -393,6 +404,7 @@ export class CollisionSystem {
             if (!ecm || ecm.isDead || !ecm.meshGroup) continue;
 
             if (lPos.distanceTo(ecm.meshGroup.position) < ecm.radius + laser.radius) {
+              this._triggerHitMarker(laser.isCritical);
               const dead = ecm.takeDamage(laser.isCritical ? 90 : 30);
               this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0xaa22ff);
               if (dead) {
@@ -420,6 +432,7 @@ export class CollisionSystem {
             if (!phase || phase.isDead || !phase.meshGroup) continue;
 
             if (lPos.distanceTo(phase.meshGroup.position) < phase.radius + laser.radius) {
+              this._triggerHitMarker(laser.isCritical);
               const dead = phase.takeDamage(laser.isCritical ? 75 : 25);
               this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0x00f3ff);
               if (dead) {
@@ -447,6 +460,7 @@ export class CollisionSystem {
 
             const distB = lPos.distanceTo(battleship.meshGroup.position);
             if (distB < battleship.hitRadius) {
+              this._triggerHitMarker(laser.isCritical);
               let dmg = laser.isCritical ? 75 : 25;
               let hitSub = false;
 
@@ -878,6 +892,7 @@ export class CollisionSystem {
               }
 
               if (hitRegistered) {
+                this._triggerHitMarker(laser.isCritical);
                 if (gameManager.spaceHUD) {
                   const maxHp = boss.maxCoreHp || boss.maxHp || 6000;
                   const currentHp = Math.max(0, boss.coreHp !== undefined ? boss.coreHp : (boss.hp !== undefined ? boss.hp : maxHp));
@@ -912,6 +927,7 @@ export class CollisionSystem {
           carrier.meshGroup.worldToLocal(this._tempVecCarrier);
           // Broad check within enlarged carrier bounding zone (65m length)
           if (Math.abs(this._tempVecCarrier.x) < 22.0 && Math.abs(this._tempVecCarrier.y) < 12.0 && Math.abs(this._tempVecCarrier.z) < 36.0) {
+            this._triggerHitMarker(laser.isCritical);
             let dmg = laser.isCritical ? 75 : 25;
             let hitRegistered = false;
 

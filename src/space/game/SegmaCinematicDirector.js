@@ -2704,6 +2704,25 @@ export class SegmaCinematicDirector {
         )
       });
     }
+
+    // Add authentic NASA 3D scanned asteroid boulders drifting in peripheral corridors
+    assetManager.loadAsteroidModel().then(asteroidModel => {
+      if (asteroidModel && this.isActive) {
+        for (let a = 0; a < 3; a++) {
+          const ast = asteroidModel.clone(true);
+          const scale = 0.75 + a * 0.4;
+          ast.scale.set(scale, scale, scale);
+          const side = (a % 2 === 0 ? 1 : -1);
+          ast.position.set(side * (32 + a * 10), -12 + a * 14, -40 - a * 30);
+          this.cinematicGroup.add(ast);
+          this.debrisField.push({
+            mesh: ast,
+            rotVel: new THREE.Vector3(0.08, 0.12, 0.05),
+            driftVel: new THREE.Vector3(side * 0.2, 0.05, 0.15)
+          });
+        }
+      }
+    });
   }
 
   updateDebrisField(dt) {

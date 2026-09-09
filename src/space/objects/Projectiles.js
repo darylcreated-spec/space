@@ -169,6 +169,11 @@ export class LaserBolt {
       else this.meshGroup.rotation.set(0, 0, 0);
     }
 
+    // Spawn high-intensity directional muzzle flash sprite at firing hardpoint
+    if (this.gameManager && this.gameManager.particleManager && this.gameManager.particleManager.spawnMuzzleFlash) {
+      this.gameManager.particleManager.spawnMuzzleFlash(startPos, this.colorHex, isEnemy ? 1.4 : 1.9);
+    }
+
     // Rebuild mesh children for specific projectile geometry
     while (this.meshGroup.children.length > 0) {
       this.meshGroup.remove(this.meshGroup.children[0]);

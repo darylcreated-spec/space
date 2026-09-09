@@ -20,9 +20,9 @@
   --text-main: #f0f6fc;
   --text-muted: #7e94ac;
 
-  --font-header: 'Orbitron', 'Chakra Petch', sans-serif;
-  --font-ui: 'Rajdhani', sans-serif;
-  --font-code: 'JetBrains Mono', monospace;
+  --font-header: 'Orbitron', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ui: 'Orbitron', 'Rajdhani', -apple-system, sans-serif;
+  --font-code: 'Share Tech Mono', 'JetBrains Mono', monospace;
 }
 
 * {
@@ -2886,6 +2886,50 @@ html, body {
   border-radius: 50%;
   background: rgba(0, 243, 255, 0.6);
   transform: translate(-50%, -50%);
+}
+
+.reticle-hit-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.05s ease-out;
+}
+
+.reticle-hit-marker.active {
+  opacity: 1;
+}
+
+.reticle-hit-marker::before,
+.reticle-hit-marker::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+
+.reticle-hit-marker::before {
+  width: 14px;
+  height: 2px;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.reticle-hit-marker::after {
+  width: 14px;
+  height: 2px;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.reticle-hit-marker.crit::before,
+.reticle-hit-marker.crit::after {
+  background: #ffea00;
+  box-shadow: 0 0 8px #ffea00, 0 0 16px rgba(255, 234, 0, 0.8);
 }
 
 .reticle-gimbal-dot {

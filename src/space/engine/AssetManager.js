@@ -18,9 +18,13 @@ export class AssetManager {
   async init() {
     try {
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+      const { DRACOLoader } = await import('three/examples/jsm/loaders/DRACOLoader.js');
       this.gltfLoader = new GLTFLoader();
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath('/draco/');
+      this.gltfLoader.setDRACOLoader(dracoLoader);
     } catch (e) {
-      console.warn('GLTFLoader dynamic import failed, procedural meshes will be used', e);
+      console.warn('GLTFLoader/DRACOLoader dynamic import failed, procedural meshes will be used', e);
     }
   }
 
@@ -48,6 +52,41 @@ export class AssetManager {
     }
     this.textures.set(url, tex);
     return tex;
+  }
+
+  /**
+   * Loads and caches the Milky Way celestial cube texture
+   */
+  loadSkybox(folder = '/textures/skybox/milkyway/') {
+    if (this.skyboxCube) return this.skyboxCube;
+    if (!this.cubeLoader) {
+      this.cubeLoader = new THREE.CubeTextureLoader();
+    }
+    const urls = [
+      `${folder}dark-s_px.jpg`,
+      `${folder}dark-s_nx.jpg`,
+      `${folder}dark-s_py.jpg`,
+      `${folder}dark-s_ny.jpg`,
+      `${folder}dark-s_pz.jpg`,
+      `${folder}dark-s_nz.jpg`
+    ];
+    this.skyboxCube = this.cubeLoader.load(urls);
+    return this.skyboxCube;
+  }
+
+  /**
+   * Preloads Kenney CC0 particle VFX textures with alpha channels
+   */
+  loadParticleTextures() {
+    if (this.particleTextures) return this.particleTextures;
+    this.particleTextures = {
+      smoke: this.loadTexture('/textures/particles/smoke_04.png', true),
+      flame: this.loadTexture('/textures/particles/flame_01.png', true),
+      spark: this.loadTexture('/textures/particles/spark_02.png', true),
+      shockwave: this.loadTexture('/textures/particles/circle_05.png', true),
+      muzzle: this.loadTexture('/textures/particles/muzzle_01.png', true)
+    };
+    return this.particleTextures;
   }
 
   /**
@@ -332,6 +371,36 @@ export class AssetManager {
       wrapper.name = 'Wingman_Frigate';
       this.normalizeModelSize(frigate, 3.2, true);
       wrapper.add(frigate);
+      return wrapper;
+    }
+    return null;
+  }
+
+  /**
+   * Loads NASA 3D scanned asteroid model (Asteroid 1999 RQ36)
+   */
+  async loadAsteroidModel() {
+    const model = await this.loadModel('/models/Asteroid_1999_RQ36.glb', 'NASA_ASTEROID_RQ36');
+    if (model) {
+      const wrapper = new THREE.Group();
+      wrapper.name = 'NASA_Asteroid';
+      this.normalizeModelSize(model, 6.0, true);
+      wrapper.add(model);
+      return wrapper;
+    }
+    return null;
+  }
+
+  /**
+   * Loads NASA Deep Space Comms Relay Probe
+   */
+  async loadProbeModel() {
+    const model = await this.loadModel('/models/Deep_Space_Probe.glb', 'NASA_DEEP_SPACE_PROBE');
+    if (model) {
+      const wrapper = new THREE.Group();
+      wrapper.name = 'NASA_Probe';
+      this.normalizeModelSize(model, 8.0, true);
+      wrapper.add(model);
       return wrapper;
     }
     return null;

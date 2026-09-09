@@ -788,6 +788,7 @@ export class SpaceScene {
 
     // Setup Orbital Defense Space Station in high orbit
     this.setupOrbitalStation();
+    this.setupOrbitalCommsProbe();
   }
 
   setupOrbitalStation() {
@@ -823,7 +824,52 @@ export class SpaceScene {
     });
   }
 
+  setupOrbitalCommsProbe() {
+    if (this.orbitalProbeGroup) {
+      this.scene.remove(this.orbitalProbeGroup);
+    }
+    this.orbitalProbeGroup = new THREE.Group();
+    this.orbitalProbeGroup.name = 'OrbitalCommsProbe';
+    this.scene.add(this.orbitalProbeGroup);
+
+    // Position in high orbit over Planet Segma
+    this.orbitalProbeGroup.position.set(-65, -25, -240);
+    this.orbitalProbeGroup.rotation.set(0.35, 0.7, -0.15);
+
+    assetManager.loadProbeModel().then(probeModel => {
+      if (probeModel && this.orbitalProbeGroup) {
+        this.orbitalProbeGroup.add(probeModel);
+        this.orbitalProbeModel = probeModel;
+      }
+    });
+
+    // Blinking telemetry beacon light
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+    const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.7, 8, 8), beaconMat);
+    beacon.position.set(0, 3.5, 0);
+    this.orbitalProbeGroup.add(beacon);
+
+    const probeLight = new THREE.PointLight(0x00f3ff, 1.5, 25);
+    probeLight.position.set(0, 3.5, 0);
+    this.orbitalProbeGroup.add(probeLight);
+  }
+
+  setupDeepSpaceSkybox() {
+    try {
+      const skybox = assetManager.loadSkybox();
+      if (skybox) {
+        this.scene.background = skybox;
+        this.scene.environment = skybox;
+      }
+    } catch(e) {
+      console.warn('Could not load Milky Way skybox cube, falling back to background color', e);
+    }
+  }
+
   buildDeepSpaceEnvironment() {
+    // 0. Milky Way Celestial Skybox & Starlight Reflection Map
+    this.setupDeepSpaceSkybox();
+
     // 1. Realistic Spherical Starfield (Smooth Circular Radial Glow, No Cubes)
     const budgets = this.deviceManager ? this.deviceManager.getEntityBudgets() : { starsCount: 2000, dustParticles: 400 };
     const starCount = budgets.starsCount;
@@ -1044,6 +1090,11 @@ export class SpaceScene {
     if (this.starField) this.starField.rotation.y += 0.0002;
     if (this.nebula1) this.nebula1.rotation.y += 0.0001;
     if (this.nebula2) this.nebula2.rotation.y -= 0.0001;
+    if (this.orbitalStationGroup) this.orbitalStationGroup.rotation.y += dt * 0.03;
+    if (this.orbitalProbeGroup) {
+      this.orbitalProbeGroup.rotation.y += dt * 0.05;
+      this.orbitalProbeGroup.rotation.x += dt * 0.015;
+    }
 
     if (this.dustPoints) {
       const positions = this.dustPoints.geometry.attributes.position.array;

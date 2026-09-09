@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { assetManager } from '../engine/AssetManager.js';
 
 const _asteroidGeoCache = {};
 function getAsteroidGeometries(radius, sizeKey) {
@@ -152,6 +153,21 @@ export class Asteroid {
     });
     this.wire = new THREE.LineSegments(wireGeo, this.wireMat);
     this.meshGroup.add(this.wire);
+
+    // ── Authentic NASA Radar-Scanned 3D Asteroid Model Injection ──
+    if (this._type === 0 && !this.isComet) {
+      assetManager.loadAsteroidModel().then(nasaModel => {
+        if (nasaModel && !this.isDead && this.meshGroup) {
+          if (this.rockMesh) this.meshGroup.remove(this.rockMesh);
+          if (this.wire) this.meshGroup.remove(this.wire);
+          const cloned = nasaModel.clone(true);
+          const s = (this.radius / 3.0);
+          cloned.scale.set(s, s, s);
+          this.meshGroup.add(cloned);
+          this.rockMesh = cloned;
+        }
+      });
+    }
 
     // ── Glow point light for emissive asteroids (Desktop only; on mobile, bloom shaders provide full neon radiance without GPU fillrate stall) ──
     if (!this.isMobile) {

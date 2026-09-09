@@ -7,6 +7,9 @@
   <meta name="description" content="STARBOUND SPACE DEFENDER - AAA Sci-Fi Aerospace Flight Combat Simulator" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
   <script>
     window.addEventListener('error', (event) => {
       if (!event.error && (!event.message || event.message === 'Script error.')) return;
@@ -119,6 +122,7 @@
         <div class="reticle-tick tick-left"></div>
         <div class="reticle-tick tick-right"></div>
         <div class="reticle-center-crosshair"></div>
+        <div id="reticle-hit-marker" class="reticle-hit-marker"></div>
       </div>
       <div id="reticle-gimbal-dot" class="reticle-gimbal-dot"></div>
       <div id="reticle-vector-line" class="reticle-vector-line"></div>

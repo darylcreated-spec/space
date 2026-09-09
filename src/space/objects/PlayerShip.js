@@ -1899,6 +1899,10 @@ export class PlayerShip {
       this.engineTrailOffsets.forEach(offset => {
         const worldPos = this.meshGroup.localToWorld(offset.clone());
         this.particleManager.spawnEngineParticle(worldPos, pColor);
+        if (this.isBoosting) {
+          // Dynamic afterburner boost kinetic spark flare
+          this.particleManager.spawnSparks(worldPos, new THREE.Vector3(0, 0, 1), pColor, 2);
+        }
       });
     }
 

@@ -859,8 +859,8 @@ export class SpaceAudio {
   }
 
   /**
-   * Procedural Tactical Radio Chirp / Roger Beep & Mic Key-Down Click
-   * Simulates dual-tone aviation burst and helmet microphone contact click.
+   * Procedural Apollo Quindar Intro Tone & Helmet Mic Contact Click (2525 Hz)
+   * Authentic NASA mission control intro frequency used on Apollo and Shuttle missions.
    */
   playRadioChirp() {
     this.ensureContext();
@@ -870,30 +870,24 @@ export class SpaceAudio {
     if (!outputNode) return;
 
     try {
-      // 1. Dual-tone Roger Beep (1450Hz & 2200Hz)
-      const osc1 = this.ctx.createOscillator();
-      const osc2 = this.ctx.createOscillator();
-      const gainTone = this.ctx.createGain();
+      // 1. Authentic Apollo Quindar Intro Tone (2,525 Hz)
+      const osc = this.ctx.createOscillator();
+      const toneGain = this.ctx.createGain();
 
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(1450, now);
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(2200, now + 0.015);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2525, now);
 
-      gainTone.gain.setValueAtTime(0.0001, now);
-      gainTone.gain.linearRampToValueAtTime(0.10, now + 0.005);
-      gainTone.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+      toneGain.gain.setValueAtTime(0.0001, now);
+      toneGain.gain.linearRampToValueAtTime(0.12, now + 0.005);
+      toneGain.gain.setValueAtTime(0.12, now + 0.055);
+      toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
 
-      osc1.connect(gainTone);
-      osc2.connect(gainTone);
-      gainTone.connect(outputNode);
+      osc.connect(toneGain);
+      toneGain.connect(outputNode);
 
-      osc1.start(now);
-      osc1.stop(now + 0.035);
-      osc2.start(now + 0.015);
-      osc2.stop(now + 0.05);
-
-      osc1.onended = () => { try { osc1.disconnect(); osc2.disconnect(); gainTone.disconnect(); } catch (e) {} };
+      osc.start(now);
+      osc.stop(now + 0.075);
+      osc.onended = () => { try { osc.disconnect(); toneGain.disconnect(); } catch (e) {} };
 
       // 2. Helmet Squelch Noise Burst (2400Hz Bandpass Click)
       const bufferSize = Math.floor(this.ctx.sampleRate * 0.035);
@@ -928,8 +922,8 @@ export class SpaceAudio {
   }
 
   /**
-   * Procedural Squelch Tail / Radio Release Burst
-   * Simulates the squelch gate clamp noise when pilot releases the mic.
+   * Procedural Apollo Quindar Outro Tone & Squelch Gate Clamp (2475 Hz)
+   * Authentic NASA mission control release frequency when mic key is released.
    */
   playRadioRelease() {
     this.ensureContext();
@@ -939,6 +933,26 @@ export class SpaceAudio {
     if (!outputNode) return;
 
     try {
+      // 1. Authentic Apollo Quindar Outro Tone (2,475 Hz)
+      const osc = this.ctx.createOscillator();
+      const toneGain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(2475, now);
+
+      toneGain.gain.setValueAtTime(0.0001, now);
+      toneGain.gain.linearRampToValueAtTime(0.11, now + 0.005);
+      toneGain.gain.setValueAtTime(0.11, now + 0.055);
+      toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.075);
+
+      osc.connect(toneGain);
+      toneGain.connect(outputNode);
+
+      osc.start(now);
+      osc.stop(now + 0.075);
+      osc.onended = () => { try { osc.disconnect(); toneGain.disconnect(); } catch (e) {} };
+
+      // 2. Squelch Tail Gate Clamp Noise Burst
       const bufferSize = Math.floor(this.ctx.sampleRate * 0.045);
       const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
