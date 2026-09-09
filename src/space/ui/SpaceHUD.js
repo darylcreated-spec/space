@@ -1774,22 +1774,15 @@ export class SpaceHUD {
    * Cockpit Canopy Glass Fractures based on shield damage
    */
   updateCanopyDamage(shield, maxShield = 90) {
+    // Disabled: 3rd-person chase camera perspective does not have physical windshield glass
     if (!this.glassTier1) {
       this.glassTier1 = document.getElementById('glass-cracks-tier1');
       this.glassTier2 = document.getElementById('glass-cracks-tier2');
       this.glassTier3 = document.getElementById('glass-cracks-tier3');
     }
-    const ratio = Math.max(0, shield / maxShield);
-
-    if (this.glassTier1) {
-      this.glassTier1.classList.toggle('hidden', ratio >= 0.5);
-    }
-    if (this.glassTier2) {
-      this.glassTier2.classList.toggle('hidden', ratio >= 0.25);
-    }
-    if (this.glassTier3) {
-      this.glassTier3.classList.toggle('hidden', ratio > 0.05);
-    }
+    if (this.glassTier1) this.glassTier1.classList.add('hidden');
+    if (this.glassTier2) this.glassTier2.classList.add('hidden');
+    if (this.glassTier3) this.glassTier3.classList.add('hidden');
   }
 
   /**
@@ -2329,15 +2322,7 @@ export class SpaceHUD {
     this.reticleGimbalDot.style.transform = `translate(-50%, -50%) translate3d(${pxX.toFixed(1)}px, ${pxY.toFixed(1)}px, 0)`;
 
     if (this.reticleVectorLine) {
-      const dist = Math.hypot(pxX, pxY);
-      if (dist > 3) {
-        const angle = Math.atan2(pxY, pxX) * (180 / Math.PI);
-        this.reticleVectorLine.style.display = 'block';
-        this.reticleVectorLine.style.width = `${dist.toFixed(1)}px`;
-        this.reticleVectorLine.style.transform = `rotate(${angle.toFixed(1)}deg)`;
-      } else {
-        this.reticleVectorLine.style.display = 'none';
-      }
+      this.reticleVectorLine.style.display = 'none';
     }
   }
 
@@ -2358,10 +2343,10 @@ export class SpaceHUD {
   }
 
   updateAttitudeLadder(playerShip) {
-    if (!this.cockpitAttitudeLadder || !playerShip || !playerShip.meshGroup) return;
-    const rollDeg = (playerShip.meshGroup.rotation.z || 0) * (180 / Math.PI);
-    const pitchPx = (playerShip.meshGroup.rotation.x || 0) * 80;
-    this.cockpitAttitudeLadder.style.transform = `translate(-50%, calc(-50% + ${pitchPx.toFixed(1)}px)) rotate(${(-rollDeg).toFixed(1)}deg) translateZ(0)`;
+    if (this.cockpitAttitudeLadder) {
+      this.cockpitAttitudeLadder.style.display = 'none';
+    }
+    return;
   }
 
   updateLeadTargeting(playerShip, targetEnemy, camera) {

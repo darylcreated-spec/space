@@ -2922,7 +2922,7 @@ export class GameManager {
         flareMaxCharges: this.playerShip.maxFlareCharges
       });
 
-      this.spaceHUD.updateAttitudeLadder(this.playerShip);
+      // Attitude ladder disabled for clean 3rd person chase camera perspective
       const primaryTarget = this.getNearestForwardTarget();
       this.spaceHUD.updateLeadTargeting(this.playerShip, primaryTarget, this.spaceScene.camera);
 
