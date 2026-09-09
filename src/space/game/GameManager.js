@@ -131,6 +131,7 @@ export class GameManager {
     this.stasisTimer = 0;
     this.hitFreezeTimer = 0;
     this.killCamSlowMoTimer = 0;
+    this.victoryCinematicTimer = 0;
     this.pendingNukeOnWaveStart = false;
 
     // Flag for pausing laser auto-fire during EMP launch
@@ -1800,19 +1801,35 @@ export class GameManager {
     if (!flares || flares.length === 0) return;
 
     flares.forEach(f => {
-      const flareGeo = new THREE.SphereGeometry(0.35, 8, 8);
-      const flareMat = new THREE.MeshBasicMaterial({
-        color: 0xffea00,
-        transparent: true,
-        opacity: 0.95
+      // Dual-Core High-Contrast Magnesium Flare (Pure white incandescent core + amber corona)
+      const flareGroup = new THREE.Group();
+      
+      const coreGeo = new THREE.SphereGeometry(0.32, 8, 8);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: false
       });
-      const flareMesh = new THREE.Mesh(flareGeo, flareMat);
-      flareMesh.position.copy(f.position);
-      this.spaceScene.scene.add(flareMesh);
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      flareGroup.add(coreMesh);
 
-      f.mesh = flareMesh;
-      f.geo = flareGeo;
-      f.mat = flareMat;
+      const haloGeo = new THREE.SphereGeometry(0.75, 8, 8);
+      const haloMat = new THREE.MeshBasicMaterial({
+        color: 0xffaa00,
+        transparent: true,
+        opacity: 0.65,
+        blending: THREE.AdditiveBlending
+      });
+      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
+      flareGroup.add(haloMesh);
+
+      flareGroup.position.copy(f.position);
+      this.spaceScene.scene.add(flareGroup);
+
+      f.mesh = flareGroup;
+      f.coreGeo = coreGeo;
+      f.coreMat = coreMat;
+      f.haloGeo = haloGeo;
+      f.haloMat = haloMat;
       this.activeFlares.push(f);
     });
 
@@ -2062,7 +2079,57 @@ export class GameManager {
       this.dataCoresCollectedInWave = false;
       this.pendingNextWaveNum = completedWaveNum + 1;
 
-      // Automatically open the Hangar Upgrade Modal so player can upgrade craft before next wave!
+      // ── 🌌 Stage 12 Grand Finale Victory Cinematic Sequence ──
+      if (completedWaveNum === 12) {
+        this.victoryCinematicTimer = 3.8;
+        this.score += 75000;
+
+        // Quindar Radio Victory Announcement
+        this.spaceHUD?.showRadioTransmission(
+          "Command to all Vanguard wings: Sovereign Apex eliminated! Earth is secure! Outstanding flying, Fleet Admiral!",
+          "ORBITAL FLEET COMMAND",
+          7.0
+        );
+
+        // Fleet Admiral Promotion Banner
+        setTimeout(() => {
+          if (this.spaceHUD) {
+            this.spaceHUD.showRankPromotionBanner('FLEET ADMIRAL');
+          }
+        }, 1200);
+
+        // Cascading secondary plasma detonations across the defeated superboss
+        const bossTarget = this.activeBoss || this.carrierBoss;
+        const bossCenter = bossTarget && bossTarget.meshGroup ? bossTarget.meshGroup.position.clone() : new THREE.Vector3(0, 0, -35);
+
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => {
+            if (this.particleManager) {
+              const offset = new THREE.Vector3((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 18);
+              const burstPos = bossCenter.clone().add(offset);
+              this.particleManager.createExplosion(burstPos, 0xffaa00, 28, 2.0);
+              this.particleManager.spawnSmokePuff?.(burstPos, null, 0x556677, 4);
+              this.spaceAudio?.playExplosion?.();
+            }
+          }, i * 520);
+        }
+
+        // Transition to final mastery summary after the cinematic
+        setTimeout(() => {
+          try {
+            if (this.state === 'PLAYING') {
+              if (this.spaceHUD) {
+                this.spaceHUD.showHangarModal(completedWaveNum, this.upgradeSystem, starsEarned);
+              }
+            }
+          } catch (innerErr) {
+            console.error("Error in showHangarModal timeout callback:", innerErr);
+          }
+        }, 3800);
+        return;
+      }
+
+      // Standard Wave Completion Transition for Waves 1-11
       setTimeout(() => {
         try {
           if (this.state === 'PLAYING') {
@@ -2192,8 +2259,9 @@ export class GameManager {
     if (this.stasisTimer > 0) this.stasisTimer -= dt;
     if (this.chronoFocusTimer > 0) this.chronoFocusTimer -= dt;
     if (this.chronoFocusBoostTimer > 0) this.chronoFocusBoostTimer -= dt;
+    if (this.victoryCinematicTimer > 0) this.victoryCinematicTimer -= dt;
 
-    const timeScale = (this.stasisTimer > 0 || this.chronoFocusTimer > 0) ? 0.25 : 1.0;
+    const timeScale = (this.stasisTimer > 0 || this.chronoFocusTimer > 0 || this.victoryCinematicTimer > 0) ? 0.25 : 1.0;
     const effectiveDt = dt * timeScale;
 
     // 1. Update Controls & Player Ship Movement
@@ -2726,19 +2794,28 @@ export class GameManager {
         if (flare.mesh) {
           flare.mesh.position.copy(flare.position);
           const progress = Math.max(0, flare.life / flare.maxLife);
-          flare.mat.opacity = progress * 0.95;
-          flare.mesh.scale.setScalar(0.8 + (1.0 - progress) * 0.8);
+          if (flare.haloMat) flare.haloMat.opacity = progress * 0.75;
+          if (flare.coreMat) flare.coreMat.opacity = progress;
+          flare.mesh.scale.setScalar(0.8 + (1.0 - progress) * 0.9);
         }
 
-        if (Math.random() < 0.5 && this.particleManager) {
-          this.particleManager.spawnSparks(flare.position, flare.velocity, 0xffaa00, 1);
+        // Incandescent magnesium sparks (bright white) and cool lingering smoke puffs
+        if (this.particleManager) {
+          if (Math.random() < 0.65) {
+            this.particleManager.spawnSparks(flare.position, flare.velocity, 0xffffff, 2);
+          }
+          if (Math.random() < 0.35 && this.particleManager.spawnSmokePuff) {
+            this.particleManager.spawnSmokePuff(flare.position, null, 0x99ccdd, 1);
+          }
         }
 
         if (flare.life <= 0) {
           if (flare.mesh) {
             this.spaceScene.scene.remove(flare.mesh);
-            flare.geo.dispose();
-            flare.mat.dispose();
+            if (flare.coreGeo) flare.coreGeo.dispose();
+            if (flare.coreMat) flare.coreMat.dispose();
+            if (flare.haloGeo) flare.haloGeo.dispose();
+            if (flare.haloMat) flare.haloMat.dispose();
           }
           this.activeFlares.splice(i, 1);
         }
@@ -2814,6 +2891,12 @@ export class GameManager {
       this.spaceHUD.updateAttitudeLadder(this.playerShip);
       const primaryTarget = this.getNearestForwardTarget();
       this.spaceHUD.updateLeadTargeting(this.playerShip, primaryTarget, this.spaceScene.camera);
+
+      // 3D Boss Hardpoint Sub-Targeting System
+      if (this.spaceHUD.updateBossHardpoints) {
+        const activeBossList = [this.activeBoss, this.carrierBoss, ...(this.heavyBattleships || [])].filter(Boolean);
+        this.spaceHUD.updateBossHardpoints(activeBossList, this.spaceScene.camera);
+      }
 
       // 3D Holographic Tactical Radar Globe
       if (this.spaceHUD.renderHoloRadar) {

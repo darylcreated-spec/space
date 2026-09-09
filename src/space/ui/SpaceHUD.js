@@ -187,6 +187,16 @@ export class SpaceHUD {
     this.btnMouseInvertOff = document.getElementById('btn-mouse-invert-off');
     this.btnMouseInvertOn = document.getElementById('btn-mouse-invert-on');
 
+    // 3D Boss Hardpoint Sub-Targeting HUD
+    this.bossHardpointsContainer = document.getElementById('hud-boss-hardpoints-container');
+    this._hardpointPool = [];
+    this._hpProjectVec = null;
+
+    // Dynamic Auto-Ranging Tactical Holo-Radar (180M dogfight <-> 420M fleet)
+    this.currentRadarRange = 180;
+    this.targetRadarRange = 180;
+    this.radarRangeTag = document.getElementById('radar-range-tag');
+
     // Run platform detection & adjust UI settings for Vercel Web vs. Android Native
     this.configurePlatformUI();
     this.initPilotProfile();
@@ -1637,7 +1647,39 @@ export class SpaceHUD {
     // 4. Transform & Project 3D Entities onto Holo-Globe
     if (playerShip && playerShip.meshGroup) {
       const pPos = playerShip.meshGroup.position;
-      const maxRange = 180;
+
+      // Dynamic Auto-Ranging (180M close dogfight <-> 420M fleet armada)
+      let hasCapitalOrDistantHostiles = false;
+      if (enemies && enemies.length > 0) {
+        for (let i = 0; i < enemies.length; i++) {
+          const e = enemies[i];
+          if (e && e.meshGroup) {
+            if (e.isBoss || e.shipClass === 'CAPITAL' || e.shipClass === 'BATTLESHIP' || e.shipClass === 'MOTHERSHIP' || e.isCapitalShip) {
+              hasCapitalOrDistantHostiles = true;
+              break;
+            }
+            if (e.meshGroup.position.distanceTo(pPos) > 135) {
+              hasCapitalOrDistantHostiles = true;
+            }
+          }
+        }
+      }
+
+      this.targetRadarRange = hasCapitalOrDistantHostiles ? 420 : 180;
+      this.currentRadarRange = (this.currentRadarRange || 180) + (this.targetRadarRange - (this.currentRadarRange || 180)) * Math.min(1, dt * 4.0);
+      const maxRange = this.currentRadarRange;
+
+      if (!this.radarRangeTag) {
+        this.radarRangeTag = document.getElementById('radar-range-tag');
+      }
+      if (this.radarRangeTag) {
+        const roundedRng = Math.round(this.currentRadarRange);
+        const tagStr = roundedRng > 260 ? `RNG ${roundedRng}M [FLEET]` : `RNG ${roundedRng}M`;
+        if (this.radarRangeTag.textContent !== tagStr) {
+          this.radarRangeTag.textContent = tagStr;
+        }
+      }
+
       const yaw = playerShip.currentYaw || 0;
       const cosY = Math.cos(-yaw);
       const sinY = Math.sin(-yaw);
@@ -1855,12 +1897,14 @@ export class SpaceHUD {
     }
     if (!this.rankPromotionBanner) return;
 
-    if (this.promotionRankTitle) {
-      this.promotionRankTitle.textContent = `PROMOTED TO ${rank.name}`;
-      this.promotionRankTitle.style.color = rank.color;
+    const rankObj = typeof rank === 'string' ? { name: rank, color: '#ffcc00', svg: '<svg viewBox="0 0 24 24" width="22" height="22" fill="#ffcc00"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>' } : rank;
+
+    if (this.promotionRankTitle && rankObj) {
+      this.promotionRankTitle.textContent = `PROMOTED TO ${rankObj.name}`;
+      this.promotionRankTitle.style.color = rankObj.color || '#ffcc00';
     }
-    if (this.promotionBadgeIcon) {
-      this.promotionBadgeIcon.innerHTML = rank.svg;
+    if (this.promotionBadgeIcon && rankObj?.svg) {
+      this.promotionBadgeIcon.innerHTML = rankObj.svg;
     }
 
     this.rankPromotionBanner.classList.remove('hidden');
@@ -2367,6 +2411,133 @@ export class SpaceHUD {
   onGameStart() {
     if (!this.isMobile && !this.isNativeApp && this.desktopMouseFlightPill) {
       this.desktopMouseFlightPill.classList.remove('hidden');
+    }
+  }
+
+  /**
+   * 3D Projected Screen-Space Hardpoint Sub-Targeting System
+   * Projects vulnerable boss sub-systems onto the pilot's HUD with health bars and lock-on brackets
+   */
+  updateBossHardpoints(bosses, camera) {
+    if (!this.bossHardpointsContainer || !camera) return;
+
+    if (!this._hpProjectVec) {
+      this._hpProjectVec = new THREE.Vector3();
+    }
+
+    const targetPoints = [];
+    if (bosses && bosses.length > 0) {
+      for (let b = 0; b < bosses.length; b++) {
+        const boss = bosses[b];
+        if (!boss || boss.isDead || !boss.meshGroup) continue;
+
+        const bossPos = boss.meshGroup.position;
+        const bossRot = boss.meshGroup.quaternion;
+
+        // 1. Subsystems (e.g., BossDreadnought deflector pylons & turrets)
+        if (boss.subsystems && boss.subsystems.length > 0) {
+          for (let s = 0; s < boss.subsystems.length; s++) {
+            const sub = boss.subsystems[s];
+            if (sub && !sub.isDead && sub.hp > 0 && sub.relPos) {
+              const worldPos = sub.relPos.clone().applyQuaternion(bossRot).add(bossPos);
+              targetPoints.push({
+                name: sub.name.replace('DEFLECTOR GENERATOR', 'DEFLECTOR').replace('HEAVY BATTERY', 'BATTERY'),
+                pos: worldPos,
+                hp: sub.hp,
+                maxHp: sub.maxHp || sub.hp,
+                isVulnerable: true
+              });
+            }
+          }
+        }
+
+        // 2. Suspended Antimatter / Molten Core
+        if (boss.coreHp !== undefined && boss.coreHp > 0) {
+          const coreWorld = boss.coreMesh ? boss.coreMesh.getWorldPosition(new THREE.Vector3()) : bossPos.clone().add(new THREE.Vector3(0, 1.5, 0));
+          targetPoints.push({
+            name: 'CORE REACTOR',
+            pos: coreWorld,
+            hp: boss.coreHp,
+            maxHp: boss.maxCoreHp || boss.coreHp,
+            isVulnerable: (boss.shieldGeneratorsAlive === 0 || !boss.shieldActive)
+          });
+        }
+
+        // 3. Fallback: Command Bridge / Primary Hull hardpoint
+        if (targetPoints.length === 0 && boss.hp !== undefined && boss.hp > 0) {
+          targetPoints.push({
+            name: boss.bossName || 'COMMAND BRIDGE',
+            pos: bossPos.clone().add(new THREE.Vector3(0, 2.5, 0)),
+            hp: boss.hp,
+            maxHp: boss.maxHp || boss.hp,
+            isVulnerable: true
+          });
+        }
+      }
+    }
+
+    // Pool size cap: show up to 4 closest sub-targets to prevent clutter
+    const activeCount = Math.min(4, targetPoints.length);
+    while (this._hardpointPool.length < activeCount) {
+      const el = document.createElement('div');
+      el.className = 'boss-hardpoint-bracket';
+      el.innerHTML = `
+        <div class="hardpoint-reticle-box">
+          <span class="hardpoint-corner-tr"></span>
+          <span class="hardpoint-corner-bl"></span>
+        </div>
+        <div class="hardpoint-label-card">
+          <span class="hardpoint-name">SUB-SYSTEM</span>
+          <span class="hardpoint-status-tag">VULNERABLE</span>
+          <div class="hardpoint-hp-track">
+            <div class="hardpoint-hp-fill"></div>
+          </div>
+        </div>
+      `;
+      this.bossHardpointsContainer.appendChild(el);
+      this._hardpointPool.push({
+        dom: el,
+        nameEl: el.querySelector('.hardpoint-name'),
+        statusEl: el.querySelector('.hardpoint-status-tag'),
+        fillEl: el.querySelector('.hardpoint-hp-fill')
+      });
+    }
+
+    const halfW = window.innerWidth * 0.5;
+    const halfH = window.innerHeight * 0.5;
+
+    for (let i = 0; i < this._hardpointPool.length; i++) {
+      const item = this._hardpointPool[i];
+      if (i < activeCount) {
+        const pt = targetPoints[i];
+        this._hpProjectVec.copy(pt.pos).project(camera);
+
+        // Discard points behind camera or off screen
+        if (this._hpProjectVec.z > 1.0 || Math.abs(this._hpProjectVec.x) > 1.15 || Math.abs(this._hpProjectVec.y) > 1.15) {
+          item.dom.classList.add('hidden');
+          continue;
+        }
+
+        const screenX = (this._hpProjectVec.x * halfW) + halfW;
+        const screenY = -(this._hpProjectVec.y * halfH) + halfH;
+
+        item.dom.classList.remove('hidden');
+        item.dom.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) translate(-50%, -50%)`;
+
+        item.nameEl.textContent = pt.name;
+        if (pt.isVulnerable) {
+          item.dom.classList.add('vulnerable');
+          item.statusEl.textContent = 'VULNERABLE';
+        } else {
+          item.dom.classList.remove('vulnerable');
+          item.statusEl.textContent = 'SHIELDED';
+        }
+
+        const pct = Math.max(0, Math.min(1, pt.hp / (pt.maxHp || 1)));
+        item.fillEl.style.transform = `scaleX(${pct})`;
+      } else {
+        item.dom.classList.add('hidden');
+      }
     }
   }
 }
