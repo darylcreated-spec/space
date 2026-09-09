@@ -158,8 +158,19 @@ export class SpaceHUD {
     this.btnTopHangar = document.getElementById('btn-top-hangar');
     this.btnTopFleet = document.getElementById('btn-top-fleet');
     this.btnTopAutoPilot = document.getElementById('btn-top-autopilot');
+    this.btnTopStarmap = document.getElementById('btn-top-starmap');
     this.btnTopConfig = document.getElementById('btn-top-config');
     this.hudAutoPilotBanner = document.getElementById('hud-autopilot-banner');
+
+    // Citadel Station Proximity Docking Elements
+    this.citadelDockPrompt = document.getElementById('citadel-dock-prompt');
+    this.btnTouchDock = document.getElementById('btn-touch-dock');
+
+    // Tactical Starmap Modal cache
+    this.modalStarmap = document.getElementById('space-modal-starmap');
+    this.btnCloseStarmap = document.getElementById('btn-close-starmap');
+    this.btnCloseStarmapTop = document.getElementById('btn-close-starmap-top');
+    this.starmapSectorsGrid = document.getElementById('starmap-sectors-grid');
 
     // Drawer Top Close Buttons
     this.btnCloseHangarTop = document.getElementById('btn-close-hangar-top');
@@ -855,6 +866,20 @@ export class SpaceHUD {
       });
     }
 
+    if (this.btnTopStarmap) {
+      this.btnTopStarmap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleStarmapModal();
+      });
+    }
+
+    if (this.btnTouchDock) {
+      this.btnTouchDock.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.dockAtStation();
+      });
+    }
+
     if (this.btnTopConfig) {
       this.btnTopConfig.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -881,6 +906,20 @@ export class SpaceHUD {
       this.btnCloseSettingsTop.addEventListener('click', (e) => {
         e.stopPropagation();
         this.closeSettingsModal();
+      });
+    }
+
+    if (this.btnCloseStarmapTop) {
+      this.btnCloseStarmapTop.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeStarmapModal();
+      });
+    }
+
+    if (this.btnCloseStarmap) {
+      this.btnCloseStarmap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.closeStarmapModal();
       });
     }
 
@@ -1535,6 +1574,19 @@ export class SpaceHUD {
     if (data.flareCharges !== undefined) {
       this.updateFlares(data.flareCharges, data.flareMaxCharges || 3);
     }
+
+    // Citadel Station Proximity Docking Prompt
+    if (this.citadelDockPrompt) {
+      const isNear = !!(this.gameManager && this.gameManager.isNearCitadelStation && this.gameManager.state === 'PLAYING');
+      if (this._lastIsNearCitadel !== isNear) {
+        this._lastIsNearCitadel = isNear;
+        if (isNear) {
+          this.citadelDockPrompt.classList.remove('hidden');
+        } else {
+          this.citadelDockPrompt.classList.add('hidden');
+        }
+      }
+    }
   }
 
   updateBossHealth(ratio, title = null) {
@@ -1962,6 +2014,108 @@ export class SpaceHUD {
     }
   }
 
+  showStarmapModal() {
+    if (!this.modalStarmap) {
+      this.modalStarmap = document.getElementById('space-modal-starmap');
+      this.starmapSectorsGrid = document.getElementById('starmap-sectors-grid');
+    }
+    if (!this.modalStarmap) return;
+    this.gameManager.controlsManager?.exitPointerLock();
+
+    this.prevHUDState = this.gameManager.state;
+    if (this.gameManager.state === 'PLAYING') {
+      this.gameManager.state = 'STARMAP';
+    }
+
+    this.renderStarmapGrid();
+    this.modalStarmap.classList.remove('hidden');
+  }
+
+  closeStarmapModal() {
+    if (this.modalStarmap) {
+      this.modalStarmap.classList.add('hidden');
+    }
+    if (this.gameManager.state === 'STARMAP') {
+      this.gameManager.state = this.prevHUDState || 'PLAYING';
+    }
+  }
+
+  toggleStarmapModal() {
+    if (!this.modalStarmap) {
+      this.modalStarmap = document.getElementById('space-modal-starmap');
+    }
+    if (this.modalStarmap && !this.modalStarmap.classList.contains('hidden')) {
+      this.closeStarmapModal();
+    } else {
+      this.showStarmapModal();
+    }
+  }
+
+  getStarmapSectorsData() {
+    return [
+      { id: 1, name: 'SEGMA HIGH ORBIT', subtitle: 'CITADEL STATION // DEFENSE PERIMETER', desc: 'Citadel Orbital Station, planetary defense grid, and dense asteroid mining corridors.', hazard: 'Asteroid Swarms // Recon Drones', boss: 'Titan Colossus Dreadnought' },
+      { id: 2, name: 'CARINA COSMIC CLIFFS', subtitle: 'NGC 3324 // STARLIGHT NURSERY', desc: 'NASA JWST deep space nebula nursery, volatile dust pillars, and ECM electronic warfare.', hazard: 'ECM Jammers // Phase Interceptors', boss: 'Halo Citadel Megastructure' },
+      { id: 3, name: 'PILLARS OF CREATION', subtitle: 'EAGLE NEBULA M16 // DEEP SPACE', desc: 'Allied JWST Deep Space Telescope research post under heavy capital bombardment.', hazard: 'Heavy Devastator Battleships', boss: 'Moon Base Foundry Outpost' },
+      { id: 4, name: 'PHANTOM SPIRAL CORE', subtitle: 'MESSIER 74 // GRAND-DESIGN PINWHEEL', desc: 'Centrifugal habitat colonies and heavily defended industrial transit arcs.', hazard: 'Dual Capital Fleet // Interceptors', boss: 'Sanctuary-9 Cylinder Citadel' },
+      { id: 5, name: 'SOUTHERN RING NEBULA', subtitle: 'NGC 3132 // EXPANDING ION SHELL', desc: 'Planetary nebula gas envelopes hosting the enemy grand armada command hub.', hazard: 'Armada Escorts // Flak Batteries', boss: 'Leviathan Command Mothership' },
+      { id: 6, name: 'HYPERION CARRIER FORGE', subtitle: 'SUPERCARRIER BATTLEGROUP', desc: 'Massive CV-99 Hyperion Supercarrier deploying continuous strike fighter wings.', hazard: 'Endless Drone Swarms', boss: 'CV-99 Hyperion Supercarrier' },
+      { id: 7, name: 'HELIOS SOLAR CORONA', subtitle: 'CHROMOSPHERE SOLAR FLUX', desc: 'Extreme thermodynamic solar radiation and Coronal Mass Ejection hazards.', hazard: 'Solar Flares // Plasma Siphons', boss: 'Ignis Titan Solar Devourer' },
+      { id: 8, name: 'SINGULARITY HORIZON', subtitle: 'SUPERMASSIVE GRAVITON WELL', desc: 'Extreme spacetime curvature, graviton optical lensing, and relativistic drag.', hazard: 'Graviton Vortex // Spacetime Shear', boss: 'Singularity Harbinger Oblivion' },
+      { id: 9, name: 'CYBERNETIC NEBULA', subtitle: 'BOREAS CRYO ABYSS', desc: 'Sub-zero cryo dust and hyper-charged electromagnetic ion storms.', hazard: 'Cryo EMP Freezes // Static Arcs', boss: 'Glacial Archon Dual Dreadnoughts' },
+      { id: 10, name: 'DYSON SWARM MATRIX', subtitle: 'NULL-SECTOR SOLAR HARVEST', desc: 'Vast mega-engineering photovoltaic rings occluding star systems.', hazard: 'Laser Arrays // Stealth Phantoms', boss: 'Chrono-Phantom Ghost Carrier' },
+      { id: 11, name: 'DARK MATTER RIFT', subtitle: 'OMEGA NEXUS TRENCH', desc: 'Sub-space tear in reality with exotic dark matter anomalies and fortified trenches.', hazard: 'Dark Matter Vortices', boss: 'Arch-Constructor Omega Nexus' },
+      { id: 12, name: 'GALACTIC CORE ABYSS', subtitle: 'SOVEREIGN APEX FINALE', desc: 'The heart of the galaxy. Ancient dreadnought sovereign guarding the galactic seed.', hazard: 'Omni-Directional Annihilation', boss: 'Sovereign Apex & The First Intelligence' }
+    ];
+  }
+
+  renderStarmapGrid() {
+    if (!this.starmapSectorsGrid) {
+      this.starmapSectorsGrid = document.getElementById('starmap-sectors-grid');
+    }
+    if (!this.starmapSectorsGrid) return;
+    this.starmapSectorsGrid.innerHTML = '';
+
+    const currentWave = this.gameManager.waveSpawner ? this.gameManager.waveSpawner.currentWave : 1;
+    const sectors = this.getStarmapSectorsData();
+
+    sectors.forEach(s => {
+      const card = document.createElement('div');
+      const isActive = s.id === currentWave;
+      card.className = `sector-card ${isActive ? 'active-sector' : ''}`;
+
+      card.innerHTML = `
+        <div class="sector-card-badge">
+          <span>SECTOR ${s.id}</span>
+          <span style="color:${isActive ? '#00ff88' : 'var(--accent-cyan)'}">${isActive ? 'CURRENT PATROL' : 'RELATIVISTIC WARP'}</span>
+        </div>
+        <h3 class="sector-card-title">${s.name}</h3>
+        <span style="font-family:var(--font-code); font-size:0.64rem; color:var(--accent-cyan); letter-spacing:0.5px;">${s.subtitle}</span>
+        <p class="sector-card-desc">${s.desc}</p>
+        <div class="sector-card-hazard">
+          <span>⚠️</span>
+          <span>${s.hazard}</span>
+        </div>
+        <div style="font-family:var(--font-code); font-size:0.64rem; color:#ff3366;">
+          <span>💀 BOSS: ${s.boss}</span>
+        </div>
+        <button class="btn-warp-sector" data-sector="${s.id}">
+          <span>${isActive ? '↺ RE-ENTER SECTOR' : '🚀 ENGAGE HYPERSPACE JUMP'}</span>
+        </button>
+      `;
+
+      const warpBtn = card.querySelector('.btn-warp-sector');
+      if (warpBtn) {
+        warpBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.closeStarmapModal();
+          this.gameManager.jumpToSector(s.id);
+        });
+      }
+
+      this.starmapSectorsGrid.appendChild(card);
+    });
+  }
+
   closeHangarModal() {
     if (this.modalHangar) {
       this.modalHangar.classList.add('hidden');
@@ -2077,6 +2231,7 @@ export class SpaceHUD {
     if (this.modalSettings) this.modalSettings.classList.add('hidden');
     if (this.modalPerks) this.modalPerks.classList.add('hidden');
     if (this.modalFleet) this.modalFleet.classList.add('hidden');
+    if (this.modalStarmap) this.modalStarmap.classList.add('hidden');
   }
 
   flashShieldImpact() {

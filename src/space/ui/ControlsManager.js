@@ -212,7 +212,15 @@ export class ControlsManager {
     } else if (e.code === 'Digit3' || e.key === '3') {
       if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('SWARM_FLANK');
     } else if (e.code === 'KeyF' || e.code === 'Digit4' || e.key === 'f' || e.key === 'F' || e.key === '4') {
-      if (window.spaceGameManager) window.spaceGameManager.fireAntiMatterNuke();
+      if (window.spaceGameManager) {
+        if (window.spaceGameManager.isNearCitadelStation && window.spaceGameManager.state === 'PLAYING') {
+          window.spaceGameManager.dockAtStation();
+        } else {
+          window.spaceGameManager.fireAntiMatterNuke();
+        }
+      }
+    } else if (e.code === 'KeyM' || e.key === 'm' || e.key === 'M') {
+      if (window.spaceGameManager) window.spaceGameManager.toggleStarmap();
     } else if (e.code === 'KeyP' || e.code === 'KeyU' || e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U') {
       if (window.spaceGameManager) window.spaceGameManager.toggleAutoPilot();
     }

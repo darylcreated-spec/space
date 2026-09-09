@@ -82,6 +82,7 @@ export class LaserBolt {
     this.isSiphon = false;
     this.appliesEmp = false;
     this.aoeRadius = 0;
+    this.traveledDist = 0;
 
     // Strict Color Enforcement: Enemies = RED, Player & Assisting Craft = CYAN
     if (isEnemy) {
@@ -540,19 +541,28 @@ export class LaserBolt {
 
     this.meshGroup.position.addScaledVector(this.direction, this.speed * dt);
 
-    const isMobile = gm && gm.isMobile;
-    const maxZ = isMobile ? -85 : -160;
-    const minZ = isMobile ? 24 : 45;
-    const maxX = isMobile ? 38 : 60;
-    const maxY = isMobile ? 26 : 50;
+    const isFreeFlight = gm && gm.playerShip && gm.playerShip.isFreeFlight;
+    if (isFreeFlight) {
+      this.traveledDist = (this.traveledDist || 0) + this.speed * dt;
+      const maxRange = this.isEnemy ? 280 : 380;
+      if (this.traveledDist > maxRange) {
+        this.destroy();
+      }
+    } else {
+      const isMobile = gm && gm.isMobile;
+      const maxZ = isMobile ? -85 : -160;
+      const minZ = isMobile ? 24 : 45;
+      const maxX = isMobile ? 38 : 60;
+      const maxY = isMobile ? 26 : 50;
 
-    if (
-      this.meshGroup.position.z < maxZ ||
-      this.meshGroup.position.z > minZ ||
-      Math.abs(this.meshGroup.position.x) > maxX ||
-      Math.abs(this.meshGroup.position.y) > maxY
-    ) {
-      this.destroy();
+      if (
+        this.meshGroup.position.z < maxZ ||
+        this.meshGroup.position.z > minZ ||
+        Math.abs(this.meshGroup.position.x) > maxX ||
+        Math.abs(this.meshGroup.position.y) > maxY
+      ) {
+        this.destroy();
+      }
     }
   }
 }

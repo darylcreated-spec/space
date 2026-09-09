@@ -29,6 +29,19 @@ export class PlayerShip {
 
     this.bounds = { minX: -42.0, maxX: 42.0, minY: -16.0, maxY: 22.0, minZ: -28.0, maxZ: 16.0 };
 
+    // 🌌 Semi-Open World 360° Free-Flight Navigation
+    this.isFreeFlight = true;
+    this.flightYaw = 0;
+    this.flightPitch = 0;
+    this.flightRoll = 0;
+    this.manualRollInput = 0;
+    this.yawRate = 1.9;
+    this.pitchRate = 1.6;
+    this._shipForward = new THREE.Vector3(0, 0, -1);
+    this._shipRight = new THREE.Vector3(1, 0, 0);
+    this._shipUp = new THREE.Vector3(0, 1, 0);
+    this._flightEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
     this.laserCooldown = 0;
     this.pulseCooldown = 0;
     this.maxPulseCD = 8.0;
@@ -1797,13 +1810,17 @@ export class PlayerShip {
     const isPortrait = aspect < 1.0;
 
     // Generous combat arena allowing full evasive maneuvers, barrel rolls, and flanking sweeps
-    const maxHalfX = isPortrait ? 30.0 : 42.0;
+    const maxHalfX = this.isFreeFlight ? 2500.0 : (isPortrait ? 30.0 : 42.0);
+    const maxHalfY = this.isFreeFlight ? 1500.0 : (isPortrait ? 16.0 : 14.0);
+    const maxZBack = this.isFreeFlight ? 2500.0 : 28.0;
+    const maxZFront = this.isFreeFlight ? 2500.0 : 16.0;
+
     this.bounds.minX = -maxHalfX;
     this.bounds.maxX = maxHalfX;
-    this.bounds.minY = isPortrait ? -16.0 : -14.0;
-    this.bounds.maxY = isPortrait ? 22.0 : 20.0;
-    this.bounds.minZ = -28.0;
-    this.bounds.maxZ = 16.0;
+    this.bounds.minY = -maxHalfY;
+    this.bounds.maxY = maxHalfY;
+    this.bounds.minZ = -maxZBack;
+    this.bounds.maxZ = maxZFront;
 
     const minX = this.bounds.minX;
     const maxX = this.bounds.maxX;
@@ -1820,12 +1837,63 @@ export class PlayerShip {
     } else if (this.dodgeTimer > 0) {
       this.dodgeTimer -= dt;
       const dodgeSpeed = 65.0;
-      this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
-      this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
+      if (this.isFreeFlight) {
+        if (!this._tempDodgeVec) this._tempDodgeVec = new THREE.Vector3();
+        const sideDir = (this.dodgeDirection === 'left' ? -1 : 1);
+        this._tempDodgeVec.set(sideDir, 0, 0).applyQuaternion(this.meshGroup.quaternion);
+        this.meshGroup.position.addScaledVector(this._tempDodgeVec, dodgeSpeed * dt);
+      } else {
+        this.meshGroup.position.x += (this.dodgeDirection === 'left' ? -1 : 1) * dodgeSpeed * dt;
+        this.meshGroup.position.x = THREE.MathUtils.clamp(this.meshGroup.position.x, minX, maxX);
+      }
 
       const progress = 1.0 - Math.max(0, this.dodgeTimer / 0.5);
       this.meshGroup.rotation.z = (this.dodgeDirection === 'left' ? 1 : -1) * progress * Math.PI * 2;
       this.meshGroup.rotation.x = 0;
+    } else if (this.isFreeFlight) {
+      // 🚀 SEMI-OPEN WORLD 3D FREE-FLIGHT DYNAMICS
+      if (!this._shipForward) this._shipForward = new THREE.Vector3(0, 0, -1);
+      if (!this._flightEuler) this._flightEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+      // Continuous 3D steering:
+      // Turn left/right (Yaw) and Pitch up/down
+      const yawRate = this.yawRate || 1.85;
+      const pitchRate = this.pitchRate || 1.55;
+
+      this.flightYaw = (this.flightYaw || 0) - (inputDir.x || 0) * yawRate * dt;
+      this.flightPitch = THREE.MathUtils.clamp(
+        (this.flightPitch || 0) + (inputDir.y || 0) * pitchRate * dt,
+        -Math.PI * 0.44,
+        Math.PI * 0.44
+      );
+
+      // Aerodynamic banking into turns + manual roll
+      const bankRoll = -(inputDir.x || 0) * (this.isBoosting ? 0.90 : 0.65);
+      const manualRoll = (this.manualRollInput || 0) * 1.8;
+      this.flightRoll = THREE.MathUtils.lerp(this.flightRoll || 0, bankRoll + manualRoll, dt * 9.0);
+
+      this._flightEuler.set(this.flightPitch, this.flightYaw, this.flightRoll, 'YXZ');
+      this.meshGroup.quaternion.setFromEuler(this._flightEuler);
+
+      this._shipForward.set(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
+
+      // Throttle: Cruise forward (1.0), Hyper-Boost (2.2), or Reverse (-0.45)
+      let throttle = 1.0;
+      if (inputDir.z > 0.2) throttle = -0.45;
+      else if (this.isBoosting || inputDir.z < -0.2) throttle = this.isBoosting ? 2.2 : 1.35;
+
+      const targetVel = this._shipForward.clone().multiplyScalar(currentSpeed * throttle);
+      const smoothFactor = 1.0 - Math.exp(-7.0 * dt);
+      this.velocity.lerp(targetVel, smoothFactor);
+
+      this.meshGroup.position.addScaledVector(this.velocity, dt);
+
+      // Soft perimeter tether: if approaching 2400 units from sector origin, gently deflect inward
+      const distFromCenter = this.meshGroup.position.length();
+      if (distFromCenter > 2400) {
+        const pullDir = this.meshGroup.position.clone().negate().normalize();
+        this.meshGroup.position.addScaledVector(pullDir, (distFromCenter - 2400) * dt * 0.85);
+      }
     } else {
       // 3D Frame-Rate Independent Velocity & Orientation Smoothing
       const inputZ = (inputDir && typeof inputDir.z === 'number') ? inputDir.z : 0;

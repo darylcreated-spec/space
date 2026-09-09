@@ -119,6 +119,7 @@ export class GameManager {
     this.godModeMaxUpgrades = localStorage.getItem('orbital_vanguard_god_max_upgrades') !== 'false';
     this.freezeFleetAI = false;
     this.isAutoPilot = false;
+    this.isNearCitadelStation = false;
 
     // Game Mode States
     this.gameMode = 'CAMPAIGN'; // 'CAMPAIGN', 'BOSS_RUSH', 'ENDLESS_SURVIVAL'
@@ -1758,10 +1759,14 @@ export class GameManager {
       muzzles = [muzzles[0], muzzles[1]];
     }
 
+    const shipForward = (this.playerShip.isFreeFlight && this.playerShip.meshGroup)
+      ? new THREE.Vector3(0, 0, -1).applyQuaternion(this.playerShip.meshGroup.quaternion)
+      : null;
+
     muzzles.forEach(offset => {
       this._tempWorldMuzzle.copy(offset);
       this.playerShip.meshGroup.localToWorld(this._tempWorldMuzzle);
-      const bolt = this.spawnLaser(this._tempWorldMuzzle, color, false, null, false, projectileType);
+      const bolt = this.spawnLaser(this._tempWorldMuzzle, color, false, shipForward, false, projectileType);
       if (bolt && this.isMobile) {
         const mult = isMobileTwin ? 2.35 : 1.35; // Fully preserves player DPS at 0.18s cadence
         bolt.damage = Math.round((bolt.damage || 22) * mult);
@@ -2192,6 +2197,68 @@ export class GameManager {
     }
   }
 
+  dockAtStation() {
+    if (this.state !== 'PLAYING') return;
+    this.spaceAudio?.vibrate?.(25);
+    this.voiceAnnouncer?.speak("Docking clamps engaged. Welcome to Citadel Station.", true, "CONTROL");
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission(
+        "DOCKING SUCCESSFUL // Starfighter secured in Citadel Station Hangar. Restoring shields and systems.",
+        "CITADEL DOCKING BAY",
+        4.0,
+        "#00ff88"
+      );
+    }
+    // Fully restore ship shield
+    if (this.playerShip) {
+      this.playerShip.shield = this.playerShip.maxShield;
+    }
+    // Open Hangar for upgrading/refitting
+    if (this.spaceHUD) {
+      this.spaceHUD.showHangarModal(this.waveSpawner ? this.waveSpawner.currentWave : 1, this.upgradeSystem);
+    }
+  }
+
+  toggleStarmap() {
+    if (this.spaceHUD) {
+      this.spaceHUD.toggleStarmapModal();
+    }
+  }
+
+  jumpToSector(sectorNum) {
+    const targetSector = Math.max(1, Math.min(12, sectorNum || 1));
+    this.clearAllThreats();
+    this.state = 'PLAYING';
+
+    if (this.playerShip) {
+      this.playerShip.shield = this.playerShip.maxShield;
+      this.playerShip.triggerInvulnerability(3.5);
+    }
+
+    if (this.spaceScene) {
+      this.spaceScene.setStageEnvironment(targetSector);
+      this.spaceScene.triggerHyperspaceWarp();
+    }
+
+    if (this.waveSpawner) {
+      this.waveSpawner.startWave(targetSector);
+    }
+
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner("HYPERSPACE TRANSIT", `ENTERING SECTOR ${targetSector}`);
+      this.spaceHUD.showRadioTransmission(
+        `RELATIVISTIC WARP VECTOR EXECUTED // Welcome to Sector ${targetSector}. Long-range sensors detecting active hostiles.`,
+        "STARBOUND NAVIGATION",
+        4.5,
+        "#00f3ff"
+      );
+    }
+
+    if (this.voiceAnnouncer) {
+      this.voiceAnnouncer.speak(`Hyperspace jump vector engaged. Arriving at Sector ${targetSector}.`, true, "COMMAND");
+    }
+  }
+
   onGameOver(reason = 'Defenses Breached') {
     if (this.godMode || this.isGodMode) return;
     if (this.state === 'GAME_OVER') return;
@@ -2319,6 +2386,29 @@ export class GameManager {
     }
 
     this.playerShip.update(dt, inputDir);
+
+    // Semi-Open World: Citadel Orbital Defense Station Proximity & Docking Envelope
+    if (this.playerShip && this.playerShip.meshGroup && this.spaceScene && this.spaceScene.orbitalStationGroup) {
+      const pPos = this.playerShip.meshGroup.position;
+      const sPos = this.spaceScene.orbitalStationGroup.position;
+      const distToStation = pPos.distanceTo(sPos);
+      const wasNear = this.isNearCitadelStation;
+      this.isNearCitadelStation = distToStation < 75.0;
+
+      if (this.isNearCitadelStation && !wasNear) {
+        if (this.spaceHUD) {
+          this.spaceHUD.showRadioTransmission(
+            "CITADEL CONTROL: Docking clearance authorized. Press [F] or tap DOCK to enter Shipyard Hangar.",
+            "CITADEL TRAFFIC CONTROL",
+            4.0,
+            "#00ff88"
+          );
+        }
+        this.voiceAnnouncer?.speak("Citadel Station within docking envelope. Press F to dock.", false, "CONTROL");
+      }
+    } else {
+      this.isNearCitadelStation = false;
+    }
 
     // DEFAULT WEAPON AUTO-FIRE: Rapid Lasers fire continuously while playing
     this.fireRapidLaser();

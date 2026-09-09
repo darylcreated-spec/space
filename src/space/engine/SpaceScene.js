@@ -1351,7 +1351,22 @@ export class SpaceScene {
       }
     } else if (pPos) {
       // Normal gameplay: high-fidelity 3D flight tracking granting wide evasive maneuvers
-      if (this.cameraMode === 'isometric') {
+      if (playerShip && playerShip.isFreeFlight) {
+        if (!this._freeCamFwd) this._freeCamFwd = new THREE.Vector3();
+        if (!this._freeCamUp) this._freeCamUp = new THREE.Vector3();
+
+        const shipQuat = playerShip.meshGroup.quaternion;
+        this._freeCamFwd.set(0, 0, -1).applyQuaternion(shipQuat);
+        this._freeCamUp.set(0, 1, 0).applyQuaternion(shipQuat);
+
+        const camDist = playerShip.isBoosting ? 21.0 : 17.5;
+        const camHeight = 4.6;
+        this.targetCameraPos.copy(pPos)
+          .addScaledVector(this._freeCamFwd, -camDist)
+          .addScaledVector(this._freeCamUp, camHeight);
+
+        this.targetLookAt.copy(pPos).addScaledVector(this._freeCamFwd, 40.0);
+      } else if (this.cameraMode === 'isometric') {
         const isPortrait = (window.innerWidth / window.innerHeight) < 1.0;
         const flankDistance = Math.hypot(pPos.x, pPos.y);
         const depthLag = Math.min(16.0, (pPos.z < 0 ? -pPos.z * 0.40 : 0));
@@ -1375,10 +1390,17 @@ export class SpaceScene {
 
     // Smooth lookAt target lerp
     this.currentCamLookAt.lerp(this.targetLookAt, camAlpha);
+    if (playerShip && playerShip.isFreeFlight) {
+      if (!this._camUpTarget) this._camUpTarget = new THREE.Vector3(0, 1, 0);
+      this._camUpTarget.set(0, 1, 0).applyQuaternion(playerShip.meshGroup.quaternion);
+      this.camera.up.lerp(this._camUpTarget, camAlpha);
+    } else {
+      this.camera.up.set(0, 1, 0);
+    }
     this.camera.lookAt(this.currentCamLookAt);
 
-    // Subtle Aerodynamic Banking
-    if (playerShip && playerShip.currentRoll !== undefined) {
+    // Subtle Aerodynamic Banking in classic mode
+    if (playerShip && !playerShip.isFreeFlight && playerShip.currentRoll !== undefined) {
       this.camera.rotation.z -= playerShip.currentRoll * 0.05;
     }
 

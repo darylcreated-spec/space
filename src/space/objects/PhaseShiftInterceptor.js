@@ -143,6 +143,9 @@ export class PhaseShiftInterceptor {
   takeDamage(amount) {
     if (this.isDead) return;
     this.hp -= amount;
+    if (this.hp > 0 && Math.random() < 0.45) {
+      this.performMicroWarp();
+    }
     if (this.hp <= 0) {
       this.isDead = true;
       if (this.particleManager) {

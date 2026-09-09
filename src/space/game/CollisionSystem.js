@@ -10,16 +10,49 @@ export class CollisionSystem {
     this._tempVec1 = new THREE.Vector3();
     this._tempVec2 = new THREE.Vector3();
     this._tempVecCarrier = new THREE.Vector3();
+    this._targetFwd = new THREE.Vector3();
+    this._toAttacker = new THREE.Vector3();
   }
 
-  isFlankAttack(projectilePos, targetPos, playerPos) {
-    if (!projectilePos || !targetPos) return false;
+  /**
+   * 4-Quadrant Directional Damage & Relative Bearing Analysis:
+   * Evaluates relative angle between target's forward orientation and the incoming strike.
+   */
+  getDirectionalHitProfile(projectilePos, targetPos, playerPos, targetMeshGroup = null) {
+    if (!projectilePos || !targetPos) return { type: 'STANDARD', multiplier: 1.0, isCriticalFlank: false };
+
+    if (targetMeshGroup && targetMeshGroup.quaternion) {
+      // Compute target forward vector in world space (-Z is standard forward)
+      this._targetFwd.set(0, 0, -1).applyQuaternion(targetMeshGroup.quaternion);
+
+      const attackerPos = playerPos || projectilePos;
+      this._toAttacker.copy(attackerPos).sub(targetPos).normalize();
+
+      const bearing = this._targetFwd.dot(this._toAttacker);
+
+      if (bearing < -0.35) {
+        // Attacker is behind the target: Direct hit into thermal exhaust ports!
+        return { type: 'REAR_EXHAUST_CRITICAL', multiplier: 1.75, isCriticalFlank: true, isRear: true };
+      } else if (bearing > 0.45) {
+        // Direct frontal prow: deflecting off heavy bow armor
+        return { type: 'FRONTAL_ARMOR', multiplier: 0.70, isCriticalFlank: false, isProw: true };
+      } else {
+        // Broadside lateral flank
+        return { type: 'BROADSIDE_FLANK', multiplier: 1.25, isCriticalFlank: false, isFlank: true };
+      }
+    }
+
     const pZ = playerPos ? playerPos.z : projectilePos.z;
-    // Rear exhaust arc strike (player positioned behind target)
     const isRearFlank = pZ < targetPos.z - 2.0;
-    // Wide lateral flank strike
-    const isLateralFlank = Math.abs(projectilePos.x - targetPos.x) > 12.0 && Math.abs(projectilePos.z - targetPos.z) < 18.0;
-    return isRearFlank || isLateralFlank;
+    const isLateralFlank = Math.abs(projectilePos.x - targetPos.x) > 10.0;
+    if (isRearFlank) return { type: 'REAR_EXHAUST_CRITICAL', multiplier: 1.75, isCriticalFlank: true, isRear: true };
+    if (isLateralFlank) return { type: 'BROADSIDE_FLANK', multiplier: 1.25, isCriticalFlank: false, isFlank: true };
+    return { type: 'STANDARD', multiplier: 1.0, isCriticalFlank: false };
+  }
+
+  isFlankAttack(projectilePos, targetPos, playerPos, targetMeshGroup = null) {
+    const profile = this.getDirectionalHitProfile(projectilePos, targetPos, playerPos, targetMeshGroup);
+    return profile.multiplier > 1.1;
   }
 
   _triggerHitMarker(isCritical = false) {
@@ -300,11 +333,18 @@ export class CollisionSystem {
             this._triggerHitMarker(laser.isCritical);
             let dmg = laser.damage || 20;
 
-            const isFlank = this.isFlankAttack(lPos, dPos, pPos);
-            if (isFlank) {
-              dmg = Math.round(dmg * 1.75);
-              this.particleManager.createExplosion(lPos, 0xffd700, 32, 1.4);
-              this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 1, 0), 0xffea00, 12);
+            const hitProfile = this.getDirectionalHitProfile(lPos, dPos, pPos, drone.meshGroup);
+            if (hitProfile.isCriticalFlank) {
+              dmg = Math.round(dmg * hitProfile.multiplier);
+              this._triggerHitMarker(true);
+              this.particleManager.createExplosion(lPos, 0xffd700, 34, 1.5);
+              this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 1, 0), 0xffea00, 14);
+            } else if (hitProfile.isFlank) {
+              dmg = Math.round(dmg * hitProfile.multiplier);
+              this.particleManager.createExplosion(lPos, 0x00f3ff, 24, 1.2);
+            } else if (hitProfile.isProw) {
+              dmg = Math.round(dmg * hitProfile.multiplier);
+              this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 0, 1), 0x99ccff, 8);
             } else if (laser.isCritical) {
               this.particleManager.createExplosion(lPos, 0xff0044, 28);
             } else if (laser.isAoe) {
@@ -366,14 +406,24 @@ export class CollisionSystem {
               this._triggerHitMarker(laser.isCritical);
               let dmg = 20;
 
-              const isFlank = this.isFlankAttack(lPos, sPos, pPos);
-              if (isFlank) {
-                dmg = Math.round(dmg * 1.75);
-                this.particleManager.createExplosion(lPos, 0xffd700, 36, 1.6);
-                this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 1, 0), 0xffea00, 16);
-                if (gameManager.spaceHUD && Math.random() < 0.3) {
-                  gameManager.spaceHUD.showFlankIndicator('FLANK CRITICAL!');
+              const hitProfile = this.getDirectionalHitProfile(lPos, sPos, pPos, ship.meshGroup);
+              if (hitProfile.isCriticalFlank) {
+                dmg = Math.round(dmg * hitProfile.multiplier);
+                this._triggerHitMarker(true);
+                this.particleManager.createExplosion(lPos, 0xffd700, 42, 1.8);
+                this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 1, 0), 0xffea00, 20);
+                if (gameManager.spaceHUD && Math.random() < 0.4) {
+                  gameManager.spaceHUD.showFlankIndicator('REAR EXHAUST CRITICAL!');
                 }
+              } else if (hitProfile.isFlank) {
+                dmg = Math.round(dmg * hitProfile.multiplier);
+                this.particleManager.createExplosion(lPos, 0x00f3ff, 28, 1.4);
+                if (gameManager.spaceHUD && Math.random() < 0.25) {
+                  gameManager.spaceHUD.showFlankIndicator('BROADSIDE FLANK!');
+                }
+              } else if (hitProfile.isProw) {
+                dmg = Math.round(dmg * hitProfile.multiplier);
+                this.particleManager.spawnSparks(lPos, new THREE.Vector3(0, 0, 1), 0x99ccff, 10);
               } else if (laser.isCritical) {
                 dmg *= 3;
                 this.particleManager.createExplosion(lPos, 0xff0044, 30);

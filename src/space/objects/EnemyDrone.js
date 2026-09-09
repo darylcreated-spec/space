@@ -384,12 +384,29 @@ export class EnemyDrone {
     if (this.isDead) return false;
     this._time += dt;
 
-    const pPos = playerPos || new THREE.Vector3(0, 0, 0);
+    const pPos = (playerPos && playerPos.meshGroup) ? playerPos.meshGroup.position : (playerPos || new THREE.Vector3(0, 0, 0));
     const toPlayer = pPos.clone().sub(this.meshGroup.position);
     const distToPlayer = toPlayer.length();
 
-    // ── 1. Reactive Threat Detection & Evasive Trigger ──
-    if (distToPlayer < 75.0 && this.aiState === 'CRUISE') {
+    // ── 1. Reactive Threat Detection & 3D Flank Evasion ──
+    if (!this._droneFwd) this._droneFwd = new THREE.Vector3();
+    this._droneFwd.set(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
+    const toPlayerNorm = toPlayer.clone().normalize();
+    const isPlayerOnTail = this._droneFwd.dot(toPlayerNorm) < -0.35; // Player is behind drone
+
+    if (distToPlayer < 90.0 && isPlayerOnTail && this.aiState !== 'EVADING') {
+      // Break lock! Player flanked onto our 6! Trigger high-G barrel roll and break turn
+      this.aiState = 'EVADING';
+      this.evadeTimer = 1.0 + Math.random() * 0.5;
+      this.evadeRollRate = (Math.random() > 0.5 ? 1 : -1) * (Math.PI * 4.0);
+      const breakDir = Math.random() > 0.5 ? 1 : -1;
+      this.evadeDirection.set(
+        breakDir * (28.0 + Math.random() * 18.0),
+        (Math.random() - 0.5) * 22.0,
+        (Math.random() - 0.5) * 15.0
+      );
+      this.isEvading = true;
+    } else if (distToPlayer < 75.0 && this.aiState === 'CRUISE') {
       // Check if player is pointing weapons directly at this drone (threat lock)
       const lateralDist = Math.hypot(pPos.x - this.meshGroup.position.x, pPos.y - this.meshGroup.position.y);
       if (lateralDist < 8.0 && Math.random() < 0.08) {
@@ -473,8 +490,11 @@ export class EnemyDrone {
       return outLasers.length > 0 ? outLasers : [this.meshGroup.position.clone()];
     }
 
-    // Boundary Check: Hyperspace flank wrap if flying past player (+Z)
-    if (this.meshGroup.position.z > 26) {
+    // 3D Tactical Combat Leash:
+    if (distToPlayer > 360.0) {
+      const reIntercept = toPlayer.clone().normalize().multiplyScalar(45.0);
+      this.meshGroup.position.addScaledVector(reIntercept, dt);
+    } else if (this.meshGroup.position.z > 35 && !window.spaceGameManager?.playerShip?.isFreeFlight) {
       this.meshGroup.position.z = -75 - Math.random() * 15;
       this.meshGroup.position.x = (Math.random() - 0.5) * 32;
       this.aiState = 'CRUISE';
