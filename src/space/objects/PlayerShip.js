@@ -1481,6 +1481,7 @@ export class PlayerShip {
     if (this.shieldMat) this.shieldMat.opacity = 0.35;
     if (this.shieldMesh) this.shieldMesh.visible = true;
     this.updateDamageVisuals();
+    this.gameManager?.spaceAudio?.playSubBassHullThud?.();
 
     // Post-hit invulnerability grace period (i-frames: 0.45s) prevents multi-laser shotgun instant-death
     if (this.shield > 0) {

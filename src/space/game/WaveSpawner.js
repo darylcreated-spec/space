@@ -58,6 +58,14 @@ export class WaveSpawner {
       this.gameManager.spaceAudio.startSoundtrack();
       this.gameManager.spaceAudio.setSoundtrackTheme('COMBAT');
     }
+
+    // Deploy Allied Deep Space Telescope Defense Objective at Wave 3 & 7
+    if (this.currentWave === 3 || this.currentWave === 7) {
+      this.gameManager.spawnTelescopeObjective();
+    }
+
+    // Spawn an in-flight derelict cargo salvage pod
+    this.gameManager.spawnCargoPod();
   }
 
   getWaveSubtitle() {
@@ -334,6 +342,9 @@ export class WaveSpawner {
       !bossActive
     ) {
       this.waveState = 'COMPLETED';
+      if (this.gameManager.activeTelescope && !this.gameManager.activeTelescope.isDead) {
+        this.gameManager.onTelescopeObjectiveDefended();
+      }
       setTimeout(() => {
         this.gameManager.onWaveCompleted(this.currentWave);
       }, 1500);

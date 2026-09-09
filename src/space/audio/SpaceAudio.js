@@ -1201,5 +1201,197 @@ export class SpaceAudio {
       };
     } catch (e) {}
   }
+
+  /**
+   * Procedural Tactical Radar Sonar Ping
+   * 3D spatial acoustic threat awareness sweep.
+   */
+  playRadarSonarPing(pan = 0, pitchMult = 1.0, isRearThreat = false) {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const freq = (isRearThreat ? 1480 : 920) * Math.max(0.6, Math.min(2.0, pitchMult));
+      const dur = isRearThreat ? 0.08 : 0.12;
+
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.75, now + dur);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(isRearThreat ? 0.22 : 0.14, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+      let panner = null;
+      if (this.ctx.createStereoPanner) {
+        panner = this.ctx.createStereoPanner();
+        panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), now);
+      }
+
+      const dest = panner || outputNode;
+      osc.connect(gain);
+      gain.connect(dest);
+      if (panner) panner.connect(outputNode);
+
+      osc.start(now);
+      osc.stop(now + dur);
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+          if (panner) panner.disconnect();
+        } catch (e) {}
+      };
+
+      if (isRearThreat) {
+        const osc2 = this.ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(freq * 1.25, now + 0.09);
+        osc2.frequency.exponentialRampToValueAtTime(freq, now + 0.17);
+
+        const gain2 = this.ctx.createGain();
+        gain2.gain.setValueAtTime(0.001, now + 0.09);
+        gain2.gain.linearRampToValueAtTime(0.24, now + 0.095);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.17);
+
+        osc2.connect(gain2);
+        gain2.connect(dest);
+        osc2.start(now + 0.09);
+        osc2.stop(now + 0.17);
+        osc2.onended = () => {
+          try {
+            osc2.disconnect();
+            gain2.disconnect();
+          } catch (e) {}
+        };
+      }
+    } catch (e) {}
+  }
+
+  /**
+   * Procedural Sub-Bass Hull Impact Thud
+   * Physical 42 Hz sub-harmonic boom with soft overdrive filter for heavy shield/hull impacts.
+   */
+  playSubBassHullThud() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(75, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.45);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(260, now);
+      filter.frequency.exponentialRampToValueAtTime(50, now + 0.4);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.65, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(outputNode);
+
+      osc.start(now);
+      osc.stop(now + 0.46);
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          filter.disconnect();
+          gain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
+
+  /**
+   * Procedural Weapon Cycle / Secondary Ordnance Mechanical Click
+   */
+  playWeaponCycleClick() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(3400, now);
+      osc.frequency.exponentialRampToValueAtTime(1200, now + 0.035);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.035);
+
+      osc.connect(gain);
+      gain.connect(outputNode);
+
+      osc.start(now);
+      osc.stop(now + 0.036);
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
+
+  /**
+   * Procedural Shield Low Alarm Siren
+   */
+  playShieldLowAlarm() {
+    this.ensureContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const outputNode = this._getOutputNode();
+    if (!outputNode) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1100, now);
+      osc.frequency.setValueAtTime(880, now + 0.08);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1000, now);
+      filter.Q.setValueAtTime(2.0, now);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.linearRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.setValueAtTime(0.12, now + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(outputNode);
+
+      osc.start(now);
+      osc.stop(now + 0.19);
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          filter.disconnect();
+          gain.disconnect();
+        } catch (e) {}
+      };
+    } catch (e) {}
+  }
 }
 

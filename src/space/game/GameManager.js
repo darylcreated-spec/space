@@ -23,6 +23,8 @@ import { HeavyBattleship } from '../objects/HeavyBattleship.js';
 import { CommandMothership } from '../objects/CommandMothership.js';
 import { SolarTitan } from '../objects/SolarTitan.js';
 import { SingularityHarbinger } from '../objects/SingularityHarbinger.js';
+import { CargoPod } from '../objects/CargoPod.js';
+import { DeepSpaceTelescope } from '../objects/DeepSpaceTelescope.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -97,6 +99,10 @@ export class GameManager {
     this.phaseInterceptors = [];
     this.capitalShips = [];
     this.heavyBattleships = [];
+    this.cargoPods = [];
+    this.activeTelescope = null;
+    this.cargoPodSpawnTimer = 0;
+    this.radarPingTimer = 0;
     this.powerUps = [];
     this.lasers = [];
     this.plasmaPulses = [];
@@ -497,6 +503,17 @@ export class GameManager {
     this.powerUps.forEach(p => p.destroy());
     this.powerUps = [];
 
+    if (this.cargoPods) {
+      this.cargoPods.forEach(c => c.destroy());
+      this.cargoPods = [];
+    }
+
+    if (this.activeTelescope) {
+      this.activeTelescope.destroy();
+      this.activeTelescope = null;
+      if (this.spaceHUD) this.spaceHUD.hideObjectiveBar();
+    }
+
     this.lasers.forEach(l => l.destroy());
     this.lasers = [];
     if (this.laserPool) {
@@ -754,6 +771,138 @@ export class GameManager {
     fragments.forEach(frag => {
       this.spawnAsteroid(frag);
     });
+  }
+
+  spawnCargoPod(options = {}) {
+    if (this.state !== 'PLAYING') return null;
+    const pod = new CargoPod(this.spaceScene.scene, options);
+    this.cargoPods.push(pod);
+    return pod;
+  }
+
+  collectCargoPod(pod) {
+    if (!pod || pod.isDead) return;
+    const pos = pod.meshGroup.position;
+    this.particleManager.createExplosion(pos, 0x00ff88, 22);
+    this.spaceAudio?.playUpgradeSound?.();
+
+    if (pod.cargoType === 'NANITE_REPAIR') {
+      this.playerShip.healShield(40);
+      this.spaceHUD?.showWaveBanner('SALVAGE RECOVERED', 'NANITE REPAIR MATRIX // +40 SHIELD');
+      this.voiceAnnouncer?.speak('Nanite repair matrix deployed. Shields restored.', true);
+    } else if (pod.cargoType === 'OVERCLOCK') {
+      this.overchargeTimer = 10.0;
+      this.spaceHUD?.showWaveBanner('SALVAGE RECOVERED', 'WEAPON OVERCLOCK // RAPID TRIPLE FIRE');
+      this.voiceAnnouncer?.speak('Weapons overclocked. Maximum fire rate.', true);
+    } else {
+      this.addScrap(150);
+      this.addScore(800);
+      this.spaceHUD?.showWaveBanner('SALVAGE RECOVERED', 'VALUABLE CARGO CACHE // +150 SCRAP');
+    }
+
+    pod.destroy();
+    const idx = this.cargoPods.indexOf(pod);
+    if (idx !== -1) this.cargoPods.splice(idx, 1);
+  }
+
+  spawnTelescopeObjective(options = {}) {
+    if (this.activeTelescope) return this.activeTelescope;
+    this.activeTelescope = new DeepSpaceTelescope(this.spaceScene.scene, options);
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner('TACTICAL PRIORITY OBJECTIVE', 'DEFEND DEEP SPACE JWST SCIENCE ARRAY');
+      this.spaceHUD.showRadioTransmission(
+        'ATTENTION VANGUARD: Deep Space Science Telescope Array is vulnerable in this sector! Intercept all approaching hostile wings!',
+        'STARBOUND COMMAND',
+        7.0
+      );
+      this.spaceHUD.updateObjectiveHealth(1.0, 'DEFEND OBJECTIVE: JWST SCIENCE ARRAY', '100% HULL INTEGRITY');
+    }
+    if (this.voiceAnnouncer) {
+      this.voiceAnnouncer.speak('Priority objective: Defend the science telescope array from hostile incursion.', true, 'COMMAND');
+    }
+    return this.activeTelescope;
+  }
+
+  onTelescopeObjectiveDefended() {
+    if (!this.activeTelescope) return;
+    this.addScore(2500);
+    this.addScrap(500);
+    if (this.spaceHUD) {
+      this.spaceHUD.showWaveBanner('OBJECTIVE COMPLETE', 'JWST SCIENCE ARRAY SECURED // +500 SCRAP BOUNTY');
+      this.spaceHUD.showRadioTransmission(
+        'OUTSTANDING DEFENSE, VANGUARD! Deep Space Telescope Array is secure and transmitting deep-sky telemetry! +500 Scrap bounty authorized!',
+        'MISSION CONTROL',
+        7.0
+      );
+      this.spaceHUD.hideObjectiveBar();
+    }
+    if (this.voiceAnnouncer) {
+      this.voiceAnnouncer.speak('Objective secured. High-gain telemetry online. Outstanding work, pilot.', true, 'COMMAND');
+    }
+    this.activeTelescope.destroy();
+    this.activeTelescope = null;
+  }
+
+  getNearestForwardTarget() {
+    if (!this.playerShip || !this.playerShip.meshGroup) return null;
+    const pPos = this.playerShip.meshGroup.position;
+    let closestTarget = null;
+    let closestDistSq = 140 * 140; // 140m max target engagement range
+
+    const candidateArrays = [
+      this.stealthFighters,
+      this.phaseInterceptors,
+      this.drones,
+      this.ecmCorvettes
+    ];
+
+    for (const arr of candidateArrays) {
+      if (!arr) continue;
+      for (const enemy of arr) {
+        if (!enemy || enemy.isDead || !enemy.meshGroup) continue;
+        const ePos = enemy.meshGroup.position;
+        if (ePos.z >= pPos.z) continue; // Must be forward
+        const dx = ePos.x - pPos.x;
+        const dy = ePos.y - pPos.y;
+        const dz = ePos.z - pPos.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        if (distSq < closestDistSq) {
+          closestDistSq = distSq;
+          closestTarget = enemy;
+        }
+      }
+    }
+    return closestTarget;
+  }
+
+  getHighestPriorityThreat() {
+    if (!this.playerShip || !this.playerShip.meshGroup) return null;
+    const pPos = this.playerShip.meshGroup.position;
+    let highestThreat = null;
+    let minScore = Infinity;
+
+    const candidateArrays = [
+      this.stealthFighters,
+      this.phaseInterceptors,
+      this.drones,
+      this.ecmCorvettes
+    ];
+
+    for (const arr of candidateArrays) {
+      if (!arr) continue;
+      for (const enemy of arr) {
+        if (!enemy || enemy.isDead || !enemy.meshGroup) continue;
+        const ePos = enemy.meshGroup.position;
+        const dist = ePos.distanceTo(pPos);
+        const isRear = ePos.z > pPos.z;
+        const priorityScore = dist * (isRear ? 0.6 : 1.0);
+        if (priorityScore < minScore) {
+          minScore = priorityScore;
+          highestThreat = enemy;
+        }
+      }
+    }
+    return highestThreat;
   }
 
   spawnDrone(spawnPos = null, force = false) {
@@ -1689,6 +1838,7 @@ export class GameManager {
   fireRailgun(chargeRatio = 1.0) {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0) return;
     this.playerShip.laserCooldown = 0.45;
+    this.spaceAudio?.playWeaponCycleClick?.();
 
     const pPos = this.playerShip.meshGroup.position;
     const startPos = new THREE.Vector3(0, 0, -2.5).add(pPos);
@@ -1718,6 +1868,7 @@ export class GameManager {
   fireAntiMatterNuke() {
     if (this.state !== 'PLAYING' || this.playerShip.nukeCooldown > 0 || this.playerShip.nukeCharges <= 0) return;
     this.playerShip.nukeCooldown = this.playerShip.maxNukeCD;
+    this.spaceAudio?.playWeaponCycleClick?.();
 
     const pPos = this.playerShip.meshGroup.position;
     const startPos = new THREE.Vector3(0, 0, -2.0).add(pPos);
@@ -1736,6 +1887,7 @@ export class GameManager {
   fireSwarmMissiles() {
     if (this.state !== 'PLAYING' || this.playerShip.swarmMissileCooldown > 0) return;
     this.playerShip.swarmMissileCooldown = this.playerShip.maxSwarmCD;
+    this.spaceAudio?.playWeaponCycleClick?.();
 
     // Collect candidate hostile targets
     const targets = [];
@@ -2504,6 +2656,67 @@ export class GameManager {
       }
     }
 
+    // Update Cargo Pods
+    for (let i = this.cargoPods.length - 1; i >= 0; i--) {
+      const pod = this.cargoPods[i];
+      if (!pod || pod.isDead) {
+        this.cargoPods.splice(i, 1);
+        continue;
+      }
+      pod.update(dt);
+    }
+
+    // Update Active Science Telescope Objective
+    if (this.activeTelescope && !this.activeTelescope.isDead) {
+      this.activeTelescope.update(dt);
+      if (this.spaceHUD) {
+        const ratio = this.activeTelescope.getHealthRatio();
+        this.spaceHUD.updateObjectiveHealth(ratio, 'DEFEND OBJECTIVE: JWST SCIENCE ARRAY', `${Math.round(ratio * 100)}% HULL INTEGRITY`);
+      }
+    }
+
+    // Periodic Cargo Pod Spawning during active waves (every 24 seconds)
+    if (this.state === 'PLAYING') {
+      this.cargoPodSpawnTimer = (this.cargoPodSpawnTimer || 0) + dt;
+      if (this.cargoPodSpawnTimer > 24.0 && this.cargoPods.length < 2) {
+        this.cargoPodSpawnTimer = 0;
+        this.spawnCargoPod();
+      }
+    }
+
+    // Tactical Radar Sonar Threat Pings
+    if (this.state === 'PLAYING' && this.spaceAudio) {
+      this.radarPingTimer = (this.radarPingTimer || 0) + dt;
+      if (this.radarPingTimer >= 1.6) {
+        this.radarPingTimer = 0;
+        const threat = this.getHighestPriorityThreat();
+        if (threat && threat.meshGroup && this.playerShip && this.playerShip.meshGroup) {
+          const pPos = this.playerShip.meshGroup.position;
+          const tPos = threat.meshGroup.position;
+          const dx = tPos.x - pPos.x;
+          const dz = tPos.z - pPos.z;
+          const dist = Math.hypot(dx, dz);
+          const pan = Math.max(-1, Math.min(1, dx / 35));
+          const isRearThreat = dz > 0;
+          const pitchMult = Math.max(0.7, 1.6 - (dist / 100));
+          this.spaceAudio.playRadarSonarPing(pan, pitchMult, isRearThreat);
+        }
+      }
+    }
+
+    // Shield Low Warning Siren
+    if (this.state === 'PLAYING' && this.playerShip && this.spaceAudio) {
+      if (this.playerShip.shield < this.playerShip.maxShield * 0.22 && !this.playerShip.isDead) {
+        this._shieldAlarmTimer = (this._shieldAlarmTimer || 0) + dt;
+        if (this._shieldAlarmTimer > 1.8) {
+          this._shieldAlarmTimer = 0;
+          this.spaceAudio.playShieldLowAlarm();
+        }
+      } else {
+        this._shieldAlarmTimer = 1.8;
+      }
+    }
+
     // 5. Check Collisions
     this.collisionSystem.checkCollisions(this);
 
@@ -2534,6 +2747,10 @@ export class GameManager {
         overchargeActive: this.overchargeTimer > 0,
         stasisActive: this.stasisTimer > 0
       });
+
+      this.spaceHUD.updateAttitudeLadder(this.playerShip);
+      const primaryTarget = this.getNearestForwardTarget();
+      this.spaceHUD.updateLeadTargeting(this.playerShip, primaryTarget, this.spaceScene.camera);
     }
 
     // 7. Update Scene & Render

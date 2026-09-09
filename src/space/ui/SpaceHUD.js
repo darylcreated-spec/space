@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { CinematicManager } from './CinematicManager.js';
 
 export class SpaceHUD {
@@ -168,6 +169,12 @@ export class SpaceHUD {
     this.desktopFlightReticle = document.getElementById('desktop-flight-reticle');
     this.reticleGimbalDot = document.getElementById('reticle-gimbal-dot');
     this.reticleVectorLine = document.getElementById('reticle-vector-line');
+    this.reticleLeadPip = document.getElementById('reticle-lead-pip');
+    this.cockpitAttitudeLadder = document.getElementById('cockpit-attitude-ladder');
+    this.objectiveBarContainer = document.getElementById('space-objective-bar-container');
+    this.objectiveHpFill = document.getElementById('space-objective-hp-fill');
+    this.objectiveTitle = document.getElementById('space-objective-title');
+    this.objectiveStatus = document.getElementById('space-objective-status');
     this.desktopMouseFlightPill = document.getElementById('desktop-mouse-flight-pill');
     this.desktopMouseFlightText = document.getElementById('desktop-mouse-flight-text');
 
@@ -1489,6 +1496,25 @@ export class SpaceHUD {
     }
   }
 
+  updateObjectiveHealth(ratio, title = null, statusText = null) {
+    if (this.objectiveBarContainer && this.objectiveHpFill) {
+      if (ratio !== null && ratio > 0) {
+        this.objectiveBarContainer.classList.remove('hidden');
+        this.objectiveHpFill.style.transform = `scaleX(${Math.max(0, Math.min(1, ratio))})`;
+        if (this.objectiveTitle && title) this.objectiveTitle.textContent = title;
+        if (this.objectiveStatus && statusText) this.objectiveStatus.textContent = statusText;
+      } else {
+        this.objectiveBarContainer.classList.add('hidden');
+      }
+    }
+  }
+
+  hideObjectiveBar() {
+    if (this.objectiveBarContainer) {
+      this.objectiveBarContainer.classList.add('hidden');
+    }
+  }
+
   updateAutoPilotUI(isActive) {
     if (this.btnTopAutoPilot) {
       if (isActive) {
@@ -1914,6 +1940,69 @@ export class SpaceHUD {
       this._hitMarkerTimer = setTimeout(() => {
         if (this.hitMarker) this.hitMarker.classList.remove('active', 'crit');
       }, 85);
+    }
+  }
+
+  updateAttitudeLadder(playerShip) {
+    if (!this.cockpitAttitudeLadder || !playerShip || !playerShip.meshGroup) return;
+    const rollDeg = (playerShip.meshGroup.rotation.z || 0) * (180 / Math.PI);
+    const pitchPx = (playerShip.meshGroup.rotation.x || 0) * 80;
+    this.cockpitAttitudeLadder.style.transform = `translate(-50%, calc(-50% + ${pitchPx.toFixed(1)}px)) rotate(${(-rollDeg).toFixed(1)}deg) translateZ(0)`;
+  }
+
+  updateLeadTargeting(playerShip, targetEnemy, camera) {
+    if (!this.reticleLeadPip) return;
+    if (!targetEnemy || targetEnemy.isDead || !targetEnemy.meshGroup || !camera) {
+      this.reticleLeadPip.classList.add('hidden');
+      return;
+    }
+
+    if (!this._leadVec) {
+      this._leadVec = new THREE.Vector3();
+      this._targetPos = new THREE.Vector3();
+    }
+
+    targetEnemy.meshGroup.getWorldPosition(this._targetPos);
+    const pPos = playerShip ? playerShip.meshGroup.position : null;
+    if (!pPos) {
+      this.reticleLeadPip.classList.add('hidden');
+      return;
+    }
+
+    const dist = this._targetPos.distanceTo(pPos);
+    const laserSpeed = 135; // Standard bolt velocity
+    const travelTime = dist / laserSpeed;
+
+    const vel = targetEnemy.velocity || { x: 0, y: 0, z: targetEnemy.speed ? -targetEnemy.speed : 0 };
+    this._leadVec.set(
+      this._targetPos.x + (vel.x || 0) * travelTime,
+      this._targetPos.y + (vel.y || 0) * travelTime,
+      this._targetPos.z + (vel.z || 0) * travelTime
+    );
+
+    // Project to screen space
+    this._leadVec.project(camera);
+
+    // If behind camera (z > 1) or off screen, hide
+    if (this._leadVec.z > 1.0 || Math.abs(this._leadVec.x) > 1.2 || Math.abs(this._leadVec.y) > 1.2) {
+      this.reticleLeadPip.classList.add('hidden');
+      return;
+    }
+
+    const halfW = window.innerWidth * 0.5;
+    const halfH = window.innerHeight * 0.5;
+    const screenX = (this._leadVec.x * halfW) + halfW;
+    const screenY = -(this._leadVec.y * halfH) + halfH;
+
+    this.reticleLeadPip.classList.remove('hidden');
+    this.reticleLeadPip.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) translate(-50%, -50%)`;
+
+    // Check alignment with center of screen (flight crosshair)
+    const alignDist = Math.hypot(screenX - halfW, screenY - halfH);
+    if (alignDist < 28) {
+      this.reticleLeadPip.classList.add('locked');
+    } else {
+      this.reticleLeadPip.classList.remove('locked');
     }
   }
 

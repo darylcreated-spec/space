@@ -112,6 +112,14 @@
         <div class="hud-corner top-left"></div>
         <div class="hud-corner top-right"></div>
       </div>
+      <!-- Cockpit Flight Attitude Ladder & Artificial Horizon -->
+      <div id="cockpit-attitude-ladder" class="cockpit-attitude-ladder">
+        <div class="attitude-pitch-rung rung-p30"><span>+30</span></div>
+        <div class="attitude-pitch-rung rung-p15"><span>+15</span></div>
+        <div class="attitude-horizon-bar"></div>
+        <div class="attitude-pitch-rung rung-m15"><span>-15</span></div>
+        <div class="attitude-pitch-rung rung-m30"><span>-30</span></div>
+      </div>
     </div>
 
     <!-- Desktop Pointer Lock Flight Reticle & Crosshair -->
@@ -126,6 +134,11 @@
       </div>
       <div id="reticle-gimbal-dot" class="reticle-gimbal-dot"></div>
       <div id="reticle-vector-line" class="reticle-vector-line"></div>
+      <!-- Predictive Ballistic Lead-Targeting Pip -->
+      <div id="reticle-lead-pip" class="reticle-lead-pip hidden">
+        <div class="lead-pip-diamond"></div>
+        <span class="lead-pip-text">LEAD</span>
+      </div>
     </div>
 
     <!-- Desktop Mouse Flight Mode Status Pill -->
@@ -190,6 +203,22 @@
       </div>
       <div class="meter-bar-track boss-track">
         <div id="space-boss-hp-fill" class="meter-bar-fill boss-fill" style="width: 100%;"></div>
+        <div class="meter-grid-ticks"></div>
+      </div>
+    </div>
+
+    <!-- Science Array / Objective Defense Telemetry Panel -->
+    <div id="space-objective-bar-container" class="glass-panel boss-hp-panel objective-panel hidden">
+      <div class="boss-header-bar">
+        <svg class="hazard-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3v18M3 12h18"/>
+        </svg>
+        <span id="space-objective-title" class="boss-title" style="color: var(--accent-cyan);">DEFEND OBJECTIVE: JWST SCIENCE ARRAY</span>
+        <span class="boss-status-tag" id="space-objective-status" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">ALLIED DEFENSE</span>
+      </div>
+      <div class="meter-bar-track boss-track">
+        <div id="space-objective-hp-fill" class="meter-bar-fill top-shield-fill" style="width: 100%;"></div>
         <div class="meter-grid-ticks"></div>
       </div>
     </div>

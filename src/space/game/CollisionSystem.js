@@ -147,6 +147,27 @@ export class CollisionSystem {
           if (dead) gameManager.onGameOver('Craft Shield Destroyed');
           continue;
         }
+
+        // Enemy plasma vs Allied Science Telescope Array
+        if (gameManager.activeTelescope && !gameManager.activeTelescope.isDead && gameManager.activeTelescope.meshGroup) {
+          const tel = gameManager.activeTelescope;
+          if (lPos.distanceTo(tel.meshGroup.position) < tel.radius + laser.radius) {
+            laser.destroy();
+            gameManager.lasers.splice(i, 1);
+            this.particleManager.createExplosion(lPos, 0x00f3ff, 12);
+            this.spaceAudio.playExplosion();
+            const dead = tel.takeDamage(laser.damage || 20);
+            if (dead) {
+              this.particleManager.createExplosion(tel.meshGroup.position, 0xff0055, 45, 2.0);
+              gameManager.spaceHUD?.showWaveBanner('OBJECTIVE COMPROMISED', 'SCIENCE TELESCOPE ARRAY DESTROYED');
+              gameManager.spaceHUD?.showRadioTransmission('MAYDAY! We lost the telescope array! Hostile fire breached the sunshield!', 'HIGH COMMAND', 6.0);
+              gameManager.voiceAnnouncer?.speak('Warning! Objective destroyed! Science array lost!', true, 'COMMAND');
+              gameManager.activeTelescope = null;
+              gameManager.spaceHUD?.hideObjectiveBar();
+            }
+            continue;
+          }
+        }
       } else {
         // Player Lasers vs Asteroids
         let hit = false;
@@ -201,6 +222,32 @@ export class CollisionSystem {
               laser.destroy();
               gameManager.lasers.splice(i, 1);
               break;
+            }
+          }
+        }
+
+        if (hit) continue;
+
+        // Player Lasers vs Derelict Cargo Pods
+        if (gameManager.cargoPods && gameManager.cargoPods.length > 0) {
+          for (let cIdx = gameManager.cargoPods.length - 1; cIdx >= 0; cIdx--) {
+            const pod = gameManager.cargoPods[cIdx];
+            if (!pod || pod.isDead || !pod.meshGroup) continue;
+
+            const distPod = lPos.distanceTo(pod.meshGroup.position);
+            if (distPod < pod.radius + laser.radius) {
+              this._triggerHitMarker(laser.isCritical);
+              const dead = pod.takeDamage(laser.isCritical ? 75 : 25);
+              this.particleManager.createLaserImpact(lPos, new THREE.Vector3(0, 0, 1), 0x00f3ff);
+              if (dead) {
+                gameManager.collectCargoPod(pod);
+              }
+              if (!gameManager.activePerks.has('piercing') && !laser.isAoe && !laser.isPiercing) {
+                hit = true;
+                laser.destroy();
+                gameManager.lasers.splice(i, 1);
+                break;
+              }
             }
           }
         }
@@ -1233,6 +1280,17 @@ export class CollisionSystem {
         if (dead) gameManager.onGameOver('Collision with Capital Ship');
       }
     });
+
+    // Player Ship vs Derelict Cargo Pods (Direct contact recovery)
+    if (gameManager.cargoPods && gameManager.cargoPods.length > 0) {
+      for (let cIdx = gameManager.cargoPods.length - 1; cIdx >= 0; cIdx--) {
+        const pod = gameManager.cargoPods[cIdx];
+        if (!pod || pod.isDead || !pod.meshGroup) continue;
+        if (pPos.distanceTo(pod.meshGroup.position) < player.radius + pod.radius) {
+          gameManager.collectCargoPod(pod);
+        }
+      }
+    }
 
     // Asteroids vs Enemy Drones, Capital Ships & Carrier (Kinetic Debris & Ricochet Bounce Physics)
     for (let i = gameManager.asteroids.length - 1; i >= 0; i--) {
