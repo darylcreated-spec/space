@@ -1542,6 +1542,10 @@ export class SpaceHUD {
     }
   }
 
+  updateObjectiveBar(ratio, title = null, statusText = null) {
+    this.updateObjectiveHealth(ratio, title, statusText);
+  }
+
   hideObjectiveBar() {
     if (this.objectiveBarContainer) {
       this.objectiveBarContainer.classList.add('hidden');
