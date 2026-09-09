@@ -224,6 +224,14 @@
         <span id="space-score-val" class="top-score-val">000000</span>
       </div>
 
+      <!-- 5. AI Auto-Pilot Spectator Quick Toggle -->
+      <button id="btn-top-autopilot" class="top-action-btn" title="Toggle AI Auto-Pilot Spectator Mode [P]" style="margin-left: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(0, 243, 255, 0.1); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); cursor: pointer; display: flex; align-items: center; gap: 5px; font-family: var(--font-header); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px;">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor"/>
+        </svg>
+        <span class="top-btn-label">AI PILOT</span>
+      </button>
+
       <!-- Compact Pilot Icon Badge (Far Left Overlay) -->
       <div id="btn-open-pilot-profile" class="top-pilot-badge" title="Pilot Registry & Dossier">
         <div class="top-pilot-avatar" id="hud-rank-icon-wrap">
@@ -879,6 +887,12 @@
 
       <!-- Pre-Game Hub Utility Buttons -->
       <div class="start-subhub-row" style="display:flex; gap:6px; width:100%; justify-content:center; flex-wrap:wrap;">
+        <button id="btn-start-spectate" class="btn-secondary" style="flex:1; min-width:115px; padding:8px 10px; font-size:12px; border-color:rgba(0,255,136,0.7); color:#00ff88; font-weight:700;" title="Launch directly into AI Spectator Autopilot Mode [P]">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="#04101c"/>
+          </svg>
+          <span>AI SPECTATE</span>
+        </button>
         <button id="btn-start-prologue" class="btn-secondary" style="flex:1; min-width:125px; padding:8px 10px; font-size:12px; border-color:rgba(0,243,255,0.7); color:#00f3ff; font-weight:700;" title="Watch Cinematic Story Prologue">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
             <polygon points="5 3 19 12 5 21 5 3"/>

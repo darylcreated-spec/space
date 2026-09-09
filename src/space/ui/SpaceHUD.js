@@ -49,6 +49,7 @@ export class SpaceHUD {
     this.btnStartSpaceText = document.getElementById('btn-start-space-text');
     this.btnResumeSave = document.getElementById('btn-resume-save');
     this.btnResumeSaveText = document.getElementById('btn-resume-save-text');
+    this.btnStartSpectate = document.getElementById('btn-start-spectate');
     this.btnStartPrologue = document.getElementById('btn-start-prologue');
     this.btnStartHangar = document.getElementById('btn-start-hangar');
     this.btnStartFleet = document.getElementById('btn-start-fleet');
@@ -902,6 +903,17 @@ export class SpaceHUD {
         e.stopPropagation();
         if (this.modalStart) this.modalStart.classList.add('hidden');
         this.gameManager.loadSavedGame(); // Load exact saved stage and loadout
+      });
+    }
+
+    if (this.btnStartSpectate) {
+      this.btnStartSpectate.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.modalStart) this.modalStart.classList.add('hidden');
+        this.gameManager.startGame(1);
+        if (!this.gameManager.isAutoPilot) {
+          this.gameManager.toggleAutoPilot();
+        }
       });
     }
 

@@ -213,6 +213,8 @@ export class ControlsManager {
       if (window.spaceGameManager) window.spaceGameManager.setWingmanDoctrine('SWARM_FLANK');
     } else if (e.code === 'KeyF' || e.code === 'Digit4' || e.key === 'f' || e.key === 'F' || e.key === '4') {
       if (window.spaceGameManager) window.spaceGameManager.fireAntiMatterNuke();
+    } else if (e.code === 'KeyP' || e.code === 'KeyU' || e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U') {
+      if (window.spaceGameManager) window.spaceGameManager.toggleAutoPilot();
     }
   }
 
