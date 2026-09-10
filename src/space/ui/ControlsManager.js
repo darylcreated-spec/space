@@ -225,6 +225,10 @@ export class ControlsManager {
       if (window.spaceGameManager) window.spaceGameManager.toggleAutoPilot();
     } else if (e.code === 'F2' || e.key === 'F2' || e.code === 'Home' || e.key === 'Home') {
       if (window.spaceGameManager) window.spaceGameManager.returnToTitle();
+    } else if (e.code === 'KeyO' || e.key === 'o' || e.key === 'O') {
+      if (window.spaceGameManager && window.spaceGameManager.spaceHUD) {
+        window.spaceGameManager.spaceHUD.toggleSettingsModal();
+      }
     }
   }
 

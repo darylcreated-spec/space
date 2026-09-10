@@ -2326,6 +2326,15 @@ export class SpaceHUD {
     }
   }
 
+  toggleSettingsModal() {
+    if (!this.modalSettings) return;
+    if (this.modalSettings.classList.contains('hidden')) {
+      this.showSettingsModal();
+    } else {
+      this.closeSettingsModal();
+    }
+  }
+
   updateSettingsUI() {
     const savedQuality = localStorage.getItem('orbital_vanguard_graphics_quality');
     const quality = savedQuality || 'balanced';
