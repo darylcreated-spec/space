@@ -1909,6 +1909,11 @@ export class SpaceHUD {
           if (c && c.meshGroup && !c.isDead) drawBlip(c.meshGroup.position, '#ffdd00', false);
         }
       }
+
+      // Draw Science Telescope Defense Objective (Emerald/Cyan diamond blip)
+      if (telescope && telescope.meshGroup && !telescope.isDead) {
+        drawBlip(telescope.meshGroup.position, '#00ffcc', true);
+      }
     }
 
     ctx.restore();

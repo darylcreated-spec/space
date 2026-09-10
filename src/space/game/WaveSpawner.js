@@ -69,6 +69,26 @@ export class WaveSpawner {
       this.gameManager.spawnTelescopeObjective();
     }
 
+    // Seed initial Segma Asteroid Corridor field and immediate combatants on Wave 1
+    if (this.currentWave === 1) {
+      for (let i = 0; i < 8; i++) {
+        const sideX = (i % 2 === 0 ? 1 : -1) * (10 + Math.random() * 28);
+        const spawnZ = -45 - i * 16;
+        const sizeCat = (i % 3 === 0) ? 'large' : ((i % 2 === 0) ? 'medium' : 'small');
+        this.gameManager.spawnAsteroid({
+          x: sideX,
+          y: (Math.random() - 0.5) * 14,
+          z: spawnZ,
+          sizeCategory: sizeCat
+        });
+      }
+      this.gameManager.spawnAsteroid({ isComet: true });
+
+      // Deploy 2 forward combat scout drones immediately so action starts without delay
+      this.gameManager.spawnDrone(null, true);
+      this.gameManager.spawnDrone(null, true);
+    }
+
     // Spawn an in-flight derelict cargo salvage pod
     this.gameManager.spawnCargoPod();
 
@@ -359,13 +379,6 @@ export class WaveSpawner {
   update(dt) {
     if (this.waveState !== 'SPAWNING') return;
 
-    // In Wave 1 Transit Corridor, immediately deploy 2 contested forward scouts, but hold the heavier fleet until corridor clearance
-    if (this.currentWave === 1 && this.gameManager.missionPhase === 'TRANSIT_CORRIDOR') {
-      if (this.spawnedCount >= 2) {
-        return;
-      }
-    }
-
     // ── 📱 Mobile Performance Safeguard: Concurrency Throttle ──
     // Count active combatants. If screen is full, hold spawns to maintain rock-solid 60fps
     const activeAsteroids = this.gameManager.asteroids ? this.gameManager.asteroids.length : 0;
@@ -404,25 +417,52 @@ export class WaveSpawner {
 
       // ── 🚀 Staged Fleet Escalations Correlated to Story Direction ──
       if (this.currentWave === 1) {
-        // Stage 1: Asteroid Corridor // Hunt the Stealth Infiltrator
+        // Stage 1: Segma Asteroid Corridor // Hunt the Stealth Infiltrator
         if (this.spawnedCount <= 2) {
           // Contested corridor scouts immediately ahead
           this.gameManager.spawnDrone(null, true);
+          this.gameManager.spawnAsteroid();
+        } else if (this.spawnedCount === 3) {
+          // Asteroid cluster crossing flight path
+          this.gameManager.spawnAsteroid({ sizeCategory: 'large' });
+          this.gameManager.spawnAsteroid({ isComet: true });
         } else if (this.spawnedCount === 4) {
           // Scripted Twin Pincer Flank Wing from port and starboard
           this.gameManager.spawnPincerFlightWing();
+          this.gameManager.spawnAsteroid({ sizeCategory: 'medium' });
         } else if (this.spawnedCount === 6) {
           // Rogue Stealth Infiltrator uncloaks in close combat range!
           this.gameManager.spawnStealthFighter();
+          this.gameManager.spawnAsteroid({ sizeCategory: 'large' });
           this.triggerStoryComms(1, 'mid');
+        } else if (this.spawnedCount === 8) {
+          this.gameManager.spawnPhaseInterceptor();
+          this.gameManager.spawnDrone(null, true);
+          this.gameManager.spawnAsteroid({ isComet: true });
         } else if (this.spawnedCount === 10) {
           // Crimson Battlecruiser warps in to extract the stealth runner
           this.gameManager.spawnCapitalShip();
           this.gameManager.spawnDrone(null, true);
+          this.gameManager.spawnAsteroid({ sizeCategory: 'large' });
           this.triggerStoryComms(1, 'warship');
+        } else if (this.spawnedCount === 14) {
+          this.gameManager.spawnPincerFlightWing();
+          this.gameManager.spawnAsteroid();
         } else if (this.spawnedCount === 18) {
           // Gorgon Carrier arrives to screen the retreat
           this.gameManager.spawnCarrierBoss();
+        } else {
+          // Continuous close combat encounter rotation with asteroids
+          const roll = Math.random();
+          if (roll < 0.35) {
+            this.gameManager.spawnDrone(null, true);
+          } else if (roll < 0.65) {
+            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
+          } else if (roll < 0.85) {
+            this.gameManager.spawnPhaseInterceptor();
+          } else {
+            this.gameManager.spawnAsteroid({ isComet: true });
+          }
         }
       } else if (this.currentWave === 2) {
         // Stage 2: Carina Nebula // Halo Citadel

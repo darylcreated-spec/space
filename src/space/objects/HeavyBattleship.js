@@ -921,10 +921,15 @@ function createSmoothBattleshipHullGeo() {
       this.missilePods.forEach(p => {
         if (!p.isDead && p.mesh) {
           const origin = p.mesh.getWorldPosition(new THREE.Vector3());
+          // Target active science telescope if present, otherwise player
+          const aimTarget = (gameManager && gameManager.activeTelescope && !gameManager.activeTelescope.isDead && Math.random() < 0.55)
+            ? gameManager.activeTelescope.meshGroup.position
+            : playerPos;
+
           if (gameManager && gameManager.spawnEnemyMissile) {
-            gameManager.spawnEnemyMissile(origin, playerPos);
+            gameManager.spawnEnemyMissile(origin, aimTarget);
           } else if (gameManager && gameManager.spawnEnemyLaser) {
-            const dir = new THREE.Vector3().subVectors(playerPos, origin).normalize();
+            const dir = new THREE.Vector3().subVectors(aimTarget, origin).normalize();
             gameManager.spawnEnemyLaser(origin, dir, 0xff0044, 40);
           }
         }

@@ -657,6 +657,11 @@ export class SegmaCinematicDirector {
       }
       await yieldFrame();
 
+      // Cleanly remove cinematicGroup from active scene until start() is explicitly triggered
+      if (this.scene.children.includes(this.cinematicGroup)) {
+        this.scene.remove(this.cinematicGroup);
+      }
+
       this.isPreloaded = true;
     })();
 

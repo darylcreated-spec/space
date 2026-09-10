@@ -3100,9 +3100,9 @@ html, body {
 }
 
 .hardpoint-label-card {
+  display: none !important; /* Hide floating text label cards over boss hardpoints */
   position: absolute;
   top: 48px;
-  display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
@@ -4709,9 +4709,9 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
 .bracket-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
 
 .marker-info {
+  display: none !important; /* Hide game asset text labels in gameplay for clean cinematic viewport */
   position: absolute;
   top: 62px;
-  display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;

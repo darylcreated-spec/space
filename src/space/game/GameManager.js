@@ -233,6 +233,12 @@ export class GameManager {
       this.playerShip.flightRoll = 0;
       if (this.playerShip._flightEuler) this.playerShip._flightEuler.set(0, 0, 0, 'YXZ');
     }
+    if (this.segmaCinematicDirector) {
+      this.segmaCinematicDirector.endCinematic();
+      if (this.spaceScene && this.spaceScene.scene && this.segmaCinematicDirector.cinematicGroup) {
+        this.spaceScene.scene.remove(this.segmaCinematicDirector.cinematicGroup);
+      }
+    }
     this.state = 'PLAYING';
     if (this.spaceHUD && this.spaceHUD.onGameStart) {
       this.spaceHUD.onGameStart();
@@ -287,45 +293,43 @@ export class GameManager {
   }
 
   initSectorMission(wave = 1) {
-    this.missionPhase = 'TRANSIT_CORRIDOR';
+    this.missionPhase = 'ENGAGE_COMBAT';
     this.corridorRingsCleared = 0;
-    this.totalCorridorRings = 3;
+    this.totalCorridorRings = 0;
     this.patrolKills = 0;
     this.targetPatrolKills = 4;
 
     this.clearWaypointRings();
-    this.spawnCorridorWaypointRings();
 
     if (this.spaceHUD) {
-      this.spaceHUD.updateDirective(
-        'PHASE 1 / 4',
-        'TRANSIT ASTEROID CORRIDOR',
-        `[ 0 / ${this.totalCorridorRings} RINGS ]`,
-        'Fly through illuminated navigational waypoints ahead to accelerate toward combat sector'
-      );
+      if (wave === 3) {
+        this.spaceHUD.updateDirective(
+          'SECTOR 3 DEFENSE',
+          'PILLARS OF CREATION // JWST',
+          'DEFEND DEEP SPACE SCIENCE ARRAY',
+          'Intercept incoming Devastator siege torpedoes and protect the primary mirror array'
+        );
+      } else if (wave === 2) {
+        this.spaceHUD.updateDirective(
+          'SECTOR 2 DEFENSE',
+          'RING OF LIGHT // HALO',
+          'NEUTRALIZE ECM JAMMER FLEET',
+          'Break through hostile jamming perimeter and destroy vanguard wings'
+        );
+      } else {
+        this.spaceHUD.updateDirective(
+          `SECTOR ${wave} DEFENSE`,
+          'SEGMA ASTEROID CORRIDOR',
+          'ELIMINATE HOSTILE ADVANCE FORCE',
+          'Engage hostile interceptor wings and navigate the dense asteroid corridor'
+        );
+      }
     }
   }
 
   spawnCorridorWaypointRings() {
     this.clearWaypointRings();
-    const pPos = (this.playerShip && this.playerShip.meshGroup) ? this.playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
-
-    const ringPositions = [
-      new THREE.Vector3(pPos.x, pPos.y, pPos.z - 65),
-      new THREE.Vector3(pPos.x + 14, pPos.y + 3, pPos.z - 145),
-      new THREE.Vector3(pPos.x - 8, pPos.y - 2, pPos.z - 230)
-    ];
-
-    for (let i = 0; i < ringPositions.length; i++) {
-      const ring = new NavWaypointRing(
-        this.spaceScene.scene,
-        this.particleManager,
-        ringPositions[i],
-        i,
-        ringPositions.length
-      );
-      this.waypointRings.push(ring);
-    }
+    // Waypoints removed per user request
   }
 
   clearWaypointRings() {
@@ -336,20 +340,7 @@ export class GameManager {
   }
 
   onWaypointRingCleared(ringIndex, totalRings) {
-    this.corridorRingsCleared++;
-
-    if (this.spaceHUD) {
-      this.spaceHUD.updateDirective(
-        'PHASE 1 / 4',
-        'TRANSIT ASTEROID CORRIDOR',
-        `[ ${this.corridorRingsCleared} / ${totalRings} RINGS ]`,
-        'Corridor navigation lock active // Hyperspace boost online!'
-      );
-    }
-
-    if (this.corridorRingsCleared >= totalRings) {
-      this.transitionToPatrolPhase();
-    }
+    // No-op
   }
 
   transitionToPatrolPhase() {

@@ -1421,6 +1421,26 @@ export class CollisionSystem {
           break;
         }
       }
+
+      // Check Asteroid vs Allied Science Telescope Array
+      if (!rock.isDead && gameManager.activeTelescope && !gameManager.activeTelescope.isDead && gameManager.activeTelescope.meshGroup) {
+        const tel = gameManager.activeTelescope;
+        const dist = rock.meshGroup.position.distanceTo(tel.meshGroup.position);
+        if (dist < rock.radius + tel.radius) {
+          rock.isDead = true;
+          this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 25);
+          this.spaceAudio.playExplosion();
+          const dead = tel.takeDamage(45);
+          if (dead) {
+            this.particleManager.createExplosion(tel.meshGroup.position, 0xff0055, 45, 2.0);
+            gameManager.spaceHUD?.showWaveBanner('OBJECTIVE COMPROMISED', 'SCIENCE TELESCOPE ARRAY DESTROYED');
+            gameManager.spaceHUD?.showRadioTransmission('MAYDAY! We lost the telescope array! Hostile fire breached the sunshield!', 'HIGH COMMAND', 6.0);
+            gameManager.voiceAnnouncer?.speak('Warning! Objective destroyed! Science array lost!', true, 'COMMAND');
+            gameManager.activeTelescope = null;
+            gameManager.spaceHUD?.hideObjectiveBar();
+          }
+        }
+      }
     }
 
     // 5B. Player Swarm Missiles vs Threats & Bosses

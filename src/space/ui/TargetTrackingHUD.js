@@ -97,23 +97,7 @@ export class TargetTrackingHUD {
       }
     }
 
-    // 2. Track Next Nav Waypoint Ring
-    if (gameManager.waypointRings && gameManager.waypointRings.length > 0) {
-      const nextRing = gameManager.waypointRings.find(r => r && !r.isCleared && !r.isDead);
-      if (nextRing && poolIdx < this.maxMarkers) {
-        this.renderTarget(
-          this.markerPool[poolIdx++],
-          nextRing.meshGroup.position,
-          `NAV WAYPOINT [${nextRing.ringIndex + 1}/${nextRing.totalRings}]`,
-          'WAYPOINT',
-          pPos,
-          camera,
-          null
-        );
-      }
-    }
-
-    // 3. Track Active Hostile Drones and Stealth Fighters
+    // 2. Track Active Hostile Drones, Stealth Fighters, and Capital Ships
     const hostiles = [];
     if (gameManager.drones) {
       gameManager.drones.forEach(d => { if (d && !d.isDead && d.meshGroup) hostiles.push({ pos: d.meshGroup.position, name: 'VORN RECON DRONE', type: 'HOSTILE', hp: d.hp, maxHp: d.maxHp }); });
@@ -145,20 +129,6 @@ export class TargetTrackingHUD {
         pPos,
         camera,
         h.hp !== undefined && h.maxHp ? (h.hp / h.maxHp) : null
-      );
-    }
-
-    // 4. Track Citadel Station when in local sector range (< 850m)
-    const stationGroup = gameManager.spaceScene?.orbitalStationGroup || gameManager.citadelStationGroup;
-    if (stationGroup && poolIdx < this.maxMarkers && pPos.distanceTo(stationGroup.position) < 850) {
-      this.renderTarget(
-        this.markerPool[poolIdx++],
-        stationGroup.position,
-        'CITADEL ORBITAL STATION',
-        'STATION',
-        pPos,
-        camera,
-        null
       );
     }
 
