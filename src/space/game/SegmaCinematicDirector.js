@@ -366,11 +366,11 @@ export class SegmaCinematicDirector {
         <div class="segma-letterbox bottom">
           <div class="segma-comms-panel">
             <div class="segma-speaker-bar">
-              <span id="segma-speaker-name" class="segma-speaker-name">VANGUARD COMMAND</span>
-              <span class="segma-comm-badge">PRIORITY COMM // ORBITAL AEGIS</span>
+              <span id="segma-speaker-name" class="segma-speaker-name">HIGH COMMAND</span>
+              <span class="segma-comm-badge">PRIORITY COMM // ORBITAL DEFENSE</span>
             </div>
             <div id="segma-dialogue-text" class="segma-dialogue-text">
-              Distress Beacon Active at Planet Segma. Space Station Citadel holding orbit. Fleet armada dropping out of hyperspace now!
+              Emergency alert: Hostile fleet entering Sector Segma. All units, engage defense perimeter!
             </div>
           </div>
         </div>
@@ -613,22 +613,22 @@ export class SegmaCinematicDirector {
       this.spaceAudio.playRadioSquelch();
     }
     if (this.speakerName) {
-      this.speakerName.textContent = 'HIGH COMMAND // SECTOR DEFENSE';
+      this.speakerName.textContent = 'HIGH COMMAND';
     }
     if (this.statusTag) {
-      this.statusTag.textContent = 'CODE RED ALERT // EMERGENCY ARMADA RECALL';
+      this.statusTag.textContent = 'DEFENSE ALERT // SECTOR SEGMA';
       this.statusTag.style.color = '#00f3ff';
     }
     if (this.dialogueText) {
       this.dialogueText.textContent =
-        'CRITICAL ALERT: Planet Segma is under imminent attack! All armada battlegroups drop out of hyperspace to defense perimeter immediately!';
+        'Emergency alert: Hostile fleet entering Sector Segma. All units, engage defense perimeter!';
     }
     if (this.flightHint) {
-      this.flightHint.innerHTML = 'ARMADA RECALL // ALLIED FLEET DROPPING OUT OF HYPERSPACE';
+      this.flightHint.innerHTML = 'DEFEND PLANET SEGMA // HOSTILE INCURSION DETECTED';
     }
     if (this.gameManager.voiceAnnouncer) {
       this.gameManager.voiceAnnouncer.speak(
-        'Critical alert! Planet Segma is under imminent attack! All armada battlegroups drop out of hyperspace immediately!',
+        'Emergency alert. Hostile fleet entering Sector Segma. All units, engage!',
         true,
         'COMMAND'
       );
@@ -1496,24 +1496,8 @@ export class SegmaCinematicDirector {
       this.statusTag.textContent = 'SECTOR SEGMA // ALLIED ARMADA DEPLOYED';
     }
 
-    if (this.speakerName) {
-      this.speakerName.textContent = 'COMMAND ADMIRALTY';
-    }
-
-    if (this.dialogueText) {
-      this.dialogueText.textContent = 'Allied armada on station! Fleet has assumed Aegis defensive posture around Planet Segma.';
-    }
-
     if (this.spaceAudio && this.spaceAudio.playTacticalNotification) {
       this.spaceAudio.playTacticalNotification();
-    }
-
-    if (this.gameManager.voiceAnnouncer) {
-      this.gameManager.voiceAnnouncer.speak(
-        "Allied armada on station! Fleet in defensive formation around Planet Segma.",
-        true,
-        "COMMAND"
-      );
     }
   }
 
@@ -2253,25 +2237,6 @@ export class SegmaCinematicDirector {
     // ── ACT I: Armada Recall & Warp-In (0.0s – 5.0s) ──
     if (t < 5.0) {
       this.battlePhase = 'RECALL';
-      if (t >= 1.0 && !this.shot1VoiceTriggered) {
-        this.shot1VoiceTriggered = true;
-        if (this.speakerName) this.speakerName.textContent = 'ESCORT LEAD // VIPER-1';
-        if (this.statusTag) {
-          this.statusTag.textContent = 'ORBITAL PATROL // SECTOR SEGMA';
-          this.statusTag.style.color = '#00f3ff';
-        }
-        if (this.dialogueText) {
-          this.dialogueText.textContent =
-            'Viper-1 to Citadel Control: Defense grid Alpha secure. Atmospheric sensor readings over Segma Prime nominal.';
-        }
-        if (this.gameManager.voiceAnnouncer) {
-          this.gameManager.voiceAnnouncer.speak(
-            'Viper-1 to Citadel Control: Defense grid Alpha secure. Scans over Segma Prime nominal.',
-            false,
-            'VIPER'
-          );
-        }
-      }
     }
 
     // Ensure Allied Armada warp is finalized at t >= 5.0
@@ -2305,48 +2270,11 @@ export class SegmaCinematicDirector {
         this.statusTag.textContent = 'SUBSPACE RUPTURE // HOSTILE CAPITAL FLEET DETECTED';
         this.statusTag.style.color = '#ff1133';
       }
-      if (this.speakerName) {
-        this.speakerName.textContent = 'AEGIS TACTICAL SENSORS';
-      }
-      if (this.dialogueText) {
-        this.dialogueText.textContent =
-          'WARNING: Cataclysmic subspace displacement detected! Hostile Goliath Battleship and Gorgon Carrier rupturing hyperspace directly over Planet Segma!';
-      }
       if (this.flightHint) {
-        this.flightHint.innerHTML = 'HOSTILE WARP DETECTED // ENEMY CAPITAL SHIPS ENTERING SECTOR';
+        this.flightHint.innerHTML = 'HOSTILE WARP DETECTED // CAPITAL SHIPS ENTERING SECTOR';
       }
       if (this.spaceAudio && this.spaceAudio.playBossWarning) {
         this.spaceAudio.playBossWarning();
-      }
-      if (this.gameManager.voiceAnnouncer) {
-        this.gameManager.voiceAnnouncer.speak(
-          'Warning: Cataclysmic subspace displacement detected! Hostile Battleship and Carrier rupturing hyperspace!',
-          true,
-          'AVIONICS'
-        );
-      }
-    }
-
-    // Hostile Imperial Fleet transmission at 7.2s
-    if (t >= 7.2 && !this.shot2ImperialVoiceTriggered) {
-      this.shot2ImperialVoiceTriggered = true;
-      if (this.speakerName) {
-        this.speakerName.textContent = 'HOSTILE OVERLORD // CRIMSON FLEET';
-      }
-      if (this.statusTag) {
-        this.statusTag.textContent = 'HOSTILE TRANSMISSION // SECTOR BREACH';
-        this.statusTag.style.color = '#ff0033';
-      }
-      if (this.dialogueText) {
-        this.dialogueText.textContent =
-          'OVERLORD TRANSMISSION: Citadel Station, lower your defensive shields and surrender Sector Segma immediately. All resistance will be eradicated.';
-      }
-      if (this.gameManager.voiceAnnouncer) {
-        this.gameManager.voiceAnnouncer.speak(
-          'Citadel Station, lower your defensive shields and surrender Sector Segma immediately.',
-          true,
-          'IMPERIAL'
-        );
       }
     }
 
@@ -2406,22 +2334,8 @@ export class SegmaCinematicDirector {
           this.statusTag.textContent = 'FLEET ENGAGEMENT // CONCENTRATE ALL BATTERIES';
           this.statusTag.style.color = '#00f3ff';
         }
-        if (this.speakerName) {
-          this.speakerName.textContent = 'ADMIRAL VANCE // ALLIED ARMADA';
-        }
-        if (this.dialogueText) {
-          this.dialogueText.textContent =
-            'ALLIED ARMADA, ALL WEAPONS FREE! Concentrate all spinal railguns, torpedoes, and heavy batteries on the enemy armada! Obliterate them!';
-        }
         if (this.flightHint) {
-          this.flightHint.innerHTML = 'FLEET ENGAGEMENT ACTIVE // ARMADA CONCENTRATING FIRE';
-        }
-        if (this.gameManager.voiceAnnouncer) {
-          this.gameManager.voiceAnnouncer.speak(
-            'Allied armada, all weapons free! Concentrate all firepower on the enemy fleet! Obliterate them!',
-            true,
-            'COMMAND'
-          );
+          this.flightHint.innerHTML = 'FLEET ENGAGEMENT ACTIVE // ALLIED WEAPONS FREE';
         }
       }
 
@@ -2476,22 +2390,7 @@ export class SegmaCinematicDirector {
         }
       }
 
-      // Viper-1 combat callout at 11.2s
-      if (t >= 11.2 && !this.shot3ViperVoiceTriggered) {
-        this.shot3ViperVoiceTriggered = true;
-        if (this.speakerName) this.speakerName.textContent = 'ESCORT LEAD // VIPER-1';
-        if (this.dialogueText) {
-          this.dialogueText.textContent =
-            'Viper-1 engaging hostile drone screen! Breaching port flank with concentrated cyan lasers!';
-        }
-        if (this.gameManager.voiceAnnouncer) {
-          this.gameManager.voiceAnnouncer.speak(
-            'Viper-1 engaging hostile drone screen! Breaching port flank with concentrated cyan lasers!',
-            false,
-            'VIPER'
-          );
-        }
-      }
+
 
       // Drone wave 2 destruction beat at 11.6s
       if (t >= 11.6 && !this.dronesSecondWaveDestroyed) {
@@ -2598,25 +2497,25 @@ export class SegmaCinematicDirector {
         this.addCameraShake(0.40);
       }
 
-      if (t >= 18.5 && !this.stealthEscaped) {
+      if (t >= 19.2 && !this.stealthEscaped) {
         this.stealthEscaped = true;
         if (this.statusTag) {
-          this.statusTag.textContent = 'DIRECTIVE ASSIGNED // PURSUE AND ELIMINATE';
-          this.statusTag.style.color = '#ffaa00';
+          this.statusTag.textContent = 'DIRECTIVE // PURSUE AND DESTROY';
+          this.statusTag.style.color = '#00f3ff';
         }
         if (this.speakerName) {
           this.speakerName.textContent = 'HIGH COMMAND';
         }
         if (this.dialogueText) {
           this.dialogueText.textContent =
-            'COMMANDER: You are tasked with hunting down that escaped stealth ship! Pursue it through the asteroid belt and eliminate it before it jumps to hyperspace!';
+            'Commander: Launch pursuit vector! Intercept that stealth craft before it jumps to hyperspace.';
         }
         if (this.flightHint) {
-          this.flightHint.innerHTML = 'MISSION ASSIGNED // PREPARE TO PURSUE ESCAPED STEALTH VESSEL';
+          this.flightHint.innerHTML = 'MISSION DIRECTIVE // ENGAGE PURSUIT BOOST';
         }
         if (this.gameManager.voiceAnnouncer) {
           this.gameManager.voiceAnnouncer.speak(
-            'Commander: You are tasked with hunting down that escaped stealth ship! Eliminate it before it jumps to hyperspace!',
+            'Commander, launch pursuit vector. Intercept that craft before it jumps.',
             true,
             'COMMAND'
           );
@@ -2640,22 +2539,8 @@ export class SegmaCinematicDirector {
           this.statusTag.textContent = 'INTERCEPT READY // ENGAGE SUBSPACE ENGINES';
           this.statusTag.style.color = '#00f3ff';
         }
-        if (this.speakerName) {
-          this.speakerName.textContent = 'AVIONICS // AEGIS-9';
-        }
-        if (this.dialogueText) {
-          this.dialogueText.textContent =
-            'Subspace engines primed! Press SPACE or tap button to engage pursuit vector into the asteroid sector!';
-        }
         if (this.flightHint) {
           this.flightHint.innerHTML = 'READY FOR COMBAT // PRESS SPACE OR TAP TO ENGAGE BOOST';
-        }
-        if (this.gameManager.voiceAnnouncer) {
-          this.gameManager.voiceAnnouncer.speak(
-            'Subspace engines primed. Ready to engage pursuit vector!',
-            true,
-            'AVIONICS'
-          );
         }
       }
 
@@ -2693,13 +2578,6 @@ export class SegmaCinematicDirector {
       this.statusTag.textContent = 'TARGET OBLITERATED // ENEMY BATTLESHIP DESTROYED';
       this.statusTag.style.color = '#00f3ff';
     }
-    if (this.speakerName) {
-      this.speakerName.textContent = 'AEGIS TACTICAL SENSORS';
-    }
-    if (this.dialogueText) {
-      this.dialogueText.textContent =
-        'CONFIRMED HIT: Enemy Goliath Battleship reactor core detonated! Behemoth destroyed! Concentrate fire on the Carrier!';
-    }
   }
 
   destroyEnemyCarrier() {
@@ -2724,13 +2602,6 @@ export class SegmaCinematicDirector {
     if (this.statusTag) {
       this.statusTag.textContent = 'TARGET OBLITERATED // ENEMY CARRIER DESTROYED';
       this.statusTag.style.color = '#00f3ff';
-    }
-    if (this.speakerName) {
-      this.speakerName.textContent = 'ADMIRAL VANCE // ALLIED ARMADA';
-    }
-    if (this.dialogueText) {
-      this.dialogueText.textContent =
-        'DIRECT HIT! Catastrophic secondary explosion on the Gorgon Carrier! Hostile capital fleet eliminated!';
     }
   }
 
@@ -2758,24 +2629,24 @@ export class SegmaCinematicDirector {
       this.spaceAudio.playBossWarning();
     }
     if (this.statusTag) {
-      this.statusTag.textContent = 'PERIMETER BREACH // STEALTH PROTOTYPE ESCAPING';
-      this.statusTag.style.color = '#ff0055';
+      this.statusTag.textContent = 'HOSTILE FLEET DESTROYED // TARGET ESCAPING';
+      this.statusTag.style.color = '#ffaa00';
     }
     if (this.speakerName) {
-      this.speakerName.textContent = 'TACTICAL EW // GHOST-4';
+      this.speakerName.textContent = 'TACTICAL SENSORS';
     }
     if (this.dialogueText) {
       this.dialogueText.textContent =
-        'WARNING! An advanced enemy stealth prototype has slipped through the blast radius! It is cloaking and escaping into the asteroid corridor!';
+        'Hostile fleet destroyed! An enemy stealth craft broke through into the asteroid belt.';
     }
     if (this.flightHint) {
-      this.flightHint.innerHTML = 'ALERT // ENEMY STEALTH VESSEL HAS ESCAPED THE BLAST';
+      this.flightHint.innerHTML = 'TARGET ESCAPING // PREPARE PURSUIT VECTOR';
     }
     if (this.gameManager.voiceAnnouncer) {
       this.gameManager.voiceAnnouncer.speak(
-        'Warning! An advanced enemy stealth prototype slipped through the blast radius! It is cloaking and escaping into the asteroid corridor!',
+        'Hostile fleet destroyed. An enemy stealth craft escaped into the asteroid belt.',
         true,
-        'GHOST'
+        'TACTICAL'
       );
     }
   }
