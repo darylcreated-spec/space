@@ -249,6 +249,8 @@ export class SegmaCinematicDirector {
     // Thruster & VFX Arrays
     this.engineFXList = [];
     this.cinematicProjectiles = [];
+    this.cinematicBeams = [];
+    this.cinematicTorpedoes = [];
     this.stationSolarArrays = [];
     this.destroyerRecoil = 0;
     this.battleshipShudder = 0;
@@ -295,8 +297,154 @@ export class SegmaCinematicDirector {
     // PBR Material Cache
     this.pbrMaterials = {};
 
+    // ── High-Performance Reusable Vectors & Matrices (Zero GC per frame) ──
+    this._vForward = new THREE.Vector3();
+    this._vRight = new THREE.Vector3();
+    this._vUp = new THREE.Vector3();
+    this._camOffset = new THREE.Vector3();
+    this._camRightAxis = new THREE.Vector3();
+    this._yAxis = new THREE.Vector3(0, 1, 0);
+    this._chaseOffset = new THREE.Vector3();
+    this._lookOffset = new THREE.Vector3();
+    this._cockpitOffset = new THREE.Vector3();
+    this._cockpitLookOffset = new THREE.Vector3();
+    this._targetDestPos = new THREE.Vector3(-36, 1, -82);
+    this._targetFrigatePos = new THREE.Vector3(28, 12, -78);
+    this._torpCurPos = new THREE.Vector3();
+    this._stealthP0 = new THREE.Vector3(18, 6, -135);
+    this._stealthP1 = new THREE.Vector3(0, 4, -40);
+    this._stealthP2 = new THREE.Vector3(-25, 15, -280);
+    this._stealthCurPos = new THREE.Vector3();
+    this._stealthNextPos = new THREE.Vector3();
+    this._stealthMaterials = [];
+    this._tempV1 = new THREE.Vector3();
+    this._tempV2 = new THREE.Vector3();
+    this._tempV3 = new THREE.Vector3();
+    this._offsetDestroyerMuzzle = new THREE.Vector3(0, 0, -26);
+
+    // ── Shared Geometries & Materials for Zero-Allocation Projectiles ──
+    this._sharedBoltGeo = new THREE.CylinderGeometry(0.14, 0.14, 4.2, 8);
+    this._sharedBoltGeo.rotateX(Math.PI / 2);
+    this._sharedEnemyBoltGeo = new THREE.CylinderGeometry(0.32, 0.32, 6.0, 6);
+    this._sharedEnemyBoltGeo.rotateX(Math.PI / 2);
+    this._sharedTorpGeo = new THREE.ConeGeometry(0.75, 2.2, 8);
+    this._sharedTorpGeo.rotateX(Math.PI / 2);
+    this._sharedUnitCylinderGeo = new THREE.CylinderGeometry(1, 1, 1, 6);
+    this._sharedUnitCylinderGeo.rotateX(Math.PI / 2);
+
+    this._sharedPlayerLaserMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    this._sharedEnemyLaserMat = new THREE.MeshBasicMaterial({
+      color: 0xff0033,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    this._sharedTorpedoMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+    this._sharedRailgunCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 1.0,
+      blending: THREE.AdditiveBlending
+    });
+    this._sharedRailgunGlowMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending
+    });
+
+    this._beamPool = [];
+    this._torpPool = [];
+    this._enemyBoltPool = [];
+    this._playerBoltPool = [];
+
     this.createDomOverlay();
   }
+
+  getRailgunBeam(hasSlug) {
+    let beam = this._beamPool.pop();
+    if (!beam) {
+      const outerMesh = new THREE.Mesh(this._sharedUnitCylinderGeo, this._sharedRailgunGlowMat.clone());
+      const coreMesh = new THREE.Mesh(this._sharedUnitCylinderGeo, this._sharedRailgunCoreMat);
+      coreMesh.name = 'slugCore';
+      outerMesh.add(coreMesh);
+      beam = outerMesh;
+    }
+    const core = beam.getObjectByName('slugCore');
+    if (core) core.visible = !!hasSlug;
+    beam.visible = true;
+    return beam;
+  }
+
+  recycleRailgunBeam(mesh) {
+    if (!mesh) return;
+    this.cinematicGroup.remove(mesh);
+    if (this._beamPool.length < 16) {
+      this._beamPool.push(mesh);
+    }
+  }
+
+  getTorpedoMesh() {
+    let torp = this._torpPool.pop();
+    if (!torp) {
+      torp = new THREE.Mesh(this._sharedTorpGeo, this._sharedTorpedoMat);
+    }
+    torp.visible = true;
+    return torp;
+  }
+
+  recycleTorpedo(mesh) {
+    if (!mesh) return;
+    this.cinematicGroup.remove(mesh);
+    if (this._torpPool.length < 16) {
+      this._torpPool.push(mesh);
+    }
+  }
+
+  getEnemyBolt() {
+    let bolt = this._enemyBoltPool.pop();
+    if (!bolt) {
+      bolt = new THREE.Mesh(this._sharedEnemyBoltGeo, this._sharedEnemyLaserMat);
+    }
+    bolt.visible = true;
+    return bolt;
+  }
+
+  recycleEnemyBolt(mesh) {
+    if (!mesh) return;
+    this.cinematicGroup.remove(mesh);
+    if (this._enemyBoltPool.length < 32) {
+      this._enemyBoltPool.push(mesh);
+    }
+  }
+
+  getPlayerBolt() {
+    let bolt = this._playerBoltPool.pop();
+    if (!bolt) {
+      bolt = new THREE.Mesh(this._sharedBoltGeo, this._sharedPlayerLaserMat);
+    }
+    bolt.visible = true;
+    return bolt;
+  }
+
+  recyclePlayerBolt(mesh) {
+    if (!mesh) return;
+    this.cinematicGroup.remove(mesh);
+    if (this._playerBoltPool.length < 32) {
+      this._playerBoltPool.push(mesh);
+    }
+  }
+
 
   createDomOverlay() {
     let container = document.getElementById('segma-cinematic-hud');
@@ -452,19 +600,71 @@ export class SegmaCinematicDirector {
     });
   }
 
-  async start(onCompleteCallback = null, selectedShipClass = 'INTERCEPTOR') {
-    this.isActive = true;
+  async preloadAndWarmup() {
+    if (this.isPreloaded) return;
+    if (this._preloadPromise) return this._preloadPromise;
+
+    this._preloadPromise = (async () => {
+      const yieldFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+      // 1. Ensure Fleet Assets are loaded
+      await assetManager.loadFleetAssets();
+      await yieldFrame();
+
+      // 2. Clear previous entities
+      if (!this.scene.children.includes(this.cinematicGroup)) {
+        this.scene.add(this.cinematicGroup);
+      }
+      while (this.cinematicGroup.children.length > 0) {
+        this.cinematicGroup.remove(this.cinematicGroup.children[0]);
+      }
+      this.cinematicProjectiles = [];
+      this.cinematicBeams = [];
+      this.cinematicTorpedoes = [];
+      this.engineFXList = [];
+      this.alliedPortals = [];
+      this.stationSolarArrays = [];
+
+      // 3. Build fleet and midground elements across separate animation frames
+      this.buildAlliedArmada();
+      this.createOrbitalDebrisField();
+      await yieldFrame();
+
+      this.mountPlayerVessel('INTERCEPTOR');
+      this.registerTacticalFleet();
+      this.prepareEnemyInvasionFleet();
+      await yieldFrame();
+
+      // 4. Cache escaping stealth materials for zero-traversal updates
+      this._stealthMaterials = [];
+      if (this.escapingStealthFighter) {
+        this.escapingStealthFighter.traverse(child => {
+          if (child.isMesh && child.material) {
+            this._stealthMaterials.push(child.material);
+          }
+        });
+      }
+
+      // 5. Pre-compile GPU shaders ahead of time
+      if (this.gameManager?.spaceScene?.renderer) {
+        try {
+          this.gameManager.spaceScene.renderer.compile(this.cinematicGroup, this.camera);
+        } catch (compileErr) {
+          // Graceful fallback
+        }
+      }
+      await yieldFrame();
+
+      this.isPreloaded = true;
+    })();
+
+    return this._preloadPromise;
+  }
+
+  resetCinematicScene(selectedShipClass = 'INTERCEPTOR') {
+    this.selectedShipClass = selectedShipClass || 'INTERCEPTOR';
     this.elapsedTime = 0;
     this.isPaused = false;
-    const pauseLabel = document.getElementById('segma-pause-label');
-    if (pauseLabel) pauseLabel.textContent = 'PAUSE (P)';
-    const pauseBtn = document.getElementById('btn-segma-pause');
-    if (pauseBtn) pauseBtn.classList.remove('active');
-    const overviewBtn = document.getElementById('btn-segma-overview');
-    if (overviewBtn) overviewBtn.classList.remove('active-overview');
-
-    this.onCompleteCallback = onCompleteCallback;
-    this.selectedShipClass = selectedShipClass || 'INTERCEPTOR';
     this.warpTriggered = false;
     this.warpCompleted = false;
     this.warpProgress = 0;
@@ -474,7 +674,7 @@ export class SegmaCinematicDirector {
     this.cameraMode = 'DIRECTOR';
     this.currentVesselIndex = 0;
 
-    // Initialize camera in Shot 1 grand establishing perspective (open center screen)
+    // Reset Camera in Shot 1 grand establishing perspective (open center screen)
     this.camTargetPos.set(-18.0, 38.0, 85.0);
     this.camLookAt.set(0.0, 2.0, -75.0);
     this.camCurrentLookAt.set(0.0, 2.0, -75.0);
@@ -494,20 +694,13 @@ export class SegmaCinematicDirector {
     this.dronesFirstWaveDestroyed = false;
     this.dronesSecondWaveDestroyed = false;
     this.ecmCorvetteDestroyed = false;
-    this.waveEnemyDrones = [];
-    this.waveStealthFighters = [];
-    this.waveEcmCorvette = null;
     this.battleExplosions = [];
     this.alliedSalvoTimer = 0;
-    this.escapingStealthFighter = null;
     this.stealthEscapeProgress = 0;
     this.stealthCloakTriggered = false;
-    this.cinematicBeams = [];
-    this.cinematicTorpedoes = [];
 
     // Reset Director Micro-Shake, Debris, Audio & Interactive Boost Triggers
     this.camTrauma = 0;
-    this.debrisField = [];
     this.battleshipBreachTimer = 0;
     this.carrierBreachTimer = 0;
     this.shot1VoiceTriggered = false;
@@ -518,6 +711,146 @@ export class SegmaCinematicDirector {
     this.shot5BoostPromptActive = false;
     this.shot5AutoTimer = 3.8;
     this.boostEngaging = false;
+
+    // Clear active projectiles & beams
+    for (let i = this.cinematicBeams.length - 1; i >= 0; i--) {
+      this.recycleRailgunBeam(this.cinematicBeams[i].mesh);
+    }
+    this.cinematicBeams = [];
+
+    for (let i = this.cinematicTorpedoes.length - 1; i >= 0; i--) {
+      this.recycleTorpedo(this.cinematicTorpedoes[i].mesh);
+    }
+    this.cinematicTorpedoes = [];
+
+    for (let i = this.cinematicProjectiles.length - 1; i >= 0; i--) {
+      const p = this.cinematicProjectiles[i];
+      if (p.isPlayer) this.recyclePlayerBolt(p.mesh);
+      else this.recycleEnemyBolt(p.mesh);
+    }
+    this.cinematicProjectiles = [];
+
+    // Reset Space Station
+    if (this.alliedStation) {
+      this.alliedStation.visible = true;
+      this.alliedStation.position.set(115, this.alliedStationBaseY || 24, -200);
+      this.alliedStation.rotation.set(0.12, -0.42, 0.06);
+    }
+
+    // Reset Allied Ships
+    if (this.alliedEscort) {
+      this.alliedEscort.visible = false;
+      this.alliedEscort.scale.set(0.001, 0.001, 0.001);
+      this.alliedEscort.position.set(32, 4, -80);
+      this.alliedEscort.rotation.set(0, 0, 0);
+    }
+    if (this.alliedDestroyer) {
+      this.alliedDestroyer.visible = false;
+      this.alliedDestroyer.scale.set(0.001, 0.001, 0.001);
+      this.alliedDestroyer.position.set(-32, 4, -80);
+      this.alliedDestroyer.rotation.set(0, 0, 0);
+    }
+    this.alliedPortals.forEach(entry => {
+      if (entry.portal) {
+        entry.portal.visible = true;
+        entry.portal.scale.set(1, 1, 1);
+      }
+    });
+
+    // Reset Enemy Ships
+    if (this.enemyCarrier) {
+      this.enemyCarrier.visible = false;
+      this.enemyCarrier.scale.set(0.001, 0.001, 0.001);
+      this.enemyCarrier.position.set(0, 12, -155);
+      this.enemyCarrier.rotation.set(0, 0, 0);
+    }
+    if (this.enemyBattleship) {
+      this.enemyBattleship.visible = false;
+      this.enemyBattleship.scale.set(0.001, 0.001, 0.001);
+      this.enemyBattleship.position.set(-28, 6, -145);
+      this.enemyBattleship.rotation.set(0, 0, 0);
+    }
+    if (this.warpPortalCarrier) {
+      this.warpPortalCarrier.visible = false;
+      this.warpPortalCarrier.scale.set(0.001, 0.001, 0.001);
+    }
+    if (this.warpPortalBattleship) {
+      this.warpPortalBattleship.visible = false;
+      this.warpPortalBattleship.scale.set(0.001, 0.001, 0.001);
+    }
+    if (this.warpPortalEscort) {
+      this.warpPortalEscort.visible = false;
+      this.warpPortalEscort.scale.set(0.001, 0.001, 0.001);
+    }
+
+    // Reset Enemy Drones
+    if (this.waveEnemyDrones) {
+      this.waveEnemyDrones.forEach(d => {
+        d.isDestroyed = false;
+        if (d.mesh) {
+          d.mesh.visible = false;
+          d.mesh.scale.set(0.001, 0.001, 0.001);
+          d.mesh.position.copy(d.basePos);
+          d.mesh.rotation.set(0, Math.PI, 0);
+        }
+      });
+    }
+
+    // Reset Stealth Fighters
+    if (this.waveStealthFighters) {
+      this.waveStealthFighters.forEach(sf => {
+        sf.isDestroyed = false;
+        if (sf.mesh) {
+          sf.mesh.visible = false;
+          sf.mesh.scale.set(0.001, 0.001, 0.001);
+          sf.mesh.position.copy(sf.basePos);
+          sf.mesh.rotation.set(0, Math.PI, 0);
+        }
+      });
+    }
+
+    // Reset ECM Corvette
+    if (this.waveEcmCorvette && this.waveEcmCorvette.mesh) {
+      this.waveEcmCorvette.isDestroyed = false;
+      this.waveEcmCorvette.mesh.visible = false;
+      this.waveEcmCorvette.mesh.scale.set(0.001, 0.001, 0.001);
+      this.waveEcmCorvette.mesh.position.set(18, 2, -130);
+      this.waveEcmCorvette.mesh.rotation.set(0, Math.PI, 0);
+    }
+
+    // Reset Escaping Stealth Prototype
+    if (this.escapingStealthFighter) {
+      this.escapingStealthFighter.position.copy(this._stealthP0);
+      this.escapingStealthFighter.scale.set(0.001, 0.001, 0.001);
+      this.escapingStealthFighter.visible = false;
+    }
+    if (this._stealthMaterials) {
+      for (let i = 0; i < this._stealthMaterials.length; i++) {
+        this._stealthMaterials[i].opacity = 1.0;
+      }
+    }
+
+    // Mount player ship
+    this.mountPlayerVessel(this.selectedShipClass);
+
+    // Make sure cinematicGroup is in scene
+    if (!this.scene.children.includes(this.cinematicGroup)) {
+      this.scene.add(this.cinematicGroup);
+    }
+  }
+
+  async start(onCompleteCallback = null, selectedShipClass = 'INTERCEPTOR') {
+    this.isActive = false;
+    this.onCompleteCallback = onCompleteCallback;
+    this.selectedShipClass = selectedShipClass || 'INTERCEPTOR';
+
+    const pauseLabel = document.getElementById('segma-pause-label');
+    if (pauseLabel) pauseLabel.textContent = 'PAUSE (P)';
+    const pauseBtn = document.getElementById('btn-segma-pause');
+    if (pauseBtn) pauseBtn.classList.remove('active');
+    const overviewBtn = document.getElementById('btn-segma-overview');
+    if (overviewBtn) overviewBtn.classList.remove('active-overview');
+
     if (this.interactivePrompt) {
       this.interactivePrompt.classList.add('hidden');
       this.interactivePrompt.innerHTML = `
@@ -571,42 +904,23 @@ export class SegmaCinematicDirector {
       this.gameManager.spaceHUD.hideBoundaryWarning();
     }
 
-    // 2. Clear previous cinematic entities
-    this.scene.add(this.cinematicGroup);
-    while (this.cinematicGroup.children.length > 0) {
-      this.cinematicGroup.remove(this.cinematicGroup.children[0]);
+    // 2. Preload & warm up if not already done
+    if (!this.isPreloaded) {
+      await this.preloadAndWarmup();
     }
-    this.cinematicProjectiles = [];
-    this.engineFXList = [];
-    this.alliedPortals = [];
-    this.stationSolarArrays = [];
-    this.destroyerRecoil = 0;
-    this.battleshipShudder = 0;
-    this.carrierShudder = 0;
-    this.stationCIWSTimer = 0;
 
-    // 3. Load Fleet Assets
-    await assetManager.loadFleetAssets();
+    // 3. Instant reset of scene entities (<0.1ms)
+    this.resetCinematicScene(this.selectedShipClass);
 
-    // 4. Build Allied Armada in orbit around Planet Segma
-    this.buildAlliedArmada();
+    // 4. Activate playback
+    this.elapsedTime = 0;
+    this.isActive = true;
 
-    // 5. Build Midground Orbital Space Debris Field
-    this.createOrbitalDebrisField();
-
-    // 6. Mount Player's Controllable Vessel (selected airframe)
-    this.mountPlayerVessel(this.selectedShipClass);
-
-    // 7. Register tactical fleet dictionary & selection rings
-    this.registerTacticalFleet();
-
-    // 8. Pre-position Enemy Warp Vessels (hidden initially)
-    this.prepareEnemyInvasionFleet();
-
-    // 9. Show Cinematic HUD
+    // 5. Show Cinematic HUD
     if (this.hudElem) {
       this.hudElem.classList.remove('hidden');
     }
+
 
     // Initial audio greeting: Urgent armada recall at Planet Segma
     if (this.spaceAudio && this.spaceAudio.playRadioSquelch) {
@@ -819,14 +1133,27 @@ export class SegmaCinematicDirector {
         shockDiamonds.push(ring);
       }
 
-      // Dynamic local point light casting glow on rear hull
-      const pLight = new THREE.PointLight(flameColorHex, isAllied ? 3.0 : 4.5, baseLength * 7.0);
-      pLight.position.set(0, 0, baseLength * 0.3);
-      nozzleGroup.add(pLight);
-      lights.push(pLight);
-
       shipGroup.add(nozzleGroup);
     });
+
+    // Consolidated single point light per ship group to prevent WebGL forward light shader penalty
+    if (nozzlePositions.length > 0) {
+      let avgX = 0, avgY = 0, avgZ = 0;
+      nozzlePositions.forEach((pos) => {
+        avgX += pos.x;
+        avgY += pos.y;
+        avgZ += pos.z;
+      });
+      avgX /= nozzlePositions.length;
+      avgY /= nozzlePositions.length;
+      avgZ /= nozzlePositions.length;
+
+      const pLight = new THREE.PointLight(flameColorHex, isAllied ? 3.5 : 5.0, baseLength * 8.0);
+      pLight.position.set(avgX, avgY, avgZ + baseLength * 0.35);
+      pLight.castShadow = false;
+      shipGroup.add(pLight);
+      lights.push(pLight);
+    }
 
     const entry = {
       group: shipGroup,
@@ -1299,9 +1626,30 @@ export class SegmaCinematicDirector {
   }
 
   mountPlayerVessel(vesselType) {
+    if (this.mountedVesselType === vesselType && this.playerMesh) {
+      this.playerPos.set(0, 4, -20);
+      this.playerMesh.position.set(0, 4, -60);
+      this.playerMesh.scale.set(0.001, 0.001, 0.001);
+      this.playerMesh.visible = false;
+      this.playerRot.set(0, 0, 0);
+      this.playerMesh.rotation.set(0, 0, 0);
+      if (this.portalPlayer) {
+        this.portalPlayer.visible = true;
+        this.portalPlayer.scale.set(0.9, 0.9, 0.9);
+      }
+      return;
+    }
+
     if (this.playerMesh) {
       this.cinematicGroup.remove(this.playerMesh);
       this.playerMesh = null;
+    }
+
+    // Remove previous player portal if any
+    if (this.portalPlayer) {
+      this.cinematicGroup.remove(this.portalPlayer);
+      this.alliedPortals = this.alliedPortals.filter((p) => p.portal !== this.portalPlayer);
+      this.portalPlayer = null;
     }
 
     // Remove any previous player engine FX from list
@@ -1373,6 +1721,7 @@ export class SegmaCinematicDirector {
     const portalPlayer = this.createWarpPortal(new THREE.Vector3(0, 4, -20), 0x00f3ff);
     portalPlayer.visible = true;
     portalPlayer.scale.set(0.9, 0.9, 0.9);
+    this.portalPlayer = portalPlayer;
     this.alliedPortals.push({
       portal: portalPlayer,
       ship: this.playerMesh,
@@ -1380,6 +1729,8 @@ export class SegmaCinematicDirector {
       startPos: new THREE.Vector3(0, 4, -60),
       targetPos: new THREE.Vector3(0, 4, -20)
     });
+
+    this.mountedVesselType = vesselType;
 
     if (this.shipLabel) {
       this.shipLabel.textContent = `VESSEL: ${vesselType}`;
@@ -1808,6 +2159,18 @@ export class SegmaCinematicDirector {
     this.warpPortalCarrier = this.createWarpPortal(new THREE.Vector3(0, 12, -155), 0xff1133);
     this.warpPortalBattleship = this.createWarpPortal(new THREE.Vector3(-28, 6, -145), 0xff1133);
     this.warpPortalEscort = this.createWarpPortal(new THREE.Vector3(20, 4, -135), 0xff1133);
+
+    // 7. Pre-instantiate escaping stealth fighter so t=16s never creates objects during combat
+    if (!this.escapingStealthFighter) {
+      const sf = new StealthFighter(this.scene, this.particleManager, this._stealthP0);
+      this.scene.remove(sf.meshGroup);
+      sf.meshGroup.position.copy(this._stealthP0);
+      sf.meshGroup.scale.set(0.001, 0.001, 0.001);
+      sf.meshGroup.visible = false;
+      this.escapingStealthFighter = sf.meshGroup;
+      this.escapingStealthFighterObj = sf;
+      this.cinematicGroup.add(this.escapingStealthFighter);
+    }
   }
 
   createWarpPortal(pos, colorHex) {
@@ -2125,15 +2488,15 @@ export class SegmaCinematicDirector {
     this.playerMesh.rotation.copy(this.playerRot);
 
     // Movement vectors
-    const forward = new THREE.Vector3(0, 0, -1).applyEuler(this.playerRot);
-    const right = new THREE.Vector3(1, 0, 0).applyEuler(this.playerRot);
-    const up = new THREE.Vector3(0, 1, 0).applyEuler(this.playerRot);
+    this._vForward.set(0, 0, -1).applyEuler(this.playerRot);
+    this._vRight.set(1, 0, 0).applyEuler(this.playerRot);
+    this._vUp.set(0, 1, 0).applyEuler(this.playerRot);
 
     if (input.x !== 0 || input.y !== 0 || input.z !== 0) {
-      this.playerPos.addScaledVector(right, input.x * speed * 0.8);
-      this.playerPos.addScaledVector(up, input.y * speed * 0.8);
+      this.playerPos.addScaledVector(this._vRight, input.x * speed * 0.8);
+      this.playerPos.addScaledVector(this._vUp, input.y * speed * 0.8);
       if (input.z !== 0) {
-        this.playerPos.addScaledVector(forward, -input.z * speed);
+        this.playerPos.addScaledVector(this._vForward, -input.z * speed);
       }
 
       // Station-keeping bounds around Planet Segma defense corridor
@@ -2176,34 +2539,27 @@ export class SegmaCinematicDirector {
       forwardOffset = -2.5;
     }
 
-    // Spawn twin high-speed plasma bolts
-    [-muzzleSpread, muzzleSpread].forEach((mx) => {
-      const localPos = new THREE.Vector3(mx, 0, forwardOffset).applyEuler(this.playerRot).add(this.playerPos);
+    this._vForward.set(0, 0, -1).applyEuler(this.playerRot);
 
-      // Plasma bolt geometry & material
-      const boltGeo = new THREE.CylinderGeometry(0.14, 0.14, 4.2, 8);
-      boltGeo.rotateX(Math.PI / 2);
-      const boltMat = new THREE.MeshBasicMaterial({
-        color: 0x00f3ff,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
-      });
-      const bolt = new THREE.Mesh(boltGeo, boltMat);
-      bolt.position.copy(localPos);
+    // Spawn twin high-speed plasma bolts using pooled meshes
+    [-muzzleSpread, muzzleSpread].forEach((mx) => {
+      this._tempV1.set(mx, 0, forwardOffset).applyEuler(this.playerRot).add(this.playerPos);
+
+      const bolt = this.getPlayerBolt();
+      bolt.position.copy(this._tempV1);
       bolt.rotation.copy(this.playerRot);
       this.cinematicGroup.add(bolt);
 
-      const forward = new THREE.Vector3(0, 0, -1).applyEuler(this.playerRot);
       this.cinematicProjectiles.push({
         mesh: bolt,
-        velocity: forward.multiplyScalar(240.0),
-        life: 1.8
+        velocity: this._vForward.clone().multiplyScalar(240.0),
+        life: 1.8,
+        isPlayer: true
       });
 
       // Muzzle sparks
       if (this.particleManager) {
-        this.particleManager.createHitSparks(localPos, 0x00f3ff);
+        this.particleManager.createHitSparks(this._tempV1, 0x00f3ff);
       }
     });
 
@@ -2217,7 +2573,11 @@ export class SegmaCinematicDirector {
       p.mesh.position.addScaledVector(p.velocity, dt);
       p.life -= dt;
       if (p.life <= 0) {
-        this.cinematicGroup.remove(p.mesh);
+        if (p.isPlayer) {
+          this.recyclePlayerBolt(p.mesh);
+        } else {
+          this.recycleEnemyBolt(p.mesh);
+        }
         this.cinematicProjectiles.splice(i, 1);
       }
     }
@@ -2606,21 +2966,29 @@ export class SegmaCinematicDirector {
   }
 
   spawnEscapingStealthFighter() {
-    const startPos = new THREE.Vector3(18, 6, -135);
-    const sf = new StealthFighter(this.scene, this.particleManager, startPos);
-    this.scene.remove(sf.meshGroup);
-    sf.meshGroup.position.copy(startPos);
-    sf.meshGroup.scale.set(1.5, 1.5, 1.5);
-    sf.cloakOpacity = 1.0;
-    sf.targetCloakOpacity = 1.0;
-    sf.isCloaked = false;
-    if (sf.hullMat) {
-      sf.hullMat.transparent = true;
-      sf.hullMat.opacity = 1.0;
+    if (!this.escapingStealthFighter) {
+      const sf = new StealthFighter(this.scene, this.particleManager, this._stealthP0);
+      this.scene.remove(sf.meshGroup);
+      this.escapingStealthFighter = sf.meshGroup;
+      this.escapingStealthFighterObj = sf;
+      this.cinematicGroup.add(this.escapingStealthFighter);
     }
-    this.escapingStealthFighter = sf.meshGroup;
-    this.escapingStealthFighterObj = sf;
-    this.cinematicGroup.add(this.escapingStealthFighter);
+    this.escapingStealthFighter.position.copy(this._stealthP0);
+    this.escapingStealthFighter.scale.set(1.5, 1.5, 1.5);
+    this.escapingStealthFighter.visible = true;
+
+    if (!this._stealthMaterials || this._stealthMaterials.length === 0) {
+      this._stealthMaterials = [];
+      this.escapingStealthFighter.traverse(child => {
+        if (child.isMesh && child.material) {
+          this._stealthMaterials.push(child.material);
+        }
+      });
+    }
+    for (let i = 0; i < this._stealthMaterials.length; i++) {
+      this._stealthMaterials[i].transparent = true;
+      this._stealthMaterials[i].opacity = 1.0;
+    }
 
     this.stealthEscapeProgress = 0;
     this.stealthCloakTriggered = false;
@@ -2657,48 +3025,45 @@ export class SegmaCinematicDirector {
     const p = THREE.MathUtils.clamp(this.stealthEscapeProgress, 0, 1);
 
     // Quadratic bezier curve from Carrier blast through open center foreground to deep space
-    const p0 = new THREE.Vector3(18, 6, -135);
-    const p1 = new THREE.Vector3(0, 4, -40);
-    const p2 = new THREE.Vector3(-25, 15, -280);
-
     const oneMinusP = 1 - p;
-    const curPos = new THREE.Vector3()
-      .addScaledVector(p0, oneMinusP * oneMinusP)
-      .addScaledVector(p1, 2 * oneMinusP * p)
-      .addScaledVector(p2, p * p);
+    this._stealthCurPos.set(0, 0, 0)
+      .addScaledVector(this._stealthP0, oneMinusP * oneMinusP)
+      .addScaledVector(this._stealthP1, 2 * oneMinusP * p)
+      .addScaledVector(this._stealthP2, p * p);
 
     // Orientation tangent
     const nextP = Math.min(1.0, p + 0.02);
     const oneMinusNext = 1 - nextP;
-    const nextPos = new THREE.Vector3()
-      .addScaledVector(p0, oneMinusNext * oneMinusNext)
-      .addScaledVector(p1, 2 * oneMinusNext * nextP)
-      .addScaledVector(p2, nextP * nextP);
+    this._stealthNextPos.set(0, 0, 0)
+      .addScaledVector(this._stealthP0, oneMinusNext * oneMinusNext)
+      .addScaledVector(this._stealthP1, 2 * oneMinusNext * nextP)
+      .addScaledVector(this._stealthP2, nextP * nextP);
 
-    this.escapingStealthFighter.position.copy(curPos);
-    this.escapingStealthFighter.lookAt(nextPos);
+    this.escapingStealthFighter.position.copy(this._stealthCurPos);
+    this.escapingStealthFighter.lookAt(this._stealthNextPos);
 
     // Cloaking effect engages at p >= 0.35 (around t = 17.4s)
     if (p >= 0.35) {
       if (!this.stealthCloakTriggered) {
         this.stealthCloakTriggered = true;
         if (this.particleManager) {
-          this.particleManager.createEmpShockwave(curPos, 0xaa00ff, 20.0);
-          this.particleManager.createHitSparks(curPos, 0xff0077);
+          this.particleManager.createEmpShockwave(this._stealthCurPos, 0xaa00ff, 20.0);
+          this.particleManager.createHitSparks(this._stealthCurPos, 0xff0077);
         }
         if (this.spaceAudio && this.spaceAudio.playQuantumArc) {
           this.spaceAudio.playQuantumArc(0);
         }
       }
 
-      // Fade opacity from 1.0 down to 0.12
+      // Fade opacity from 1.0 down to 0.12 using cached material array (zero traverse overhead)
       const cloakOpacity = Math.max(0.12, 1.0 - (p - 0.35) * 3.0);
-      this.escapingStealthFighter.traverse(child => {
-        if (child.isMesh && child.material) {
-          child.material.transparent = true;
-          child.material.opacity = cloakOpacity;
+      if (this._stealthMaterials && this._stealthMaterials.length > 0) {
+        for (let i = 0; i < this._stealthMaterials.length; i++) {
+          const mat = this._stealthMaterials[i];
+          mat.transparent = true;
+          mat.opacity = cloakOpacity;
         }
-      });
+      }
     }
   }
 
@@ -2816,8 +3181,7 @@ export class SegmaCinematicDirector {
     if (this.alliedDestroyer && this.alliedWarpCompleted) {
       if (this.battlePhase === 'BATTLE_ERUPTS') {
         // Advance forward and bank into spinal firing position facing the Goliath Battleship
-        const targetDestPos = new THREE.Vector3(-36, 1, -82);
-        this.alliedDestroyer.position.lerp(targetDestPos, dt * 1.5);
+        this.alliedDestroyer.position.lerp(this._targetDestPos, dt * 1.5);
         // Apply spinal railgun recoil offset on Z
         this.alliedDestroyer.position.z += this.destroyerRecoil;
 
@@ -2832,8 +3196,7 @@ export class SegmaCinematicDirector {
     if (this.alliedEscort && this.alliedWarpCompleted) {
       if (this.battlePhase === 'BATTLE_ERUPTS') {
         // Flank outward to starboard and elevate to provide missile coverage
-        const targetFrigatePos = new THREE.Vector3(28, 12, -78);
-        this.alliedEscort.position.lerp(targetFrigatePos, dt * 1.8);
+        this.alliedEscort.position.lerp(this._targetFrigatePos, dt * 1.8);
 
         // Bank hard 30 degrees (roll: 0.35) so vertical missile decks angle directly at Carrier
         this.alliedEscort.rotation.z = THREE.MathUtils.lerp(this.alliedEscort.rotation.z, 0.35, dt * 3.5);
@@ -2878,13 +3241,11 @@ export class SegmaCinematicDirector {
       const beam = this.cinematicBeams[i];
       beam.life -= dt;
       if (beam.life <= 0) {
-        this.cinematicGroup.remove(beam.mesh);
-        if (beam.mesh.geometry) beam.mesh.geometry.dispose();
-        if (beam.mesh.material) beam.mesh.material.dispose();
+        this.recycleRailgunBeam(beam.mesh);
         this.cinematicBeams.splice(i, 1);
       } else {
-        if (beam.mesh.material) {
-          beam.mesh.material.opacity = Math.max(0, beam.life / beam.maxLife);
+        if (beam.mesh && beam.mesh.material) {
+          beam.mesh.material.opacity = Math.max(0, (beam.life / beam.maxLife) * 0.95);
         }
       }
     }
@@ -2905,20 +3266,18 @@ export class SegmaCinematicDirector {
           this.spaceAudio.playExplosion(1);
         }
         this.carrierShudder = Math.min(2.0, this.carrierShudder + 0.35);
-        this.cinematicGroup.remove(torp.mesh);
-        if (torp.mesh.geometry) torp.mesh.geometry.dispose();
-        if (torp.mesh.material) torp.mesh.material.dispose();
+        this.recycleTorpedo(torp.mesh);
         this.cinematicTorpedoes.splice(i, 1);
       } else {
         // Multi-stage proportional navigation trajectory: arc upward then dive toward target
-        const curPos = new THREE.Vector3().lerpVectors(torp.from, torp.to, torp.t);
-        curPos.y += Math.sin(torp.t * Math.PI) * 6.5;
-        curPos.x += Math.sin(torp.t * Math.PI * 2.0 + torp.phase) * 2.2;
-        torp.mesh.position.copy(curPos);
+        this._torpCurPos.lerpVectors(torp.from, torp.to, torp.t);
+        this._torpCurPos.y += Math.sin(torp.t * Math.PI) * 6.5;
+        this._torpCurPos.x += Math.sin(torp.t * Math.PI * 2.0 + torp.phase) * 2.2;
+        torp.mesh.position.copy(this._torpCurPos);
 
         // Rocket exhaust trail sparks
         if (this.particleManager && Math.random() > 0.35) {
-          this.particleManager.createHitSparks(curPos, 0x00f3ff, 2);
+          this.particleManager.createHitSparks(this._torpCurPos, 0x00f3ff, 2);
         }
       }
     }
@@ -2933,13 +3292,12 @@ export class SegmaCinematicDirector {
 
         // Allied Destroyer fires hypervelocity spinal railgun slug at Battleship
         if (this.alliedDestroyer && !this.battleshipDestroyed && this.enemyBattleship) {
-          const fromPos = this.alliedDestroyer.position.clone().add(new THREE.Vector3(0, 0, -26));
-          const toPos = this.enemyBattleship.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 16,
-            (Math.random() - 0.5) * 8,
-            (Math.random() - 0.5) * 12
-          ));
-          this.fireRailgunBeam(fromPos, toPos, 0x00f3ff, 0.18, true);
+          this._tempV1.copy(this.alliedDestroyer.position).add(this._offsetDestroyerMuzzle);
+          this._tempV2.copy(this.enemyBattleship.position);
+          this._tempV2.x += (Math.random() - 0.5) * 16;
+          this._tempV2.y += (Math.random() - 0.5) * 8;
+          this._tempV2.z += (Math.random() - 0.5) * 12;
+          this.fireRailgunBeam(this._tempV1, this._tempV2, 0x00f3ff, 0.18, true);
 
           // Spinal recoil kickback on Destroyer
           this.destroyerRecoil = 0.95;
@@ -2947,9 +3305,9 @@ export class SegmaCinematicDirector {
           this.battleshipShudder = Math.min(2.5, this.battleshipShudder + 0.5);
 
           if (this.particleManager) {
-            this.particleManager.createHitSparks(toPos, 0x00f3ff, 14);
+            this.particleManager.createHitSparks(this._tempV2, 0x00f3ff, 14);
             if (Math.random() > 0.3) {
-              this.particleManager.createExplosion(toPos, 0xff5500, 14, 1.4);
+              this.particleManager.createExplosion(this._tempV2, 0xff5500, 14, 1.4);
             }
           }
           if (this.spaceAudio && this.spaceAudio.playHeavyCannonSound) {
@@ -2959,15 +3317,16 @@ export class SegmaCinematicDirector {
 
         // Allied Frigate fires VLS Swarm Torpedoes at Carrier
         if (this.alliedEscort && !this.carrierDestroyed && this.enemyCarrier) {
-          const fromPos = this.alliedEscort.position.clone().add(new THREE.Vector3(
-            (Math.random() > 0.5 ? 4.5 : -4.5), 2.0, -18
-          ));
-          const toPos = this.enemyCarrier.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 28,
-            (Math.random() - 0.5) * 10,
-            (Math.random() - 0.5) * 22
-          ));
-          this.fireTorpedo(fromPos, toPos);
+          this._tempV1.copy(this.alliedEscort.position);
+          this._tempV1.x += (Math.random() > 0.5 ? 4.5 : -4.5);
+          this._tempV1.y += 2.0;
+          this._tempV1.z -= 18;
+
+          this._tempV2.copy(this.enemyCarrier.position);
+          this._tempV2.x += (Math.random() - 0.5) * 28;
+          this._tempV2.y += (Math.random() - 0.5) * 10;
+          this._tempV2.z += (Math.random() - 0.5) * 22;
+          this.fireTorpedo(this._tempV1, this._tempV2);
           if (this.spaceAudio && this.spaceAudio.playLaserPew) {
             this.spaceAudio.playLaserPew(1.0);
           }
@@ -2975,21 +3334,26 @@ export class SegmaCinematicDirector {
 
         // Player Vessel fires heavy plasma cannon bolts towards Carrier
         if (!this.carrierDestroyed && this.enemyCarrier) {
-          const playerMuzzle = this.playerPos.clone().add(new THREE.Vector3((Math.random() > 0.5 ? 3.5 : -3.5), 0, -12));
-          const carrierHit = this.enemyCarrier.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 24, 0, (Math.random() - 0.5) * 18
-          ));
-          this.fireRailgunBeam(playerMuzzle, carrierHit, 0x00d0ff, 0.14, false);
+          this._tempV1.copy(this.playerPos);
+          this._tempV1.x += (Math.random() > 0.5 ? 3.5 : -3.5);
+          this._tempV1.z -= 12;
+
+          this._tempV2.copy(this.enemyCarrier.position);
+          this._tempV2.x += (Math.random() - 0.5) * 24;
+          this._tempV2.z += (Math.random() - 0.5) * 18;
+          this.fireRailgunBeam(this._tempV1, this._tempV2, 0x00d0ff, 0.14, false);
           if (this.particleManager) {
-            this.particleManager.createHitSparks(carrierHit, 0x00d0ff, 8);
+            this.particleManager.createHitSparks(this._tempV2, 0x00d0ff, 8);
           }
         }
 
         // Enemy Battleship fires heavy red plasma bursts back at Allied line
         if (!this.battleshipDestroyed && this.enemyBattleship) {
-          const enemyMuzzle = this.enemyBattleship.position.clone().add(new THREE.Vector3(0, 0, 18));
-          const targetPos = new THREE.Vector3(-32 + (Math.random() - 0.5) * 22, 2, -35);
-          this.fireEnemyPlasma(enemyMuzzle, targetPos);
+          this._tempV1.copy(this.enemyBattleship.position);
+          this._tempV1.z += 18;
+
+          this._tempV2.set(-32 + (Math.random() - 0.5) * 22, 2, -35);
+          this.fireEnemyPlasma(this._tempV1, this._tempV2);
           if (this.spaceAudio && this.spaceAudio.playEnemyLaser) {
             this.spaceAudio.playEnemyLaser(-0.8);
           }
@@ -3000,13 +3364,10 @@ export class SegmaCinematicDirector {
           this.waveEnemyDrones.forEach((d, idx) => {
             if (!d.isDestroyed && d.mesh && d.mesh.visible) {
               if (Math.random() < 0.25) {
-                const muzzle = d.mesh.position.clone().add(new THREE.Vector3(0, 0, 2.5));
-                const targetPos = new THREE.Vector3(
-                  (Math.random() - 0.5) * 35,
-                  (Math.random() - 0.5) * 8,
-                  -25
-                );
-                this.fireEnemyPlasma(muzzle, targetPos);
+                this._tempV1.copy(d.mesh.position);
+                this._tempV1.z += 2.5;
+                this._tempV2.set((Math.random() - 0.5) * 35, (Math.random() - 0.5) * 8, -25);
+                this.fireEnemyPlasma(this._tempV1, this._tempV2);
               }
             }
           });
@@ -3017,13 +3378,9 @@ export class SegmaCinematicDirector {
           this.waveStealthFighters.forEach((sf, idx) => {
             if (!sf.isDestroyed && sf.mesh && sf.mesh.visible) {
               if (Math.random() < 0.20) {
-                const muzzle = sf.mesh.position.clone();
-                const targetPos = new THREE.Vector3(
-                  (Math.random() - 0.5) * 20,
-                  (Math.random() - 0.5) * 6,
-                  -20
-                );
-                this.fireEnemyPlasma(muzzle, targetPos);
+                this._tempV1.copy(sf.mesh.position);
+                this._tempV2.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 6, -20);
+                this.fireEnemyPlasma(this._tempV1, this._tempV2);
               }
             }
           });
@@ -3038,14 +3395,17 @@ export class SegmaCinematicDirector {
           if (arr && arr.ciwsMuzzles) {
             const muzzle = arr.ciwsMuzzles[Math.floor(Math.random() * arr.ciwsMuzzles.length)];
             if (muzzle) {
-              const fromPos = new THREE.Vector3();
-              muzzle.getWorldPosition(fromPos);
+              muzzle.getWorldPosition(this._tempV1);
 
-              const targetPos = (!this.carrierDestroyed && this.enemyCarrier)
-                ? this.enemyCarrier.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12, 0))
-                : new THREE.Vector3(30 + (Math.random() - 0.5) * 20, 10, -140);
+              if (!this.carrierDestroyed && this.enemyCarrier) {
+                this._tempV2.copy(this.enemyCarrier.position);
+                this._tempV2.x += (Math.random() - 0.5) * 30;
+                this._tempV2.y += (Math.random() - 0.5) * 12;
+              } else {
+                this._tempV2.set(30 + (Math.random() - 0.5) * 20, 10, -140);
+              }
 
-              this.fireRailgunBeam(fromPos, targetPos, 0x00f3ff, 0.09, false);
+              this.fireRailgunBeam(this._tempV1, this._tempV2, 0x00f3ff, 0.09, false);
             }
           }
         }
@@ -3089,30 +3449,19 @@ export class SegmaCinematicDirector {
   fireRailgunBeam(from, to, colorHex = 0x00f3ff, duration = 0.16, hasSlug = false) {
     const dist = from.distanceTo(to);
     const beamRadius = hasSlug ? 0.48 : 0.28;
-    const beamGeo = new THREE.CylinderGeometry(beamRadius, beamRadius, dist, 6);
-    beamGeo.rotateX(Math.PI / 2);
-    const beamMat = new THREE.MeshBasicMaterial({
-      color: colorHex,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending
-    });
-    const beam = new THREE.Mesh(beamGeo, beamMat);
+    const beam = this.getRailgunBeam(hasSlug);
+
     beam.position.copy(from).lerp(to, 0.5);
     beam.lookAt(to);
+    beam.scale.set(beamRadius, beamRadius, dist);
+    if (beam.material) {
+      beam.material.color.setHex(colorHex);
+      beam.material.opacity = 0.95;
+    }
 
-    // If spinal railgun slug, add high-intensity bright white core
-    if (hasSlug) {
-      const coreGeo = new THREE.CylinderGeometry(0.18, 0.18, dist, 6);
-      coreGeo.rotateX(Math.PI / 2);
-      const coreMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 1.0,
-        blending: THREE.AdditiveBlending
-      });
-      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-      beam.add(coreMesh);
+    const core = beam.getObjectByName('slugCore');
+    if (core && hasSlug) {
+      core.scale.set(0.38, 0.38, 1.0);
     }
 
     this.cinematicGroup.add(beam);
@@ -3120,15 +3469,7 @@ export class SegmaCinematicDirector {
   }
 
   fireTorpedo(from, to) {
-    const torpGeo = new THREE.ConeGeometry(0.75, 2.2, 8);
-    torpGeo.rotateX(Math.PI / 2);
-    const torpMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending
-    });
-    const torp = new THREE.Mesh(torpGeo, torpMat);
+    const torp = this.getTorpedoMesh();
     torp.position.copy(from);
     torp.lookAt(to);
     this.cinematicGroup.add(torp);
@@ -3143,24 +3484,17 @@ export class SegmaCinematicDirector {
   }
 
   fireEnemyPlasma(from, to) {
-    const boltGeo = new THREE.CylinderGeometry(0.32, 0.32, 6.0, 6);
-    boltGeo.rotateX(Math.PI / 2);
-    const boltMat = new THREE.MeshBasicMaterial({
-      color: 0xff0033,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending
-    });
-    const bolt = new THREE.Mesh(boltGeo, boltMat);
+    const bolt = this.getEnemyBolt();
     bolt.position.copy(from);
     bolt.lookAt(to);
     this.cinematicGroup.add(bolt);
 
-    const dir = new THREE.Vector3().subVectors(to, from).normalize();
+    this._tempV3.subVectors(to, from).normalize();
     this.cinematicProjectiles.push({
       mesh: bolt,
-      velocity: dir.multiplyScalar(220.0),
-      life: 1.2
+      velocity: this._tempV3.clone().multiplyScalar(220.0),
+      life: 1.2,
+      isPlayer: false
     });
   }
 
@@ -3349,64 +3683,61 @@ export class SegmaCinematicDirector {
       // 3. Allied Destroyer Aegis & Escort Frigate (center-port combat flank)
       // 4. Player Controllable Flagship (anchoring formation foreground)
       // 5. Hostile Goliath Battleship & Gorgon Carrier (forward invasion line)
-      const baseOverviewPos = new THREE.Vector3(-12.0, 72.0, 115.0);
-      const baseLookAt = new THREE.Vector3(18.0, 2.0, -85.0);
-
-      this.camTargetPos.copy(baseOverviewPos);
-      this.camLookAt.copy(baseLookAt);
+      this.camTargetPos.set(-12.0, 72.0, 115.0);
+      this.camLookAt.set(18.0, 2.0, -85.0);
     } else if (this.cameraMode === 'DIRECTOR') {
       this.updateDirectorCameraTrajectory(this.elapsedTime);
     } else if (this.cameraMode === 'CHASE') {
       // Dynamic 3rd person chase camera tailored to capital vessel dimensions
-      let chaseOffset = new THREE.Vector3(0, 9.5, 42.0);
-      let lookOffset = new THREE.Vector3(0, 2.0, -80.0);
+      this._chaseOffset.set(0, 9.5, 42.0);
+      this._lookOffset.set(0, 2.0, -80.0);
 
       if (currentVessel === 'DESTROYER') {
-        chaseOffset.set(0, 14.0, 58.0);
-        lookOffset.set(0, 4.0, -90.0);
+        this._chaseOffset.set(0, 14.0, 58.0);
+        this._lookOffset.set(0, 4.0, -90.0);
       } else if (currentVessel === 'INTERCEPTOR') {
-        chaseOffset.set(0, 3.5, 14.0);
-        lookOffset.set(0, 0.5, -40.0);
+        this._chaseOffset.set(0, 3.5, 14.0);
+        this._lookOffset.set(0, 0.5, -40.0);
       }
 
-      this.camTargetPos.copy(this.playerPos).add(chaseOffset.applyEuler(this.playerRot));
-      this.camLookAt.copy(this.playerPos).add(lookOffset.applyEuler(this.playerRot));
+      this.camTargetPos.copy(this.playerPos).add(this._chaseOffset.applyEuler(this.playerRot));
+      this.camLookAt.copy(this.playerPos).add(this._lookOffset.applyEuler(this.playerRot));
     } else if (this.cameraMode === 'COCKPIT') {
       // 1st-person forward cockpit bridge perspective
-      let cockpitOffset = new THREE.Vector3(0, 2.4, -14.0);
-      let lookOffset = new THREE.Vector3(0, 2.0, -140.0);
+      this._cockpitOffset.set(0, 2.4, -14.0);
+      this._lookOffset.set(0, 2.0, -140.0);
 
       if (currentVessel === 'DESTROYER') {
-        cockpitOffset.set(0, 5.2, -26.0);
-        lookOffset.set(0, 4.0, -160.0);
+        this._cockpitOffset.set(0, 5.2, -26.0);
+        this._lookOffset.set(0, 4.0, -160.0);
       } else if (currentVessel === 'INTERCEPTOR') {
-        cockpitOffset.set(0, 0.5, -0.6);
-        lookOffset.set(0, 0.2, -60.0);
+        this._cockpitOffset.set(0, 0.5, -0.6);
+        this._lookOffset.set(0, 0.2, -60.0);
       }
 
-      this.camTargetPos.copy(this.playerPos).add(cockpitOffset.applyEuler(this.playerRot));
-      this.camLookAt.copy(this.playerPos).add(lookOffset.applyEuler(this.playerRot));
+      this.camTargetPos.copy(this.playerPos).add(this._cockpitOffset.applyEuler(this.playerRot));
+      this.camLookAt.copy(this.playerPos).add(this._lookOffset.applyEuler(this.playerRot));
     }
 
     // Apply Interactive Zoom Scaling & Orbit Angle Offsets (Pitch & Yaw)
     // Relative to the current camera look-at anchor point
-    const camOffset = new THREE.Vector3().subVectors(this.camTargetPos, this.camLookAt);
+    this._camOffset.subVectors(this.camTargetPos, this.camLookAt);
 
     // Apply zoom multiplier (zoom factor > 1 pushes camera outward for wider asset coverage)
-    camOffset.multiplyScalar(this.cameraZoomFactor);
+    this._camOffset.multiplyScalar(this.cameraZoomFactor);
 
     // Apply yaw orbit rotation around vertical axis (X angle)
     if (this.cameraOrbitAngleX !== 0) {
-      camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraOrbitAngleX);
+      this._camOffset.applyAxisAngle(this._yAxis, this.cameraOrbitAngleX);
     }
 
     // Apply pitch elevation angle (Y angle)
     if (this.cameraOrbitAngleY !== 0) {
-      const rightAxis = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), this.cameraOrbitAngleX);
-      camOffset.applyAxisAngle(rightAxis, this.cameraOrbitAngleY);
+      this._camRightAxis.set(1, 0, 0).applyAxisAngle(this._yAxis, this.cameraOrbitAngleX);
+      this._camOffset.applyAxisAngle(this._camRightAxis, this.cameraOrbitAngleY);
     }
 
-    this.camTargetPos.copy(this.camLookAt).add(camOffset);
+    this.camTargetPos.copy(this.camLookAt).add(this._camOffset);
 
     this.camera.position.lerp(this.camTargetPos, dt * 5.0);
     this.camCurrentLookAt.lerp(this.camLookAt, dt * 5.0);

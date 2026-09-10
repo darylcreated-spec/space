@@ -656,6 +656,19 @@ export class SpaceScene {
   }
 
   setupPlanetSegma() {
+    if (this.planetCoreMesh && this.planetGroup) {
+      this.planetGroup.position.set(115, -110, -290);
+      this.planetGroup.rotation.set(0.2, -0.4, 0.25);
+      this.planetGroup.visible = true;
+      if (this.nebulaGroup) this.nebulaGroup.visible = false;
+      if (this.scene.fog) {
+        this.scene.fog.density = 0.0006;
+      }
+      this.setupOrbitalStation();
+      this.setupOrbitalCommsProbe();
+      return;
+    }
+
     if (!this.planetGroup) {
       this.planetGroup = new THREE.Group();
       this.scene.add(this.planetGroup);
@@ -745,6 +758,12 @@ export class SpaceScene {
   }
 
   setupOrbitalStation() {
+    if (this.orbitalStationGroup && this.orbitalStationModel) {
+      this.orbitalStationGroup.position.set(85, 15, -230);
+      this.orbitalStationGroup.rotation.set(0.15, 0.45, -0.1);
+      return;
+    }
+
     if (this.orbitalStationGroup) {
       this.scene.remove(this.orbitalStationGroup);
     }
@@ -778,6 +797,12 @@ export class SpaceScene {
   }
 
   setupOrbitalCommsProbe() {
+    if (this.orbitalProbeGroup && this.orbitalProbeModel) {
+      this.orbitalProbeGroup.position.set(-65, -25, -240);
+      this.orbitalProbeGroup.rotation.set(0.35, 0.7, -0.15);
+      return;
+    }
+
     if (this.orbitalProbeGroup) {
       this.scene.remove(this.orbitalProbeGroup);
     }

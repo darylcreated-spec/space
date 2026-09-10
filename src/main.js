@@ -7,9 +7,13 @@ import { SpaceAudio } from './space/audio/SpaceAudio.js';
 import { ControlsManager as SpaceControls } from './space/ui/ControlsManager.js';
 import { GameManager as SpaceGameManager } from './space/game/GameManager.js';
 import { SpaceHUD } from './space/ui/SpaceHUD.js';
+import { assetManager } from './space/engine/AssetManager.js';
 
 class OrbitalVanguardApp {
   constructor() {
+    // Preload armada fleet assets in background immediately
+    assetManager.loadFleetAssets().catch(() => {});
+
     this.container = document.getElementById('canvas-container');
 
     // 1. Initialize Space Engine & Subsystems
@@ -40,6 +44,11 @@ class OrbitalVanguardApp {
     this.spaceGameManager.setHUD(this.spaceHUD);
     window.spaceGameManager = this.spaceGameManager;
     window.gameManager = this.spaceGameManager;
+
+    // Preload & compile opening cinematic assets in background during boot sequence
+    if (this.spaceGameManager.segmaCinematicDirector) {
+      this.spaceGameManager.segmaCinematicDirector.preloadAndWarmup().catch(() => {});
+    }
 
     // 3. Robust Animation Loop with timestamp fallback
     this.lastTime = performance.now();
