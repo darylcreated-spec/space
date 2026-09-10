@@ -97,22 +97,13 @@ export class WaveSpawner {
   setWaveTacticalObjective(waveNum) {
     if (!this.gameManager.spaceHUD) return;
     const hud = this.gameManager.spaceHUD;
-    const objectives = {
-      1: { title: 'MISSION: HUNT ROGUE STEALTH INFILTRATOR', status: 'CIPHER RECOVERY PENDING' },
-      2: { title: 'MISSION: DISABLE HALO STAGING CITADEL', status: 'DESTROY ECM JAMMERS' },
-      3: { title: 'DEFEND OBJECTIVE: JWST SCIENCE ARRAY', status: '100% ARRAY INTEGRITY' },
-      4: { title: 'MISSION: INTERCEPT INDUSTRIAL DUAL CONVOY', status: 'NEUTRALIZE SUPPLY LINE' },
-      5: { title: 'ASSAULT OBJECTIVE: CRIMSON MOTHERSHIP', status: 'FLAGSHIP DESTRUCTION' },
-      6: { title: 'MISSION: SEVER DYSON SOLAR SIPHON CONDUITS', status: 'CRITICAL HEAT LEVEL' },
-      7: { title: 'DEFEND OBJECTIVE: CORONAL SENSOR PROBE', status: '100% SENSOR INTEGRITY' },
-      8: { title: 'MISSION: SURVIVE GRAVITATIONAL WELL', status: 'EVENT HORIZON ESCAPE' },
-      9: { title: 'MISSION: CRUSH BOREAS CRYOGENIC FLEET', status: 'SHATTER CRYO-ARMOR' },
-      10: { title: 'MISSION: LOCATE CHRONO-PHANTOM IN BLACKOUT', status: 'RADAR BLACKOUT ACTIVE' },
-      11: { title: 'MISSION: DYSON NEXUS TRENCH ASSAULT', status: 'BREACH GATEWAY DEFENSES' },
-      12: { title: 'GRAND FINALE: DESTROY SOVEREIGN APEX', status: 'GALAXY IN BALANCE' }
-    };
-    const obj = objectives[waveNum] || { title: `SECTOR DEFENSE: PHASE ${waveNum}`, status: 'ELIMINATE HOSTILES' };
-    hud.updateObjectiveBar(1.0, obj.title, obj.status);
+    if (waveNum === 3) {
+      hud.updateObjectiveBar(1.0, 'DEFEND OBJECTIVE: JWST SCIENCE ARRAY', '100% ARRAY INTEGRITY');
+    } else if (waveNum === 7) {
+      hud.updateObjectiveBar(1.0, 'DEFEND OBJECTIVE: CORONAL SENSOR PROBE', '100% SENSOR INTEGRITY');
+    } else {
+      hud.hideObjectiveBar();
+    }
   }
 
   triggerStoryComms(wave, beat) {
@@ -367,6 +358,11 @@ export class WaveSpawner {
 
   update(dt) {
     if (this.waveState !== 'SPAWNING') return;
+
+    // In Wave 1, hold enemy wave queue while player navigates transit waypoint corridor
+    if (this.currentWave === 1 && this.gameManager.missionPhase === 'TRANSIT_CORRIDOR') {
+      return;
+    }
 
     // ── 📱 Mobile Performance Safeguard: Concurrency Throttle ──
     // Count active combatants. If screen is full, hold spawns to maintain rock-solid 60fps

@@ -36,6 +36,8 @@ import { FleetHangarUI } from '../ui/FleetHangarUI.js';
 import { PerformanceMonitor } from '../engine/PerformanceMonitor.js';
 import { SegmaCinematicDirector } from './SegmaCinematicDirector.js';
 import { deviceManager } from '../engine/DeviceManager.js';
+import { NavWaypointRing } from '../objects/NavWaypointRing.js';
+import { TargetTrackingHUD } from '../ui/TargetTrackingHUD.js';
 
 export class GameManager {
   constructor(spaceScene, postProcessing, particleManager, spaceAudio, controlsManager) {
@@ -144,6 +146,13 @@ export class GameManager {
     this._tempTargetDir = new THREE.Vector3();
 
     this.spaceHUD = null;
+    this.waypointRings = [];
+    this.targetTrackingHUD = null;
+    this.missionPhase = 'TRANSIT_CORRIDOR'; // 'TRANSIT_CORRIDOR', 'ENGAGE_PATROL', 'HUNT_PROTOTYPE', 'WARP_READY'
+    this.corridorRingsCleared = 0;
+    this.totalCorridorRings = 3;
+    this.patrolKills = 0;
+    this.targetPatrolKills = 4;
     
     // Dynamically update scroll behavior on resize (e.g. rotating device or resizing desktop tester)
     window.addEventListener('resize', () => this.updateBodyGuiClass());
@@ -187,6 +196,11 @@ export class GameManager {
         this.spaceHUD.showAchievementToast(ach);
         this.spaceAudio.playVictoryArpeggio();
       });
+
+      if (!this.targetTrackingHUD) {
+        const container = document.getElementById('canvas-container') || document.body;
+        this.targetTrackingHUD = new TargetTrackingHUD(container, this.spaceScene.camera);
+      }
     }
   }
 
@@ -217,6 +231,7 @@ export class GameManager {
     } else {
       const waveToStart = typeof startWaveNum === 'number' ? Math.max(1, startWaveNum) : 1;
       this.waveSpawner.startWave(waveToStart);
+      this.initSectorMission(waveToStart);
       if (this.spaceHUD) {
         if (waveToStart > 1) {
           this.spaceHUD.showRadioTransmission(`RESUMING CAMPAIGN // SECTOR STAGE ${waveToStart}`, "STARBOUND COMMAND", 5.0);
@@ -242,6 +257,7 @@ export class GameManager {
     this.state = 'START';
     if (this.spaceHUD) {
       this.spaceHUD.hideAllModals();
+      this.spaceHUD.hideDirective?.();
       if (this.spaceHUD.modalStart) {
         this.spaceHUD.modalStart.classList.remove('hidden');
       }
@@ -253,6 +269,169 @@ export class GameManager {
     if (this.playerShip && this.playerShip.meshGroup) {
       this.playerShip.meshGroup.position.set(0, 0, 0);
       this.playerShip.meshGroup.visible = true;
+    }
+  }
+
+  initSectorMission(wave = 1) {
+    this.missionPhase = 'TRANSIT_CORRIDOR';
+    this.corridorRingsCleared = 0;
+    this.totalCorridorRings = 3;
+    this.patrolKills = 0;
+    this.targetPatrolKills = 4;
+
+    this.clearWaypointRings();
+    this.spawnCorridorWaypointRings();
+
+    if (this.spaceHUD) {
+      this.spaceHUD.updateDirective(
+        'PHASE 1 / 4',
+        'TRANSIT ASTEROID CORRIDOR',
+        `[ 0 / ${this.totalCorridorRings} RINGS ]`,
+        'Fly through illuminated navigational waypoints ahead to accelerate toward combat sector'
+      );
+    }
+  }
+
+  spawnCorridorWaypointRings() {
+    this.clearWaypointRings();
+    const pPos = (this.playerShip && this.playerShip.meshGroup) ? this.playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
+
+    const ringPositions = [
+      new THREE.Vector3(pPos.x, pPos.y, pPos.z - 65),
+      new THREE.Vector3(pPos.x + 14, pPos.y + 3, pPos.z - 145),
+      new THREE.Vector3(pPos.x - 8, pPos.y - 2, pPos.z - 230)
+    ];
+
+    for (let i = 0; i < ringPositions.length; i++) {
+      const ring = new NavWaypointRing(
+        this.spaceScene.scene,
+        this.particleManager,
+        ringPositions[i],
+        i,
+        ringPositions.length
+      );
+      this.waypointRings.push(ring);
+    }
+  }
+
+  clearWaypointRings() {
+    if (this.waypointRings) {
+      this.waypointRings.forEach(r => r.destroy());
+      this.waypointRings = [];
+    }
+  }
+
+  onWaypointRingCleared(ringIndex, totalRings) {
+    this.corridorRingsCleared++;
+
+    if (this.spaceHUD) {
+      this.spaceHUD.updateDirective(
+        'PHASE 1 / 4',
+        'TRANSIT ASTEROID CORRIDOR',
+        `[ ${this.corridorRingsCleared} / ${totalRings} RINGS ]`,
+        'Corridor navigation lock active // Hyperspace boost online!'
+      );
+    }
+
+    if (this.corridorRingsCleared >= totalRings) {
+      this.transitionToPatrolPhase();
+    }
+  }
+
+  transitionToPatrolPhase() {
+    this.clearWaypointRings();
+    this.missionPhase = 'ENGAGE_PATROL';
+    this.patrolKills = 0;
+    this.targetPatrolKills = 4;
+
+    if (this.spaceHUD) {
+      this.spaceHUD.updateDirective(
+        'PHASE 2 / 4',
+        'INTERCEPT ENEMY PATROL',
+        `[ 0 / ${this.targetPatrolKills} BOGEYS ]`,
+        'Hostile recon vanguard dropping out of hyperspace! Neutralize all targets!'
+      );
+      this.spaceHUD.showRadioTransmission('TACTICAL: Enemy recon wing intercepted on corridor vector! Weapons free, Vanguard!', 'STARBOUND COMMAND', 5.0);
+    }
+
+    // Warp-in enemy patrol directly ahead in player cone with dramatic flashes!
+    const pPos = this.playerShip.meshGroup.position;
+    const fwd = this.playerShip._shipForward || new THREE.Vector3(0, 0, -1);
+
+    [-18, -6, 6, 18].forEach((offsetX, idx) => {
+      const spawnPos = pPos.clone()
+        .addScaledVector(fwd, 75 + idx * 8)
+        .add(new THREE.Vector3(offsetX, (idx % 2 === 0 ? 3 : -3), 0));
+
+      if (this.particleManager) {
+        this.particleManager.createExplosion(spawnPos, 0x00ffff, 20);
+      }
+      this.spawnDrone(spawnPos, true);
+    });
+    this.spaceAudio.playEmpPulse?.();
+  }
+
+  onHostileDestroyed(enemy = null) {
+    if (this.missionPhase === 'ENGAGE_PATROL') {
+      this.patrolKills++;
+      if (this.spaceHUD) {
+        this.spaceHUD.updateDirective(
+          'PHASE 2 / 4',
+          'INTERCEPT ENEMY PATROL',
+          `[ ${this.patrolKills} / ${this.targetPatrolKills} BOGEYS ]`,
+          'Engage and destroy hostile recon drones'
+        );
+      }
+
+      if (this.patrolKills >= this.targetPatrolKills) {
+        this.transitionToPrototypePhase();
+      }
+    } else if (this.missionPhase === 'HUNT_PROTOTYPE') {
+      this.transitionToWarpReadyPhase();
+    }
+  }
+
+  transitionToPrototypePhase() {
+    this.missionPhase = 'HUNT_PROTOTYPE';
+
+    if (this.spaceHUD) {
+      this.spaceHUD.updateDirective(
+        'PHASE 3 / 4',
+        '★ ELIMINATE ROGUE STEALTH PROTOTYPE',
+        '[ PRIORITY TARGET ]',
+        'Follow tactical 3D target lock and edge chevrons to intercept escaped infiltrator!'
+      );
+      this.spaceHUD.showRadioTransmission('WARNING! Escaped stealth prototype active in sector! Track target lock and eliminate!', 'COMMAND COMMS', 6.0);
+    }
+
+    const pPos = this.playerShip.meshGroup.position;
+    const fwd = this.playerShip._shipForward || new THREE.Vector3(0, 0, -1);
+    const spawnPos = pPos.clone().addScaledVector(fwd, 90).add(new THREE.Vector3(0, 2, 0));
+
+    const escapedStealth = this.spawnStealthFighter(spawnPos);
+    if (escapedStealth) {
+      escapedStealth.isEscapedPrototype = true;
+      escapedStealth.hp = 420;
+      escapedStealth.maxHp = 420;
+      escapedStealth.scoreValue = 2500;
+      if (this.particleManager) {
+        this.particleManager.createExplosion(spawnPos, 0xff0055, 30);
+      }
+    }
+  }
+
+  transitionToWarpReadyPhase() {
+    this.missionPhase = 'WARP_READY';
+
+    if (this.spaceHUD) {
+      this.spaceHUD.updateDirective(
+        'PHASE 4 / 4',
+        'HYPERSPACE JUMP GATE ACTIVE',
+        '[ SECTOR CLEARED ]',
+        'Mission Accomplished! Press [M] or activate Relativistic Warp Jump to enter Sector 2!'
+      );
+      this.spaceHUD.showRadioTransmission('EXCELLENT WORK, VANGUARD! Sector corridor secured! Relativistic warp jump authorized!', 'STARBOUND COMMAND', 6.0);
+      this.spaceAudio.playVictoryArpeggio();
     }
   }
 
@@ -505,6 +684,7 @@ export class GameManager {
     }
     this.playerShip.reset();
     this.waveSpawner.reset();
+    this.clearWaypointRings();
     this.clearAllEntities();
   }
 
@@ -696,6 +876,9 @@ export class GameManager {
       localStorage.setItem('orbital_vanguard_highscore', this.highScore.toString());
       if (this.spaceHUD) this.spaceHUD.updateHighScore(this.highScore);
     }
+
+    // Trigger mission phase progression on hostile kill
+    this.onHostileDestroyed();
   }
 
 
@@ -941,8 +1124,8 @@ export class GameManager {
       return this.spawnStealthFighter(spawnPos);
     }
     const activeDroneCount = this.drones ? this.drones.filter(d => !d.isDead).length : 0;
-    const maxDrones = this.isMobile ? 2 : 4;
-    if (activeDroneCount >= maxDrones) return null;
+    const maxDrones = this.isMobile ? 4 : 8;
+    if (!force && activeDroneCount >= maxDrones) return null;
 
     const opts = spawnPos ? (spawnPos.isVector3 ? { x: spawnPos.x, y: spawnPos.y, z: spawnPos.z } : spawnPos) : {};
     const drone = new EnemyDrone(this.spaceScene.scene, opts);
@@ -2368,6 +2551,7 @@ export class GameManager {
     }
 
     if (this.state !== 'PLAYING') {
+      if (this.targetTrackingHUD) this.targetTrackingHUD.hideAll();
       this.playerShip.update(dt, { x: 0, y: 0 });
       this.spaceScene.update(dt, this.playerShip, this.activeBoss);
       this.particleManager.update();
@@ -3065,6 +3249,23 @@ export class GameManager {
           effectiveDt
         );
       }
+    }
+
+    // 6B. Navigational Waypoint Rings
+    if (this.waypointRings && this.waypointRings.length > 0) {
+      for (let i = this.waypointRings.length - 1; i >= 0; i--) {
+        const ring = this.waypointRings[i];
+        if (ring.isDead) {
+          this.waypointRings.splice(i, 1);
+        } else {
+          ring.update(effectiveDt, this.playerShip, this);
+        }
+      }
+    }
+
+    // 6C. 3D In-Viewport Target Tracking & Navigational HUD
+    if (this.targetTrackingHUD) {
+      this.targetTrackingHUD.update(dt, this);
     }
 
     // 7. Update Scene & Render

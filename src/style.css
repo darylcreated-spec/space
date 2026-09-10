@@ -4683,3 +4683,233 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
 
 
 
+
+/* ── 🎯 3D In-Viewport Target Tracking & Off-Screen Chevrons ── */
+.hud-target-marker {
+  width: 58px;
+  height: 58px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease-out;
+}
+
+.marker-bracket {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: rgba(255, 0, 85, 0.9);
+  border-style: solid;
+}
+.bracket-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.bracket-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.bracket-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.bracket-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+
+.marker-info {
+  position: absolute;
+  top: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.9);
+}
+
+.marker-name {
+  font-family: var(--font-header, 'Orbitron', sans-serif);
+  font-size: 0.60rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #ff0055;
+}
+
+.marker-dist {
+  font-family: var(--font-code, monospace);
+  font-size: 0.58rem;
+  color: #00f3ff;
+  font-weight: 600;
+}
+
+.marker-hp-bar {
+  width: 44px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin-top: 2px;
+  overflow: hidden;
+}
+
+.marker-hp-fill {
+  width: 100%;
+  height: 100%;
+  background: #ff0055;
+  transform-origin: left;
+}
+
+.marker-chevron {
+  position: absolute;
+  top: -14px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 9px solid #ff0055;
+  filter: drop-shadow(0 0 6px #ff0055);
+}
+
+/* Hostile styling */
+.hud-target-marker.type-hostile .marker-bracket { border-color: #ff0055; }
+.hud-target-marker.type-hostile .marker-name { color: #ff0055; }
+.hud-target-marker.type-hostile .marker-chevron { border-bottom-color: #ff0055; }
+
+/* Priority / Prototype styling */
+.hud-target-marker.type-priority .marker-bracket { border-color: #ffaa00; box-shadow: 0 0 8px rgba(255, 170, 0, 0.6); }
+.hud-target-marker.type-priority .marker-name { color: #ffaa00; }
+.hud-target-marker.type-priority .marker-chevron { border-bottom-color: #ffaa00; }
+
+/* Waypoint Ring styling */
+.hud-target-marker.type-waypoint .marker-bracket { border-color: #00f3ff; border-radius: 50%; width: 14px; height: 14px; }
+.hud-target-marker.type-waypoint .marker-name { color: #00f3ff; }
+.hud-target-marker.type-waypoint .marker-chevron { border-bottom-color: #00f3ff; }
+
+/* Station styling */
+.hud-target-marker.type-station .marker-bracket { border-color: #00ff88; }
+.hud-target-marker.type-station .marker-name { color: #00ff88; }
+.hud-target-marker.type-station .marker-chevron { border-bottom-color: #00ff88; }
+
+/* Off-screen edge pointer mode */
+.hud-target-marker.is-offscreen {
+  width: 32px;
+  height: 32px;
+}
+.hud-target-marker.is-offscreen .marker-bracket {
+  display: none;
+}
+.hud-target-marker.is-offscreen .marker-info {
+  top: 24px;
+}
+
+/* ── 🎯 Tactical Mission Directive Card ── */
+.hud-mission-directive-card {
+  position: absolute;
+  top: 72px;
+  left: 24px;
+  transform: none;
+  display: flex;
+  align-items: stretch;
+  background: rgba(3, 10, 22, 0.90);
+  border: 1px solid rgba(0, 243, 255, 0.55);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75), 0 0 16px rgba(0, 243, 255, 0.25);
+  border-radius: 8px;
+  padding: 8px 14px 8px 12px;
+  z-index: 25;
+  pointer-events: none;
+  min-width: 320px;
+  max-width: 440px;
+  transition: all 0.25s ease-out;
+}
+
+.directive-accent-stripe {
+  width: 4px;
+  background: var(--accent-cyan, #00f3ff);
+  border-radius: 2px;
+  margin-right: 10px;
+  box-shadow: 0 0 8px var(--accent-cyan, #00f3ff);
+}
+
+.directive-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.directive-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-code, monospace);
+  font-size: 0.58rem;
+  letter-spacing: 1px;
+}
+
+.directive-tag {
+  color: var(--accent-cyan, #00f3ff);
+  font-weight: 700;
+}
+
+.directive-step {
+  color: #ffaa00;
+  font-weight: 700;
+}
+
+.directive-main-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.directive-icon {
+  font-size: 0.82rem;
+}
+
+.directive-title {
+  font-family: var(--font-header, 'Orbitron', sans-serif);
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(0, 243, 255, 0.5);
+}
+
+.directive-counter {
+  font-family: var(--font-code, monospace);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #00ff88;
+  background: rgba(0, 255, 136, 0.12);
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.directive-sub-desc {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.60rem;
+  color: #90a4ae;
+  letter-spacing: 0.2px;
+}
+
+.hud-mission-directive-card.directive-cleared {
+  border-color: #00ff88;
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.5);
+  animation: directivePulse 0.6s ease-out;
+}
+
+@keyframes directivePulse {
+  0% { transform: scale(1.0); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1.0); }
+}
+
+@media (max-width: 768px) {
+  .hud-mission-directive-card {
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: unset;
+    width: 92vw;
+    padding: 6px 10px;
+  }
+  @keyframes directivePulse {
+    0% { transform: translateX(-50%) scale(1.0); }
+    50% { transform: translateX(-50%) scale(1.04); }
+    100% { transform: translateX(-50%) scale(1.0); }
+  }
+  .directive-title {
+    font-size: 0.65rem;
+  }
+}

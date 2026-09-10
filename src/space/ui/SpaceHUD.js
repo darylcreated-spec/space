@@ -191,6 +191,14 @@ export class SpaceHUD {
     this.desktopMouseFlightPill = document.getElementById('desktop-mouse-flight-pill');
     this.desktopMouseFlightText = document.getElementById('desktop-mouse-flight-text');
 
+    // Tactical Mission Directive Card Elements
+    this.hudMissionDirectiveCard = document.getElementById('hud-mission-directive-card');
+    this.directiveTag = document.getElementById('directive-tag');
+    this.directiveStep = document.getElementById('directive-step');
+    this.directiveTitle = document.getElementById('directive-title');
+    this.directiveCounter = document.getElementById('directive-counter');
+    this.directiveSubDesc = document.getElementById('directive-sub-desc');
+
     // Desktop Mouse Flight Settings Controls
     this.btnMouseFlightOff = document.getElementById('btn-mouse-flight-off');
     this.btnMouseFlightOn = document.getElementById('btn-mouse-flight-on');
@@ -1631,6 +1639,25 @@ export class SpaceHUD {
   hideObjectiveBar() {
     if (this.objectiveBarContainer) {
       this.objectiveBarContainer.classList.add('hidden');
+    }
+  }
+
+  updateDirective(step, title, counter, subDesc) {
+    if (this.directiveStep && step) this.directiveStep.textContent = step;
+    if (this.directiveTitle && title) this.directiveTitle.textContent = title;
+    if (this.directiveCounter && counter) this.directiveCounter.textContent = counter;
+    if (this.directiveSubDesc && subDesc) this.directiveSubDesc.textContent = subDesc;
+    if (this.hudMissionDirectiveCard) {
+      this.hudMissionDirectiveCard.style.display = 'flex';
+      this.hudMissionDirectiveCard.classList.remove('directive-cleared');
+      void this.hudMissionDirectiveCard.offsetWidth; // trigger reflow for pulse
+      this.hudMissionDirectiveCard.classList.add('directive-cleared');
+    }
+  }
+
+  hideDirective() {
+    if (this.hudMissionDirectiveCard) {
+      this.hudMissionDirectiveCard.style.display = 'none';
     }
   }
 
