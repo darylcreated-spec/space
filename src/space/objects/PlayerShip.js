@@ -1658,10 +1658,15 @@ export class PlayerShip {
     this.velocity.set(0, 0, 0);
     this.meshGroup.position.set(0, 0, 0);
     this.meshGroup.rotation.set(0, 0, 0);
+    this.meshGroup.quaternion.identity();
     this.currentRoll = 0;
     this.targetRoll = 0;
     this.currentPitch = 0;
     this.targetPitch = 0;
+    this.flightYaw = 0;
+    this.flightPitch = 0;
+    this.flightRoll = 0;
+    if (this._flightEuler) this._flightEuler.set(0, 0, 0, 'YXZ');
     this.laserCooldown = 0;
     this.pulseCooldown = 0;
     this.dodgeTimer = 0;
@@ -1908,7 +1913,11 @@ export class PlayerShip {
       const warningRadius = 285;
       const hud = this.gameManager?.spaceHUD || (typeof window !== 'undefined' ? window.spaceGameManager?.spaceHUD : null);
 
-      if (distFromCenter > warningRadius) {
+      if (this.gameManager && this.gameManager.state !== 'PLAYING') {
+        if (hud && typeof hud.hideBoundaryWarning === 'function') {
+          hud.hideBoundaryWarning();
+        }
+      } else if (distFromCenter > warningRadius) {
         if (hud && typeof hud.showBoundaryWarning === 'function') {
           hud.showBoundaryWarning(distFromCenter, maxArenaRadius);
         }

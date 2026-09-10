@@ -563,6 +563,14 @@ export class SegmaCinematicDirector {
     // 1. Setup Planet Segma celestial environment (framed bottom-right)
     this.gameManager.spaceScene.setupPlanetSegma();
 
+    // Hide in-game ISS station model so only the grand Allied Space Station Citadel stands guard over Planet Segma
+    if (this.gameManager.spaceScene && this.gameManager.spaceScene.orbitalStationGroup) {
+      this.gameManager.spaceScene.orbitalStationGroup.visible = false;
+    }
+    if (this.gameManager.spaceHUD && this.gameManager.spaceHUD.hideBoundaryWarning) {
+      this.gameManager.spaceHUD.hideBoundaryWarning();
+    }
+
     // 2. Clear previous cinematic entities
     this.scene.add(this.cinematicGroup);
     while (this.cinematicGroup.children.length > 0) {
@@ -834,56 +842,176 @@ export class SegmaCinematicDirector {
   }
 
   /**
+   * Applies dedicated AAA aerospace PBR materials to the Space Station Citadel
+   * Features:
+   * - Off-white titanium/ceramic thermal tile hull armor with crisp panel lines
+   * - Deep cobalt naval accent plating
+   * - Cyan-illuminated panoramic habitat viewports and observation decks
+   * - Tungsten structural machinery and docking collars
+   * - Polarized sapphire viewport glass
+   */
+  applySpaceStationCitadelMaterials(stationGroup) {
+    if (!stationGroup) return;
+    const pbr = getPBRMaterialSet('ALLIED_ARMADA');
+    const envMap = this.scene.environment;
+
+    // 1. Ceramic Thermal Tile Hull Armor (Crisp clean aerospace off-white)
+    const hullMat = new THREE.MeshStandardMaterial({
+      map: pbr.map,
+      normalMap: pbr.normalMap,
+      normalScale: new THREE.Vector2(1.0, 1.0),
+      roughnessMap: pbr.roughnessMap,
+      color: 0xdde6f0,
+      metalness: 0.72,
+      roughness: 0.28,
+      envMap: envMap,
+      envMapIntensity: 1.3
+    });
+
+    // 2. Naval Citadel Cobalt Accent Plating
+    const accentMat = new THREE.MeshStandardMaterial({
+      map: pbr.map,
+      normalMap: pbr.normalMap,
+      normalScale: new THREE.Vector2(1.1, 1.1),
+      roughnessMap: pbr.roughnessMap,
+      color: 0x1b3b68,
+      metalness: 0.88,
+      roughness: 0.24,
+      envMap: envMap,
+      envMapIntensity: 1.4
+    });
+
+    // 3. Balanced Habitation Windows & Habitat Ring Observation Deck
+    const habitatWindowMat = new THREE.MeshStandardMaterial({
+      color: 0x66ddff,
+      emissive: new THREE.Color(0x0099cc),
+      emissiveIntensity: 0.85,
+      roughness: 0.15,
+      metalness: 0.3,
+      toneMapped: true
+    });
+
+    // 4. Citadel Antenna & Telemetry Panels (Titanium reflector finish, subtle edge glow)
+    const antennaPanelMat = new THREE.MeshStandardMaterial({
+      color: 0x3a5068,
+      metalness: 0.92,
+      roughness: 0.22,
+      emissive: new THREE.Color(0x001a33),
+      emissiveIntensity: 0.25,
+      toneMapped: true
+    });
+
+    // 5. Heavy Machinery, Girders & Docking Collars
+    const machineryMat = new THREE.MeshStandardMaterial({
+      normalMap: pbr.normalMap,
+      normalScale: new THREE.Vector2(1.2, 1.2),
+      color: 0x222a36,
+      metalness: 0.94,
+      roughness: 0.35,
+      envMap: envMap,
+      envMapIntensity: 1.2
+    });
+
+    // 6. Polarized Viewport Glass & Domes
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0a1c2e,
+      emissive: new THREE.Color(0x003b5c),
+      emissiveIntensity: 0.45,
+      metalness: 0.98,
+      roughness: 0.05,
+      toneMapped: true,
+      envMap: envMap,
+      envMapIntensity: 2.8
+    });
+
+    stationGroup.traverse((child) => {
+      if (child.isMesh) {
+        applyTriplanarUVs(child.geometry, 3.5);
+
+        const childName = (child.name || '').toLowerCase();
+        const matName = (child.material && child.material.name ? child.material.name : '').toLowerCase();
+
+        // Check index suffixes from GLTF multi-materials:
+        // _1: Accent, _2: Antenna / Emissive, _3: Machinery, _4: Glass
+        if (childName.includes('habitat_ring_1') || (childName.includes('ring') && childName.includes('emissive'))) {
+          child.material = habitatWindowMat;
+        } else if (childName.includes('_2') || childName.includes('emissive') || matName.includes('emissive')) {
+          child.material = antennaPanelMat;
+        } else if (childName.includes('_4') || childName.includes('glass') || matName.includes('glass') || childName.includes('view') || childName.includes('window')) {
+          child.material = glassMat;
+        } else if (childName.includes('_3') || childName.includes('machinery') || matName.includes('machinery') || childName.includes('socket') || childName.includes('gun')) {
+          child.material = machineryMat;
+        } else if (childName.includes('_1') || childName.includes('accent') || matName.includes('accent')) {
+          child.material = accentMat;
+        } else {
+          child.material = hullMat;
+        }
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
+  }
+
+  /**
    * Builds realistic high-detail solar panel arrays on either side of the Space Station Citadel.
    * Features:
-   * - Twin heavy titanium outrigger booms extending laterally from port (-X) and starboard (+X)
-   * - Solar Alpha Rotary Joints (SARJ) with optical encoders & gimbal pivots
-   * - 4 extended photovoltaic solar wings per side (8 wings total) with procedural silicon cell textures
-   * - Space-grade gold multilayer insulation (MLI) thermal backing
-   * - Micro-meteoroid shielding frames, longitudinal tension guide wires, and cross-trusses
-   * - Active dual navigation strobes (red port, green starboard) and CIWS defensive weapon emplacements
+   * - Open triangular titanium lattice truss outrigger booms extending from lateral hardpoints
+   * - High-precision Solar Alpha Rotary Joints (SARJ) with gold encoder telemetry rings
+   * - Authentic photovoltaic solar blanket wings with high-efficiency silicon wafer microgrid
+   * - Space-grade gold multilayer insulation (MLI) Kapton backing
+   * - Longitudinal tension cables, micro-meteoroid perimeter frames
+   * - Red (port) and Green (starboard) aviation navigation strobes
+   * - Dual-barrel point-defense CIWS emplacements on SARJ nodes
    */
   buildSpaceStationSolarArrays(stationGroup) {
     const photoTex = generatePhotovoltaicTexture();
     photoTex.repeat.set(1, 2);
 
-    // Front: Photovoltaic silicon cells with metallic sheen
+    // Deep space-grade photovoltaic silicon cells with crisp metallic specular sheen
     const solarFrontMat = new THREE.MeshStandardMaterial({
       map: photoTex,
-      metalness: 0.85,
-      roughness: 0.25,
-      emissive: new THREE.Color(0x001a33),
-      emissiveIntensity: 0.35,
       bumpMap: photoTex,
-      bumpScale: 0.08
+      bumpScale: 0.04,
+      color: 0x071120,
+      metalness: 0.94,
+      roughness: 0.16,
+      emissive: new THREE.Color(0x000814),
+      emissiveIntensity: 0.05
     });
 
-    // Back: Space-grade gold kapton multilayer insulation (MLI) thermal foil
+    // Space-grade gold kapton multilayer insulation (MLI) thermal foil backing
     const goldKaptonMat = new THREE.MeshStandardMaterial({
-      color: 0xffb700,
+      color: 0xe09b00,
       metalness: 0.95,
-      roughness: 0.3,
-      emissive: new THREE.Color(0x442200),
-      emissiveIntensity: 0.2
+      roughness: 0.28,
+      emissive: new THREE.Color(0x221200),
+      emissiveIntensity: 0.1
     });
 
-    // Structural truss frame material (dark titanium alloy)
+    // Open structural truss frame material (aerospace titanium alloy)
     const trussMat = new THREE.MeshStandardMaterial({
-      color: 0x2a3848,
-      metalness: 0.8,
-      roughness: 0.4
+      color: 0x425468,
+      metalness: 0.88,
+      roughness: 0.32
     });
 
     // CIWS and weapon mount material
     const weaponMat = new THREE.MeshStandardMaterial({
-      color: 0x182230,
-      metalness: 0.9,
-      roughness: 0.35
+      color: 0x1a2430,
+      metalness: 0.94,
+      roughness: 0.30
     });
 
-    // Wing panel geometry: width 14, height 0.35, depth 38
-    const panelGeo = new THREE.BoxGeometry(14, 0.35, 38);
-    // Custom UVs for panel faces so solar cell texture displays cleanly on top & bottom
+    // Gold telemetry and avionics ring material
+    const goldAvionicsMat = new THREE.MeshStandardMaterial({
+      color: 0xffb81c,
+      metalness: 0.96,
+      roughness: 0.2
+    });
+
+    // Thin, sleek aerodynamic solar wing panel: width 5.8m, ultra-thin 0.06m profile, length 26m
+    const panelGeo = new THREE.BoxGeometry(5.8, 0.06, 26);
     const pMaterials = [
       trussMat,       // right (+x)
       trussMat,       // left (-x)
@@ -893,104 +1021,157 @@ export class SegmaCinematicDirector {
       trussMat        // back (-z)
     ];
 
-    // Build port (-X, side = -1) and starboard (+X, side = 1) solar wings
+    // Station core has lateral radius ~46 at habitat ring and ~56 at beam sockets.
+    // We attach outrigger booms from side * 48 extending outward.
     [-1, 1].forEach((side) => {
       const arrayBoomGroup = new THREE.Group();
-      arrayBoomGroup.position.set(side * 28, 0, 0);
+      arrayBoomGroup.position.set(side * 48, 12, 0);
 
-      // Primary cantilever tubular outrigger boom extending to side * 68 (world 96)
-      const boomLength = 68;
-      const boomGeo = new THREE.CylinderGeometry(1.6, 2.2, boomLength, 12);
-      boomGeo.rotateZ(side * Math.PI / 2);
-      const boomMesh = new THREE.Mesh(boomGeo, trussMat);
-      boomMesh.position.set(side * (boomLength / 2), 0, 0);
-      arrayBoomGroup.add(boomMesh);
+      // 1. Structural Open Triangular Lattice Truss Outrigger
+      const boomLength = 32;
+      const trussGroup = new THREE.Group();
 
-      // Structural triangular cross-truss lattice along the boom
-      const trussSteps = 5;
-      for (let s = 1; s <= trussSteps; s++) {
-        const tx = side * (s * 11);
-        const strutRingGeo = new THREE.TorusGeometry(2.8, 0.3, 6, 12);
-        strutRingGeo.rotateY(Math.PI / 2);
-        const strutRing = new THREE.Mesh(strutRingGeo, trussMat);
-        strutRing.position.set(tx, 0, 0);
-        arrayBoomGroup.add(strutRing);
+      // 3 longitudinal titanium chord tubes forming a triangular prism truss
+      const chordRadius = 0.24;
+      const prismRadius = 1.6;
+      const angles = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3];
 
-        // Diagonal tension brace wires
-        const diagGeo = new THREE.CylinderGeometry(0.12, 0.12, 12, 4);
-        diagGeo.rotateZ(Math.PI / 4 * side);
-        const diagMesh = new THREE.Mesh(diagGeo, trussMat);
-        diagMesh.position.set(tx, 0, 0);
-        arrayBoomGroup.add(diagMesh);
+      angles.forEach((ang) => {
+        const cy = Math.sin(ang) * prismRadius;
+        const cz = Math.cos(ang) * prismRadius;
+
+        const chordGeo = new THREE.CylinderGeometry(chordRadius, chordRadius, boomLength, 8);
+        chordGeo.rotateZ(side * Math.PI / 2);
+        const chordMesh = new THREE.Mesh(chordGeo, trussMat);
+        chordMesh.position.set(side * (boomLength / 2), cy, cz);
+        trussGroup.add(chordMesh);
+      });
+
+      // Internal cross-battens and diagonal lacing struts along the truss
+      const numBays = 5;
+      const bayStep = boomLength / numBays;
+      for (let b = 1; b <= numBays; b++) {
+        const bx = side * (b * bayStep);
+
+        // Triangular diaphragm frame at each bay
+        for (let i = 0; i < 3; i++) {
+          const a1 = angles[i];
+          const a2 = angles[(i + 1) % 3];
+          const p1 = new THREE.Vector3(bx, Math.sin(a1) * prismRadius, Math.cos(a1) * prismRadius);
+          const p2 = new THREE.Vector3(bx, Math.sin(a2) * prismRadius, Math.cos(a2) * prismRadius);
+
+          const strutDist = p1.distanceTo(p2);
+          const strutGeo = new THREE.CylinderGeometry(0.12, 0.12, strutDist, 6);
+          strutGeo.rotateZ(Math.PI / 2);
+          const strutMesh = new THREE.Mesh(strutGeo, trussMat);
+          strutMesh.position.copy(p1).lerp(p2, 0.5);
+          strutMesh.lookAt(p2);
+          trussGroup.add(strutMesh);
+        }
+
+        // Diagonal tension brace along side faces
+        const prevBx = side * ((b - 1) * bayStep);
+        for (let i = 0; i < 3; i++) {
+          const a1 = angles[i];
+          const a2 = angles[(i + 1) % 3];
+          const pStart = new THREE.Vector3(prevBx, Math.sin(a1) * prismRadius, Math.cos(a1) * prismRadius);
+          const pEnd = new THREE.Vector3(bx, Math.sin(a2) * prismRadius, Math.cos(a2) * prismRadius);
+
+          const diagDist = pStart.distanceTo(pEnd);
+          const diagGeo = new THREE.CylinderGeometry(0.08, 0.08, diagDist, 4);
+          diagGeo.rotateZ(Math.PI / 2);
+          const diagMesh = new THREE.Mesh(diagGeo, trussMat);
+          diagMesh.position.copy(pStart).lerp(pEnd, 0.5);
+          diagMesh.lookAt(pEnd);
+          trussGroup.add(diagMesh);
+        }
       }
+      arrayBoomGroup.add(trussGroup);
 
-      // Solar Alpha Rotary Joint (SARJ) - Gimbal rotation housing for solar tracking
-      const sarjHousingGeo = new THREE.CylinderGeometry(3.6, 3.6, 4.5, 16);
+      // 2. Solar Alpha Rotary Joint (SARJ) - Gimbals & Telemetry Collar
+      const sarjX = side * (boomLength + 2);
+      const sarjHousingGeo = new THREE.CylinderGeometry(2.4, 2.4, 3.2, 16);
       sarjHousingGeo.rotateZ(Math.PI / 2);
       const sarjMesh = new THREE.Mesh(sarjHousingGeo, trussMat);
-      sarjMesh.position.set(side * (boomLength + 2), 0, 0);
+      sarjMesh.position.set(sarjX, 0, 0);
       arrayBoomGroup.add(sarjMesh);
 
-      // Gimbals for rotating solar arrays relative to local star light
+      // Gold encoder telemetry collar ring
+      const goldRingGeo = new THREE.TorusGeometry(2.55, 0.16, 8, 24);
+      goldRingGeo.rotateY(Math.PI / 2);
+      const goldRingMesh = new THREE.Mesh(goldRingGeo, goldAvionicsMat);
+      goldRingMesh.position.set(sarjX, 0, 0);
+      arrayBoomGroup.add(goldRingMesh);
+
+      // 3. Rotating Solar Wing Assembly (gimballed for star-tracking)
       const rotatingWingGroup = new THREE.Group();
       rotatingWingGroup.position.set(side * (boomLength + 4), 0, 0);
 
-      // 4 Solar Panel Wings per side arranged in quad array (2 Fore, 2 Aft)
-      const wingOffsets = [
-        { x: side * 8, z: -24, pitch: 0.15 },
-        { x: side * 24, z: -24, pitch: 0.15 },
-        { x: side * 8, z: 24, pitch: 0.15 },
-        { x: side * 24, z: 24, pitch: 0.15 }
+      // Dual Fore & Aft Photovoltaic Wings (2 wings per side, authentic ISS/Citadel layout)
+      const wingConfigs = [
+        { x: side * 4.5, z: -16, pitch: 0.10 },
+        { x: side * 12.0, z: -16, pitch: 0.10 },
+        { x: side * 4.5, z: 16, pitch: 0.10 },
+        { x: side * 12.0, z: 16, pitch: 0.10 }
       ];
 
-      wingOffsets.forEach((cfg) => {
+      wingConfigs.forEach((cfg) => {
         const wingMesh = new THREE.Mesh(panelGeo, pMaterials);
         wingMesh.position.set(cfg.x, 0, cfg.z);
         wingMesh.rotation.x = cfg.pitch;
         rotatingWingGroup.add(wingMesh);
 
-        // Longitudinal structural panel rib along center spine
-        const ribGeo = new THREE.BoxGeometry(0.6, 0.8, 40);
-        const ribMesh = new THREE.Mesh(ribGeo, trussMat);
-        ribMesh.position.set(cfg.x, 0, cfg.z);
-        ribMesh.rotation.x = cfg.pitch;
-        rotatingWingGroup.add(ribMesh);
+        // Center deployment mast / spine guide wire
+        const spineGeo = new THREE.BoxGeometry(0.35, 0.45, 27);
+        const spineMesh = new THREE.Mesh(spineGeo, trussMat);
+        spineMesh.position.set(cfg.x, 0, cfg.z);
+        spineMesh.rotation.x = cfg.pitch;
+        rotatingWingGroup.add(spineMesh);
+
+        // Fine cross-tension spreader bars at 1/3 and 2/3 length
+        [-7, 7].forEach((sz) => {
+          const spreaderGeo = new THREE.BoxGeometry(5.6, 0.12, 0.2);
+          const spreaderMesh = new THREE.Mesh(spreaderGeo, trussMat);
+          spreaderMesh.position.set(cfg.x, 0, cfg.z + sz);
+          spreaderMesh.rotation.x = cfg.pitch;
+          rotatingWingGroup.add(spreaderMesh);
+        });
       });
 
-      // Wing tip navigation beacon (Port = Red, Starboard = Green)
-      const strobeColor = side === -1 ? 0xff2233 : 0x00ff66;
-      const strobeLight = new THREE.PointLight(strobeColor, 2.5, 30.0);
-      strobeLight.position.set(side * 34, 0, 0);
+      // 4. Wing Tip Navigation Beacon (Port = Red, Starboard = Green)
+      const strobeColor = side === -1 ? 0xff1828 : 0x00ff66;
+      const tipX = side * 18;
+      const strobeLight = new THREE.PointLight(strobeColor, 2.5, 35.0);
+      strobeLight.position.set(tipX, 0, 0);
       rotatingWingGroup.add(strobeLight);
 
-      const beaconGeo = new THREE.SphereGeometry(0.8, 8, 8);
+      const beaconGeo = new THREE.SphereGeometry(0.65, 8, 8);
       const beaconMat = new THREE.MeshBasicMaterial({
         color: strobeColor,
         toneMapped: false
       });
       const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
-      beaconMesh.position.set(side * 34, 0, 0);
+      beaconMesh.position.set(tipX, 0, 0);
       rotatingWingGroup.add(beaconMesh);
 
-      // CIWS Point-Defense Turret mounted on SARJ outrigger node
-      const turretBaseGeo = new THREE.CylinderGeometry(1.8, 2.2, 1.2, 8);
+      // 5. CIWS Point-Defense Turret on SARJ node
+      const turretBaseGeo = new THREE.CylinderGeometry(1.4, 1.8, 1.0, 8);
       const turretBase = new THREE.Mesh(turretBaseGeo, weaponMat);
-      turretBase.position.set(side * (boomLength + 2), 2.2, 0);
+      turretBase.position.set(sarjX, 1.8, 0);
       arrayBoomGroup.add(turretBase);
 
-      const barrelGeo = new THREE.CylinderGeometry(0.2, 0.2, 3.8, 6);
+      const barrelGeo = new THREE.CylinderGeometry(0.15, 0.15, 3.2, 6);
       barrelGeo.rotateX(Math.PI / 2);
       const barrelLeft = new THREE.Mesh(barrelGeo, weaponMat);
-      barrelLeft.position.set(side * (boomLength + 2) - 0.6, 2.8, -1.8);
+      barrelLeft.position.set(sarjX - 0.5, 2.3, -1.4);
       arrayBoomGroup.add(barrelLeft);
       const barrelRight = new THREE.Mesh(barrelGeo, weaponMat);
-      barrelRight.position.set(side * (boomLength + 2) + 0.6, 2.8, -1.8);
+      barrelRight.position.set(sarjX + 0.5, 2.3, -1.4);
       arrayBoomGroup.add(barrelRight);
 
       arrayBoomGroup.add(rotatingWingGroup);
       stationGroup.add(arrayBoomGroup);
 
-      // Keep reference for subtle sun-tracking rotation in update()
       this.stationSolarArrays.push({
         group: rotatingWingGroup,
         side,
@@ -1021,25 +1202,30 @@ export class SegmaCinematicDirector {
     // 1. Space Station Citadel (Defending Planet Segma)
     // NOTE: The Space Station is ALREADY stationed in orbit around Planet Segma (not warping in!)
     const stationMesh = assetManager.getFleetShipMesh('Vessel_Station_01');
-    const ringMesh = assetManager.getFleetShipMesh('Station_Habitat_Ring');
 
     if (stationMesh) {
       this.alliedStation = new THREE.Group();
+      stationMesh.position.set(0, 0, 0);
+      stationMesh.rotation.set(0, 0, 0);
       this.alliedStation.add(stationMesh);
 
-      if (ringMesh) {
-        this.stationRing = ringMesh;
-        this.alliedStation.add(ringMesh);
+      // Locate internal habitat ring (which is part of Vessel_Station_01 hierarchy)
+      const internalRing = stationMesh.getObjectByName('Station_Habitat_Ring');
+      if (internalRing) {
+        this.stationRing = internalRing;
       }
 
-      // Station placed deep in background high-orbit overlooking Planet Segma (x: 160, y: 45, z: -275)
-      // Completely clear of the foreground camera so the central battlefield is 100% unobstructed
-      this.alliedStation.position.set(160, 45, -275);
-      this.alliedStation.scale.set(0.85, 0.85, 0.85);
+      // Station placed in high orbit overlooking Planet Segma
+      this.alliedStationBaseY = 24;
+      this.alliedStation.position.set(115, this.alliedStationBaseY, -200);
+      this.alliedStation.rotation.set(0.12, -0.42, 0.06);
+      this.alliedStation.scale.set(0.72, 0.72, 0.72);
       this.alliedStation.visible = true;
-      this.applyAAAFactionMaterials(this.alliedStation, 'ALLIED', 4.0);
 
-      // Install realistic solar arrays on either side of the Space Station Citadel
+      // Apply dedicated AAA ceramic thermal & illuminated viewport materials
+      this.applySpaceStationCitadelMaterials(this.alliedStation);
+
+      // Install realistic open-truss aerospace solar arrays
       this.buildSpaceStationSolarArrays(this.alliedStation);
 
       this.cinematicGroup.add(this.alliedStation);
@@ -1644,28 +1830,41 @@ export class SegmaCinematicDirector {
     const group = new THREE.Group();
     group.position.copy(pos);
 
-    // Inner gravitational singularity sphere
-    const coreGeo = new THREE.SphereGeometry(18, 24, 24);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0x050510, side: THREE.DoubleSide });
+    // Inner gravitational singularity sphere (dark event horizon)
+    const coreGeo = new THREE.SphereGeometry(3.2, 20, 20);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x02050e, side: THREE.DoubleSide });
     group.add(new THREE.Mesh(coreGeo, coreMat));
 
-    // Outer swirling accretion warp rings
-    for (let r = 0; r < 3; r++) {
-      const ringGeo = new THREE.TorusGeometry(26 + r * 8, 1.8, 8, 36);
+    // Sleek concentric relativistic Cherenkov accretion shockwave rings
+    const ringRadii = [6.5, 10.5];
+    ringRadii.forEach((r, idx) => {
+      const ringGeo = new THREE.TorusGeometry(r, 0.18 - idx * 0.04, 12, 48);
       const ringMat = new THREE.MeshBasicMaterial({
         color: colorHex,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.85 - idx * 0.2,
         blending: THREE.AdditiveBlending
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = Math.PI * 0.5;
-      ring.rotation.y = (r * Math.PI) / 3;
+      // Planar vortex facing forward along flight vector
+      ring.rotation.z = idx * 0.4;
       group.add(ring);
-    }
+    });
 
-    // Dynamic portal illumination light
-    const portalLight = new THREE.PointLight(colorHex, 5.0, 220);
+    // Subtle planar accretion swirl disk
+    const diskGeo = new THREE.RingGeometry(2.0, 11.2, 32);
+    const diskMat = new THREE.MeshBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 0.28,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending
+    });
+    const disk = new THREE.Mesh(diskGeo, diskMat);
+    group.add(disk);
+
+    // Controlled portal illumination light (localized, doesn't wash out the planet)
+    const portalLight = new THREE.PointLight(colorHex, 2.5, 45);
     group.add(portalLight);
 
     group.scale.set(0.001, 0.001, 0.001);
@@ -1777,7 +1976,10 @@ export class SegmaCinematicDirector {
     // When paused, freeze timeline advance while keeping camera controls & ambient visual rotations active
     if (this.isPaused) {
       if (this.stationRing) {
-        this.stationRing.rotation.z += dt * 0.15;
+        this.stationRing.rotation.y += dt * 0.09;
+      }
+      if (this.alliedStation) {
+        this.alliedStation.rotation.y += dt * 0.008;
       }
       this.updateCamera(dt);
       return;
@@ -1785,14 +1987,16 @@ export class SegmaCinematicDirector {
 
     this.elapsedTime += dt;
 
-    // 1. Rotate Station Centrifugal Ring
+    // 1. Rotate Station Centrifugal Habitat Ring smoothly on true axial symmetry axis (Y)
     if (this.stationRing) {
-      this.stationRing.rotation.z += dt * 0.35;
+      this.stationRing.rotation.y += dt * 0.09;
     }
 
-    // 2. Natural Space Station Antigravity Float
+    // 2. Natural Space Station Orbital Drift & Antigravity Float
     if (this.alliedStation) {
-      this.alliedStation.position.y = 15 + Math.sin(this.elapsedTime * 0.8) * 1.2;
+      this.alliedStation.rotation.y += dt * 0.008;
+      const baseY = this.alliedStationBaseY || 38;
+      this.alliedStation.position.y = baseY + Math.sin(this.elapsedTime * 0.3) * 1.5;
     }
 
     // 3. Update Allied Armada Warp-In Arrival (0s - 4.5s)
@@ -2635,22 +2839,22 @@ export class SegmaCinematicDirector {
   updateStationSolarArrays(dt) {
     if (!this.stationSolarArrays || this.stationSolarArrays.length === 0) return;
 
-    // Slow solar tracking gimbal tilt
-    const sunTrackAngle = Math.sin(this.elapsedTime * 0.15) * 0.25;
+    // Smooth subtle solar star-tracking gimbal tilt
+    const sunTrackAngle = Math.sin(this.elapsedTime * 0.12) * 0.18;
 
-    // Aviation strobe cadence: short flash every 1.2 seconds
+    // Aviation strobe cadence: crisp pulse every 1.2 seconds
     const strobeCycle = (this.elapsedTime % 1.2);
-    const isFlashing = strobeCycle < 0.12 || (strobeCycle > 0.22 && strobeCycle < 0.34);
+    const isFlashing = strobeCycle < 0.10 || (strobeCycle > 0.20 && strobeCycle < 0.30);
 
     this.stationSolarArrays.forEach((array) => {
       if (array.group) {
         array.group.rotation.x = sunTrackAngle;
       }
       if (array.strobe) {
-        array.strobe.intensity = isFlashing ? 4.5 : 0.4;
+        array.strobe.intensity = isFlashing ? 3.5 : 0.2;
       }
       if (array.beacon && array.beacon.material) {
-        array.beacon.material.opacity = isFlashing ? 1.0 : 0.3;
+        array.beacon.material.opacity = isFlashing ? 1.0 : 0.25;
       }
     });
   }
@@ -3446,6 +3650,9 @@ export class SegmaCinematicDirector {
     // Restore gameplay fog density
     if (this.gameManager.spaceScene && this.gameManager.spaceScene.scene && this.gameManager.spaceScene.scene.fog) {
       this.gameManager.spaceScene.scene.fog.density = 0.003;
+    }
+    if (this.gameManager.spaceScene && this.gameManager.spaceScene.orbitalStationGroup) {
+      this.gameManager.spaceScene.orbitalStationGroup.visible = true;
     }
 
     // Clean up cinematic entities, projectiles, beams, and torpedoes

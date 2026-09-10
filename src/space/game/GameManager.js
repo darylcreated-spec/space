@@ -206,7 +206,12 @@ export class GameManager {
 
   startGame(startWaveNum = 1) {
     this.resetState();
-    if (this.spaceHUD) this.spaceHUD.hideAllModals();
+    if (this.spaceHUD) {
+      this.spaceHUD.hideAllModals();
+      if (typeof this.spaceHUD.hideBoundaryWarning === 'function') {
+        this.spaceHUD.hideBoundaryWarning();
+      }
+    }
     if (this.selectedShipClass) {
       this.playerShip.setShipClass(this.selectedShipClass);
     } else {
@@ -217,7 +222,16 @@ export class GameManager {
     this.playerShip.triggerInvulnerability(4.0);
     if (this.playerShip) {
       if (this.playerShip.mesh) this.playerShip.mesh.visible = true;
-      if (this.playerShip.meshGroup) this.playerShip.meshGroup.visible = true;
+      if (this.playerShip.meshGroup) {
+        this.playerShip.meshGroup.visible = true;
+        this.playerShip.meshGroup.position.set(0, 2, 0);
+        this.playerShip.meshGroup.quaternion.identity();
+      }
+      this.playerShip.velocity.set(0, 0, 0);
+      this.playerShip.flightYaw = 0;
+      this.playerShip.flightPitch = 0;
+      this.playerShip.flightRoll = 0;
+      if (this.playerShip._flightEuler) this.playerShip._flightEuler.set(0, 0, 0, 'YXZ');
     }
     this.state = 'PLAYING';
     if (this.spaceHUD && this.spaceHUD.onGameStart) {

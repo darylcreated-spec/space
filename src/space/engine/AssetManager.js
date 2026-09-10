@@ -486,3 +486,6 @@ export class AssetManager {
 }
 
 export const assetManager = new AssetManager();
+if (typeof window !== 'undefined') {
+  window.assetManager = assetManager;
+}

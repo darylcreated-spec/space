@@ -1488,12 +1488,17 @@ export class SpaceHUD {
   }
 
   showBoundaryWarning(dist, maxDist = 350) {
+    if (this.gameManager && this.gameManager.state !== 'PLAYING') {
+      this.hideBoundaryWarning();
+      return;
+    }
+
     if (!this.boundaryWarningEl) {
       this.boundaryWarningEl = document.getElementById('space-boundary-warning');
       if (!this.boundaryWarningEl) {
         this.boundaryWarningEl = document.createElement('div');
         this.boundaryWarningEl.id = 'space-boundary-warning';
-        this.boundaryWarningEl.className = 'tactical-boundary-warning';
+        this.boundaryWarningEl.className = 'tactical-boundary-warning hidden';
         this.boundaryWarningEl.innerHTML = `
           <div class="boundary-warning-header">
             <span class="warning-icon">⚠️</span>
@@ -1521,7 +1526,7 @@ export class SpaceHUD {
   }
 
   hideBoundaryWarning() {
-    if (this.boundaryWarningEl && this.boundaryWarningEl.classList.contains('active')) {
+    if (this.boundaryWarningEl) {
       this.boundaryWarningEl.classList.remove('active');
       this.boundaryWarningEl.classList.add('hidden');
     }
@@ -2663,6 +2668,7 @@ export class SpaceHUD {
   }
 
   onGameStart() {
+    this.hideBoundaryWarning();
     if (!this.isMobile && !this.isNativeApp && this.desktopMouseFlightPill) {
       this.desktopMouseFlightPill.classList.remove('hidden');
     }
