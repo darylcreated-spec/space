@@ -447,6 +447,10 @@ function createSmoothBattleshipHullGeo() {
     barrelGeo.rotateX(Math.PI / 2);
     const coilGeo = new THREE.TorusGeometry(0.42, 0.08, 6, 12);
 
+    const barrelTipRingGeo = new THREE.TorusGeometry(0.36, 0.08, 6, 14);
+    const reticleGeo = new THREE.RingGeometry(2.4, 3.0, 16);
+    const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff7700, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+
     this.turrets.forEach(t => {
       const tGroup = new THREE.Group();
       tGroup.position.copy(t.relPos);
@@ -478,15 +482,13 @@ function createSmoothBattleshipHullGeo() {
           barrelGroup.add(coil);
         });
 
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.08, 6, 14), this.glowRedMat);
+        const ring = new THREE.Mesh(barrelTipRingGeo, this.glowRedMat);
         ring.position.set(bx, 0.2, 6.5);
         barrelGroup.add(ring);
       });
 
       tGroup.add(barrelGroup);
 
-      const reticleGeo = new THREE.RingGeometry(2.4, 3.0, 16);
-      const reticleMat = new THREE.MeshBasicMaterial({ color: 0xff7700, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
       const reticle = new THREE.Mesh(reticleGeo, reticleMat);
       reticle.position.set(0, 1.5, 4.5);
       tGroup.add(reticle);
@@ -1027,8 +1029,17 @@ function createSmoothBattleshipHullGeo() {
       this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 180, 5.0);
       this.particleManager.createEmpShockwave(this.meshGroup.position, 160);
     }
-    if (this.meshGroup && this.meshGroup.parent) {
-      this.meshGroup.parent.remove(this.meshGroup);
+    if (this.meshGroup) {
+      if (this.meshGroup.parent) {
+        this.meshGroup.parent.remove(this.meshGroup);
+      }
+      this.meshGroup.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+          else c.material.dispose();
+        }
+      });
     }
   }
 }

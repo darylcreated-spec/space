@@ -982,8 +982,17 @@ export class TitanAsteroidBoss {
         this.particleManager.spawnSonicBoomDisc(pos, 0xff3300);
       }
     }
-    if (this.meshGroup && this.meshGroup.parent) {
-      this.meshGroup.parent.remove(this.meshGroup);
+    if (this.meshGroup) {
+      if (this.meshGroup.parent) {
+        this.meshGroup.parent.remove(this.meshGroup);
+      }
+      this.meshGroup.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+          else c.material.dispose();
+        }
+      });
     }
 
     // 🚀 SPAWN THE INNER SHIP: Titan Core Flagship emerging from the fractured asteroid!

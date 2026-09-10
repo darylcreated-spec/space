@@ -212,8 +212,17 @@ export class HeliosSolarBoss {
       this.particleManager.createExplosion(this.meshGroup.position, 0xffffff, 200, 6.0);
       this.particleManager.createEmpShockwave(this.meshGroup.position, 250);
     }
-    if (this.meshGroup && this.scene) {
-      this.scene.remove(this.meshGroup);
+    if (this.meshGroup) {
+      if (this.scene) {
+        this.scene.remove(this.meshGroup);
+      }
+      this.meshGroup.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+          else c.material.dispose();
+        }
+      });
     }
   }
 }
