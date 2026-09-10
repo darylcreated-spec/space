@@ -409,10 +409,12 @@ export class WaveSpawner {
           // Contested corridor scouts immediately ahead
           this.gameManager.spawnDrone(null, true);
         } else if (this.spawnedCount === 4) {
+          // Scripted Twin Pincer Flank Wing from port and starboard
+          this.gameManager.spawnPincerFlightWing();
+        } else if (this.spawnedCount === 6) {
+          // Rogue Stealth Infiltrator uncloaks in close combat range!
           this.gameManager.spawnStealthFighter();
           this.triggerStoryComms(1, 'mid');
-        } else if (this.spawnedCount === 6) {
-          this.gameManager.spawnPhaseInterceptor();
         } else if (this.spawnedCount === 10) {
           // Crimson Battlecruiser warps in to extract the stealth runner
           this.gameManager.spawnCapitalShip();
@@ -426,7 +428,7 @@ export class WaveSpawner {
         // Stage 2: Carina Nebula // Halo Citadel
         if (this.spawnedCount === 4) {
           this.gameManager.spawnDrone(null, true);
-          this.gameManager.spawnPhaseInterceptor();
+          this.gameManager.spawnPincerFlightWing();
         } else if (this.spawnedCount === 8) {
           this.gameManager.spawnECMCorvette();
           this.triggerStoryComms(2, 'mid');

@@ -1314,15 +1314,30 @@ export class GameManager {
     return corv;
   }
 
-  spawnPhaseInterceptor(spawnPos = null) {
+  spawnPhaseInterceptor(spawnPos = null, entryMode = 'DIRECT') {
     const actualPos = spawnPos || this.getForwardSpawnPosition(72, 22, 10);
-    const inter = new PhaseShiftInterceptor(this.spaceScene.scene, this.particleManager, actualPos);
+    const inter = new PhaseShiftInterceptor(this.spaceScene.scene, this.particleManager, actualPos, entryMode);
     this.applyEnemyHpScaling(inter);
     this.phaseInterceptors.push(inter);
     if (this.particleManager && actualPos.isVector3) {
       this.particleManager.createExplosion(actualPos, 0x9900ff, 14);
     }
     return inter;
+  }
+
+  spawnPincerFlightWing() {
+    const pZ = (this.playerShip && this.playerShip.meshGroup) ? this.playerShip.meshGroup.position.z : 0;
+    const spawnZ = pZ - 85;
+    const leftPos = new THREE.Vector3(-45, 2, spawnZ);
+    const rightPos = new THREE.Vector3(45, 2, spawnZ);
+    this.spawnPhaseInterceptor(leftPos, 'FLANK_LEFT');
+    this.spawnPhaseInterceptor(rightPos, 'FLANK_RIGHT');
+    if (this.spaceHUD) {
+      this.spaceHUD.showRadioTransmission('TACTICAL WARNING // PINCER FLANK DETECTED FROM PORT & STARBOARD', 'AEGIS TACTICAL AI', 3.5, '#ffaa00');
+    }
+    if (this.voiceAnnouncer) {
+      this.voiceAnnouncer.speak('Warning: Hostiles flanking your port and starboard!', true, 'TACTICAL');
+    }
   }
 
   spawnSolarTitan(spawnPos = null) {

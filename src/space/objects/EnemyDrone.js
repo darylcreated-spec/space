@@ -43,6 +43,13 @@ function getDroneArmorTexture() {
   return _cachedDroneArmorTexture;
 }
 
+// Zero-allocation module scratch vectors
+const _scratchPPos = new THREE.Vector3();
+const _scratchToPlayer = new THREE.Vector3();
+const _scratchToPlayerNorm = new THREE.Vector3();
+const _scratchPredictedPos = new THREE.Vector3();
+const _scratchAimDir = new THREE.Vector3();
+
 /**
  * Creates a continuous, smooth, sculpted aerodynamic lifting-body fuselage for drones.
  */
@@ -384,14 +391,15 @@ export class EnemyDrone {
     if (this.isDead) return false;
     this._time += dt;
 
-    const pPos = (playerPos && playerPos.meshGroup) ? playerPos.meshGroup.position : (playerPos || new THREE.Vector3(0, 0, 0));
-    const toPlayer = pPos.clone().sub(this.meshGroup.position);
-    const distToPlayer = toPlayer.length();
+    const pPos = (playerPos && playerPos.meshGroup) ? playerPos.meshGroup.position : (playerPos || _scratchPPos.set(0, 0, 0));
+    _scratchToPlayer.subVectors(pPos, this.meshGroup.position);
+    const distToPlayer = _scratchToPlayer.length();
 
     // ── 1. Reactive Threat Detection & 3D Flank Evasion ──
     if (!this._droneFwd) this._droneFwd = new THREE.Vector3();
     this._droneFwd.set(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
-    const toPlayerNorm = toPlayer.clone().normalize();
+    _scratchToPlayerNorm.copy(_scratchToPlayer).normalize();
+    const toPlayerNorm = _scratchToPlayerNorm;
     const isPlayerOnTail = this._droneFwd.dot(toPlayerNorm) < -0.35; // Player is behind drone
 
     if (distToPlayer < 90.0 && isPlayerOnTail && this.aiState !== 'EVADING') {
@@ -421,18 +429,20 @@ export class EnemyDrone {
           (Math.random() - 0.5) * 10.0
         );
         this.isEvading = true;
-      } else if (distToPlayer < 75.0 && Math.random() < 0.12) {
-        // Switch to Flanking Pursuit dogfight circle
+      } else if (distToPlayer < 85.0 && Math.random() < 0.22) {
+        // Switch to Flanking Pursuit dogfight circle in close combat range
         this.aiState = 'FLANKING_PURSUIT';
+        this.flankRadius = 24.0 + Math.random() * 14.0;
       }
     }
 
     // ── 🎯 Craig Reynolds Ballistic Predictive Pursuit Calculation ──
-    const targetVel = (playerPos && playerPos.velocity) ? playerPos.velocity : new THREE.Vector3();
+    const targetVel = (playerPos && playerPos.velocity) ? playerPos.velocity : _scratchPPos.set(0, 0, 0);
     const projectileSpeed = 110.0;
     const interceptTime = Math.min(1.2, distToPlayer / projectileSpeed);
-    const predictedPos = pPos.clone().addScaledVector(targetVel, interceptTime);
-    const aimDir = predictedPos.sub(this.meshGroup.position).normalize();
+    _scratchPredictedPos.copy(pPos).addScaledVector(targetVel, interceptTime);
+    _scratchAimDir.subVectors(_scratchPredictedPos, this.meshGroup.position).normalize();
+    const aimDir = _scratchAimDir;
     this._lastLeadAimDir = aimDir;
 
     // ── 2. AI State Execution ──

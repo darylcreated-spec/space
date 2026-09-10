@@ -219,6 +219,8 @@ export class SegmaCinematicDirector {
     this.waveEcmCorvette = null;
     this.escapingStealthFighter = null;
     this.stealthFighterFX = null;
+    this.stealthEscapeActive = false;
+    this.shot4LaunchAudioTriggered = false;
 
     // Cinematic Battle Eruption & Annihilation State
     this.battlePhase = 'RECALL'; // 'RECALL', 'WARP_IN', 'TACTICAL_DEFENSE', 'BATTLE_ERUPTS', 'STEALTH_ESCAPE', 'FINISHED'
@@ -696,6 +698,7 @@ export class SegmaCinematicDirector {
     this.ecmCorvetteDestroyed = false;
     this.battleExplosions = [];
     this.alliedSalvoTimer = 0;
+    this.stealthEscapeActive = false;
     this.stealthEscapeProgress = 0;
     this.stealthCloakTriggered = false;
 
@@ -707,6 +710,7 @@ export class SegmaCinematicDirector {
     this.shot2WarpAudioTriggered = false;
     this.shot2ImperialVoiceTriggered = false;
     this.shot3ViperVoiceTriggered = false;
+    this.shot4LaunchAudioTriggered = false;
     this.shot4FlybyAudioTriggered = false;
     this.shot5BoostPromptActive = false;
     this.shot5AutoTimer = 3.8;
@@ -2730,11 +2734,11 @@ export class SegmaCinematicDirector {
         this.battleshipBreachTimer -= dt;
         if (this.battleshipBreachTimer <= 0) {
           this.battleshipBreachTimer = 0.22;
-          const bp = this.enemyBattleship.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 20,
-            (Math.random() - 0.5) * 8,
-            (Math.random() - 0.5) * 16
-          ));
+          this._tempV1.copy(this.enemyBattleship.position);
+          this._tempV1.x += (Math.random() - 0.5) * 20;
+          this._tempV1.y += (Math.random() - 0.5) * 8;
+          this._tempV1.z += (Math.random() - 0.5) * 16;
+          const bp = this._tempV1;
           if (this.particleManager) {
             this.particleManager.createExplosion(bp, 0xff2200, 22, 1.5);
             this.particleManager.createHitSparks(bp, 0xffaa00, 14);
@@ -2811,11 +2815,11 @@ export class SegmaCinematicDirector {
         this.carrierBreachTimer -= dt;
         if (this.carrierBreachTimer <= 0) {
           this.carrierBreachTimer = 0.24;
-          const cp = this.enemyCarrier.position.clone().add(new THREE.Vector3(
-            (Math.random() - 0.5) * 32,
-            (Math.random() - 0.5) * 10,
-            (Math.random() - 0.5) * 24
-          ));
+          this._tempV1.copy(this.enemyCarrier.position);
+          this._tempV1.x += (Math.random() - 0.5) * 32;
+          this._tempV1.y += (Math.random() - 0.5) * 10;
+          this._tempV1.z += (Math.random() - 0.5) * 24;
+          const cp = this._tempV1;
           if (this.particleManager) {
             this.particleManager.createExplosion(cp, 0xff0044, 28, 1.8);
             this.particleManager.createHitSparks(cp, 0xffea00, 18);
@@ -2838,13 +2842,13 @@ export class SegmaCinematicDirector {
       }
     }
 
-    // ── ACT IV: Stealth Escape (15.8s – 20.8s) ──
-    if (t >= 15.8) {
+    // ── ACT IV: Stealth Escape Launch from Carrier Hull (15.0s – 20.8s) ──
+    if (t >= 15.0) {
       if (this.battlePhase !== 'FINISHED' && this.battlePhase !== 'ENGAGE_PROMPT') {
         this.battlePhase = 'STEALTH_ESCAPE';
       }
 
-      if (!this.escapingStealthFighter) {
+      if (!this.stealthEscapeActive) {
         this.spawnEscapingStealthFighter();
       }
 
@@ -2852,7 +2856,7 @@ export class SegmaCinematicDirector {
       if (t >= 17.2 && !this.shot4FlybyAudioTriggered) {
         this.shot4FlybyAudioTriggered = true;
         if (this.spaceAudio && this.spaceAudio.playFlybyDoppler) {
-          this.spaceAudio.playFlybyDoppler(1);
+          this.spaceAudio.playFlybyDoppler(-1);
         }
         this.addCameraShake(0.40);
       }
@@ -2932,7 +2936,7 @@ export class SegmaCinematicDirector {
     }
     this.addCameraShake(0.80);
     if (this.enemyBattleship) {
-      this.enemyBattleship.visible = false;
+      this.enemyBattleship.visible = true; // Remains visible for death listing and orbital plunge
     }
     if (this.statusTag) {
       this.statusTag.textContent = 'TARGET OBLITERATED // ENEMY BATTLESHIP DESTROYED';
@@ -2957,7 +2961,7 @@ export class SegmaCinematicDirector {
     }
     this.addCameraShake(0.95);
     if (this.enemyCarrier) {
-      this.enemyCarrier.visible = false;
+      this.enemyCarrier.visible = true; // Remains visible for heavy starboard listing and deep space drift
     }
     if (this.statusTag) {
       this.statusTag.textContent = 'TARGET OBLITERATED // ENEMY CARRIER DESTROYED';
@@ -2966,6 +2970,10 @@ export class SegmaCinematicDirector {
   }
 
   spawnEscapingStealthFighter() {
+    this.stealthEscapeActive = true;
+    this.stealthEscapeProgress = 0;
+    this.stealthCloakTriggered = false;
+
     if (!this.escapingStealthFighter) {
       const sf = new StealthFighter(this.scene, this.particleManager, this._stealthP0);
       this.scene.remove(sf.meshGroup);
@@ -2973,6 +2981,16 @@ export class SegmaCinematicDirector {
       this.escapingStealthFighterObj = sf;
       this.cinematicGroup.add(this.escapingStealthFighter);
     }
+
+    // Anchor launch vector directly to Carrier's fractured hull breach coordinates
+    if (this.enemyCarrier) {
+      this._stealthP0.copy(this.enemyCarrier.position).add(new THREE.Vector3(-6, -1, 10));
+    } else {
+      this._stealthP0.set(18, 6, -135);
+    }
+    this._stealthP1.set(0, 4, -30); // Dramatic center-screen pass close to camera
+    this._stealthP2.set(-28, 16, -280); // Escape vector toward deep asteroid field
+
     this.escapingStealthFighter.position.copy(this._stealthP0);
     this.escapingStealthFighter.scale.set(1.5, 1.5, 1.5);
     this.escapingStealthFighter.visible = true;
@@ -2990,12 +3008,20 @@ export class SegmaCinematicDirector {
       this._stealthMaterials[i].opacity = 1.0;
     }
 
-    this.stealthEscapeProgress = 0;
-    this.stealthCloakTriggered = false;
-
-    if (this.spaceAudio && this.spaceAudio.playBossWarning) {
-      this.spaceAudio.playBossWarning();
+    // High-energy audio triggers on explosive launch from Carrier breach
+    if (this.spaceAudio) {
+      if (this.spaceAudio.playSubspaceIgnition) {
+        this.spaceAudio.playSubspaceIgnition();
+      }
+      if (this.spaceAudio.playFlybyDoppler) {
+        this.spaceAudio.playFlybyDoppler(1);
+      }
+      if (this.spaceAudio.playBossWarning) {
+        this.spaceAudio.playBossWarning();
+      }
     }
+    this.addCameraShake(0.65);
+
     if (this.statusTag) {
       this.statusTag.textContent = 'HOSTILE FLEET DESTROYED // TARGET ESCAPING';
       this.statusTag.style.color = '#ffaa00';
@@ -3020,7 +3046,7 @@ export class SegmaCinematicDirector {
   }
 
   updateStealthEscape(dt) {
-    if (!this.escapingStealthFighter) return;
+    if (!this.stealthEscapeActive || !this.escapingStealthFighter) return;
     this.stealthEscapeProgress += dt * 0.22;
     const p = THREE.MathUtils.clamp(this.stealthEscapeProgress, 0, 1);
 
@@ -3041,14 +3067,30 @@ export class SegmaCinematicDirector {
 
     this.escapingStealthFighter.position.copy(this._stealthCurPos);
     this.escapingStealthFighter.lookAt(this._stealthNextPos);
+    // Dramatic 35-degree aerodynamic roll into the escape turn
+    this.escapingStealthFighter.rotation.z = -0.55;
 
-    // Cloaking effect engages at p >= 0.35 (around t = 17.4s)
-    if (p >= 0.35) {
+    // Thruster spark exhaust trail while escaping
+    if (this.particleManager && Math.random() < 0.40) {
+      this.particleManager.createHitSparks(this._stealthCurPos, 0x00f3ff, 3);
+    }
+
+    // Mid-point flyby Doppler whoosh pass
+    if (p >= 0.38 && !this.shot4FlybyAudioTriggered) {
+      this.shot4FlybyAudioTriggered = true;
+      if (this.spaceAudio && this.spaceAudio.playFlybyDoppler) {
+        this.spaceAudio.playFlybyDoppler(-1);
+      }
+      this.addCameraShake(0.35);
+    }
+
+    // Cloaking effect engages at p >= 0.45 (around t = 17.5s)
+    if (p >= 0.45) {
       if (!this.stealthCloakTriggered) {
         this.stealthCloakTriggered = true;
         if (this.particleManager) {
-          this.particleManager.createEmpShockwave(this._stealthCurPos, 0xaa00ff, 20.0);
-          this.particleManager.createHitSparks(this._stealthCurPos, 0xff0077);
+          this.particleManager.createEmpShockwave(this._stealthCurPos, 0xaa00ff, 24.0);
+          this.particleManager.createHitSparks(this._stealthCurPos, 0xff0077, 16);
         }
         if (this.spaceAudio && this.spaceAudio.playQuantumArc) {
           this.spaceAudio.playQuantumArc(0);
@@ -3056,7 +3098,7 @@ export class SegmaCinematicDirector {
       }
 
       // Fade opacity from 1.0 down to 0.12 using cached material array (zero traverse overhead)
-      const cloakOpacity = Math.max(0.12, 1.0 - (p - 0.35) * 3.0);
+      const cloakOpacity = Math.max(0.12, 1.0 - (p - 0.45) * 3.5);
       if (this._stealthMaterials && this._stealthMaterials.length > 0) {
         for (let i = 0; i < this._stealthMaterials.length; i++) {
           const mat = this._stealthMaterials[i];
@@ -3206,31 +3248,69 @@ export class SegmaCinematicDirector {
     }
 
     // 3. Enemy Battleship Dreadnought Movement & Damage Shudder
-    if (this.enemyBattleship && !this.battleshipDestroyed && this.warpCompleted) {
-      // Advance with ominous momentum towards allied fleet, holding at heavy bombardment range (-125)
-      if (this.enemyBattleship.position.z < -125) {
-        this.enemyBattleship.position.z += dt * 2.8;
-      }
-      // Kinetic impact shudder shake
-      if (this.battleshipShudder > 0) {
-        const shakeX = (Math.random() - 0.5) * this.battleshipShudder * 1.5;
-        const shakeY = (Math.random() - 0.5) * this.battleshipShudder * 1.2;
-        this.enemyBattleship.position.x += shakeX;
-        this.enemyBattleship.position.y += shakeY;
+    if (this.enemyBattleship && this.warpCompleted) {
+      if (!this.battleshipDestroyed) {
+        // Advance with ominous momentum towards allied fleet, holding at heavy bombardment range (-125)
+        if (this.enemyBattleship.position.z < -125) {
+          this.enemyBattleship.position.z += dt * 2.8;
+        }
+        // Kinetic impact shudder shake
+        if (this.battleshipShudder > 0) {
+          const shakeX = (Math.random() - 0.5) * this.battleshipShudder * 1.5;
+          const shakeY = (Math.random() - 0.5) * this.battleshipShudder * 1.2;
+          this.enemyBattleship.position.x += shakeX;
+          this.enemyBattleship.position.y += shakeY;
+        }
+      } else {
+        // Heavy listing & death roll into planetary orbit
+        this.enemyBattleship.rotation.z += dt * 0.12;
+        this.enemyBattleship.rotation.x += dt * 0.06;
+        this.enemyBattleship.rotation.y += dt * 0.04;
+        this.enemyBattleship.position.y -= dt * 2.8;
+        this.enemyBattleship.position.z -= dt * 3.5;
+        this.enemyBattleship.position.x -= dt * 0.8;
+
+        // Secondary breach sparks (zero allocation)
+        if (this.particleManager && Math.random() < 0.14) {
+          this._tempV1.copy(this.enemyBattleship.position);
+          this._tempV1.x += (Math.random() - 0.5) * 22;
+          this._tempV1.y += (Math.random() - 0.5) * 8;
+          this._tempV1.z += (Math.random() - 0.5) * 28;
+          this.particleManager.createHitSparks(this._tempV1, 0xff5500, 5);
+        }
       }
     }
 
     // 4. Enemy Carrier Movement & Damage Shudder
-    if (this.enemyCarrier && !this.carrierDestroyed && this.warpCompleted) {
-      // Advance forward while deploying interceptors, holding at standoff launch range (-135)
-      if (this.enemyCarrier.position.z < -135) {
-        this.enemyCarrier.position.z += dt * 2.2;
-      }
-      if (this.carrierShudder > 0) {
-        const shakeX = (Math.random() - 0.5) * this.carrierShudder * 1.8;
-        const shakeY = (Math.random() - 0.5) * this.carrierShudder * 1.4;
-        this.enemyCarrier.position.x += shakeX;
-        this.enemyCarrier.position.y += shakeY;
+    if (this.enemyCarrier && this.warpCompleted) {
+      if (!this.carrierDestroyed) {
+        // Advance forward while deploying interceptors, holding at standoff launch range (-135)
+        if (this.enemyCarrier.position.z < -135) {
+          this.enemyCarrier.position.z += dt * 2.2;
+        }
+        if (this.carrierShudder > 0) {
+          const shakeX = (Math.random() - 0.5) * this.carrierShudder * 1.8;
+          const shakeY = (Math.random() - 0.5) * this.carrierShudder * 1.4;
+          this.enemyCarrier.position.x += shakeX;
+          this.enemyCarrier.position.y += shakeY;
+        }
+      } else {
+        // Heavy listing & death roll into deep space
+        this.enemyCarrier.rotation.z -= dt * 0.15;
+        this.enemyCarrier.rotation.x += dt * 0.08;
+        this.enemyCarrier.rotation.y -= dt * 0.05;
+        this.enemyCarrier.position.y -= dt * 3.2;
+        this.enemyCarrier.position.z -= dt * 4.0;
+        this.enemyCarrier.position.x += dt * 1.2;
+
+        // Secondary breach sparks (zero allocation)
+        if (this.particleManager && Math.random() < 0.16) {
+          this._tempV1.copy(this.enemyCarrier.position);
+          this._tempV1.x += (Math.random() - 0.5) * 30;
+          this._tempV1.y += (Math.random() - 0.5) * 10;
+          this._tempV1.z += (Math.random() - 0.5) * 32;
+          this.particleManager.createHitSparks(this._tempV1, 0xff0044, 6);
+        }
       }
     }
   }
@@ -3621,9 +3701,9 @@ export class SegmaCinematicDirector {
         THREE.MathUtils.lerp(4.0, 6.0, s),
         THREE.MathUtils.lerp(-100.0, -135.0, s)
       );
-    } else if (t < 16.0) {
-      // Shot 3: Sweeping tactical combat tracking arc (9.0s - 16.0s)
-      const u = (t - 9.0) / 7.0;
+    } else if (t < 15.0) {
+      // Shot 3: Sweeping tactical combat tracking arc (9.0s - 15.0s)
+      const u = (t - 9.0) / 6.0;
       const s = u * u * (3 - 2 * u);
       // Sweeping arc banking from starboard to port while capturing the full theater of battle in open center
       const sweepX = -20.0 + Math.sin(u * Math.PI) * 26.0;
@@ -3633,9 +3713,9 @@ export class SegmaCinematicDirector {
 
       // Focus pans dynamically across targets: Center fleet -> Battleship explosion -> Carrier explosion
       let targetFocusX = 0.0;
-      if (t >= 12.0 && t < 14.2) {
+      if (t >= 12.0 && t < 14.0) {
         targetFocusX = -28.0; // Focus on Battleship explosion
-      } else if (t >= 14.2) {
+      } else if (t >= 14.0) {
         targetFocusX = 38.0;  // Focus on Carrier cataclysmic explosion
       }
       this.camLookAt.set(
@@ -3644,20 +3724,21 @@ export class SegmaCinematicDirector {
         -135.0
       );
     } else if (t < 20.8) {
-      // Shot 4: Low-angle dramatic flyby tracking shot following escaping stealth fighter (16.0s - 20.8s)
-      if (this.escapingStealthFighter) {
+      // Shot 4: Low-angle dramatic flyby tracking shot following escaping stealth fighter (15.0s - 20.8s)
+      if (this.escapingStealthFighter && this.stealthEscapeActive) {
         const sPos = this.escapingStealthFighter.position;
-        // Camera tracks slightly below and behind the stealth fighter as it breaks away through open center
-        const u = (t - 16.0) / 4.8;
+        // Camera tracks dynamically: Starts near Carrier breach viewing escape launch, then dollys along center
+        const u = THREE.MathUtils.clamp((t - 15.0) / 5.8, 0, 1);
+        const s = u * u * (3 - 2 * u);
         this.camTargetPos.set(
-          sPos.x + THREE.MathUtils.lerp(12.0, -8.0, u),
-          sPos.y + THREE.MathUtils.lerp(4.0, 8.0, u),
-          sPos.z + THREE.MathUtils.lerp(24.0, 42.0, u)
+          sPos.x + THREE.MathUtils.lerp(16.0, -10.0, s),
+          sPos.y + THREE.MathUtils.lerp(6.0, 10.0, s),
+          sPos.z + THREE.MathUtils.lerp(28.0, 46.0, s)
         );
         this.camLookAt.set(
           sPos.x,
           sPos.y,
-          sPos.z - 25.0
+          sPos.z - 28.0
         );
       } else {
         this.camTargetPos.set(0, 16.0, 48.0);

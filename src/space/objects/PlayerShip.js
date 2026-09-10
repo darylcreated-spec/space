@@ -29,10 +29,10 @@ export class PlayerShip {
     this.recoilZ = 0;
     this.recoilPitch = 0;
 
-    this.bounds = { minX: -42.0, maxX: 42.0, minY: -16.0, maxY: 22.0, minZ: -28.0, maxZ: 16.0 };
+    this.bounds = { minX: -58.0, maxX: 58.0, minY: -22.0, maxY: 24.0, minZ: -38.0, maxZ: 18.0 };
 
-    // 🌌 Semi-Open World 360° Free-Flight Navigation
-    this.isFreeFlight = true;
+    // 🌌 Close Combat Tactical Action Mode
+    this.isFreeFlight = false;
     this.flightYaw = 0;
     this.flightPitch = 0;
     this.flightRoll = 0;
@@ -1816,11 +1816,11 @@ export class PlayerShip {
       : 1.77;
     const isPortrait = aspect < 1.0;
 
-    // Generous combat arena allowing full evasive maneuvers, barrel rolls, and flanking sweeps
-    const maxHalfX = this.isFreeFlight ? 2500.0 : (isPortrait ? 30.0 : 42.0);
-    const maxHalfY = this.isFreeFlight ? 1500.0 : (isPortrait ? 16.0 : 14.0);
-    const maxZBack = this.isFreeFlight ? 2500.0 : 28.0;
-    const maxZFront = this.isFreeFlight ? 2500.0 : 16.0;
+    // Generous close-combat arena allowing full evasive maneuvers, barrel rolls, and flanking sweeps
+    const maxHalfX = this.isFreeFlight ? 2500.0 : (isPortrait ? 38.0 : 58.0);
+    const maxHalfY = this.isFreeFlight ? 1500.0 : (isPortrait ? 24.0 : 22.0);
+    const maxZBack = this.isFreeFlight ? 2500.0 : 38.0;
+    const maxZFront = this.isFreeFlight ? 2500.0 : 18.0;
 
     this.bounds.minX = -maxHalfX;
     this.bounds.maxX = maxHalfX;

@@ -5,12 +5,13 @@ import * as THREE from 'three';
  * leaving behind holographic decoy silhouettes and executing unexpected flanking strikes.
  */
 export class PhaseShiftInterceptor {
-  constructor(scene, particleManager, spawnPos = null) {
+  constructor(scene, particleManager, spawnPos = null, entryMode = 'DIRECT') {
     this.scene = scene;
     this.particleManager = particleManager;
+    this.entryMode = entryMode;
 
     this.meshGroup = new THREE.Group();
-    const spawnX = spawnPos ? spawnPos.x : (Math.random() - 0.5) * 32;
+    const spawnX = spawnPos ? spawnPos.x : (entryMode === 'FLANK_LEFT' ? -42 : (entryMode === 'FLANK_RIGHT' ? 42 : (Math.random() - 0.5) * 32));
     const spawnY = spawnPos ? spawnPos.y : 2.0 + (Math.random() - 0.5) * 4.0;
     const spawnZ = spawnPos ? spawnPos.z : -90;
     this.meshGroup.position.set(spawnX, spawnY, spawnZ);
@@ -27,6 +28,10 @@ export class PhaseShiftInterceptor {
     this.fireTimer = 0.8;
     this._time = Math.random() * 10;
     this.decoys = [];
+
+    this._muzzle1 = new THREE.Vector3();
+    this._muzzle2 = new THREE.Vector3();
+    this._muzzleArray = [this._muzzle1, this._muzzle2];
 
     this.buildMesh();
     this.scene.add(this.meshGroup);
@@ -110,6 +115,15 @@ export class PhaseShiftInterceptor {
     // Movement forward
     this.meshGroup.position.z += this.speed * dt;
 
+    // Tactical Flanking Trajectory (converging sweeps across player's peripheral vision)
+    if (this.entryMode === 'FLANK_LEFT') {
+      this.meshGroup.position.x = THREE.MathUtils.lerp(this.meshGroup.position.x, -14.0, dt * 1.6);
+      this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -0.42, dt * 3.5);
+    } else if (this.entryMode === 'FLANK_RIGHT') {
+      this.meshGroup.position.x = THREE.MathUtils.lerp(this.meshGroup.position.x, 14.0, dt * 1.6);
+      this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, 0.42, dt * 3.5);
+    }
+
     // Micro-warp trigger
     this.phaseTimer -= dt;
     if (this.phaseTimer <= 0 && this.meshGroup.position.z < 5) {
@@ -117,15 +131,14 @@ export class PhaseShiftInterceptor {
       this.performMicroWarp();
     }
 
-    // Weapon Fire: High-Frequency Phase Beams
+    // Weapon Fire: High-Frequency Phase Beams (zero heap allocation)
     this.fireTimer -= dt;
     if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= -65) {
       this.fireTimer = 1.1 + Math.random() * 0.5;
       const p = this.meshGroup.position;
-      return [
-        new THREE.Vector3(p.x - 1.2, p.y, p.z + 1.6),
-        new THREE.Vector3(p.x + 1.2, p.y, p.z + 1.6)
-      ];
+      this._muzzle1.set(p.x - 1.2, p.y, p.z + 1.6);
+      this._muzzle2.set(p.x + 1.2, p.y, p.z + 1.6);
+      return this._muzzleArray;
     }
 
     // Boundary Check: Micro-warp re-entry if flying past player

@@ -56,6 +56,84 @@ export class ParticleManager {
 
     // ── GPU-Instanced Kinematic Metal Debris & Shrapnel System (512 Debris Pool) ──
     this.spaceDebris = new SpaceDebrisSystem(this.scene, 512);
+
+    // ── Pre-allocated Mesh & Sprite Pools for Zero-Allocation VFX ──
+    // 1. Volumetric Fireball Mesh Pool (16 items)
+    this._fireballPool = [];
+    this._fireballIndex = 0;
+    for (let i = 0; i < 16; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xff5500,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const mesh = new THREE.Mesh(this._fireballGeo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this._fireballPool.push({
+        mesh,
+        mat,
+        active: false,
+        currentScale: 0.4,
+        maxScale: 3.5,
+        growthRate: 14.0,
+        opacity: 0.9
+      });
+    }
+
+    // 2. Textured Shockwave Sprite Pool (16 items)
+    this._shockwaveSpritePool = [];
+    this._shockwaveIndex = 0;
+    for (let i = 0; i < 16; i++) {
+      const mat = new THREE.SpriteMaterial({
+        map: this.textures?.shockwave || null,
+        color: 0x00f3ff,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.visible = false;
+      this.scene.add(sprite);
+      this._shockwaveSpritePool.push({
+        sprite,
+        mat,
+        active: false,
+        currentRadius: 1.0,
+        maxRadius: 16,
+        speed: 1.2,
+        opacity: 0.95
+      });
+    }
+
+    // 3. EMP Shockwave Ring Pool (12 items)
+    this._empRingPool = [];
+    this._empRingIndex = 0;
+    for (let i = 0; i < 12; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const ring = new THREE.Mesh(this._shockwaveGeo, mat);
+      ring.rotation.x = Math.PI / 2;
+      ring.visible = false;
+      this.scene.add(ring);
+      this._empRingPool.push({
+        mesh: ring,
+        mat,
+        active: false,
+        currentRadius: 0.5,
+        maxRadius: 28,
+        speed: 1.6
+      });
+    }
   }
 
   _buildParticlePool(count, defaultSize, texture = null) {
@@ -266,27 +344,19 @@ export class ParticleManager {
   }
 
   createTexturedShockwave(pos, maxRadius = 16, colorHex = 0x00f3ff) {
-    if (!this.textures || !this.textures.shockwave) return;
-    const mat = new THREE.SpriteMaterial({
-      map: this.textures.shockwave,
-      color: colorHex,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const sprite = new THREE.Sprite(mat);
-    sprite.position.copy(pos);
-    sprite.scale.set(1.0, 1.0, 1.0);
-    this.scene.add(sprite);
+    if (!this._shockwaveSpritePool || this._shockwaveSpritePool.length === 0) return;
+    const sw = this._shockwaveSpritePool[this._shockwaveIndex % this._shockwaveSpritePool.length];
+    this._shockwaveIndex++;
 
-    this.shockwaves.push({
-      sprite,
-      currentRadius: 1.0,
-      maxRadius,
-      speed: maxRadius * 0.075,
-      opacity: 0.95
-    });
+    sw.sprite.position.copy(pos);
+    sw.mat.color.set(colorHex);
+    sw.currentRadius = 1.0;
+    sw.maxRadius = maxRadius;
+    sw.speed = maxRadius * 0.075;
+    sw.opacity = 0.95;
+    sw.sprite.scale.set(1.0, 1.0, 1.0);
+    sw.sprite.visible = true;
+    sw.active = true;
   }
 
   createLaserImpact(pos, normal = new THREE.Vector3(0, 0, 1), colorHex = 0x00f3ff, count = 10) {
@@ -294,25 +364,19 @@ export class ParticleManager {
   }
 
   createVolumetricFireball(pos, maxRadius = 3.5, colorHex = 0xff5500) {
-    const mat = new THREE.MeshBasicMaterial({
-      color: colorHex,
-      transparent: true,
-      opacity: 0.9,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false
-    });
-    const mesh = new THREE.Mesh(this._fireballGeo, mat);
-    mesh.position.copy(pos);
-    mesh.scale.setScalar(0.4);
-    this.scene.add(mesh);
+    if (!this._fireballPool || this._fireballPool.length === 0) return;
+    const fb = this._fireballPool[this._fireballIndex % this._fireballPool.length];
+    this._fireballIndex++;
 
-    this.fireballs.push({
-      mesh,
-      currentScale: 0.4,
-      maxScale: maxRadius,
-      growthRate: 14.0,
-      opacity: 0.9
-    });
+    fb.mesh.position.copy(pos);
+    fb.mat.color.set(colorHex);
+    fb.currentScale = 0.4;
+    fb.maxScale = maxRadius;
+    fb.growthRate = 14.0;
+    fb.opacity = 0.9;
+    fb.mesh.scale.setScalar(0.4);
+    fb.mesh.visible = true;
+    fb.active = true;
   }
 
   spawnSonicBoomDisc(pos, colorHex = 0x00f3ff) {
@@ -336,37 +400,44 @@ export class ParticleManager {
     let maxRadius = 28;
 
     if (typeof colorOrRadius === 'number' && colorOrRadius > 500) {
-      // Called as createEmpShockwave(pos, colorHex, maxRadius)
       color = colorOrRadius;
       maxRadius = typeof maybeRadius === 'number' && maybeRadius <= 500 ? maybeRadius : 28;
     } else if (typeof colorOrRadius === 'number') {
-      // Called as createEmpShockwave(pos, maxRadius)
       maxRadius = colorOrRadius;
       if (typeof maybeRadius === 'number' && maybeRadius > 500) {
         color = maybeRadius;
       }
     }
 
-    const mat = this._shockwaveMat.clone();
-    mat.color.set(color);
-    const ring = new THREE.Mesh(this._shockwaveGeo, mat);
-    ring.position.copy(pos);
-    ring.rotation.x = Math.PI / 2;
-    this.scene.add(ring);
+    if (!this._empRingPool || this._empRingPool.length === 0) return;
+    const ring = this._empRingPool[this._empRingIndex % this._empRingPool.length];
+    this._empRingIndex++;
 
-    this.shockwaves.push({ mesh: ring, currentRadius: 0.5, maxRadius, speed: 1.6 });
+    ring.mesh.position.copy(pos);
+    ring.mat.color.set(color);
+    ring.currentRadius = 0.5;
+    ring.maxRadius = maxRadius;
+    ring.speed = 1.6;
+    ring.mesh.scale.set(0.5, 0.5, 1);
+    ring.mat.opacity = 0.95;
+    ring.mesh.visible = true;
+    ring.active = true;
   }
 
   createShockwave(pos, color = 0x00f3ff, maxRadius = 28, duration = 0.5) {
-    const mat = this._shockwaveMat.clone();
-    if (color !== undefined) mat.color.set(color);
-    const ring = new THREE.Mesh(this._shockwaveGeo, mat);
-    ring.position.copy(pos);
-    ring.rotation.x = Math.PI / 2;
-    this.scene.add(ring);
+    if (!this._empRingPool || this._empRingPool.length === 0) return;
+    const ring = this._empRingPool[this._empRingIndex % this._empRingPool.length];
+    this._empRingIndex++;
 
-    const speed = (maxRadius / Math.max(0.1, duration)) * 0.05;
-    this.shockwaves.push({ mesh: ring, currentRadius: 0.5, maxRadius, speed: Math.max(1.2, speed) });
+    ring.mesh.position.copy(pos);
+    ring.mat.color.set(color);
+    ring.currentRadius = 0.5;
+    ring.maxRadius = maxRadius;
+    ring.speed = Math.max(1.2, (maxRadius / Math.max(0.1, duration)) * 0.05);
+    ring.mesh.scale.set(0.5, 0.5, 1);
+    ring.mat.opacity = 0.95;
+    ring.mesh.visible = true;
+    ring.active = true;
   }
 
   update(dt = 0.016) {
@@ -390,38 +461,56 @@ export class ParticleManager {
       }
     }
 
-    // Update Volumetric Fireballs
-    for (let i = this.fireballs.length - 1; i >= 0; i--) {
-      const fb = this.fireballs[i];
-      fb.currentScale += fb.growthRate * 0.016;
-      fb.opacity -= 0.025;
-      fb.mesh.scale.setScalar(fb.currentScale);
-      fb.mesh.material.opacity = Math.max(0, fb.opacity);
+    // Update Pooled Volumetric Fireballs (Zero Allocation)
+    if (this._fireballPool) {
+      for (let i = 0; i < this._fireballPool.length; i++) {
+        const fb = this._fireballPool[i];
+        if (!fb.active) continue;
 
-      if (fb.opacity <= 0 || fb.currentScale >= fb.maxScale) {
-        this.scene.remove(fb.mesh);
-        fb.mesh.material.dispose();
-        this.fireballs.splice(i, 1);
+        fb.currentScale += fb.growthRate * delta;
+        fb.opacity -= delta * 1.5;
+        fb.mesh.scale.setScalar(fb.currentScale);
+        fb.mat.opacity = Math.max(0, fb.opacity);
+
+        if (fb.opacity <= 0 || fb.currentScale >= fb.maxScale) {
+          fb.mesh.visible = false;
+          fb.active = false;
+        }
       }
     }
 
-    // Update EMP Shockwaves & Holographic Rings
-    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
-      const sw = this.shockwaves[i];
-      const targetObj = sw.sprite || sw.mesh;
-      sw.currentRadius += sw.speed;
+    // Update Pooled Textured Shockwaves (Zero Allocation)
+    if (this._shockwaveSpritePool) {
+      for (let i = 0; i < this._shockwaveSpritePool.length; i++) {
+        const sw = this._shockwaveSpritePool[i];
+        if (!sw.active) continue;
 
-      if (sw.currentRadius >= sw.maxRadius) {
-        if (targetObj) {
-          this.scene.remove(targetObj);
-          if (targetObj.material) targetObj.material.dispose();
-        }
-        this.shockwaves.splice(i, 1);
-      } else {
-        if (targetObj) {
-          targetObj.scale.set(sw.currentRadius, sw.currentRadius, 1);
+        sw.currentRadius += sw.speed * (delta / 0.016);
+        if (sw.currentRadius >= sw.maxRadius) {
+          sw.sprite.visible = false;
+          sw.active = false;
+        } else {
+          sw.sprite.scale.set(sw.currentRadius, sw.currentRadius, 1);
           const progress = sw.currentRadius / sw.maxRadius;
-          targetObj.material.opacity = Math.max(0, (1 - progress) * 0.95);
+          sw.mat.opacity = Math.max(0, (1 - progress) * 0.95);
+        }
+      }
+    }
+
+    // Update Pooled EMP Shockwave Rings (Zero Allocation)
+    if (this._empRingPool) {
+      for (let i = 0; i < this._empRingPool.length; i++) {
+        const ring = this._empRingPool[i];
+        if (!ring.active) continue;
+
+        ring.currentRadius += ring.speed * (delta / 0.016);
+        if (ring.currentRadius >= ring.maxRadius) {
+          ring.mesh.visible = false;
+          ring.active = false;
+        } else {
+          ring.mesh.scale.set(ring.currentRadius, ring.currentRadius, 1);
+          const progress = ring.currentRadius / ring.maxRadius;
+          ring.mat.opacity = Math.max(0, (1 - progress) * 0.95);
         }
       }
     }
@@ -429,7 +518,7 @@ export class ParticleManager {
     // Update Sonic Boom Rings
     for (let i = this.sonicDiscs.length - 1; i >= 0; i--) {
       const sd = this.sonicDiscs[i];
-      sd.scale += sd.speed * 0.016;
+      sd.scale += sd.speed * delta;
 
       if (sd.scale >= sd.maxScale) {
         this.scene.remove(sd.mesh);
