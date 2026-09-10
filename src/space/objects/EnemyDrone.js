@@ -421,7 +421,7 @@ export class EnemyDrone {
           (Math.random() - 0.5) * 10.0
         );
         this.isEvading = true;
-      } else if (distToPlayer < 45.0 && Math.random() < 0.04) {
+      } else if (distToPlayer < 75.0 && Math.random() < 0.12) {
         // Switch to Flanking Pursuit dogfight circle
         this.aiState = 'FLANKING_PURSUIT';
       }
@@ -465,12 +465,26 @@ export class EnemyDrone {
       this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, -targetPitch, dt * 3.8);
       this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -aimDir.x * 0.45, dt * 3.0);
     } else {
-      // Standard dynamic cruising movement with subtle lead tracking
-      this.meshGroup.position.addScaledVector(this.velocity, dt);
-      this.meshGroup.position.x += Math.sin(this._time * 2.5 + this._wobbleOffset) * 2.5 * dt;
-      this.meshGroup.rotation.z = Math.sin(this._time * 2.5 + this._wobbleOffset) * 0.2;
-      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0, dt * 2.0);
-      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, 0, dt * 2.0);
+      // Aggressive Intercept & Dogfight Pursuit:
+      // If outside close dogfight circle, actively close the gap toward the player with high-thrust intercept
+      if (distToPlayer > 55.0) {
+        const interceptSpeed = 52.0;
+        this.meshGroup.position.addScaledVector(toPlayerNorm, interceptSpeed * dt);
+
+        // Align nose toward player intercept vector with banking
+        const targetYaw = Math.atan2(aimDir.x, aimDir.z) + Math.PI;
+        const targetPitch = Math.asin(Math.max(-1, Math.min(1, aimDir.y)));
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, targetYaw, dt * 4.5);
+        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, -targetPitch, dt * 4.5);
+        this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -aimDir.x * 0.4, dt * 3.5);
+      } else {
+        // Inside 55m: dynamic close dogfighting and evasive slalom
+        this.meshGroup.position.addScaledVector(this.velocity, dt);
+        this.meshGroup.position.x += Math.sin(this._time * 2.5 + this._wobbleOffset) * 2.5 * dt;
+        this.meshGroup.rotation.z = Math.sin(this._time * 2.5 + this._wobbleOffset) * 0.2;
+        this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0, dt * 2.0);
+        this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, 0, dt * 2.0);
+      }
     }
 
     // ── 3. 3-Whisker Dynamic Obstacle Avoidance (Asteroid Slalom) ──
@@ -542,10 +556,12 @@ export class EnemyDrone {
       return outLasers.length > 0 ? outLasers : [this.meshGroup.position.clone()];
     }
 
-    // 3D Tactical Combat Leash:
-    if (distToPlayer > 360.0) {
-      const reIntercept = toPlayer.clone().normalize().multiplyScalar(45.0);
+    // 3D Tactical Combat Leash: Keep dogfight contained within 150m of player
+    if (distToPlayer > 150.0) {
+      const reIntercept = toPlayer.clone().normalize().multiplyScalar(56.0);
       this.meshGroup.position.addScaledVector(reIntercept, dt);
+      const targetYaw = Math.atan2(toPlayerNorm.x, toPlayerNorm.z) + Math.PI;
+      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, targetYaw, dt * 4.0);
     } else if (this.meshGroup.position.z > 35 && !window.spaceGameManager?.playerShip?.isFreeFlight) {
       this.meshGroup.position.z = -75 - Math.random() * 15;
       this.meshGroup.position.x = (Math.random() - 0.5) * 32;

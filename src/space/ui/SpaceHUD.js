@@ -1487,6 +1487,45 @@ export class SpaceHUD {
     }, duration * 1000);
   }
 
+  showBoundaryWarning(dist, maxDist = 350) {
+    if (!this.boundaryWarningEl) {
+      this.boundaryWarningEl = document.getElementById('space-boundary-warning');
+      if (!this.boundaryWarningEl) {
+        this.boundaryWarningEl = document.createElement('div');
+        this.boundaryWarningEl.id = 'space-boundary-warning';
+        this.boundaryWarningEl.className = 'tactical-boundary-warning';
+        this.boundaryWarningEl.innerHTML = `
+          <div class="boundary-warning-header">
+            <span class="warning-icon">⚠️</span>
+            <span class="warning-title">TACTICAL ARENA BOUNDARY</span>
+            <span class="warning-icon">⚠️</span>
+          </div>
+          <div class="boundary-warning-sub">RETURN TO COMBAT THEATER // VECTOR THRUST ENGAGED</div>
+          <div class="boundary-warning-meter">
+            <div class="boundary-meter-fill" id="boundary-meter-fill"></div>
+          </div>
+        `;
+        document.body.appendChild(this.boundaryWarningEl);
+      }
+    }
+
+    if (this.boundaryWarningEl) {
+      this.boundaryWarningEl.classList.remove('hidden');
+      this.boundaryWarningEl.classList.add('active');
+      const fill = this.boundaryWarningEl.querySelector('#boundary-meter-fill');
+      if (fill) {
+        const pct = Math.min(100, Math.max(0, ((dist - 285) / (maxDist - 285)) * 100));
+        fill.style.width = `${pct}%`;
+      }
+    }
+  }
+
+  hideBoundaryWarning() {
+    if (this.boundaryWarningEl && this.boundaryWarningEl.classList.contains('active')) {
+      this.boundaryWarningEl.classList.remove('active');
+      this.boundaryWarningEl.classList.add('hidden');
+    }
+  }
 
   showKillCam(title, subtitle, duration) {
     // Kill-cam removed for ultra-smooth mobile gameplay and uninterrupted 60fps dogfight flow

@@ -1118,6 +1118,33 @@ export class GameManager {
     return highestThreat;
   }
 
+  getForwardSpawnPosition(distAhead = 72, lateralSpread = 24, verticalSpread = 10) {
+    if (this.playerShip && this.playerShip.meshGroup) {
+      const pPos = this.playerShip.meshGroup.position;
+      const fwd = this.playerShip._shipForward ? this.playerShip._shipForward.clone() : new THREE.Vector3(0, 0, -1);
+      if (fwd.lengthSq() < 0.01) fwd.set(0, 0, -1);
+      fwd.normalize();
+
+      const worldUp = Math.abs(fwd.y) > 0.9 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(fwd, worldUp).normalize();
+      const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
+
+      const offsetX = (Math.random() - 0.5) * 2 * lateralSpread;
+      const offsetY = (Math.random() - 0.5) * 2 * verticalSpread;
+      const target = pPos.clone()
+        .addScaledVector(fwd, distAhead + (Math.random() - 0.5) * 16)
+        .addScaledVector(right, offsetX)
+        .addScaledVector(up, offsetY);
+
+      // Clamp inside active 330m combat sphere around sector origin
+      if (target.length() > 330) {
+        target.clampLength(0, 320);
+      }
+      return target;
+    }
+    return new THREE.Vector3((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 14, -75);
+  }
+
   spawnDrone(spawnPos = null, force = false) {
     if (!force && (!this.carrierBoss || this.carrierBoss.isDead)) {
       // Assault Drones only deploy when Gorgon Supercarrier is active in the combat zone!
@@ -1127,15 +1154,20 @@ export class GameManager {
     const maxDrones = this.isMobile ? 4 : 8;
     if (!force && activeDroneCount >= maxDrones) return null;
 
-    const opts = spawnPos ? (spawnPos.isVector3 ? { x: spawnPos.x, y: spawnPos.y, z: spawnPos.z } : spawnPos) : {};
+    const actualPos = spawnPos || this.getForwardSpawnPosition(68, 22, 10);
+    const opts = actualPos.isVector3 ? { x: actualPos.x, y: actualPos.y, z: actualPos.z } : actualPos;
     const drone = new EnemyDrone(this.spaceScene.scene, opts);
     this.applyEnemyHpScaling(drone);
     this.drones.push(drone);
+    if (this.particleManager && actualPos.isVector3) {
+      this.particleManager.createExplosion(actualPos, 0x00f3ff, 12);
+    }
     return drone;
   }
 
   spawnCapitalShip(spawnOffset = null) {
-    const ship = new CapitalShip(this.spaceScene.scene, this.particleManager, spawnOffset);
+    const actualPos = spawnOffset || this.getForwardSpawnPosition(105, 30, 14);
+    const ship = new CapitalShip(this.spaceScene.scene, this.particleManager, actualPos);
     this.applyEnemyHpScaling(ship);
     this.capitalShips.push(ship);
     this.voiceAnnouncer.speak("Warning! Enemy Capital Cruiser Escort Arrived!", true);
@@ -1143,8 +1175,8 @@ export class GameManager {
       this.spaceHUD.showRadioTransmission("TACTICAL ALERT: Enemy Capital Cruiser escort has deployed to shield the Titan Asteroid Colossus!", "STARBOUND COMMAND", 7.0);
       this.spaceHUD.showWaveBanner("WARSHIP ESCORT INBOUND", "ENEMY CAPITAL CRUISER");
     }
-    if (this.spaceScene) {
-      this.spaceScene.triggerHyperspaceWarp(new THREE.Vector3(ship.meshGroup.position.x, ship.meshGroup.position.y, -100));
+    if (this.spaceScene && ship.meshGroup) {
+      this.spaceScene.triggerHyperspaceWarp(ship.meshGroup.position.clone());
     }
     return ship;
   }
@@ -1243,27 +1275,39 @@ export class GameManager {
   }
 
   spawnStealthFighter(spawnPos = null) {
-    const fighter = new StealthFighter(this.spaceScene.scene, this.particleManager, spawnPos);
+    const actualPos = spawnPos || this.getForwardSpawnPosition(76, 20, 10);
+    const fighter = new StealthFighter(this.spaceScene.scene, this.particleManager, actualPos);
     this.applyEnemyHpScaling(fighter);
     this.stealthFighters.push(fighter);
+    if (this.particleManager && actualPos.isVector3) {
+      this.particleManager.createExplosion(actualPos, 0xff0044, 14);
+    }
     return fighter;
   }
 
   spawnECMCorvette(spawnPos = null) {
-    const corv = new ECMJammerCorvette(this.spaceScene.scene, this.particleManager, spawnPos);
+    const actualPos = spawnPos || this.getForwardSpawnPosition(85, 26, 12);
+    const corv = new ECMJammerCorvette(this.spaceScene.scene, this.particleManager, actualPos);
     this.applyEnemyHpScaling(corv);
     this.ecmCorvettes.push(corv);
     this.voiceAnnouncer.speak("Warning! Electronic Warfare Jammer Corvette Detected!", true);
     if (this.spaceHUD) {
       this.spaceHUD.showRadioTransmission("WARNING: ECM Jammer Corvette detected! Radar and targeting disrupted!", "TACTICAL COMMS", 4.5);
     }
+    if (this.particleManager && actualPos.isVector3) {
+      this.particleManager.createExplosion(actualPos, 0xffaa00, 18);
+    }
     return corv;
   }
 
   spawnPhaseInterceptor(spawnPos = null) {
-    const inter = new PhaseShiftInterceptor(this.spaceScene.scene, this.particleManager, spawnPos);
+    const actualPos = spawnPos || this.getForwardSpawnPosition(72, 22, 10);
+    const inter = new PhaseShiftInterceptor(this.spaceScene.scene, this.particleManager, actualPos);
     this.applyEnemyHpScaling(inter);
     this.phaseInterceptors.push(inter);
+    if (this.particleManager && actualPos.isVector3) {
+      this.particleManager.createExplosion(actualPos, 0x9900ff, 14);
+    }
     return inter;
   }
 
@@ -1301,8 +1345,9 @@ export class GameManager {
     return this.activeBoss;
   }
 
-  spawnHeavyBattleship() {
-    const battleship = new HeavyBattleship(this.spaceScene.scene, this.particleManager);
+  spawnHeavyBattleship(spawnPos = null) {
+    const actualPos = spawnPos || this.getForwardSpawnPosition(115, 32, 15);
+    const battleship = new HeavyBattleship(this.spaceScene.scene, this.particleManager, actualPos);
     this.applyEnemyHpScaling(battleship);
     this.heavyBattleships.push(battleship);
     this.voiceAnnouncer.speak("Warning! Goliath Heavy Dreadnought Battleship Entering Sector!", true);
@@ -1310,7 +1355,10 @@ export class GameManager {
       this.spaceHUD.showRadioTransmission("WARNING: Goliath Heavy Battleship detected! Target its triple railgun turrets and engine nacelles!", "STARBOUND COMMAND", 5.5);
       this.spaceHUD.showWaveBanner("BATTLEFLEET SIEGE", "GOLIATH HEAVY BATTLESHIP");
     }
-    if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
+    if (this.spaceScene && battleship.meshGroup) {
+      this.spaceScene.triggerHyperspaceWarp(battleship.meshGroup.position.clone());
+      this.spaceScene.triggerBossIntroCamera();
+    }
     return battleship;
   }
 

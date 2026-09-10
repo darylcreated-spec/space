@@ -1902,11 +1902,25 @@ export class PlayerShip {
 
       this.meshGroup.position.addScaledVector(this.velocity, dt);
 
-      // Soft perimeter tether: if approaching 2400 units from sector origin, gently deflect inward
+      // Tactical combat arena perimeter tether (350m radius around theater origin)
       const distFromCenter = this.meshGroup.position.length();
-      if (distFromCenter > 2400) {
+      const maxArenaRadius = 350;
+      const warningRadius = 285;
+      const hud = this.gameManager?.spaceHUD || (typeof window !== 'undefined' ? window.spaceGameManager?.spaceHUD : null);
+
+      if (distFromCenter > warningRadius) {
+        if (hud && typeof hud.showBoundaryWarning === 'function') {
+          hud.showBoundaryWarning(distFromCenter, maxArenaRadius);
+        }
+      } else if (hud && typeof hud.hideBoundaryWarning === 'function') {
+        hud.hideBoundaryWarning();
+      }
+
+      if (distFromCenter > maxArenaRadius) {
         const pullDir = this.meshGroup.position.clone().negate().normalize();
-        this.meshGroup.position.addScaledVector(pullDir, (distFromCenter - 2400) * dt * 0.85);
+        const overreach = distFromCenter - maxArenaRadius;
+        this.meshGroup.position.addScaledVector(pullDir, overreach * dt * 2.8);
+        this.velocity.addScaledVector(pullDir, overreach * dt * 14.0);
       }
     } else {
       // 3D Frame-Rate Independent Velocity & Orientation Smoothing

@@ -359,9 +359,11 @@ export class WaveSpawner {
   update(dt) {
     if (this.waveState !== 'SPAWNING') return;
 
-    // In Wave 1, hold enemy wave queue while player navigates transit waypoint corridor
+    // In Wave 1 Transit Corridor, immediately deploy 2 contested forward scouts, but hold the heavier fleet until corridor clearance
     if (this.currentWave === 1 && this.gameManager.missionPhase === 'TRANSIT_CORRIDOR') {
-      return;
+      if (this.spawnedCount >= 2) {
+        return;
+      }
     }
 
     // ── 📱 Mobile Performance Safeguard: Concurrency Throttle ──
@@ -403,7 +405,10 @@ export class WaveSpawner {
       // ── 🚀 Staged Fleet Escalations Correlated to Story Direction ──
       if (this.currentWave === 1) {
         // Stage 1: Asteroid Corridor // Hunt the Stealth Infiltrator
-        if (this.spawnedCount === 4) {
+        if (this.spawnedCount <= 2) {
+          // Contested corridor scouts immediately ahead
+          this.gameManager.spawnDrone(null, true);
+        } else if (this.spawnedCount === 4) {
           this.gameManager.spawnStealthFighter();
           this.triggerStoryComms(1, 'mid');
         } else if (this.spawnedCount === 6) {

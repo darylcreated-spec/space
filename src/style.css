@@ -4913,3 +4913,89 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
     font-size: 0.65rem;
   }
 }
+
+/* Tactical Combat Arena Boundary Warning */
+.tactical-boundary-warning {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 3, 7, 0.88);
+  border: 1.5px solid #ff0044;
+  box-shadow: 0 0 25px rgba(255, 0, 68, 0.45), inset 0 0 15px rgba(255, 0, 68, 0.2);
+  border-radius: 8px;
+  padding: 8px 18px;
+  z-index: 99999;
+  pointer-events: none;
+  font-family: var(--font-heading, 'Orbitron', monospace);
+  animation: boundaryPulse 0.8s infinite alternate ease-in-out;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  min-width: 280px;
+  text-align: center;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tactical-boundary-warning.hidden {
+  display: none !important;
+}
+
+.boundary-warning-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff2255;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 10px rgba(255, 34, 85, 0.8);
+}
+
+.boundary-warning-sub {
+  font-family: var(--font-body, 'Inter', sans-serif);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #ffaa00;
+  letter-spacing: 0.8px;
+  margin-top: 3px;
+  text-shadow: 0 0 6px rgba(255, 170, 0, 0.6);
+}
+
+.boundary-warning-meter {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.boundary-meter-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffaa00, #ff0044);
+  box-shadow: 0 0 8px #ff0044;
+  transition: width 0.1s linear;
+}
+
+@keyframes boundaryPulse {
+  0% { transform: translateX(-50%) scale(1.0); box-shadow: 0 0 15px rgba(255, 0, 68, 0.35); }
+  100% { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 32px rgba(255, 0, 68, 0.65); }
+}
+
+@media (max-width: 768px) {
+  .tactical-boundary-warning {
+    top: 96px;
+    width: 88vw;
+    min-width: unset;
+    padding: 6px 12px;
+  }
+  .boundary-warning-header {
+    font-size: 0.72rem;
+  }
+}
+

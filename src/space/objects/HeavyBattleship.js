@@ -69,7 +69,11 @@ export class HeavyBattleship {
     this.particleManager = particleManager;
 
     this.meshGroup = new THREE.Group();
-    this.meshGroup.position.set(0, 4, spawnZ);
+    if (spawnZ && spawnZ.isVector3) {
+      this.meshGroup.position.copy(spawnZ);
+    } else {
+      this.meshGroup.position.set(0, 4, typeof spawnZ === 'number' ? spawnZ : -150);
+    }
 
     // -- Boss Telemetry & Stats --
     this.coreHp = 5800;
