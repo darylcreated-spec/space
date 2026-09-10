@@ -15,8 +15,12 @@ export class SpaceAudio {
     this._lastExplosionTime = 0;
     this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || window.innerWidth <= 1024;
 
-    // Multi-Platform User Gesture Unlock: instantly resumes Web Audio context
+    this.laserBuffers = {};
+    this.laserSoundProfile = localStorage.getItem('ov_laser_sound') || 'laser1';
+    this.laserVolume = 0.28;
+    this._hasPreloadedLasers = false;
 
+    // Multi-Platform User Gesture Unlock: instantly resumes Web Audio context
     this.setupUserGestureUnlock();
   }
 
@@ -98,6 +102,43 @@ export class SpaceAudio {
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+    if (this.ctx && !this._hasPreloadedLasers) {
+      this.preloadLaserSounds();
+    }
+  }
+
+  async preloadLaserSounds() {
+    if (!this.ctx || this._hasPreloadedLasers) return;
+    this._hasPreloadedLasers = true;
+
+    const files = {
+      'laser1': '/audio/laser/laser1.mp3', // Punchy Heavy Blaster
+      'laser4': '/audio/laser/laser4.mp3', // Rapid Autocannon
+      'laser7': '/audio/laser/laser7.mp3', // Pulse Beam
+      'laser5': '/audio/laser/laser5.mp3', // Heavy Plasma
+      'laser3': '/audio/laser/laser3.mp3', // Crisp Hi-Tech
+    };
+
+    for (const [key, url] of Object.entries(files)) {
+      try {
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const arrayBuf = await resp.arrayBuffer();
+          const decoded = await this.ctx.decodeAudioData(arrayBuf);
+          this.laserBuffers[key] = decoded;
+        }
+      } catch (e) {
+        // Sample unavailable, fallback to upgraded procedural synthesis
+      }
+    }
+  }
+
+  setLaserSoundProfile(profileKey) {
+    this.laserSoundProfile = profileKey;
+    try {
+      localStorage.setItem('ov_laser_sound', profileKey);
+    } catch (e) {}
+    this.playLaserPew(0);
   }
 
   setupSpaceDrone() {
@@ -163,40 +204,87 @@ export class SpaceAudio {
     if (this._lastLaserPewTime && now - this._lastLaserPewTime < throttle) return;
     this._lastLaserPewTime = now;
 
+    // 1. High-Fidelity Audio Sample Playback
+    const activeBuffer = this.laserBuffers[this.laserSoundProfile || 'laser1'];
+    if (activeBuffer) {
+      try {
+        const source = this.ctx.createBufferSource();
+        source.buffer = activeBuffer;
 
+        // Subtle pitch micro-variation (0.96 - 1.04) prevents robotic repetitive listening fatigue
+        source.playbackRate.setValueAtTime(0.96 + Math.random() * 0.08, now);
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.setValueAtTime(this.laserVolume || 0.28, now);
+
+        let panVal = 0;
+        if (xPos !== undefined) {
+          panVal = Math.max(-0.85, Math.min(0.85, xPos / 15.0));
+        }
+
+        if (this.ctx.createStereoPanner) {
+          const panner = this.ctx.createStereoPanner();
+          panner.pan.setValueAtTime(panVal, now);
+          source.connect(gainNode);
+          gainNode.connect(panner);
+          panner.connect(this._getOutputNode());
+        } else {
+          source.connect(gainNode);
+          gainNode.connect(this._getOutputNode());
+        }
+
+        source.start(now);
+        return;
+      } catch (err) {
+        // Fallback to procedural synthesis below
+      }
+    }
+
+    // 2. Upgraded AAA Procedural Blaster synthesis (Sub-bass punch + dual resonant swept oscillators)
     const osc = this.ctx.createOscillator();
+    const subOsc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    const subGain = this.ctx.createGain();
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(900, now);
-    osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.09);
 
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(160, now);
+    subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.06);
+
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+    subGain.gain.setValueAtTime(0.24, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
     let panVal = 0;
     if (xPos !== undefined) {
-      panVal = Math.max(-1.0, Math.min(1.0, xPos / 15.0));
+      panVal = Math.max(-0.85, Math.min(0.85, xPos / 15.0));
     }
 
     if (this.ctx.createStereoPanner) {
       const panner = this.ctx.createStereoPanner();
       panner.pan.setValueAtTime(panVal, now);
       osc.connect(gain);
+      subOsc.connect(subGain);
       gain.connect(panner);
+      subGain.connect(panner);
       panner.connect(this._getOutputNode());
     } else {
       osc.connect(gain);
+      subOsc.connect(subGain);
       gain.connect(this._getOutputNode());
+      subGain.connect(this._getOutputNode());
     }
-
-    osc.onended = () => {
-      try { osc.disconnect(); gain.disconnect(); } catch(e) {}
-    };
 
     try {
       osc.start(now);
-      osc.stop(now + 0.08);
+      subOsc.start(now);
+      osc.stop(now + 0.09);
+      subOsc.stop(now + 0.06);
     } catch (e) {}
   }
 

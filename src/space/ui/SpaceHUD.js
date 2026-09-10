@@ -609,6 +609,19 @@ export class SpaceHUD {
       });
     }
 
+    // ── Primary Cannon Sound Profile Listeners ──
+    const laserSoundBtns = document.querySelectorAll('.btn-laser-profile');
+    laserSoundBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const soundKey = btn.dataset.sound;
+        if (soundKey && this.gameManager?.spaceAudio) {
+          this.gameManager.spaceAudio.setLaserSoundProfile(soundKey);
+        }
+        this.updateSettingsUI();
+      });
+    });
+
     // ── Desktop Mouse Flight & Pointer Lock Settings Listeners ──
     if (this.btnMouseFlightOff) {
       this.btnMouseFlightOff.addEventListener('click', (e) => {
@@ -2380,6 +2393,12 @@ export class SpaceHUD {
         this.btnVoiceOn.classList.remove('active');
       }
     }
+
+    const currentLaserSound = this.gameManager?.spaceAudio?.laserSoundProfile || localStorage.getItem('ov_laser_sound') || 'laser1';
+    const laserSoundBtns = document.querySelectorAll('.btn-laser-profile');
+    laserSoundBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sound === currentLaserSound);
+    });
 
     const isGod = !!this.gameManager.isGodMode;
     if (this.godmodeActivePill) {
