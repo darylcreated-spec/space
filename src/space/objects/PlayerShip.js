@@ -26,6 +26,8 @@ export class PlayerShip {
     this.targetPitch = 0;
     this.currentPitch = 0;
     this.prevInput = { x: 0, y: 0 };
+    this.recoilZ = 0;
+    this.recoilPitch = 0;
 
     this.bounds = { minX: -42.0, maxX: 42.0, minY: -16.0, maxY: 22.0, minZ: -28.0, maxZ: 16.0 };
 
@@ -1867,15 +1869,27 @@ export class PlayerShip {
         Math.PI * 0.44
       );
 
-      // Aerodynamic banking into turns + manual roll
+      // Damped weapon recoil recovery
+      this.recoilZ += (0 - this.recoilZ) * dt * 22.0;
+      this.recoilPitch += (0 - this.recoilPitch) * dt * 22.0;
+
+      // Aerodynamic banking into turns + manual roll + pitch lift
       const bankRoll = -(inputDir.x || 0) * (this.isBoosting ? 0.90 : 0.65);
       const manualRoll = (this.manualRollInput || 0) * 1.8;
       this.flightRoll = THREE.MathUtils.lerp(this.flightRoll || 0, bankRoll + manualRoll, dt * 9.0);
 
-      this._flightEuler.set(this.flightPitch, this.flightYaw, this.flightRoll, 'YXZ');
+      // Pitch lift: high bank angles generate upward aerodynamic lift
+      const pitchLift = Math.abs(this.flightRoll || 0) * 0.08;
+
+      this._flightEuler.set(this.flightPitch + this.recoilPitch + pitchLift, this.flightYaw, this.flightRoll, 'YXZ');
       this.meshGroup.quaternion.setFromEuler(this._flightEuler);
 
       this._shipForward.set(0, 0, -1).applyQuaternion(this.meshGroup.quaternion);
+
+      // Apply procedural recoil displacement kickback along ship backward axis
+      if (this.recoilZ > 0.001) {
+        this.meshGroup.position.addScaledVector(this._shipForward, -this.recoilZ * dt * 12.0);
+      }
 
       // Throttle: Cruise forward (1.0), Hyper-Boost (2.2), or Reverse (-0.45)
       let throttle = 1.0;
@@ -2153,6 +2167,11 @@ export class PlayerShip {
     } else if (slot === 'avionics') {
       this.avionicsSuite = itemKey;
     }
+  }
+
+  triggerRecoil(impulseZ = 0.25, impulsePitch = 0.03) {
+    this.recoilZ = Math.min(0.65, this.recoilZ + impulseZ);
+    this.recoilPitch = Math.min(0.10, this.recoilPitch + impulsePitch);
   }
 }
 

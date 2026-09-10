@@ -75,16 +75,94 @@ export class AssetManager {
   }
 
   /**
-   * Preloads Kenney CC0 particle VFX textures with alpha channels
+   * Generates procedural CC0-grade particle textures via 2D Canvas
+   */
+  createProceduralParticleTexture(type = 'smoke') {
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return new THREE.Texture();
+
+    const cx = size / 2;
+    const cy = size / 2;
+
+    if (type === 'smoke') {
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.48);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.85)');
+      grad.addColorStop(0.35, 'rgba(230, 235, 250, 0.45)');
+      grad.addColorStop(0.7, 'rgba(180, 200, 230, 0.15)');
+      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+    } else if (type === 'flame') {
+      const grad = ctx.createRadialGradient(cx, cy * 1.1, 0, cx, cy, size * 0.45);
+      grad.addColorStop(0.0, 'rgba(255, 255, 240, 1.0)');
+      grad.addColorStop(0.25, 'rgba(255, 200, 50, 0.85)');
+      grad.addColorStop(0.6, 'rgba(255, 70, 10, 0.45)');
+      grad.addColorStop(1.0, 'rgba(200, 0, 0, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.46, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (type === 'spark') {
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.45);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.3, 'rgba(120, 230, 255, 0.6)');
+      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(cx, 10); ctx.lineTo(cx, size - 10);
+      ctx.moveTo(10, cy); ctx.lineTo(size - 10, cy);
+      ctx.stroke();
+    } else if (type === 'shockwave') {
+      ctx.strokeStyle = 'rgba(0, 243, 255, 0.95)';
+      ctx.lineWidth = 6;
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(cx, cy, size * 0.38, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (type === 'muzzle') {
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.45);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.2, 'rgba(0, 243, 255, 0.8)');
+      grad.addColorStop(0.6, 'rgba(0, 150, 255, 0.25)');
+      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  /**
+   * Preloads Kenney CC0 particle VFX textures with alpha channels & procedural fallbacks
    */
   loadParticleTextures() {
     if (this.particleTextures) return this.particleTextures;
+    const safeLoad = (url, fallbackType) => {
+      try {
+        const tex = this.loadTexture(url, true);
+        return tex || this.createProceduralParticleTexture(fallbackType);
+      } catch (e) {
+        return this.createProceduralParticleTexture(fallbackType);
+      }
+    };
+
     this.particleTextures = {
-      smoke: this.loadTexture('/textures/particles/smoke_04.png', true),
-      flame: this.loadTexture('/textures/particles/flame_01.png', true),
-      spark: this.loadTexture('/textures/particles/spark_02.png', true),
-      shockwave: this.loadTexture('/textures/particles/circle_05.png', true),
-      muzzle: this.loadTexture('/textures/particles/muzzle_01.png', true)
+      smoke: safeLoad('/textures/particles/smoke_04.png', 'smoke'),
+      flame: safeLoad('/textures/particles/flame_01.png', 'flame'),
+      spark: safeLoad('/textures/particles/spark_02.png', 'spark'),
+      shockwave: safeLoad('/textures/particles/circle_05.png', 'shockwave'),
+      muzzle: safeLoad('/textures/particles/muzzle_01.png', 'muzzle')
     };
     return this.particleTextures;
   }

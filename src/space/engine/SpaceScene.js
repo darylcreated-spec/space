@@ -26,6 +26,9 @@ export class SpaceScene {
     this.targetCameraPos = new THREE.Vector3();
     this.targetLookAt = new THREE.Vector3();
     this.currentCamLookAt = new THREE.Vector3(0, -1, -15);
+    this.camVelocity = new THREE.Vector3();
+    this.camSpringK = 48.0; // Harmonic spring stiffness
+    this.camDamperC = 14.0; // Critical damping coefficient (2 * sqrt(48) ~= 13.85)
     this.bossIntroTimer = 0;
     this.setCameraMode('isometric');
     this.camera.position.copy(this.targetCameraPos);
@@ -1384,11 +1387,37 @@ export class SpaceScene {
       }
     }
 
-    // Frame-Rate Independent Exponential Camera Smoothing
-    const camAlpha = 1.0 - Math.exp((bossActive ? -14.0 : -9.0) * dt);
-    this.camera.position.lerp(this.targetCameraPos, camAlpha);
+    // 🎯 AAA Damped Harmonic Spring-Arm Chase Camera Physics
+    // Formulated with Hooke's Law + viscous damping for silky fluid motion without snappy jitter
+    const clampedDt = Math.min(dt, 0.05); // Guard against tab-switch timestep hitch
+    const dispX = this.camera.position.x - this.targetCameraPos.x;
+    const dispY = this.camera.position.y - this.targetCameraPos.y;
+    const dispZ = this.camera.position.z - this.targetCameraPos.z;
+
+    const stiffness = bossActive ? (this.camSpringK * 1.3) : this.camSpringK;
+    const damping = bossActive ? (this.camDamperC * 1.25) : this.camDamperC;
+
+    const springForceX = -stiffness * dispX - damping * this.camVelocity.x;
+    const springForceY = -stiffness * dispY - damping * this.camVelocity.y;
+    const springForceZ = -stiffness * dispZ - damping * this.camVelocity.z;
+
+    this.camVelocity.x += springForceX * clampedDt;
+    this.camVelocity.y += springForceY * clampedDt;
+    this.camVelocity.z += springForceZ * clampedDt;
+
+    this.camera.position.x += this.camVelocity.x * clampedDt;
+    this.camera.position.y += this.camVelocity.y * clampedDt;
+    this.camera.position.z += this.camVelocity.z * clampedDt;
+
+    // Safety tether: prevent camera from ever lagging too far behind during hyper-speed teleports
+    const lagDistSq = this.camera.position.distanceToSquared(this.targetCameraPos);
+    if (lagDistSq > 1600.0) {
+      this.camera.position.lerp(this.targetCameraPos, 0.25);
+      this.camVelocity.multiplyScalar(0.4);
+    }
 
     // Smooth lookAt target lerp
+    const camAlpha = 1.0 - Math.exp((bossActive ? -14.0 : -9.0) * dt);
     this.currentCamLookAt.lerp(this.targetLookAt, camAlpha);
     if (playerShip && playerShip.isFreeFlight) {
       if (!this._camUpTarget) this._camUpTarget = new THREE.Vector3(0, 1, 0);
@@ -1404,10 +1433,12 @@ export class SpaceScene {
       this.camera.rotation.z -= playerShip.currentRoll * 0.05;
     }
 
-    // Hyper-Boost Camera FOV speed warping
-    const targetFov = (playerShip && playerShip.isBoosting) ? 74 : 60;
+    // Hyper-Boost Camera FOV speed warping + dynamic velocity stretch
+    const speedMagnitude = (playerShip && playerShip.velocity) ? playerShip.velocity.length() : 0;
+    const speedRatio = Math.min(1.0, speedMagnitude / ((playerShip && playerShip.speed) ? playerShip.speed * 1.5 : 50.0));
+    const targetFov = (playerShip && playerShip.isBoosting) ? 76 : (60 + speedRatio * 8.0);
     if (Math.abs(this.camera.fov - targetFov) > 0.05) {
-      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.0);
+      this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFov, dt * 6.5);
       this.camera.updateProjectionMatrix();
     }
 

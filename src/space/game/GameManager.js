@@ -1743,6 +1743,7 @@ export class GameManager {
 
     if (this.overchargeTimer > 0) color = 0x00ffff;
     if (this.hapticsManager) this.hapticsManager.triggerLaser();
+    this.playerShip.triggerRecoil?.(0.18, 0.022);
 
     if (!this._tempWorldMuzzle) {
       this._tempWorldMuzzle = new THREE.Vector3();
@@ -1857,6 +1858,7 @@ export class GameManager {
     const startPos = new THREE.Vector3(0, 0, -1.5).add(pPos);
 
     this.spawnPlasmaPulse(startPos);
+    this.playerShip.triggerRecoil?.(0.35, 0.045);
 
     // Deflector Counter-Pulse: Convert all enemy projectiles within 10m into amplified friendly counter-lasers
     let reflectedCount = 0;
@@ -1902,6 +1904,7 @@ export class GameManager {
     }
 
     this.spaceScene.addScreenShake(1.6 * chargeRatio);
+    this.playerShip.triggerRecoil?.(0.48 * chargeRatio, 0.065 * chargeRatio);
     this.spaceAudio.playHeavyCannonSound?.();
     this.particleManager.spawnSparks(startPos, new THREE.Vector3(0, 0, -1), 0x00ffff, 18);
     this.voiceAnnouncer.speak('Spinal Railgun Discharged!', false);
@@ -1915,12 +1918,14 @@ export class GameManager {
     if (Math.random() < 0.35) {
       this.spawnLaser(startPos, 0x00ffff, false, new THREE.Vector3(0, 0, -1), false, 'TACHYON_BEAM');
       this.spaceScene.addScreenShake(0.12);
+      this.playerShip.triggerRecoil?.(0.08, 0.01);
     }
   }
 
   fireAntiMatterNuke() {
     if (this.state !== 'PLAYING' || this.playerShip.nukeCooldown > 0 || this.playerShip.nukeCharges <= 0) return;
     this.playerShip.nukeCooldown = this.playerShip.maxNukeCD;
+    this.playerShip.triggerRecoil?.(0.55, 0.08);
     this.spaceAudio?.playWeaponCycleClick?.();
 
     const pPos = this.playerShip.meshGroup.position;
@@ -1940,6 +1945,7 @@ export class GameManager {
   fireSwarmMissiles() {
     if (this.state !== 'PLAYING' || this.playerShip.swarmMissileCooldown > 0) return;
     this.playerShip.swarmMissileCooldown = this.playerShip.maxSwarmCD;
+    this.playerShip.triggerRecoil?.(0.28, 0.035);
     this.spaceAudio?.playWeaponCycleClick?.();
 
     // Collect candidate hostile targets
@@ -2460,17 +2466,16 @@ export class GameManager {
       if (this.freezeFleetAI) {
         drone.meshGroup.rotation.y += 0.005;
       } else {
-        const firePlasma = drone.update(effectiveDt, pPos);
+        const firePlasma = drone.update(effectiveDt, this.playerShip, this);
         if (firePlasma) {
+          const shootDir = drone._lastLeadAimDir || this._tempTargetDir.subVectors(pPos, drone.meshGroup.position).normalize();
           if (Array.isArray(firePlasma)) {
             firePlasma.forEach(dPos => {
-              this._tempTargetDir.subVectors(pPos, dPos).normalize();
-              this.spawnLaser(dPos, 0xff0055, true, this._tempTargetDir);
+              this.spawnLaser(dPos, 0xff0055, true, shootDir);
             });
           } else if (drone.meshGroup) {
             const dPos = drone.meshGroup.position;
-            this._tempTargetDir.subVectors(pPos, dPos).normalize();
-            this.spawnLaser(dPos, 0xff0055, true, this._tempTargetDir);
+            this.spawnLaser(dPos, 0xff0055, true, shootDir);
           }
           this.spaceAudio.playLaserPew();
         }

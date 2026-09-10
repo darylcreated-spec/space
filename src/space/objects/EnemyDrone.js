@@ -380,7 +380,7 @@ export class EnemyDrone {
     });
   }
 
-  update(dt, playerPos) {
+  update(dt, playerPos, gameManager = null) {
     if (this.isDead) return false;
     this._time += dt;
 
@@ -427,6 +427,14 @@ export class EnemyDrone {
       }
     }
 
+    // ── 🎯 Craig Reynolds Ballistic Predictive Pursuit Calculation ──
+    const targetVel = (playerPos && playerPos.velocity) ? playerPos.velocity : new THREE.Vector3();
+    const projectileSpeed = 110.0;
+    const interceptTime = Math.min(1.2, distToPlayer / projectileSpeed);
+    const predictedPos = pPos.clone().addScaledVector(targetVel, interceptTime);
+    const aimDir = predictedPos.sub(this.meshGroup.position).normalize();
+    this._lastLeadAimDir = aimDir;
+
     // ── 2. AI State Execution ──
     if (this.aiState === 'EVADING') {
       this.evadeTimer -= dt;
@@ -450,20 +458,64 @@ export class EnemyDrone {
       this.meshGroup.position.y = THREE.MathUtils.lerp(this.meshGroup.position.y, targetY, dt * 2.2);
       this.meshGroup.position.z = THREE.MathUtils.lerp(this.meshGroup.position.z, targetZ, dt * 1.8);
 
-      // Aim nose toward player
-      const aimDir = pPos.clone().sub(this.meshGroup.position).normalize();
+      // Aim nose toward predicted ballistic intercept position!
       const targetYaw = Math.atan2(aimDir.x, aimDir.z) + Math.PI;
       const targetPitch = Math.asin(Math.max(-1, Math.min(1, aimDir.y)));
-      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, targetYaw, dt * 3.5);
-      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, -targetPitch, dt * 3.5);
+      this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, targetYaw, dt * 3.8);
+      this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, -targetPitch, dt * 3.8);
       this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, -aimDir.x * 0.45, dt * 3.0);
     } else {
-      // Standard dynamic cruising movement
+      // Standard dynamic cruising movement with subtle lead tracking
       this.meshGroup.position.addScaledVector(this.velocity, dt);
       this.meshGroup.position.x += Math.sin(this._time * 2.5 + this._wobbleOffset) * 2.5 * dt;
       this.meshGroup.rotation.z = Math.sin(this._time * 2.5 + this._wobbleOffset) * 0.2;
       this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0, dt * 2.0);
       this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, 0, dt * 2.0);
+    }
+
+    // ── 3. 3-Whisker Dynamic Obstacle Avoidance (Asteroid Slalom) ──
+    const asteroids = gameManager?.asteroids;
+    if (asteroids && asteroids.length > 0) {
+      if (!this._tempWhiskerRepel) this._tempWhiskerRepel = new THREE.Vector3();
+      this._tempWhiskerRepel.set(0, 0, 0);
+
+      const dPos = this.meshGroup.position;
+      const fwd = this._droneFwd;
+      const whiskerReach = 45.0;
+
+      for (let i = 0; i < asteroids.length; i++) {
+        const ast = asteroids[i];
+        if (!ast || ast.isDead || !ast.meshGroup) continue;
+        const aPos = ast.meshGroup.position;
+        const distSq = dPos.distanceToSquared(aPos);
+        const avoidRadius = (ast.radius || 3.5) + 6.0;
+
+        if (distSq < (whiskerReach + avoidRadius) * (whiskerReach + avoidRadius)) {
+          const toAstX = aPos.x - dPos.x;
+          const toAstY = aPos.y - dPos.y;
+          const toAstZ = aPos.z - dPos.z;
+
+          // Dot product with forward whisker
+          const projFwd = toAstX * fwd.x + toAstY * fwd.y + toAstZ * fwd.z;
+          if (projFwd > 0 && projFwd < whiskerReach) {
+            // Lateral distance from forward line of motion
+            const perpDistSq = (toAstX * toAstX + toAstY * toAstY + toAstZ * toAstZ) - (projFwd * projFwd);
+            if (perpDistSq < avoidRadius * avoidRadius) {
+              // Obstacle right ahead! Steer laterally away
+              const pushFactor = (1.0 - projFwd / whiskerReach) * 32.0;
+              const sideX = (dPos.x >= aPos.x ? 1 : -1);
+              const sideY = (dPos.y >= aPos.y ? 0.7 : -0.7);
+              this._tempWhiskerRepel.x += sideX * pushFactor;
+              this._tempWhiskerRepel.y += sideY * pushFactor * 0.5;
+            }
+          }
+        }
+      }
+
+      if (this._tempWhiskerRepel.lengthSq() > 0.01) {
+        this.meshGroup.position.addScaledVector(this._tempWhiskerRepel, dt);
+        this.meshGroup.rotation.z += (this._tempWhiskerRepel.x > 0 ? -0.35 : 0.35) * dt * 5.0;
+      }
     }
 
     // Pulse Thruster Flames
