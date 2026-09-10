@@ -1081,7 +1081,89 @@ export class CollisionSystem {
       }
     }
 
+    // 3B. Enemy Homing Missiles vs Player / Flares / Player Lasers / Defense Objective
+    if (gameManager.enemyMissiles && gameManager.enemyMissiles.length > 0) {
+      for (let i = gameManager.enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = gameManager.enemyMissiles[i];
+        if (!missile || !missile.meshGroup || missile.isDead) continue;
+        const mPos = missile.meshGroup.position;
 
+        let intercepted = false;
+
+        // A. Intercepted by Active Magnesium Countermeasures Flares
+        if (gameManager.activeFlares && gameManager.activeFlares.length > 0) {
+          for (let f = 0; f < gameManager.activeFlares.length; f++) {
+            const flare = gameManager.activeFlares[f];
+            if (flare && flare.position && mPos.distanceTo(flare.position) < 5.0) {
+              intercepted = true;
+              missile.destroy();
+              gameManager.enemyMissiles.splice(i, 1);
+              this.particleManager.createExplosion(mPos, 0xffaa00, 25, 1.8);
+              this.particleManager.spawnSparks(mPos, new THREE.Vector3(0, 1, 0), 0xffffff, 15);
+              this.spaceAudio.playExplosion();
+              break;
+            }
+          }
+        }
+        if (intercepted) continue;
+
+        // B. Shot Down by Player Lasers
+        if (gameManager.lasers && gameManager.lasers.length > 0) {
+          for (let l = gameManager.lasers.length - 1; l >= 0; l--) {
+            const laser = gameManager.lasers[l];
+            if (laser && !laser.isEnemy && !laser.isDead && laser.meshGroup) {
+              if (mPos.distanceTo(laser.meshGroup.position) < missile.radius + laser.radius + 1.2) {
+                intercepted = true;
+                missile.destroy();
+                gameManager.enemyMissiles.splice(i, 1);
+                laser.destroy();
+                gameManager.lasers.splice(l, 1);
+                this.particleManager.createExplosion(mPos, 0xff3300, 24, 1.6);
+                this.spaceAudio.playExplosion();
+                gameManager.addScore(150);
+                this._triggerHitMarker(true);
+                break;
+              }
+            }
+          }
+        }
+        if (intercepted) continue;
+
+        // C. Direct Impact with Player Starfighter
+        if (mPos.distanceTo(pPos) < player.radius + missile.radius) {
+          missile.destroy();
+          gameManager.enemyMissiles.splice(i, 1);
+          const dead = player.takeDamage(22, mPos);
+          this.particleManager.createExplosion(pPos, 0xff0044, 45, 2.5);
+          this.particleManager.createEmpShockwave(pPos, 25);
+          this.spaceAudio.playExplosion();
+          this.spaceScene.addScreenShake(1.2);
+          if (dead) gameManager.onGameOver('Craft Shield Destroyed by Enemy Missile');
+          continue;
+        }
+
+        // D. Impact with Allied Science Telescope Array
+        if (gameManager.activeTelescope && !gameManager.activeTelescope.isDead && gameManager.activeTelescope.meshGroup) {
+          const tel = gameManager.activeTelescope;
+          if (mPos.distanceTo(tel.meshGroup.position) < tel.radius + missile.radius) {
+            missile.destroy();
+            gameManager.enemyMissiles.splice(i, 1);
+            this.particleManager.createExplosion(mPos, 0xff0044, 30, 2.0);
+            this.spaceAudio.playExplosion();
+            const dead = tel.takeDamage(35);
+            if (dead) {
+              this.particleManager.createExplosion(tel.meshGroup.position, 0xff0055, 45, 2.0);
+              gameManager.spaceHUD?.showWaveBanner('OBJECTIVE COMPROMISED', 'SCIENCE TELESCOPE ARRAY DESTROYED');
+              gameManager.spaceHUD?.showRadioTransmission('MAYDAY! Heavy siege missile penetrated the telescope array!', 'HIGH COMMAND', 6.0);
+              gameManager.voiceAnnouncer?.speak('Warning! Objective destroyed! Science array lost!', true, 'COMMAND');
+              gameManager.activeTelescope = null;
+              gameManager.spaceHUD?.hideObjectiveBar();
+            }
+            continue;
+          }
+        }
+      }
+    }
 
     // 4. Plasma Pulse Ball Projectiles vs Threats & Bosses
     for (let i = gameManager.plasmaPulses.length - 1; i >= 0; i--) {

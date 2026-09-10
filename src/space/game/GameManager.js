@@ -25,6 +25,7 @@ import { SolarTitan } from '../objects/SolarTitan.js';
 import { SingularityHarbinger } from '../objects/SingularityHarbinger.js';
 import { CargoPod } from '../objects/CargoPod.js';
 import { DeepSpaceTelescope } from '../objects/DeepSpaceTelescope.js';
+import { HomingMissile } from '../objects/HomingMissile.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { WaveSpawner } from './WaveSpawner.js';
 import { UpgradeSystem } from './UpgradeSystem.js';
@@ -111,6 +112,7 @@ export class GameManager {
     this.plasmaPulses = [];
     this.nukes = [];
     this.playerSwarmMissiles = [];
+    this.enemyMissiles = [];
     this.severedDebris = [];
     this.laserPool = [];
     this.plasmaPulsePool = [];
@@ -756,6 +758,9 @@ export class GameManager {
     this.playerSwarmMissiles.forEach(m => m.destroy());
     this.playerSwarmMissiles = [];
 
+    this.enemyMissiles.forEach(m => m.destroy());
+    this.enemyMissiles = [];
+
     this.nukes.forEach(n => n.destroy());
     this.nukes = [];
 
@@ -815,6 +820,9 @@ export class GameManager {
       try { b.destroy(); } catch(e) {}
     });
     this.heavyBattleships = [];
+
+    this.enemyMissiles.forEach(m => m.destroy());
+    this.enemyMissiles = [];
 
     if (this.showcaseBosses && this.showcaseBosses.length > 0) {
       this.showcaseBosses.forEach(b => { try { b.destroy(); } catch(e) {} });
@@ -1872,6 +1880,12 @@ export class GameManager {
   }
 
   spawnEnemyLaser(origin, dir, color = 0xff0044, speed = 46) {
+    // Forward Combat Theater Rule: Never allow hostile projectiles to spawn from behind or abreast of player
+    if (this.playerShip && this.playerShip.meshGroup) {
+      if (origin.z >= this.playerShip.meshGroup.position.z - 3.0) {
+        return null;
+      }
+    }
     if (this.isMobile && this.lasers) {
       let activeEnemyCount = 0;
       for (let i = 0; i < this.lasers.length; i++) {
@@ -1884,6 +1898,24 @@ export class GameManager {
     return bolt;
   }
 
+  spawnEnemyMissile(startPos, targetPos = null) {
+    // Forward Combat Theater Rule: Never allow hostile missiles to spawn from behind or abreast of player
+    if (this.playerShip && this.playerShip.meshGroup) {
+      if (startPos.z >= this.playerShip.meshGroup.position.z - 3.0) {
+        return null;
+      }
+    }
+    if (this.isMobile && this.enemyMissiles && this.enemyMissiles.length >= 8) {
+      return null;
+    }
+    const aimTarget = targetPos || (this.playerShip && this.playerShip.meshGroup ? this.playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0));
+    const missile = new HomingMissile(this.spaceScene.scene, startPos, aimTarget);
+    this.enemyMissiles.push(missile);
+    if (this.spaceAudio && this.spaceAudio.playMissileLaunch) {
+      this.spaceAudio.playMissileLaunch(startPos.x);
+    }
+    return missile;
+  }
 
   spawnPowerUp(pos) {
     const types = ['OVERCHARGE', 'REPAIR', 'STASIS', 'NUKE'];
@@ -1922,6 +1954,12 @@ export class GameManager {
   }
 
   spawnLaser(startPos, colorHex = null, isEnemy = false, targetDir = null, isCrit = false, projectileType = 'STANDARD') {
+    // Forward Combat Theater Rule: Never allow any enemy weapon to spawn from behind or abreast of player
+    if (isEnemy && this.playerShip && this.playerShip.meshGroup) {
+      if (startPos.z >= this.playerShip.meshGroup.position.z - 3.0) {
+        return null;
+      }
+    }
     if (isEnemy) {
       if (!colorHex || colorHex === 0x00f3ff || colorHex === 0x00ffff || colorHex === 0x00ff88 || colorHex === 0xaa22ff || colorHex === 0x00ff66) {
         colorHex = 0xff0033;
@@ -2936,6 +2974,11 @@ export class GameManager {
               this.spaceAudio.playHeavyCannonSound();
             }
           }
+          if (carrierStatus && carrierStatus.missiles && Array.isArray(carrierStatus.missiles)) {
+            carrierStatus.missiles.forEach(m => {
+              this.spawnEnemyMissile(m.pos, m.targetPos || pPos);
+            });
+          }
           if (carrierStatus && carrierStatus.droneLaunches && carrierStatus.droneLaunches.length > 0) {
             carrierStatus.droneLaunches.forEach(launch => {
               this.spawnDrone({
@@ -2952,6 +2995,22 @@ export class GameManager {
               this.spawnDrone(null, true);
             }
           }
+        }
+      }
+    }
+
+    // 5B. Update Active Enemy Homing Missiles
+    if (this.enemyMissiles && this.enemyMissiles.length > 0) {
+      for (let i = this.enemyMissiles.length - 1; i >= 0; i--) {
+        const missile = this.enemyMissiles[i];
+        if (!missile || missile.isDead) {
+          this.enemyMissiles.splice(i, 1);
+          continue;
+        }
+        missile.update(effectiveDt, this.playerShip, this.particleManager);
+        if (missile.isDead) {
+          missile.destroy();
+          this.enemyMissiles.splice(i, 1);
         }
       }
     }

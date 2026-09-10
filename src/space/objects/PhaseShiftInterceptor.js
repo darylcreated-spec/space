@@ -87,7 +87,7 @@ export class PhaseShiftInterceptor {
     this.meshGroup.add(this.coreMesh);
   }
 
-  performMicroWarp() {
+  performMicroWarp(playerPos = null) {
     if (this.isDead || !this.meshGroup) return;
 
     const oldPos = this.meshGroup.position.clone();
@@ -96,10 +96,11 @@ export class PhaseShiftInterceptor {
       this.particleManager.spawnSonicBoomDisc(oldPos, 0x00f3ff);
     }
 
-    // Micro-warp 12-16m laterally and forward
+    // Micro-warp 12-16m laterally and forward (strictly in front of player)
+    const pZ = (playerPos && playerPos.meshGroup) ? playerPos.meshGroup.position.z : (playerPos ? playerPos.z : 0);
     const warpX = (Math.random() - 0.5) * 24.0;
     const warpY = 2.0 + (Math.random() - 0.5) * 4.0;
-    const warpZ = Math.min(10, this.meshGroup.position.z + 12.0);
+    const warpZ = Math.min(pZ - 8.0, this.meshGroup.position.z + 12.0);
 
     this.meshGroup.position.set(warpX, warpY, warpZ);
 
@@ -111,6 +112,9 @@ export class PhaseShiftInterceptor {
   update(dt, playerPos, gameManager) {
     if (this.isDead || !this.meshGroup) return false;
     this._time += dt;
+
+    const pZ = (playerPos && playerPos.meshGroup) ? playerPos.meshGroup.position.z : (playerPos ? playerPos.z : 0);
+    const isBehindPlayer = (this.meshGroup.position.z >= pZ - 5.0);
 
     // Movement forward
     this.meshGroup.position.z += this.speed * dt;
@@ -124,16 +128,16 @@ export class PhaseShiftInterceptor {
       this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, 0.42, dt * 3.5);
     }
 
-    // Micro-warp trigger
+    // Micro-warp trigger (always keeping ahead of player)
     this.phaseTimer -= dt;
-    if (this.phaseTimer <= 0 && this.meshGroup.position.z < 5) {
+    if (this.phaseTimer <= 0 && this.meshGroup.position.z < pZ - 8.0) {
       this.phaseTimer = this.phaseCooldown;
-      this.performMicroWarp();
+      this.performMicroWarp(playerPos);
     }
 
-    // Weapon Fire: High-Frequency Phase Beams (zero heap allocation)
+    // Weapon Fire: High-Frequency Phase Beams (strictly in front of player)
     this.fireTimer -= dt;
-    if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= -65) {
+    if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= -65 && !isBehindPlayer) {
       this.fireTimer = 1.1 + Math.random() * 0.5;
       const p = this.meshGroup.position;
       this._muzzle1.set(p.x - 1.2, p.y, p.z + 1.6);
@@ -141,9 +145,9 @@ export class PhaseShiftInterceptor {
       return this._muzzleArray;
     }
 
-    // Boundary Check: Micro-warp re-entry if flying past player
-    if (this.meshGroup.position.z > 26) {
-      this.meshGroup.position.z = -75 - Math.random() * 15;
+    // Forward Combat Theater Rule: Micro-warp turnaround when approaching player plane
+    if (this.meshGroup.position.z >= pZ - 4.0) {
+      this.meshGroup.position.z = pZ - 75 - Math.random() * 15;
       this.meshGroup.position.x = (Math.random() - 0.5) * 30;
       if (this.particleManager) {
         this.particleManager.createEmpShockwave(this.meshGroup.position, 20);

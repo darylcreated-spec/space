@@ -833,6 +833,10 @@ export class CarrierCapitalShip {
     this._time += dt;
     const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3();
 
+    // Ensure Carrier Standoff is strictly maintained in front of the player
+    const desiredTargetZ = Math.min(playerPos.z - 45.0, -70);
+    this.targetZ = desiredTargetZ;
+
     const arrived = this.meshGroup.position.z >= this.targetZ;
     if (!arrived) {
       this.meshGroup.position.z += this.speed * dt;
@@ -854,7 +858,8 @@ export class CarrierCapitalShip {
       this.surgeTimer = (this.surgeTimer || 6.0) - dt;
       if (this.isSurging) {
         this.surgeProgress += dt * 1.5;
-        this.meshGroup.position.z = this.targetZ + Math.sin(this.surgeProgress * Math.PI) * 22.0;
+        const surgeZ = this.targetZ + Math.sin(this.surgeProgress * Math.PI) * 18.0;
+        this.meshGroup.position.z = Math.min(playerPos.z - 25.0, surgeZ);
         this.meshGroup.rotation.x = 0.22 + Math.sin(this.surgeProgress * Math.PI) * 0.25;
         if (this.particleManager && Math.random() < 0.6) {
           this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0xff3300);
@@ -930,26 +935,18 @@ export class CarrierCapitalShip {
       }
     });
 
-    // ── 🎯 Smart Aiming with Clear Firing Arcs (Never Shoot Through the Ship) ──
-    if (arrived) {
+    // ── 🎯 Smart Aiming with Clear Firing Arcs (Turrets Track Player in Front) ──
+    const isBehindPlayer = (this.meshGroup.position.z >= playerPos.z - 5.0);
+    if (!isBehindPlayer) {
       this._tempV1.copy(playerPos);
       const localPlayer = this.meshGroup.worldToLocal(this._tempV1);
 
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh && t.barrelGroup) {
-          // Constrain aiming angles to outward arcs so turrets never aim across/through the carrier's forward hull
-          let targetX = localPlayer.x;
-          const isLeftTurret = t.relPos.x < 0;
-          if (isLeftTurret && targetX > -2.0) {
-            targetX = -2.0; // Left turrets don't cross into right hull
-          } else if (!isLeftTurret && targetX < 2.0) {
-            targetX = 2.0;  // Right turrets don't cross into left hull
-          }
-
-          const targetAngleY = Math.atan2(targetX - t.relPos.x, localPlayer.z - t.relPos.z);
+          const targetAngleY = Math.atan2(localPlayer.x - t.relPos.x, localPlayer.z - t.relPos.z);
           t.mesh.rotation.y = THREE.MathUtils.lerp(t.mesh.rotation.y, targetAngleY, dt * 3.5);
 
-          const distHoriz = Math.hypot(targetX - t.relPos.x, localPlayer.z - t.relPos.z);
+          const distHoriz = Math.hypot(localPlayer.x - t.relPos.x, localPlayer.z - t.relPos.z);
           const targetPitch = Math.atan2(localPlayer.y - t.relPos.y, distHoriz);
           t.barrelGroup.rotation.x = THREE.MathUtils.lerp(t.barrelGroup.rotation.x, targetPitch, dt * 3.5);
         }
@@ -964,12 +961,13 @@ export class CarrierCapitalShip {
       siegeLasers: false
     };
 
-    if (!arrived) return result;
+    // Forward Combat Theater Rule: Never fire weapons if behind player
+    if (isBehindPlayer) return result;
 
-    // ── 🔫 Firing From Actual Physical Gun Muzzle Tips ──
+    // ── 1. 🔫 Firing From Physical Gun Muzzle Tips (Continuous High-Threat Barrage) ──
     this.fireTimer -= dt;
     if (this.fireTimer <= 0) {
-      this.fireTimer = this.isMobile ? 1.2 : 0.85;
+      this.fireTimer = this.isMobile ? 1.1 : 0.75;
       const fireOrigins = [];
       const livingTurrets = this.turrets.filter(t => !t.isDead && t.barrelTips && t.barrelTips.length > 0);
       const turretsToFire = this.isMobile ? livingTurrets.slice(0, 3) : livingTurrets;
@@ -986,14 +984,13 @@ export class CarrierCapitalShip {
       }
     }
 
-    // ── 2. Interceptor Launches Out of the Side Hangar Bays (Port & Starboard) ──
+    // ── 2. Interceptor Scrambles Out of Side Hangar Bays (Port & Starboard) ──
     const livingHangars = this.subsystems.filter(s => s.id.includes('hangar') && !s.isDead);
     if (livingHangars.length > 0) {
       this.droneLaunchTimer -= dt;
       if (this.droneLaunchTimer <= 0) {
-        this.droneLaunchTimer = this.isMobile ? 6.5 : 3.8;
+        this.droneLaunchTimer = this.isMobile ? 6.0 : 3.5;
         const launches = [];
-        // On mobile, launch from 1 hangar at a time alternating to avoid sudden bursts
         const hangarsToLaunch = this.isMobile ? [livingHangars[Math.floor(Math.random() * livingHangars.length)]] : livingHangars;
         hangarsToLaunch.forEach(h => {
           const wp = this.meshGroup.localToWorld(h.relPos.clone());
@@ -1003,7 +1000,7 @@ export class CarrierCapitalShip {
             pos: wp,
             vx: isRight ? (16.0 + Math.random() * 4.0) : (-16.0 - Math.random() * 4.0),
             vy: (Math.random() - 0.5) * 3.0,
-            vz: 11.0 + Math.random() * 4.0
+            vz: 12.0 + Math.random() * 4.0
           });
           if (this.particleManager) {
             this.particleManager.spawnSonicBoomDisc(wp, 0xff2244);
@@ -1013,19 +1010,45 @@ export class CarrierCapitalShip {
       }
     }
 
+    // ── 3. 🚀 Underwing & Deck Missile Pods (Homing Missile Volley) ──
     const livingPods = this.subsystems.filter(s => s.id.includes('missilePod') && !s.isDead);
     if (livingPods.length > 0) {
       this.missileTimer -= dt;
       if (this.missileTimer <= 0) {
-        this.missileTimer = 3.5;
-        result.missiles = true;
+        this.missileTimer = this.isMobile ? 4.0 : 2.8;
+        const missileSpawns = [];
         livingPods.forEach(p => {
           const wp = this.meshGroup.localToWorld(p.relPos.clone());
+          missileSpawns.push({
+            pos: wp,
+            targetPos: playerPos.clone()
+          });
           if (this.particleManager) {
             this.particleManager.createExplosion(wp, 0xff0044, 20, 1.5);
+            this.particleManager.spawnSparks(wp, new THREE.Vector3(0, 1, 1), 0xff3300, 8);
           }
         });
+        if (missileSpawns.length > 0) {
+          result.missiles = missileSpawns;
+        }
       }
+    }
+
+    // ── 4. ⚡ Spinal Heavy Siege Cannons (Twin Crimson Lance Beams) ──
+    this.siegeCannonTimer -= dt;
+    if (this.siegeCannonTimer <= 0) {
+      this.siegeCannonTimer = this.isMobile ? 7.0 : 4.8;
+      const siegeOrigins = [];
+      [-3.2, 3.2].forEach(sx => {
+        const localMuzzle = new THREE.Vector3(sx, 1.8, 12.5);
+        const worldMuzzle = this.meshGroup.localToWorld(localMuzzle);
+        siegeOrigins.push(worldMuzzle);
+        if (this.particleManager) {
+          this.particleManager.spawnSonicBoomDisc(worldMuzzle, 0xff0033);
+          this.particleManager.createExplosion(worldMuzzle, 0xff0055, 35, 2.5);
+        }
+      });
+      result.siegeLasers = siegeOrigins;
     }
 
     return result;

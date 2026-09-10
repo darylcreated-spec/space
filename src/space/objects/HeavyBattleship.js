@@ -837,12 +837,22 @@ function createSmoothBattleshipHullGeo() {
     const pos = this.meshGroup.position;
     const playerPos = playerShip && playerShip.meshGroup ? playerShip.meshGroup.position : new THREE.Vector3(0, 0, 0);
 
+    // Forward Combat Theater Rule: Heavy Battleship strictly stays ahead of player
+    this.targetZ = Math.min(playerPos.z - 45.0, -55);
+    const isBehindPlayer = (pos.z >= playerPos.z - 8.0);
+    if (isBehindPlayer) {
+      pos.z = this.targetZ; // Reset back to forward standoff
+    }
+
     // 1. Advance to battle station & Tactical Maneuver Controller
     if (pos.z < this.targetZ) {
       pos.z += this.speed * dt;
       this.meshGroup.rotation.x = THREE.MathUtils.lerp(this.meshGroup.rotation.x, 0.05, dt * 2.0);
       this.meshGroup.rotation.z = THREE.MathUtils.lerp(this.meshGroup.rotation.z, 0, dt * 2.0);
     } else {
+      // Clamp forward positioning so ship never drifts past player
+      pos.z = Math.min(pos.z, playerPos.z - 30.0);
+
       // ── 🧠 Multi-Phase Tactical Attack & Evasive Sequencing ──
       this.tacticalTimer -= dt;
       if (this.tacticalTimer <= 0) {
@@ -899,10 +909,13 @@ function createSmoothBattleshipHullGeo() {
       }
     });
 
-    // 3. Railgun Salvo Fire Cycle
+    // Forward Combat Theater Rule: Never fire weapons if behind player
+    if (isBehindPlayer) return;
+
+    // 3. Railgun Salvo Fire Cycle (Immediate continuous engagement ahead of player)
     this.railgunTimer -= dt;
-    if (this.railgunTimer <= 0 && pos.z >= this.targetZ - 10) {
-      this.railgunTimer = 2.8;
+    if (this.railgunTimer <= 0 && pos.z < playerPos.z - 5.0) {
+      this.railgunTimer = 2.4;
       this.turrets.forEach(turret => {
         if (!turret.isDead && turret.mesh && Math.random() < 0.75) {
           const origin = turret.mesh.getWorldPosition(new THREE.Vector3());
@@ -914,10 +927,10 @@ function createSmoothBattleshipHullGeo() {
       });
     }
 
-    // 4. Missile Silo Pods Salvo Cycle
+    // 4. Missile Silo Pods Salvo Cycle (Active Homing Volleys)
     this.missileTimer -= dt;
-    if (this.missileTimer <= 0 && pos.z >= this.targetZ - 10) {
-      this.missileTimer = 3.5;
+    if (this.missileTimer <= 0 && pos.z < playerPos.z - 5.0) {
+      this.missileTimer = 3.2;
       this.missilePods.forEach(p => {
         if (!p.isDead && p.mesh) {
           const origin = p.mesh.getWorldPosition(new THREE.Vector3());
@@ -985,7 +998,7 @@ function createSmoothBattleshipHullGeo() {
       this.apexLight.intensity = 6.0 + Math.sin(this._time * 16.0) * 3.0;
     }
 
-    if (this.apexLaserTimer <= 0 && pos.z >= this.targetZ - 15) {
+    if (this.apexLaserTimer <= 0 && pos.z < playerPos.z - 5.0) {
       this.apexLaserTimer = 2.6 + Math.random() * 0.8;
       const apexOrigin = this.meshGroup.position.clone().add(new THREE.Vector3(0, 0, 63.8));
       const dir = new THREE.Vector3().subVectors(playerPos, apexOrigin).normalize();

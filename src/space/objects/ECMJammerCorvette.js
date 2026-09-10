@@ -153,15 +153,28 @@ export class ECMJammerCorvette {
       }
     }
 
-    // Weapon Fire: Disruptor Plasma Bolts
+    // Forward Combat Theater Rule: Never fire weapons if behind player
+    const pZ = (playerPos && playerPos.meshGroup) ? playerPos.meshGroup.position.z : (playerPos ? playerPos.z : 0);
+    const isBehindPlayer = (this.meshGroup.position.z >= pZ - 5.0);
+
+    // Weapon Fire: Disruptor Plasma Bolts (strictly in front of player)
     this.fireTimer -= dt;
-    if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= this.targetZ - 15) {
+    if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= this.targetZ - 15 && !isBehindPlayer) {
       this.fireTimer = 1.6 + Math.random() * 0.6;
       const p = this.meshGroup.position;
       return [
         new THREE.Vector3(p.x - 1.2, p.y, p.z + 2.4),
         new THREE.Vector3(p.x + 1.2, p.y, p.z + 2.4)
       ];
+    }
+
+    // Forward Combat Theater Rule: Reposition turnaround if approaching player plane
+    if (this.meshGroup.position.z >= pZ - 4.0) {
+      this.meshGroup.position.z = pZ - 65 - Math.random() * 15;
+      this.meshGroup.position.x = (Math.random() > 0.5 ? -24 : 24);
+      if (this.particleManager) {
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 25);
+      }
     }
 
     return false;

@@ -458,11 +458,11 @@ export class EnemyDrone {
         this.aiState = Math.random() < 0.6 ? 'FLANKING_PURSUIT' : 'CRUISE';
       }
     } else if (this.aiState === 'FLANKING_PURSUIT') {
-      // Flanking Dogfight: Circling around the player's lateral flank and matching Z-depth
+      // Flanking Dogfight: Circling around the player's forward flank
       this.flankAngle += this.orbitSpeed * dt;
       const targetX = pPos.x + Math.cos(this.flankAngle) * this.flankRadius;
       const targetY = pPos.y + Math.sin(this.flankAngle) * (this.flankRadius * 0.65);
-      const targetZ = pPos.z - 15.0 + Math.sin(this.flankAngle * 1.5) * 8.0;
+      const targetZ = Math.min(pPos.z - 12.0, pPos.z - 18.0 + Math.sin(this.flankAngle * 1.5) * 5.0);
 
       this.meshGroup.position.x = THREE.MathUtils.lerp(this.meshGroup.position.x, targetX, dt * 2.2);
       this.meshGroup.position.y = THREE.MathUtils.lerp(this.meshGroup.position.y, targetY, dt * 2.2);
@@ -548,9 +548,12 @@ export class EnemyDrone {
       flame.scale.set(s, s, s * (this.isEvading ? 1.8 : 1.2));
     });
 
+    // Forward Combat Theater Rule: Never fire weapons if behind or abreast of player
+    const isBehindPlayer = playerPos && (this.meshGroup.position.z >= pPos.z - 5.0);
+
     // Firing Loop
     this.fireTimer -= dt;
-    if (this.fireTimer <= 0 && playerPos) {
+    if (this.fireTimer <= 0 && playerPos && !isBehindPlayer) {
       this.fireTimer = (this.aiState === 'FLANKING_PURSUIT' ? 0.9 : 1.2) + Math.random() * 0.7;
       const activeCannons = this.cannons.filter(c => !c.isDead);
       const outLasers = [];
@@ -566,16 +569,21 @@ export class EnemyDrone {
       return outLasers.length > 0 ? outLasers : [this.meshGroup.position.clone()];
     }
 
-    // 3D Tactical Combat Leash: Keep dogfight contained within 150m of player
-    if (distToPlayer > 150.0) {
-      const reIntercept = toPlayer.clone().normalize().multiplyScalar(56.0);
+    // 3D Tactical Combat Leash & Forward Theater Enforcement:
+    // If drone reaches close to player depth, immediately execute hyperspace loop turnaround back ahead
+    if (this.meshGroup.position.z >= pPos.z - 4.0 && !window.spaceGameManager?.playerShip?.isFreeFlight) {
+      this.meshGroup.position.z = pPos.z - 75.0 - Math.random() * 20.0;
+      this.meshGroup.position.x = (Math.random() - 0.5) * 32.0;
+      this.meshGroup.position.y = 2.0 + (Math.random() - 0.5) * 8.0;
+      this.aiState = 'CRUISE';
+      if (this.particleManager) {
+        this.particleManager.spawnSonicBoomDisc(this.meshGroup.position, 0xff0044);
+      }
+    } else if (distToPlayer > 150.0) {
+      const reIntercept = _scratchToPlayer.clone().normalize().multiplyScalar(56.0);
       this.meshGroup.position.addScaledVector(reIntercept, dt);
       const targetYaw = Math.atan2(toPlayerNorm.x, toPlayerNorm.z) + Math.PI;
       this.meshGroup.rotation.y = THREE.MathUtils.lerp(this.meshGroup.rotation.y, targetYaw, dt * 4.0);
-    } else if (this.meshGroup.position.z > 35 && !window.spaceGameManager?.playerShip?.isFreeFlight) {
-      this.meshGroup.position.z = -75 - Math.random() * 15;
-      this.meshGroup.position.x = (Math.random() - 0.5) * 32;
-      this.aiState = 'CRUISE';
     }
 
     return false;

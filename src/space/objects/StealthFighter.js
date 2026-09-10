@@ -331,9 +331,10 @@ export class StealthFighter {
       this.targetCloakOpacity = 1.0;
       this.meshGroup.position.z += this.speed * 0.6 * dt;
 
-      // Ambush firing
+      // Ambush firing (strictly ahead of player)
+      const isBehindPlayer = playerPos && (this.meshGroup.position.z >= playerPos.z - 5.0);
       this.fireTimer -= dt;
-      if (this.fireTimer <= 0 && this.burstCount < this.maxBurst) {
+      if (this.fireTimer <= 0 && this.burstCount < this.maxBurst && !isBehindPlayer) {
         this.fireTimer = this.fireInterval;
         this.burstCount++;
         const p = this.meshGroup.position.clone();
@@ -369,14 +370,18 @@ export class StealthFighter {
       }
     }
 
-    // Boundary Check: If stealth fighter flies past player (+Z), warp re-enter from deep space flank
-    if (this.meshGroup.position.z > 26) {
-      this.meshGroup.position.z = -80 - Math.random() * 15;
+    // Forward Combat Theater Rule: If stealth fighter approaches player depth, warp re-enter from deep space flank ahead
+    const maxAllowedZ = playerPos ? playerPos.z - 4.0 : -4.0;
+    if (this.meshGroup.position.z >= maxAllowedZ) {
+      this.meshGroup.position.z = (playerPos ? playerPos.z : 0) - 80 - Math.random() * 15;
       this.meshGroup.position.x = (Math.random() - 0.5) * 32;
       this.state = 'CLOAKED_APPROACH';
       this.stateTimer = 3.0;
       this.isCloaked = true;
       this.targetCloakOpacity = 0.12;
+      if (this.particleManager) {
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 20);
+      }
     }
 
     return false;

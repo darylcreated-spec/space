@@ -1005,6 +1005,18 @@ function createSmoothCapitalShipHullGeo() {
           this.meshGroup.position.x += Math.cos(this._time * (this.strafeFreq * 0.8)) * 2.2 * dt;
         }
       }
+
+      // Forward Combat Theater Rule: Never allow cruiser to overshoot or linger behind player
+      if (this.meshGroup.position.z >= (playerPos ? playerPos.z - 6.0 : -6.0)) {
+        this.meshGroup.position.z = -75 - Math.random() * 15;
+        this.meshGroup.position.x = (Math.random() - 0.5) * 32;
+        this.maneuverState = 'CRUISE';
+        this.meshGroup.rotation.z = 0;
+        this.meshGroup.rotation.x = 0;
+        if (this.particleManager) {
+          this.particleManager.createEmpShockwave(this.meshGroup.position, 25);
+        }
+      }
     }
 
     // Turrets aim at Player Starfighter
@@ -1016,9 +1028,12 @@ function createSmoothCapitalShipHullGeo() {
       }
     });
 
+    const isBehindPlayer = playerPos && (this.meshGroup.position.z >= playerPos.z - 5.0);
+    if (isBehindPlayer) return false;
+
     // ── Underwing Enemy Homing Micro-Missile Salvo ──
     this.missileTimer -= dt;
-    if (this.missileTimer <= 0 && this.meshGroup.position.z >= -45 && this.meshGroup.position.z < 25) {
+    if (this.missileTimer <= 0 && this.meshGroup.position.z >= -65 && this.meshGroup.position.z < playerPos.z - 5.0) {
       this.missileTimer = 3.2 + Math.random() * 0.8;
       if (this.underwingMissiles && gm) {
         this.underwingMissiles.forEach(m => {
@@ -1040,7 +1055,7 @@ function createSmoothCapitalShipHullGeo() {
     let shouldFire = false;
     const out = [];
 
-    if (this.fireTimer <= 0 && this.meshGroup.position.z >= -65 && this.meshGroup.position.z < 35) {
+    if (this.fireTimer <= 0 && this.meshGroup.position.z >= -80 && this.meshGroup.position.z < playerPos.z - 5.0) {
       this.fireTimer = 0.65 + Math.random() * 0.35; // Rapid aggressive 0.65s - 1.0s bursts!
       this.turrets.forEach(t => {
         if (!t.isDead && t.mesh) {
