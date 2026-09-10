@@ -188,18 +188,11 @@ export class ControlsManager {
     this.keys[e.key] = true;
     this.keys[e.key.toLowerCase()] = true;
 
-    const now = performance.now();
-    if (e.code === 'KeyA' || e.code === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
-      if (now - this.lastPressA < 250) {
-        this.pendingDodge = 'left';
+    // Dedicated Tactical Dodge Hotkey [Q]
+    if (e.code === 'KeyQ' || e.key === 'q' || e.key === 'Q') {
+      if (window.spaceGameManager && window.spaceGameManager.state === 'PLAYING') {
+        window.spaceGameManager.triggerDodgeRoll();
       }
-      this.lastPressA = now;
-    }
-    if (e.code === 'KeyD' || e.code === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
-      if (now - this.lastPressD < 250) {
-        this.pendingDodge = 'right';
-      }
-      this.lastPressD = now;
     }
 
     // Squadron Doctrine Hotkeys (B/T: Cycle, 1: DEFEND, 2: FOCUS, 3: FLANK)

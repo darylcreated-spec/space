@@ -1873,13 +1873,13 @@ export class PlayerShip {
       this.recoilZ += (0 - this.recoilZ) * dt * 22.0;
       this.recoilPitch += (0 - this.recoilPitch) * dt * 22.0;
 
-      // Aerodynamic banking into turns + manual roll + pitch lift
-      const bankRoll = -(inputDir.x || 0) * (this.isBoosting ? 0.90 : 0.65);
+      // Aerodynamic banking into turns: comfortable 14° to 20° bank (instead of disorienting 55° roll)
+      const bankRoll = -(inputDir.x || 0) * (this.isBoosting ? 0.35 : 0.25);
       const manualRoll = (this.manualRollInput || 0) * 1.8;
-      this.flightRoll = THREE.MathUtils.lerp(this.flightRoll || 0, bankRoll + manualRoll, dt * 9.0);
+      this.flightRoll = THREE.MathUtils.lerp(this.flightRoll || 0, bankRoll + manualRoll, dt * 6.0);
 
-      // Pitch lift: high bank angles generate upward aerodynamic lift
-      const pitchLift = Math.abs(this.flightRoll || 0) * 0.08;
+      // Pitch lift: gentle upward aerodynamic lift during banks
+      const pitchLift = Math.abs(this.flightRoll || 0) * 0.04;
 
       this._flightEuler.set(this.flightPitch + this.recoilPitch + pitchLift, this.flightYaw, this.flightRoll, 'YXZ');
       this.meshGroup.quaternion.setFromEuler(this._flightEuler);
@@ -1947,9 +1947,10 @@ export class PlayerShip {
         if (this.velocity.z > 0) this.velocity.z = 0;
       }
 
-      this.targetRoll = -inputDir.x * (this.isBoosting ? 0.95 : 0.75);
-      this.targetPitch = inputDir.y * 0.35 + (this.velocity.z < -2 ? -0.15 : (this.velocity.z > 2 ? 0.12 : 0));
-      this.targetYaw = -inputDir.x * 0.28;
+      // Comfortable banking angle (max ~14° - 20°) for stable, clear horizon & crosshair control
+      this.targetRoll = -inputDir.x * (this.isBoosting ? 0.35 : 0.25);
+      this.targetPitch = inputDir.y * 0.22 + (this.velocity.z < -2 ? -0.10 : (this.velocity.z > 2 ? 0.08 : 0));
+      this.targetYaw = -inputDir.x * 0.20;
       this.currentRoll += (this.targetRoll - this.currentRoll) * rotSmooth;
       this.currentPitch += (this.targetPitch - this.currentPitch) * rotSmooth;
       this.currentYaw = (this.currentYaw || 0) + (this.targetYaw - (this.currentYaw || 0)) * rotSmooth;
