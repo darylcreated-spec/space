@@ -671,8 +671,8 @@ export class SpaceScene {
       }
     }
 
-    // 1. Planet Segma Core Globe with 4K Photorealistic PBR Textures
-    const planetGeo = new THREE.SphereGeometry(140, 64, 64);
+    // 1. Planet Segma Core Globe with 4K Photorealistic PBR Textures (Reduced 25%: 140 -> 105)
+    const planetGeo = new THREE.SphereGeometry(105, 64, 64);
     
     // Load high-resolution 4K/2K texture maps
     const diffuseTex = assetManager.loadTexture('/textures/planets/planet_segma_diffuse_4k.jpg', true);
@@ -695,8 +695,8 @@ export class SpaceScene {
     this.planetCoreMesh = segmaMesh;
     this.planetGroup.add(segmaMesh);
 
-    // 2. Separate Dynamic Atmospheric Cloud Sphere
-    const cloudGeo = new THREE.SphereGeometry(141.8, 64, 64);
+    // 2. Separate Dynamic Atmospheric Cloud Sphere (Reduced 25%: 141.8 -> 106.35)
+    const cloudGeo = new THREE.SphereGeometry(106.35, 64, 64);
     const cloudTex = assetManager.loadTexture('/textures/planets/planet_segma_clouds_1k.png', true);
     const cloudMat = new THREE.MeshStandardMaterial({
       map: cloudTex,
@@ -709,21 +709,8 @@ export class SpaceScene {
     this.planetCloudMesh = cloudMesh;
     this.planetGroup.add(cloudMesh);
 
-    // 3. Natural Orbital Moon with High-Res Surface Map
-    const moonGeo = new THREE.SphereGeometry(18, 32, 32);
-    const moonTex = assetManager.loadTexture('/textures/planets/planet_segma_moon_1k.jpg', true);
-    const moonMat = new THREE.MeshStandardMaterial({
-      map: moonTex,
-      roughness: 0.88,
-      metalness: 0.08
-    });
-    const moonMesh = new THREE.Mesh(moonGeo, moonMat);
-    moonMesh.position.set(-210, 65, -60);
-    this.planetMoonMesh = moonMesh;
-    this.planetGroup.add(moonMesh);
-
-    // 4. Rayleigh Atmospheric Glow Shell
-    const atmosGeo = new THREE.SphereGeometry(145, 32, 32);
+    // 3. Rayleigh Atmospheric Glow Shell (Reduced 25%: 145 -> 108.75)
+    const atmosGeo = new THREE.SphereGeometry(108.75, 32, 32);
     const atmosMat = new THREE.MeshBasicMaterial({
       color: 0x00f3ff,
       transparent: true,
@@ -733,51 +720,13 @@ export class SpaceScene {
     });
     this.planetGroup.add(new THREE.Mesh(atmosGeo, atmosMat));
 
-    // 5. Shimmering Planetary Defense Energy Shield
-    const shieldGeo = new THREE.SphereGeometry(152, 32, 32);
-    const shieldMat = new THREE.MeshBasicMaterial({
-      color: 0x00aaff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.22,
-      blending: THREE.AdditiveBlending
-    });
-    const shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
-    this.planetGroup.add(shieldMesh);
-    this.planetShieldMesh = shieldMesh;
+    // Clear moon and shield orb references (removed for clean cinematic aesthetics)
+    this.planetMoonMesh = null;
+    this.planetShieldMesh = null;
 
-    // 6. Orbital Defense Satellite Grid Ring
-    const satRingGeo = new THREE.TorusGeometry(185, 1.2, 8, 64);
-    satRingGeo.rotateX(Math.PI * 0.35);
-    const satRingMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      transparent: true,
-      opacity: 0.55,
-      blending: THREE.AdditiveBlending
-    });
-    this.planetGroup.add(new THREE.Mesh(satRingGeo, satRingMat));
-
-    // Orbital Satellites with blinking beacons
-    for (let s = 0; s < 8; s++) {
-      const angle = (s / 8) * Math.PI * 2;
-      const sx = Math.cos(angle) * 185;
-      const sy = Math.sin(angle) * Math.sin(Math.PI * 0.35) * 185;
-      const sz = Math.sin(angle) * Math.cos(Math.PI * 0.35) * 185;
-
-      const satMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(2.5, 2.5, 2.5),
-        new THREE.MeshStandardMaterial({ color: 0x223344, metalness: 0.9, roughness: 0.2 })
-      );
-      satMesh.position.set(sx, sy, sz);
-
-      const beacon = new THREE.Mesh(
-        new THREE.SphereGeometry(0.8, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0x00ff88 })
-      );
-      beacon.position.set(0, 1.8, 0);
-      satMesh.add(beacon);
-
-      this.planetGroup.add(satMesh);
+    // Clean, unobstructed starfield void around Planet Segma
+    if (this.nebulaGroup) {
+      this.nebulaGroup.visible = false;
     }
 
     // Set cinematic fog density
@@ -1604,8 +1553,8 @@ export class SpaceScene {
     let dustColor = 0x00f3ff;
 
     if (stageNum === 1) {
-      // 🪐 STAGE 1: Orbital Corridor IV // Photorealistic Planet Segma & Planetary Rings
-      const planetGeo = new THREE.SphereGeometry(88, 48, 48);
+      // 🪐 STAGE 1: Orbital Corridor IV // Photorealistic Planet Segma & Planetary Rings (Reduced 25%: 88 -> 66)
+      const planetGeo = new THREE.SphereGeometry(66, 48, 48);
       const diffuseTex = assetManager.loadTexture('/textures/planets/planet_segma_diffuse_4k.jpg', true);
       const normalTex = assetManager.loadTexture('/textures/planets/planet_segma_normal_2k.jpg');
       const specTex = assetManager.loadTexture('/textures/planets/planet_segma_specular_2k.jpg');
@@ -1628,8 +1577,8 @@ export class SpaceScene {
       const planetMesh = new THREE.Mesh(planetGeo, planetMat);
       this.planetGroup.add(planetMesh);
 
-      // Dynamic Cloud Sphere Layer
-      const cloudGeo = new THREE.SphereGeometry(89.2, 48, 48);
+      // Dynamic Cloud Sphere Layer (Reduced 25%: 89.2 -> 66.9)
+      const cloudGeo = new THREE.SphereGeometry(66.9, 48, 48);
       const cloudTex = assetManager.loadTexture('/textures/planets/planet_segma_clouds_1k.png', true);
       const cloudMat = new THREE.MeshStandardMaterial({
         map: cloudTex,
@@ -1642,18 +1591,14 @@ export class SpaceScene {
       this.planetCloudMesh = cloudMesh;
       this.planetGroup.add(cloudMesh);
 
-      const ringGeo = new THREE.RingGeometry(110, 185, 64);
+      const ringGeo = new THREE.RingGeometry(82.5, 138.75, 64);
       ringGeo.rotateX(Math.PI * 0.38); ringGeo.rotateZ(Math.PI * 0.12);
       const ringTex = this.createPlanetaryRingTexture('rgba(140, 210, 255, 0.8)', 'rgba(30, 90, 180, 0.25)');
       const ringMat = new THREE.MeshBasicMaterial({ map: ringTex, side: THREE.DoubleSide, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending });
       this.planetGroup.add(new THREE.Mesh(ringGeo, ringMat));
 
       this.planetGroup.position.set(240, 85, -580);
-      nebConfigs = [
-        { colorCenter: 'rgba(0, 243, 255, 0.45)', colorMid: 'rgba(0, 120, 255, 0.22)', colorEdge: 'rgba(0, 40, 180, 0.08)', pos: new THREE.Vector3(-180, 70, -420), scale: 260 },
-        { colorCenter: 'rgba(255, 0, 150, 0.42)', colorMid: 'rgba(170, 0, 255, 0.2)', colorEdge: 'rgba(70, 0, 140, 0.06)', pos: new THREE.Vector3(200, -60, -460), scale: 280 },
-        { colorCenter: 'rgba(255, 170, 0, 0.35)', colorMid: 'rgba(255, 80, 0, 0.16)', colorEdge: 'rgba(120, 30, 0, 0.04)', pos: new THREE.Vector3(0, 140, -490), scale: 320 }
-      ];
+      nebConfigs = []; // Clean deep space void without circular ball orbs
       if (this.sunLight) this.sunLight.color.setHex(0xffffff);
       if (this.cyanRimLight) this.cyanRimLight.color.setHex(0x00f3ff);
       if (this.warmBackLight) this.warmBackLight.color.setHex(0xff0066);
