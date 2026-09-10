@@ -593,45 +593,7 @@ export class DeepSpaceTelescope {
     this.meshGroup.add(this.secondaryGroup);
 
     // ─────────────────────────────────────────────────────────────
-    // 6. DYNAMIC QUANTUM TELEMETRY DATA UPLINK BEAM
-    // ─────────────────────────────────────────────────────────────
-    this.uplinkGroup = new THREE.Group();
-    this.uplinkGroup.position.set(0, 5.0, 0);
-
-    // Collimated scientific observation laser pulse beam streaming upward
-    const beamGeo = new THREE.CylinderGeometry(0.18, 0.6, 95, 12, 1, true);
-    beamGeo.rotateX(Math.PI * 0.5);
-    this.uplinkMat = new THREE.MeshBasicMaterial({
-      color: 0x00f3ff,
-      transparent: true,
-      opacity: 0.35,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    this.uplinkBeam = new THREE.Mesh(beamGeo, this.uplinkMat);
-    this.uplinkBeam.position.set(0, 0, -48);
-    this.uplinkGroup.add(this.uplinkBeam);
-
-    // Inner bright core beam
-    const coreBeamGeo = new THREE.CylinderGeometry(0.06, 0.15, 95, 8, 1, true);
-    coreBeamGeo.rotateX(Math.PI * 0.5);
-    const coreBeamMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.65,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    this.uplinkCore = new THREE.Mesh(coreBeamGeo, coreBeamMat);
-    this.uplinkCore.position.set(0, 0, -48);
-    this.uplinkGroup.add(this.uplinkCore);
-
-    this.meshGroup.add(this.uplinkGroup);
-
-    // ─────────────────────────────────────────────────────────────
-    // 7. RESPONSIVE GEODESIC ENERGY DEFENSE SHIELD
+    // 6. RESPONSIVE GEODESIC ENERGY DEFENSE SHIELD
     // ─────────────────────────────────────────────────────────────
     const shieldGeo = new THREE.IcosahedronGeometry(this.radius, 3);
     this.shieldMat = new THREE.MeshBasicMaterial({
@@ -705,15 +667,6 @@ export class DeepSpaceTelescope {
       const t = Math.max(0, this._shieldPulseTimer / 0.4);
       if (this.shieldMat) this.shieldMat.opacity = 0.08 + t * 0.45;
       if (this.shieldHazeMat) this.shieldHazeMat.opacity = 0.03 + t * 0.25;
-    }
-
-    // Telemetry observation uplink laser pulses
-    this._telemetryTime += dt;
-    if (this.uplinkBeam && this.uplinkCore) {
-      const pulse = Math.sin(this._telemetryTime * 5.0) * 0.12;
-      this.uplinkBeam.scale.set(1.0 + pulse, 1.0, 1.0 + pulse);
-      this.uplinkMat.opacity = 0.28 + pulse;
-      this.uplinkCore.scale.set(1.0 + pulse * 0.5, 1.0, 1.0 + pulse * 0.5);
     }
 
     // Aviation Navigation Strobe Flash (Double-pulse sequence every 1.5s)
