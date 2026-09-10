@@ -223,6 +223,8 @@ export class ControlsManager {
       if (window.spaceGameManager) window.spaceGameManager.toggleStarmap();
     } else if (e.code === 'KeyP' || e.code === 'KeyU' || e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U') {
       if (window.spaceGameManager) window.spaceGameManager.toggleAutoPilot();
+    } else if (e.code === 'F2' || e.key === 'F2' || e.code === 'Home' || e.key === 'Home') {
+      if (window.spaceGameManager) window.spaceGameManager.returnToTitle();
     }
   }
 

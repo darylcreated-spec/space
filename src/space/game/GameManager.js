@@ -229,6 +229,33 @@ export class GameManager {
     this.spaceAudio.startDrone();
   }
 
+  restartGame(toOpeningScreen = true) {
+    if (toOpeningScreen) {
+      this.returnToTitle();
+    } else {
+      this.startGame(1);
+    }
+  }
+
+  returnToTitle() {
+    this.resetState();
+    this.state = 'START';
+    if (this.spaceHUD) {
+      this.spaceHUD.hideAllModals();
+      if (this.spaceHUD.modalStart) {
+        this.spaceHUD.modalStart.classList.remove('hidden');
+      }
+      this.spaceHUD.updateStartScreenSaveState();
+    }
+    if (this.spaceScene) {
+      this.spaceScene.setCameraMode('isometric');
+    }
+    if (this.playerShip && this.playerShip.meshGroup) {
+      this.playerShip.meshGroup.position.set(0, 0, 0);
+      this.playerShip.meshGroup.visible = true;
+    }
+  }
+
   startSegmaCinematic(shipClass = null) {
     this.state = 'CINEMATIC_SEGMA';
     this.clearAllThreats();

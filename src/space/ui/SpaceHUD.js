@@ -159,6 +159,7 @@ export class SpaceHUD {
     this.btnTopFleet = document.getElementById('btn-top-fleet');
     this.btnTopAutoPilot = document.getElementById('btn-top-autopilot');
     this.btnTopStarmap = document.getElementById('btn-top-starmap');
+    this.btnTopRestart = document.getElementById('btn-top-restart');
     this.btnTopConfig = document.getElementById('btn-top-config');
     this.hudAutoPilotBanner = document.getElementById('hud-autopilot-banner');
 
@@ -870,6 +871,13 @@ export class SpaceHUD {
       this.btnTopStarmap.addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleStarmapModal();
+      });
+    }
+
+    if (this.btnTopRestart) {
+      this.btnTopRestart.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.gameManager.returnToTitle();
       });
     }
 
