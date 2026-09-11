@@ -115,8 +115,10 @@ export class LaserBolt {
 
     // Archetype-Specific Weapon Properties
     if (isEnemy) {
-      this.damage = 15;
-      this.speed = 52;
+      const wave = (this.gameManager && this.gameManager.waveSpawner) ? this.gameManager.waveSpawner.currentWave : 1;
+      const diffMods = this.gameManager && this.gameManager.getDifficultyModifiers ? this.gameManager.getDifficultyModifiers() : { speedMult: 1.0, dmgMult: 1.0 };
+      this.damage = Math.round((16 + Math.min(18, (wave - 1) * 1.8)) * (diffMods.dmgMult || 1.0));
+      this.speed = Math.round((82 + Math.min(32, (wave - 1) * 2.8)) * (diffMods.speedMult || 1.0));
       this.radius = 1.4;
     } else if (projectileType === 'FLAK') {
       this.damage = 130;

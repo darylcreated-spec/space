@@ -554,7 +554,11 @@ export class EnemyDrone {
     // Firing Loop
     this.fireTimer -= dt;
     if (this.fireTimer <= 0 && playerPos && !isBehindPlayer) {
-      this.fireTimer = (this.aiState === 'FLANKING_PURSUIT' ? 0.9 : 1.2) + Math.random() * 0.7;
+      const gm = gameManager || (typeof window !== 'undefined' ? window.spaceGameManager : null);
+      const wave = (gm && gm.waveSpawner) ? gm.waveSpawner.currentWave : 1;
+      const diffMods = (gm && gm.getDifficultyModifiers) ? gm.getDifficultyModifiers() : { fireRateMult: 1.0 };
+      const baseCadence = (this.aiState === 'FLANKING_PURSUIT' ? 0.65 : 0.95) - Math.min(0.35, (wave - 1) * 0.04);
+      this.fireTimer = Math.max(0.45, baseCadence / (diffMods.fireRateMult || 1.0)) + Math.random() * 0.35;
       const activeCannons = this.cannons.filter(c => !c.isDead);
       const outLasers = [];
       if (this.isMobile && activeCannons.length > 0) {

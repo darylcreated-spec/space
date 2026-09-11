@@ -964,10 +964,13 @@ export class CarrierCapitalShip {
     // Forward Combat Theater Rule: Never fire weapons if behind player
     if (isBehindPlayer) return result;
 
+    const diffMods = window.spaceGameManager?.getDifficultyModifiers?.() || { fireRateMult: 1.0 };
+    const rateMult = Math.max(0.5, diffMods.fireRateMult || 1.0);
+
     // ── 1. 🔫 Firing From Physical Gun Muzzle Tips (Continuous High-Threat Barrage) ──
     this.fireTimer -= dt;
     if (this.fireTimer <= 0) {
-      this.fireTimer = this.isMobile ? 1.1 : 0.75;
+      this.fireTimer = (this.isMobile ? 1.1 : 0.75) / rateMult;
       const fireOrigins = [];
       const livingTurrets = this.turrets.filter(t => !t.isDead && t.barrelTips && t.barrelTips.length > 0);
       const turretsToFire = this.isMobile ? livingTurrets.slice(0, 3) : livingTurrets;
@@ -989,7 +992,7 @@ export class CarrierCapitalShip {
     if (livingHangars.length > 0) {
       this.droneLaunchTimer -= dt;
       if (this.droneLaunchTimer <= 0) {
-        this.droneLaunchTimer = this.isMobile ? 6.0 : 3.5;
+        this.droneLaunchTimer = (this.isMobile ? 6.0 : 3.5) / rateMult;
         const launches = [];
         const hangarsToLaunch = this.isMobile ? [livingHangars[Math.floor(Math.random() * livingHangars.length)]] : livingHangars;
         hangarsToLaunch.forEach(h => {
@@ -1015,7 +1018,7 @@ export class CarrierCapitalShip {
     if (livingPods.length > 0) {
       this.missileTimer -= dt;
       if (this.missileTimer <= 0) {
-        this.missileTimer = this.isMobile ? 4.0 : 2.8;
+        this.missileTimer = (this.isMobile ? 4.0 : 2.8) / rateMult;
         const missileSpawns = [];
         livingPods.forEach(p => {
           const wp = this.meshGroup.localToWorld(p.relPos.clone());
@@ -1037,7 +1040,7 @@ export class CarrierCapitalShip {
     // ── 4. ⚡ Spinal Heavy Siege Cannons (Twin Crimson Lance Beams) ──
     this.siegeCannonTimer -= dt;
     if (this.siegeCannonTimer <= 0) {
-      this.siegeCannonTimer = this.isMobile ? 7.0 : 4.8;
+      this.siegeCannonTimer = (this.isMobile ? 7.0 : 4.8) / rateMult;
       const siegeOrigins = [];
       [-3.2, 3.2].forEach(sx => {
         const localMuzzle = new THREE.Vector3(sx, 1.8, 12.5);

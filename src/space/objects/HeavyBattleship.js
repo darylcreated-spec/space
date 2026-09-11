@@ -917,13 +917,16 @@ function createSmoothBattleshipHullGeo() {
     // 3. Railgun Salvo Fire Cycle (Immediate continuous engagement ahead of player)
     this.railgunTimer -= dt;
     if (this.railgunTimer <= 0 && pos.z < playerPos.z - 5.0) {
-      this.railgunTimer = 2.4;
+      const diffMods = gameManager && gameManager.getDifficultyModifiers ? gameManager.getDifficultyModifiers() : { fireRateMult: 1.0, speedMult: 1.0 };
+      this.railgunTimer = Math.max(1.1, 1.7 / (diffMods.fireRateMult || 1.0)) + Math.random() * 0.35;
       this.turrets.forEach(turret => {
-        if (!turret.isDead && turret.mesh && Math.random() < 0.75) {
+        if (!turret.isDead && turret.mesh && Math.random() < 0.85) {
           const origin = turret.mesh.getWorldPosition(new THREE.Vector3());
-          const dir = new THREE.Vector3().subVectors(playerPos, origin).normalize();
+          const dir = (gameManager && gameManager.getPredictiveAimDir)
+            ? gameManager.getPredictiveAimDir(origin, playerPos, playerShip?.velocity, 100.0, 0.05)
+            : new THREE.Vector3().subVectors(playerPos, origin).normalize();
           if (gameManager && gameManager.spawnEnemyLaser) {
-            gameManager.spawnEnemyLaser(origin, dir, 0xff0044, 52);
+            gameManager.spawnEnemyLaser(origin, dir, 0xff0044, 95);
           }
         }
       });
@@ -932,7 +935,8 @@ function createSmoothBattleshipHullGeo() {
     // 4. Missile Silo Pods Salvo Cycle (Active Homing Volleys)
     this.missileTimer -= dt;
     if (this.missileTimer <= 0 && pos.z < playerPos.z - 5.0) {
-      this.missileTimer = 3.2;
+      const diffMods = gameManager && gameManager.getDifficultyModifiers ? gameManager.getDifficultyModifiers() : { fireRateMult: 1.0 };
+      this.missileTimer = Math.max(1.8, 2.6 / (diffMods.fireRateMult || 1.0)) + Math.random() * 0.5;
       this.missilePods.forEach(p => {
         if (!p.isDead && p.mesh) {
           const origin = p.mesh.getWorldPosition(new THREE.Vector3());
@@ -945,7 +949,7 @@ function createSmoothBattleshipHullGeo() {
             gameManager.spawnEnemyMissile(origin, aimTarget);
           } else if (gameManager && gameManager.spawnEnemyLaser) {
             const dir = new THREE.Vector3().subVectors(aimTarget, origin).normalize();
-            gameManager.spawnEnemyLaser(origin, dir, 0xff0044, 40);
+            gameManager.spawnEnemyLaser(origin, dir, 0xff0044, 85);
           }
         }
       });

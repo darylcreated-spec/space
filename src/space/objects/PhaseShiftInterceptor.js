@@ -137,8 +137,9 @@ export class PhaseShiftInterceptor {
 
     // Weapon Fire: High-Frequency Phase Beams (strictly in front of player)
     this.fireTimer -= dt;
-    if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= -65 && !isBehindPlayer) {
-      this.fireTimer = 1.1 + Math.random() * 0.5;
+    if (this.fireTimer <= 0 && playerPos && this.meshGroup.position.z >= -75 && !isBehindPlayer) {
+      const diffMods = (gameManager && gameManager.getDifficultyModifiers) ? gameManager.getDifficultyModifiers() : { fireRateMult: 1.0 };
+      this.fireTimer = Math.max(0.45, 0.85 / (diffMods.fireRateMult || 1.0)) + Math.random() * 0.35;
       const p = this.meshGroup.position;
       this._muzzle1.set(p.x - 1.2, p.y, p.z + 1.6);
       this._muzzle2.set(p.x + 1.2, p.y, p.z + 1.6);

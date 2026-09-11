@@ -406,6 +406,39 @@ export class SpaceHUD {
     if (btnModeBossRush) btnModeBossRush.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeBossRush, 'BOSS_RUSH'); });
     if (btnModeEndless) btnModeEndless.addEventListener('click', (e) => { e.stopPropagation(); setModeActive(btnModeEndless, 'ENDLESS_SURVIVAL'); });
 
+    // Difficulty Selector Buttons
+    const btnDiffRecruit = document.getElementById('btn-diff-recruit');
+    const btnDiffVeteran = document.getElementById('btn-diff-veteran');
+    const btnDiffAce = document.getElementById('btn-diff-ace');
+
+    this.updateDifficultyUI = (diff) => {
+      const activeDiff = diff || this.gameManager?.difficulty || 'VETERAN';
+      [
+        { btn: btnDiffRecruit, mode: 'RECRUIT', color: '#00ff88', border: 'rgba(0,255,136,0.8)' },
+        { btn: btnDiffVeteran, mode: 'VETERAN', color: '#00f3ff', border: '#00f3ff' },
+        { btn: btnDiffAce, mode: 'ACE', color: '#ff0055', border: 'rgba(255,0,85,0.9)' }
+      ].forEach(item => {
+        if (item.btn) {
+          if (item.mode === activeDiff) {
+            item.btn.classList.add('active');
+            item.btn.style.borderColor = item.border;
+            item.btn.style.boxShadow = `0 0 12px ${item.border}`;
+            item.btn.style.color = '#fff';
+          } else {
+            item.btn.classList.remove('active');
+            item.btn.style.borderColor = 'rgba(255,255,255,0.15)';
+            item.btn.style.boxShadow = 'none';
+            item.btn.style.color = 'rgba(255,255,255,0.6)';
+          }
+        }
+      });
+    };
+
+    if (btnDiffRecruit) btnDiffRecruit.addEventListener('click', (e) => { e.stopPropagation(); this.gameManager.setDifficulty('RECRUIT'); });
+    if (btnDiffVeteran) btnDiffVeteran.addEventListener('click', (e) => { e.stopPropagation(); this.gameManager.setDifficulty('VETERAN'); });
+    if (btnDiffAce) btnDiffAce.addEventListener('click', (e) => { e.stopPropagation(); this.gameManager.setDifficulty('ACE'); });
+    if (this.gameManager?.difficulty) this.updateDifficultyUI(this.gameManager.difficulty);
+
     // Single Unified Squadron Doctrine Button (Defend / Focus / Flank in ONE)
     const btnCycleDoctrine = document.getElementById('btn-cycle-doctrine');
     if (btnCycleDoctrine) {

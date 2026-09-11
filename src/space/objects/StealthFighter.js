@@ -134,11 +134,11 @@ export class StealthFighter {
     this.targetCloakOpacity = 0.12;
     this.isCloaked = true;
 
-    this.speed = 30;
+    this.speed = 36;
     this.fireTimer = 0;
-    this.fireInterval = 0.38;
+    this.fireInterval = 0.22;
     this.burstCount = 0;
-    this.maxBurst = 4;
+    this.maxBurst = 6;
     this.strafeDirection = Math.random() > 0.5 ? 1 : -1;
     this.thrusters = [];
 

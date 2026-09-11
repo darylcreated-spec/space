@@ -391,19 +391,22 @@ export class WaveSpawner {
     const activeCarrier = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
 
     const isMobile = this.gameManager.isMobile;
-    const activeHostiles = activeDrones + activeStealth + activeECM + activePhase + activeCruisers + activeBattleships + (activeCarrier ? 1 : 0);
-    const budgets = this.gameManager.deviceManager?.getEntityBudgets() || { maxDrones: isMobile ? 3 : 8 };
-    const maxConcurrent = budgets.maxDrones ? budgets.maxDrones + 2 : (isMobile ? 5 : 9);
+    const diffMods = this.gameManager.getDifficultyModifiers ? this.gameManager.getDifficultyModifiers() : { fireRateMult: 1.0, speedMult: 1.0 };
+    const diffBonus = this.gameManager.difficulty === 'ACE' ? 3 : (this.gameManager.difficulty === 'RECRUIT' ? -1 : 1);
+    const budgets = this.gameManager.deviceManager?.getEntityBudgets() || { maxDrones: isMobile ? 4 : 10 };
+    const maxConcurrent = budgets.maxDrones ? budgets.maxDrones + 3 + diffBonus : (isMobile ? 7 : 12);
 
-    // Enforce active hostile concurrency throttle on mobile to prevent stutter
+    const activeHostiles = activeDrones + activeStealth + activeECM + activePhase + activeCruisers + activeBattleships + (activeCarrier ? 1 : 0);
+
+    // Enforce active hostile concurrency throttle to prevent stutter
     if (activeHostiles >= maxConcurrent) {
       return;
     }
 
     this.spawnTimer += dt;
-    // Dynamic spawn pacing: on mobile, slightly slower, more tactical cadence
-    const baseInterval = activeCarrier || activeBattleships > 0 ? 1.4 : Math.max(0.70, 1.15 - this.currentWave * 0.05);
-    const spawnInterval = isMobile ? baseInterval * 1.45 : baseInterval;
+    // Dynamic spawn pacing: fast and intense, scaled with wave and difficulty
+    const baseInterval = (activeCarrier || activeBattleships > 0 ? 1.05 : Math.max(0.55, 0.95 - this.currentWave * 0.04)) / (diffMods.fireRateMult || 1.0);
+    const spawnInterval = isMobile ? baseInterval * 1.25 : baseInterval;
 
 
     if (this.spawnTimer >= spawnInterval && this.spawnedCount < this.totalToSpawnInWave) {

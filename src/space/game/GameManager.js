@@ -908,15 +908,92 @@ export class GameManager {
     }
   }
 
+  // ── ⚔️ Dynamic Difficulty System ──
+  setDifficulty(mode) {
+    const valid = ['RECRUIT', 'VETERAN', 'ACE'];
+    this.difficulty = valid.includes(mode) ? mode : 'VETERAN';
+    try { localStorage.setItem('ov_difficulty', this.difficulty); } catch(e) {}
+    if (this.spaceHUD && this.spaceHUD.updateDifficultyUI) {
+      this.spaceHUD.updateDifficultyUI(this.difficulty);
+    }
+    if (this.voiceAnnouncer && this.voiceAnnouncer.speak) {
+      const titles = { RECRUIT: 'CADET PROTOCOL ENGAGED', VETERAN: 'VETERAN SQUADRON READY', ACE: 'ACE ADMIRAL NIGHTMARE ACTIVE' };
+      this.voiceAnnouncer.speak(titles[this.difficulty] || 'DIFFICULTY SET', true);
+    }
+  }
+
+  getDifficultyModifiers() {
+    if (this.difficulty === 'RECRUIT') {
+      return {
+        fireRateMult: 0.80,
+        speedMult: 0.85,
+        dmgMult: 0.75,
+        hpMult: 0.80,
+        rewardMult: 0.85,
+        leadAccuracy: 0.45
+      };
+    } else if (this.difficulty === 'ACE') {
+      return {
+        fireRateMult: 1.45,
+        speedMult: 1.25,
+        dmgMult: 1.40,
+        hpMult: 1.35,
+        rewardMult: 1.75,
+        leadAccuracy: 0.95
+      };
+    }
+    // VETERAN (Standard Challenge)
+    return {
+      fireRateMult: 1.15,
+      speedMult: 1.05,
+      dmgMult: 1.10,
+      hpMult: 1.10,
+      rewardMult: 1.0,
+      leadAccuracy: 0.80
+    };
+  }
+
+  /**
+   * Craig Reynolds Ballistic Intercept & Predictive Aiming
+   * Computes target leading vector based on target velocity, projectile speed, and accuracy
+   */
+  getPredictiveAimDir(origin, targetPos, targetVel, projectileSpeed = 95.0, spreadVariance = 0.08) {
+    if (!this._calcAimDir) this._calcAimDir = new THREE.Vector3();
+    if (!this._calcPredicted) this._calcPredicted = new THREE.Vector3();
+
+    const dist = origin.distanceTo(targetPos);
+    const effSpeed = Math.max(45.0, projectileSpeed);
+    const timeToIntercept = Math.min(1.4, dist / effSpeed);
+    const diffMods = this.getDifficultyModifiers();
+    const accuracy = diffMods.leadAccuracy || 0.75;
+
+    this._calcPredicted.copy(targetPos);
+    if (targetVel) {
+      this._calcPredicted.x += targetVel.x * timeToIntercept * accuracy;
+      this._calcPredicted.y += targetVel.y * timeToIntercept * accuracy;
+      this._calcPredicted.z += targetVel.z * timeToIntercept * accuracy;
+    }
+
+    // Dynamic spread variance (pinpoint on Ace, moderate on Veteran, wider on Recruit)
+    const effSpread = spreadVariance * (1.1 - accuracy * 0.4);
+    this._calcPredicted.x += (Math.random() - 0.5) * effSpread * dist * 0.12;
+    this._calcPredicted.y += (Math.random() - 0.5) * effSpread * dist * 0.12;
+
+    this._calcAimDir.subVectors(this._calcPredicted, origin).normalize();
+    return this._calcAimDir;
+  }
+
   // ── ⚖️ Dynamic Stage HP & Shield Scaling Multiplier ──
   getWaveHpMultiplier() {
     const wave = this.waveSpawner ? this.waveSpawner.currentWave : 1;
-    if (wave <= 1) return 1.0;
-    if (wave === 2) return 1.25;
-    if (wave === 3) return 1.55;
-    if (wave === 4) return 1.90;
-    if (wave === 5) return 2.30;
-    return 2.30 + (wave - 5) * 0.15;
+    const diffMods = this.getDifficultyModifiers ? this.getDifficultyModifiers() : { hpMult: 1.0 };
+    let base = 1.0;
+    if (wave === 2) base = 1.30;
+    else if (wave === 3) base = 1.65;
+    else if (wave === 4) base = 2.05;
+    else if (wave === 5) base = 2.50;
+    else if (wave > 5) base = 2.50 + (wave - 5) * 0.20;
+    return base * (diffMods.hpMult || 1.0);
   }
 
   applyEnemyHpScaling(enemy) {
@@ -2818,8 +2895,8 @@ export class GameManager {
         const stealthFire = fighter.update(effectiveDt, pPos);
         if (stealthFire && Array.isArray(stealthFire)) {
           stealthFire.forEach(sPos => {
-            this._tempTargetDir.subVectors(pPos, sPos).normalize();
-            this.spawnLaser(sPos, 0xff0055, true, this._tempTargetDir);
+            const aimDir = this.getPredictiveAimDir(sPos, pPos, this.playerShip?.velocity, 95.0, 0.07);
+            this.spawnLaser(sPos, 0xff0055, true, aimDir);
           });
           this.spaceAudio.playLaserPew();
         }
@@ -2845,8 +2922,8 @@ export class GameManager {
         const ecmFire = ecm.update(effectiveDt, pPos, this);
         if (ecmFire && Array.isArray(ecmFire)) {
           ecmFire.forEach(ePos => {
-            this._tempTargetDir.subVectors(pPos, ePos).normalize();
-            this.spawnLaser(ePos, 0xff0033, true, this._tempTargetDir, false, 'STANDARD');
+            const aimDir = this.getPredictiveAimDir(ePos, pPos, this.playerShip?.velocity, 90.0, 0.08);
+            this.spawnLaser(ePos, 0xff0033, true, aimDir, false, 'STANDARD');
           });
           this.spaceAudio.playLaserPew();
         }
@@ -2872,8 +2949,8 @@ export class GameManager {
         const pFire = phase.update(effectiveDt, pPos, this);
         if (pFire && Array.isArray(pFire)) {
           pFire.forEach(pos => {
-            this._tempTargetDir.subVectors(pPos, pos).normalize();
-            this.spawnLaser(pos, 0xff0033, true, this._tempTargetDir, false, 'STANDARD');
+            const aimDir = this.getPredictiveAimDir(pos, pPos, this.playerShip?.velocity, 105.0, 0.05);
+            this.spawnLaser(pos, 0xff0033, true, aimDir, false, 'STANDARD');
           });
           this.spaceAudio.playLaserPew();
         }
@@ -2960,14 +3037,14 @@ export class GameManager {
           const carrierStatus = this.carrierBoss.update(effectiveDt, this.playerShip, this);
           if (carrierStatus && carrierStatus.lasers && Array.isArray(carrierStatus.lasers)) {
             carrierStatus.lasers.forEach(tPos => {
-              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+              const targetDir = this.getPredictiveAimDir(tPos, pPos, this.playerShip?.velocity, 95.0, 0.08);
               this.spawnLaser(tPos, 0xff0044, true, targetDir);
             });
             this.spaceAudio.playLaserPew();
           }
           if (carrierStatus && carrierStatus.siegeLasers && Array.isArray(carrierStatus.siegeLasers)) {
             carrierStatus.siegeLasers.forEach(tPos => {
-              const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+              const targetDir = this.getPredictiveAimDir(tPos, pPos, this.playerShip?.velocity, 120.0, 0.04);
               this.spawnLaser(tPos, 0xff0044, true, targetDir);
             });
             if (this.spaceAudio.playHeavyCannonSound) {
@@ -3063,7 +3140,7 @@ export class GameManager {
               // A. Railgun & Laser Volleys
               if (salvo.lasers && Array.isArray(salvo.lasers)) {
                 salvo.lasers.forEach(tPos => {
-                  const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+                  const targetDir = this.getPredictiveAimDir(tPos, pPos, this.playerShip?.velocity, 100.0, 0.06);
                   this.spawnLaser(tPos, 0xff0044, true, targetDir);
                 });
                 if (salvo.noseLaserFired) {
@@ -3074,13 +3151,13 @@ export class GameManager {
                 }
               } else if (Array.isArray(salvo)) {
                 salvo.forEach(tPos => {
-                  const targetDir = new THREE.Vector3().subVectors(pPos, tPos).normalize();
+                  const targetDir = this.getPredictiveAimDir(tPos, pPos, this.playerShip?.velocity, 100.0, 0.06);
                   this.spawnLaser(tPos, 0xff0044, true, targetDir);
                 });
                 this.spaceAudio.playLaserPew();
               } else if (salvo !== false && this.activeBoss.meshGroup && this.activeBoss.meshGroup.position) {
                 const bPos = this.activeBoss.meshGroup.position;
-                const targetDir = new THREE.Vector3().subVectors(pPos, bPos).normalize();
+                const targetDir = this.getPredictiveAimDir(bPos, pPos, this.playerShip?.velocity, 100.0, 0.06);
                 this.spawnLaser(new THREE.Vector3(-8, 0, 4).add(bPos), 0xff0055, true, targetDir);
                 this.spawnLaser(new THREE.Vector3(8, 0, 4).add(bPos), 0xff0055, true, targetDir);
                 this.spaceAudio.playLaserPew();

@@ -172,7 +172,10 @@ export class CollisionSystem {
           laser.destroy();
           gameManager.lasers.splice(i, 1);
 
-          const dead = player.takeDamage(12, lPos);
+          const wave = gameManager.waveSpawner?.currentWave || 1;
+          const diffMods = gameManager.getDifficultyModifiers ? gameManager.getDifficultyModifiers() : { dmgMult: 1.0 };
+          const dmgTaken = Math.round((laser.damage || (16 + Math.min(16, (wave - 1) * 1.5))) * (diffMods.dmgMult || 1.0));
+          const dead = player.takeDamage(dmgTaken, lPos);
           this.particleManager.createExplosion(pPos, 0xff0055, 15);
           this.spaceAudio.playExplosion();
           this.spaceScene.addScreenShake(0.6);
@@ -1133,7 +1136,10 @@ export class CollisionSystem {
         if (mPos.distanceTo(pPos) < player.radius + missile.radius) {
           missile.destroy();
           gameManager.enemyMissiles.splice(i, 1);
-          const dead = player.takeDamage(22, mPos);
+          const wave = gameManager.waveSpawner?.currentWave || 1;
+          const diffMods = gameManager.getDifficultyModifiers ? gameManager.getDifficultyModifiers() : { dmgMult: 1.0 };
+          const mDmg = Math.round((28 + Math.min(26, (wave - 1) * 2.5)) * (diffMods.dmgMult || 1.0));
+          const dead = player.takeDamage(mDmg, mPos);
           this.particleManager.createExplosion(pPos, 0xff0044, 45, 2.5);
           this.particleManager.createEmpShockwave(pPos, 25);
           this.spaceAudio.playExplosion();
