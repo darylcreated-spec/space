@@ -81,6 +81,14 @@ export class PerformanceMonitor {
   update(now = performance.now()) {
     const delta = now - this.lastFrameTime;
     this.lastFrameTime = now;
+
+    // Ignore background tab throttling, OS window blur, or system sleeps (> 1000ms)
+    if (document.hidden || delta > 1000) {
+      this.fpsTimer = 0;
+      this.frameCount = 0;
+      return;
+    }
+
     this.frameCount++;
     this.fpsTimer += delta;
 
@@ -94,8 +102,8 @@ export class PerformanceMonitor {
       this.updateDisplay(delta);
     }
 
-    // Detect frame hitch / spike (> 35ms is < 28 FPS, noticeable stutter)
-    if (delta > 35.0) {
+    // Detect frame hitch / spike (> 35ms is < 28 FPS, noticeable stutter during active flight)
+    if (delta > 35.0 && this.gameManager?.state === 'PLAYING') {
       this.recordStutter(delta);
     }
   }
