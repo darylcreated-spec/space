@@ -218,6 +218,26 @@ export class SpaceHUD {
     this.targetRadarRange = 180;
     this.radarRangeTag = document.getElementById('radar-range-tag');
 
+    // ── Cockpit Holographic Radar, Reticles & Master HUD Toggles ──
+    this.cockpitHoloRadarWrapper = document.getElementById('cockpit-holo-radar-wrapper');
+    this.btnRadarOff = document.getElementById('btn-radar-off');
+    this.btnRadarOn = document.getElementById('btn-radar-on');
+    this.btnReticlesOff = document.getElementById('btn-reticles-off');
+    this.btnReticlesOn = document.getElementById('btn-reticles-on');
+    this.btnHudOff = document.getElementById('btn-hud-off');
+    this.btnHudOn = document.getElementById('btn-hud-on');
+
+    this.radarEnabled = localStorage.getItem('ov_radar_enabled') !== 'false';
+    this.reticlesEnabled = localStorage.getItem('ov_reticles_enabled') !== 'false';
+    this.masterHudEnabled = localStorage.getItem('ov_hud_enabled') !== 'false';
+
+    if (!this.radarEnabled && this.cockpitHoloRadarWrapper) {
+      this.cockpitHoloRadarWrapper.style.display = 'none';
+    }
+    if (!this.masterHudEnabled) {
+      document.body.classList.add('hud-hidden');
+    }
+
     // Run platform detection & adjust UI settings for Vercel Web vs. Android Native
     this.configurePlatformUI();
     this.initPilotProfile();
@@ -655,6 +675,46 @@ export class SpaceHUD {
       });
     });
 
+    // ── Tactical Radar, Reticles & Master HUD Toggles Listeners ──
+    if (this.btnRadarOff) {
+      this.btnRadarOff.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setRadarVisible(false);
+      });
+    }
+    if (this.btnRadarOn) {
+      this.btnRadarOn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setRadarVisible(true);
+      });
+    }
+
+    if (this.btnReticlesOff) {
+      this.btnReticlesOff.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setReticlesVisible(false);
+      });
+    }
+    if (this.btnReticlesOn) {
+      this.btnReticlesOn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setReticlesVisible(true);
+      });
+    }
+
+    if (this.btnHudOff) {
+      this.btnHudOff.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setMasterHUDVisible(false);
+      });
+    }
+    if (this.btnHudOn) {
+      this.btnHudOn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.setMasterHUDVisible(true);
+      });
+    }
+
     // ── Desktop Mouse Flight & Pointer Lock Settings Listeners ──
     if (this.btnMouseFlightOff) {
       this.btnMouseFlightOff.addEventListener('click', (e) => {
@@ -840,6 +900,18 @@ export class SpaceHUD {
       if (e.code === 'KeyV' || e.key === 'v' || e.key === 'V') {
         this.gameManager.spaceAudio.vibrate(10);
         this.gameManager.spaceScene.toggleCameraMode();
+      }
+      if (e.code === 'F1' || e.code === 'KeyU' || e.key === 'u' || e.key === 'U') {
+        const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+          this.setMasterHUDVisible(!this.masterHudEnabled);
+          this.showRadioTransmission(
+            `HUD TELEMETRY: ${this.masterHudEnabled ? 'ONLINE' : 'CINEMATIC OFF [F1/U]'}`,
+            "VANGUARD AVIONICS",
+            2.5
+          );
+        }
       }
       if (e.code === 'Escape') {
         if (this.modalFleet && !this.modalFleet.classList.contains('hidden')) {
@@ -1780,6 +1852,7 @@ export class SpaceHUD {
    * Renders isometric spherical wireframe radar with 3D elevation stalks and color-coded entity blips
    */
   renderHoloRadar(playerShip, enemies, allies, cargoPods, telescope, dt = 0.016) {
+    if (!this.radarEnabled) return;
     if (!this.cockpitHoloRadarCanvas || !this.cockpitHoloRadarCtx) {
       this.cockpitHoloRadarCanvas = document.getElementById('cockpit-holo-radar');
       if (this.cockpitHoloRadarCanvas) {
@@ -2536,6 +2609,64 @@ export class SpaceHUD {
         this.btnMouseInvertOn.classList.toggle('active', invY);
       }
     }
+
+    // ── Tactical Radar Toggle UI Sync ──
+    if (this.btnRadarOff && this.btnRadarOn) {
+      this.btnRadarOff.classList.toggle('active', !this.radarEnabled);
+      this.btnRadarOn.classList.toggle('active', this.radarEnabled);
+    }
+
+    // ── Targeting Reticles & Lead Marks Toggle UI Sync ──
+    if (this.btnReticlesOff && this.btnReticlesOn) {
+      this.btnReticlesOff.classList.toggle('active', !this.reticlesEnabled);
+      this.btnReticlesOn.classList.toggle('active', this.reticlesEnabled);
+    }
+
+    // ── Master HUD Telemetry Toggle UI Sync ──
+    if (this.btnHudOff && this.btnHudOn) {
+      this.btnHudOff.classList.toggle('active', !this.masterHudEnabled);
+      this.btnHudOn.classList.toggle('active', this.masterHudEnabled);
+    }
+  }
+
+  setRadarVisible(enabled) {
+    this.radarEnabled = !!enabled;
+    try {
+      localStorage.setItem('ov_radar_enabled', enabled ? 'true' : 'false');
+    } catch(e) {}
+    if (!this.cockpitHoloRadarWrapper) {
+      this.cockpitHoloRadarWrapper = document.getElementById('cockpit-holo-radar-wrapper');
+    }
+    if (this.cockpitHoloRadarWrapper) {
+      this.cockpitHoloRadarWrapper.style.display = enabled ? '' : 'none';
+    }
+    this.updateSettingsUI();
+  }
+
+  setReticlesVisible(enabled) {
+    this.reticlesEnabled = !!enabled;
+    try {
+      localStorage.setItem('ov_reticles_enabled', enabled ? 'true' : 'false');
+    } catch(e) {}
+    if (!enabled) {
+      if (this.reticleLeadPip) this.reticleLeadPip.classList.add('hidden');
+      if (this._hardpointPool) {
+        this._hardpointPool.forEach(item => item.dom.classList.add('hidden'));
+      }
+    }
+    if (this.gameManager && typeof this.gameManager.setReticlesVisible === 'function') {
+      this.gameManager.setReticlesVisible(enabled);
+    }
+    this.updateSettingsUI();
+  }
+
+  setMasterHUDVisible(enabled) {
+    this.masterHudEnabled = !!enabled;
+    try {
+      localStorage.setItem('ov_hud_enabled', enabled ? 'true' : 'false');
+    } catch(e) {}
+    document.body.classList.toggle('hud-hidden', !enabled);
+    this.updateSettingsUI();
   }
 
   updateWingmanDoctrineUI(doctrine = 'DEFEND') {
@@ -2674,7 +2805,10 @@ export class SpaceHUD {
   }
 
   updateLeadTargeting(playerShip, targetEnemy, camera) {
-    if (!this.reticleLeadPip) return;
+    if (!this.reticleLeadPip || !this.reticlesEnabled) {
+      if (this.reticleLeadPip) this.reticleLeadPip.classList.add('hidden');
+      return;
+    }
     if (!targetEnemy || targetEnemy.isDead || !targetEnemy.meshGroup || !camera) {
       this.reticleLeadPip.classList.add('hidden');
       return;
@@ -2741,7 +2875,14 @@ export class SpaceHUD {
    * Projects vulnerable boss sub-systems onto the pilot's HUD with health bars and lock-on brackets
    */
   updateBossHardpoints(bosses, camera) {
-    if (!this.bossHardpointsContainer || !camera) return;
+    if (!this.bossHardpointsContainer || !camera || !this.reticlesEnabled) {
+      if (this._hardpointPool && this._hardpointPool.length > 0) {
+        for (let i = 0; i < this._hardpointPool.length; i++) {
+          this._hardpointPool[i].dom.classList.add('hidden');
+        }
+      }
+      return;
+    }
 
     if (!this._hpProjectVec) {
       this._hpProjectVec = new THREE.Vector3();

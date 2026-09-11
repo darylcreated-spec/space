@@ -3582,7 +3582,17 @@ body.cinematic-active .space-hud,
 body.cinematic-active .cockpit-hud-overlay,
 body.cinematic-active .virtual-joystick-dock,
 body.cinematic-active .mobile-controls-right-edge,
-body.cinematic-active .hud-top-unified-bar {
+body.cinematic-active .hud-top-unified-bar,
+body.hud-hidden #hud-space,
+body.hud-hidden .hud-container,
+body.hud-hidden .space-hud,
+body.hud-hidden .cockpit-hud-overlay,
+body.hud-hidden .virtual-joystick-dock,
+body.hud-hidden .mobile-controls-right-edge,
+body.hud-hidden .hud-top-unified-bar,
+body.hud-hidden .cockpit-holo-radar-wrapper,
+body.hud-hidden .hud-boss-hardpoints-container,
+body.hud-hidden #desktop-flight-reticle {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;

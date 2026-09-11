@@ -91,6 +91,7 @@ export class GameManager {
     this.score = 0;
     this.highScore = parseInt(localStorage.getItem('orbital_vanguard_highscore') || '0', 10);
     this.totalKills = 0;
+    this.reticlesEnabled = localStorage.getItem('ov_reticles_enabled') !== 'false';
 
     // Active Entities
     this.playerShip = new PlayerShip(this.spaceScene.scene, this.particleManager);
@@ -1639,6 +1640,30 @@ export class GameManager {
       );
     }
     return this.isGodMode;
+  }
+
+  setReticlesVisible(enabled) {
+    this.reticlesEnabled = !!enabled;
+    const ships = [
+      ...(this.capitalShips || []),
+      ...(this.heavyBattleships || []),
+      ...(this.carrierCapitalShips || []),
+      ...(this.bossAsteroid ? [this.bossAsteroid] : []),
+      ...(this.titanCoreShip ? [this.titanCoreShip] : []),
+      ...(this.bossDreadnought ? [this.bossDreadnought] : []),
+      ...(this.carrierBoss ? [this.carrierBoss] : []),
+      ...(this.mothership ? [this.mothership] : []),
+      ...(this.haloRingBoss ? [this.haloRingBoss] : []),
+      ...(this.spaceStation ? [this.spaceStation] : []),
+      ...(this.sanctuaryCylinder ? [this.sanctuaryCylinder] : [])
+    ];
+    ships.forEach(s => {
+      if (s && s.reticleMeshes && Array.isArray(s.reticleMeshes)) {
+        s.reticleMeshes.forEach(mesh => {
+          if (mesh) mesh.visible = this.reticlesEnabled;
+        });
+      }
+    });
   }
 
   toggleGodMaxUpgrades(explicitState) {
