@@ -1365,18 +1365,41 @@ export class SpaceHUD {
       `;
     }
 
+    // Render Live Airframe Telemetry Strip
+    const teleStrip = document.getElementById('hangar-telemetry-strip');
+    const ship = this.gameManager?.playerShip;
+    if (teleStrip && ship) {
+      const mitigationPct = Math.round((1 - (ship.shieldMitigation || 1.0)) * 100);
+      const salvoDmg = (ship.laserDamage || 24) * (ship.muzzleOffsets?.length || 2);
+      teleStrip.innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; background:rgba(0,243,255,0.06); border:1px solid rgba(0,243,255,0.28); border-radius:8px; padding:8px 12px; justify-content:space-between; font-family:'Share Tech Mono',monospace; font-size:11px;">
+          <div style="color:#00f3ff;"><span style="color:#88a0b0;">SHIELD:</span> <strong>${ship.maxShield} HP</strong> <span style="color:#00ff88;">(+${(ship.shieldRegenRate || 2.5).toFixed(1)}/s)</span></div>
+          <div style="color:#00ff88;"><span style="color:#88a0b0;">ARMOR:</span> <strong>${mitigationPct}% MITIGATION</strong></div>
+          <div style="color:#ffdd00;"><span style="color:#88a0b0;">SPEED:</span> <strong>${ship.speed} U/S</strong> <span style="color:#88a0b0;">(DODGE: ${(ship.dodgeMaxCooldown || 1.2).toFixed(2)}s)</span></div>
+          <div style="color:#ff3366;"><span style="color:#88a0b0;">SALVO:</span> <strong>${salvoDmg} DMG</strong> <span style="color:#88a0b0;">(${ship.laserSpeed || 120} VEL)</span></div>
+          <div style="color:#aa44ff;"><span style="color:#88a0b0;">DEFENSE:</span> <strong>${ship.empRadius || 24}m EMP</strong> | <strong>${ship.flareCharges || 3}/${ship.maxFlareCharges || 3} FLARES</strong></div>
+        </div>
+      `;
+    }
+
     const updateBtn = (btn, lvlSpan, type) => {
       const lvl = upgradeSystem.upgrades[type] || 0;
       const cost = upgradeSystem.getCost(type);
       const tierName = upgradeSystem.getTierName(type, lvl);
       const nextTierName = upgradeSystem.getTierName(type, Math.min(5, lvl + 1));
+      const statBenefit = upgradeSystem.getStatBenefit ? upgradeSystem.getStatBenefit(type, lvl) : '';
+      const nextBenefit = upgradeSystem.getStatBenefit ? upgradeSystem.getStatBenefit(type, Math.min(5, lvl + 1)) : '';
 
       if (lvlSpan) {
         let pipsHtml = `<div class="upgrade-pips" title="${tierName} (Lvl ${lvl} / 5)">`;
         for (let i = 1; i <= 5; i++) {
           pipsHtml += `<span class="upg-pip ${i <= lvl ? 'active' : ''}"></span>`;
         }
-        pipsHtml += `<span class="upg-tier-label" style="font-size:0.65rem; color:var(--accent-cyan); margin-left:6px; font-weight:700; text-transform:uppercase;">${tierName}</span></div>`;
+        pipsHtml += `<span class="upg-tier-label" style="font-size:0.65rem; color:var(--accent-cyan); margin-left:6px; font-weight:700; text-transform:uppercase;">${tierName}</span>`;
+        if (statBenefit) {
+          pipsHtml += `<div class="upg-stat-benefit" style="font-size:0.62rem; color:#88b0cc; margin-top:3px; font-family:'Share Tech Mono',monospace;">${statBenefit}</div>`;
+        }
+        pipsHtml += `</div>`;
         lvlSpan.innerHTML = pipsHtml;
       }
       if (btn) {
@@ -1385,6 +1408,7 @@ export class SpaceHUD {
           btn.disabled = true;
         } else {
           btn.textContent = `UPGRADE TO ${nextTierName.toUpperCase()} (${cost} CR)`;
+          btn.title = nextBenefit ? `Next: ${nextBenefit}` : '';
           btn.disabled = upgradeSystem.scrap < cost;
         }
       }

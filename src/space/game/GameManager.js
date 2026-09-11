@@ -896,7 +896,12 @@ export class GameManager {
 
 
   addScrap(amount) {
-    this.upgradeSystem.addScrap(amount);
+    const diffMods = this.getDifficultyModifiers ? this.getDifficultyModifiers() : { rewardMult: 1.0 };
+    const shipMult = (this.playerShip && this.playerShip.scrapMultiplier) ? this.playerShip.scrapMultiplier : 1.0;
+    const wave = this.waveSpawner ? this.waveSpawner.currentWave : 1;
+    const waveBonus = 1.0 + Math.min(0.75, (wave - 1) * 0.06);
+    const finalAmount = Math.max(1, Math.round(amount * (diffMods.rewardMult || 1.0) * shipMult * waveBonus));
+    this.upgradeSystem.addScrap(finalAmount);
     if (this.spaceHUD) this.spaceHUD.updateScrap(this.upgradeSystem.scrap);
   }
 
@@ -2007,12 +2012,14 @@ export class GameManager {
     if (type === 'OVERCHARGE') {
       this.overchargeTimer = 8.0;
     } else if (type === 'REPAIR') {
-      this.playerShip.shield = Math.min(this.playerShip.maxShield, this.playerShip.shield + 50);
-      this.planetHp = Math.min(this.maxPlanetHp, this.planetHp + 30);
+      const healAmount = Math.max(65, Math.round(this.playerShip.maxShield * 0.35));
+      this.playerShip.shield = Math.min(this.playerShip.maxShield, this.playerShip.shield + healAmount);
+      this.planetHp = Math.min(this.maxPlanetHp, this.planetHp + 35);
+      this.playerShip.updateDamageVisuals?.();
     } else if (type === 'STASIS') {
       this.stasisTimer = 6.0;
     } else if (type === 'NUKE') {
-      this.particleManager.createEmpShockwave(this.playerShip.meshGroup.position, 60);
+      this.particleManager.createEmpShockwave(this.playerShip.meshGroup.position, 80);
       const canvasContainer = document.getElementById('canvas-container');
       if (canvasContainer) {
         canvasContainer.classList.add('camera-glitch');
@@ -2025,6 +2032,21 @@ export class GameManager {
       this.drones.forEach(d => {
         d.takeDamage(500);
         this.addScore(d.scoreValue);
+      });
+      this.stealthFighters?.forEach(s => {
+        if (!s.isDead) { s.takeDamage(500); this.addScore(s.scoreValue || 500); }
+      });
+      this.ecmCorvettes?.forEach(e => {
+        if (!e.isDead) { e.takeDamage(500); this.addScore(e.scoreValue || 600); }
+      });
+      this.phaseInterceptors?.forEach(p => {
+        if (!p.isDead) { p.takeDamage(500); this.addScore(p.scoreValue || 450); }
+      });
+      this.heavyBattleships?.forEach(b => {
+        if (!b.isDead) { b.takeDamage(800); }
+      });
+      this.enemyMissiles?.forEach(m => {
+        if (m && !m.isDead) m.destroy();
       });
       this.spaceScene.addScreenShake(2.0);
     }
@@ -2253,15 +2275,17 @@ export class GameManager {
     this.spawnPlasmaPulse(startPos);
     this.playerShip.triggerRecoil?.(0.35, 0.045);
 
-    // Deflector Counter-Pulse: Convert all enemy projectiles within 10m into amplified friendly counter-lasers
+    // Deflector Counter-Pulse: Convert all enemy projectiles within empRadius into amplified friendly counter-lasers
+    const pulseRadius = this.playerShip.empRadius || 24.0;
     let reflectedCount = 0;
     if (this.lasers) {
       this.lasers.forEach(laser => {
         if (laser && laser.isEnemy && !laser.isDead && laser.meshGroup) {
           const dist = laser.meshGroup.position.distanceTo(pPos);
-          if (dist < 10.5) {
+          if (dist < pulseRadius * 0.65) {
             laser.isEnemy = false;
-            laser.damage = Math.max(75, (laser.damage || 20) * 2.5);
+            const pLvl = this.playerShip.laserLevel || 0;
+            laser.damage = Math.max(90, (laser.damage || 20) * (2.2 + pLvl * 0.25));
             laser.isCritical = true;
             // Reverse direction forward toward enemy fleet
             laser.direction.set(0, 0, -1);
@@ -2272,9 +2296,29 @@ export class GameManager {
       });
     }
 
-    if (reflectedCount > 0) {
+    // Detonate all incoming enemy missiles within pulse radius
+    let interceptedMissiles = 0;
+    if (this.enemyMissiles) {
+      this.enemyMissiles.forEach(missile => {
+        if (missile && !missile.isDead && missile.meshGroup) {
+          const dist = missile.meshGroup.position.distanceTo(pPos);
+          if (dist < pulseRadius) {
+            missile.destroy();
+            interceptedMissiles++;
+            if (this.particleManager) {
+              this.particleManager.createExplosion(missile.meshGroup.position, 0x00f3ff, 25, 1.8);
+            }
+          }
+        }
+      });
+    }
+
+    if (reflectedCount > 0 || interceptedMissiles > 0) {
       this.spaceAudio.playVictoryArpeggio?.();
-      this.spaceHUD?.showWaveBanner("COUNTER-PULSE", `${reflectedCount} ENEMY BOLTS DEFLECTED!`);
+      const msg = interceptedMissiles > 0
+        ? `${reflectedCount} BOLTS DEFLECTED // ${interceptedMissiles} MISSILES DETONATED!`
+        : `${reflectedCount} ENEMY BOLTS DEFLECTED!`;
+      this.spaceHUD?.showWaveBanner("COUNTER-PULSE", msg);
     }
 
     this.achievementSystem.recordEmpUsed();

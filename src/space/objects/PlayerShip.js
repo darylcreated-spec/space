@@ -190,7 +190,11 @@ export class PlayerShip {
 
   rebuildShipMesh(className) {
     this.clearShipMesh();
-    this.shipClass = className || 'INTERCEPTOR';
+    let cls = className || 'INTERCEPTOR';
+    if (cls === 'JUGGERNAUT') cls = 'DREADNOUGHT';
+    else if (cls === 'STEALTH') cls = 'REAPER';
+    else if (cls === 'SOLAR') cls = 'SENTINEL';
+    this.shipClass = cls;
 
     // Procedural Hexagonal Energy Shield Dome with Fresnel & Hit Ripples
     const shieldGeo = new THREE.IcosahedronGeometry(3.4, 3);
@@ -1541,11 +1545,11 @@ export class PlayerShip {
     }
 
     let finalAmount = amount;
-    if (this.shipClass === 'DREADNOUGHT') {
+    if (this.shipClass === 'DREADNOUGHT' || this.shipClass === 'JUGGERNAUT') {
       finalAmount *= 0.65;
     }
-    if (this.shieldLevel && this.shieldLevel >= 2) {
-      finalAmount *= Math.max(0.70, 1.0 - this.shieldLevel * 0.05); // Up to 25% progressive kinetic damage mitigation!
+    if (this.shieldLevel && this.shieldLevel >= 1) {
+      finalAmount *= (this.shieldMitigation || Math.max(0.65, 1.0 - this.shieldLevel * 0.07));
     }
 
     const prevShield = this.shield;
@@ -1573,14 +1577,22 @@ export class PlayerShip {
     // ── 🛡️ Level 5 Apex: Emergency Aegis Shield Reboot ──
     if (this.shield <= 0 && this.hasEmergencyAegisReboot && !this._aegisUsed) {
       this._aegisUsed = true;
-      this.shield = this.maxShield * 0.55;
-      this.triggerInvulnerability(2.5);
+      this.shield = this.maxShield * 0.65;
+      this.triggerInvulnerability(3.0);
       if (this.particleManager) {
-        this.particleManager.createEmpShockwave(this.meshGroup.position, 50);
+        this.particleManager.createEmpShockwave(this.meshGroup.position, 60);
+      }
+      // Detonate active incoming enemy missiles within 60m
+      if (this.gameManager && this.gameManager.enemyMissiles) {
+        this.gameManager.enemyMissiles.forEach(m => {
+          if (m && !m.isDead && m.meshGroup && m.meshGroup.position.distanceTo(this.meshGroup.position) < 60) {
+            m.destroy();
+          }
+        });
       }
       window.spaceGameManager?.voiceAnnouncer?.speakPersona?.('AVIONICS', "EMERGENCY AEGIS SHIELD REBOOT TRIGGERED!", true);
       if (window.spaceGameManager?.spaceHUD) {
-        window.spaceGameManager.spaceHUD.showRadioTransmission("AEGIS PROTOCOL: Emergency shield rebooted at 55% power! 2.5s invulnerability active!", "ONBOARD AI // AEGIS-9", 4.0, "#10b981");
+        window.spaceGameManager.spaceHUD.showRadioTransmission("AEGIS PROTOCOL: Emergency shield rebooted at 65% power! 3.0s invulnerability active!", "ONBOARD AI // AEGIS-9", 4.0, "#10b981");
       }
       return false;
     }
@@ -2165,31 +2177,16 @@ export class PlayerShip {
   setEquipment(slot, itemKey) {
     if (slot === 'reactor') {
       this.reactorCore = itemKey;
-      if (itemKey === 'OVERCLOCKED_PLASMA') {
-        this.laserFireDelay = 0.045; // Rapid fire
-        this.maxShield = 80;
-      } else if (itemKey === 'TITANIUM_AEGIS') {
-        this.maxShield = 140;
-        this.laserFireDelay = 0.075;
-      } else {
-        this.maxShield = 90;
-        this.laserFireDelay = 0.06;
-      }
-      this.shield = Math.min(this.shield, this.maxShield);
     } else if (slot === 'thruster') {
       this.thrusterManifold = itemKey;
-      if (itemKey === 'AFTERBURNER') {
-        this.speed = 46;
-        this.dodgeMaxCooldown = 1.1;
-      } else if (itemKey === 'VECTOR_RCS') {
-        this.speed = 38;
-        this.dodgeMaxCooldown = 0.75; // Fast tactical dodge recovery
-      } else {
-        this.speed = 36;
-        this.dodgeMaxCooldown = 1.2;
-      }
     } else if (slot === 'avionics') {
       this.avionicsSuite = itemKey;
+    }
+
+    // Re-apply upgrades dynamically factoring in modular equipment modifiers
+    const upg = this.gameManager?.upgradeSystem || window.spaceGameManager?.upgradeSystem;
+    if (upg) {
+      upg.applyUpgradesToShip(this);
     }
   }
 

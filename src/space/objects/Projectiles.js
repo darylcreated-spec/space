@@ -133,12 +133,14 @@ export class LaserBolt {
       this.appliesEmp = true;
       this.homingTarget = null;
     } else if (projectileType === 'CRIT_DART') {
+      const pShip = (this.gameManager && this.gameManager.playerShip) ? this.gameManager.playerShip : null;
+      const pLvl = pShip?.laserLevel || 0;
       this.isSiphon = true;
-      this.speed = 135;
+      this.speed = 135 + pLvl * 8;
       this.radius = 1.2;
       const isCrit = Math.random() < 0.35;
       this.isCritical = isCrit;
-      this.damage = isCrit ? 75 : 25;
+      this.damage = isCrit ? (85 + pLvl * 14) : (30 + pLvl * 6);
       colorHex = isCrit ? 0x00ffff : 0x00f3ff;
       this.colorHex = colorHex;
     } else if (projectileType === 'RAILGUN') {
@@ -158,8 +160,10 @@ export class LaserBolt {
       this.colorHex = colorHex;
     } else {
       // STANDARD / INTERCEPTOR
-      this.damage = 22;
-      this.speed = 115;
+      const pShip = (this.gameManager && this.gameManager.playerShip) ? this.gameManager.playerShip : null;
+      const pLvl = pShip?.laserLevel || 0;
+      this.damage = pShip?.laserDamage || (24 + pLvl * 6);
+      this.speed = pShip?.laserSpeed || (120 + pLvl * 10);
       this.radius = 1.4;
     }
 
