@@ -408,7 +408,7 @@ html, body {
 
 @media (max-width: 1024px) and (orientation: landscape) {
   .virtual-joystick-dock {
-    left: max(32px, env(safe-area-inset-left, 24px));
+    left: max(160px, calc(136px + env(safe-area-inset-left, 16px) + 14px));
     transform: translateZ(0);
     bottom: max(18px, env(safe-area-inset-bottom, 14px));
   }
@@ -4109,6 +4109,7 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
   position: absolute;
   bottom: 18px;
   left: 20px;
+  right: auto;
   width: 170px;
   pointer-events: none;
   z-index: 45;
@@ -4117,10 +4118,10 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
 
 @media (max-width: 1024px) {
   .cockpit-holo-radar-wrapper {
-    left: auto;
-    right: 88px;
-    bottom: 14px;
-    width: 140px;
+    left: max(16px, env(safe-area-inset-left, 14px));
+    right: auto;
+    bottom: max(14px, env(safe-area-inset-bottom, 12px));
+    width: 130px;
   }
 }
 
@@ -4878,6 +4879,34 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
   .directive-title {
     font-size: 0.65rem;
   }
+}
+
+.hud-top-unified-bar {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateZ(0);
+  will-change: transform, opacity;
+  contain: layout paint;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(94vw, 720px);
+  padding: 8px 18px;
+  background: rgba(3, 8, 18, 0.88);
+  border: 1.5px solid rgba(0, 243, 255, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 243, 255, 0.2);
+  z-index: 40;
+  pointer-events: auto;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+
+.hud-top-unified-bar.hud-bar-hidden {
+  transform: translateX(-50%) translateY(-180%) translateZ(0) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Tactical Combat Arena Boundary Warning */

@@ -20,6 +20,7 @@ export class SpaceHUD {
     this.scoreVal = document.getElementById('space-score-val') || document.getElementById('space-score');
     this.scrapVal = document.getElementById('space-scrap-val') || document.getElementById('space-scrap');
     this.waveBadge = document.getElementById('space-wave-badge');
+    this.hudTopUnifiedBar = document.getElementById('hud-top-unified-bar');
 
     this.bossBarContainer = document.getElementById('space-boss-bar-container');
     this.bossHpFill = document.getElementById('space-boss-hp-fill');
@@ -271,7 +272,30 @@ export class SpaceHUD {
     }
   }
 
+  setTopBarVisible(visible) {
+    if (!this.hudTopUnifiedBar) {
+      this.hudTopUnifiedBar = document.getElementById('hud-top-unified-bar');
+    }
+    if (!this.hudTopUnifiedBar) return;
+    if (visible) {
+      this.hudTopUnifiedBar.classList.remove('hud-bar-hidden');
+    } else {
+      this.hudTopUnifiedBar.classList.add('hud-bar-hidden');
+    }
+  }
+
   bindEvents() {
+    // Reveal top tactical command bar when cursor peeks near the top edge
+    window.addEventListener('mousemove', (e) => {
+      if (this.gameManager && this.gameManager.state === 'PLAYING') {
+        if (e.clientY <= 36) {
+          this.setTopBarVisible(true);
+        } else if (e.clientY > 95) {
+          this.setTopBarVisible(false);
+        }
+      }
+    }, { passive: true });
+
     const triggerStartIfInStartScreen = () => {
       if (this.gameManager.state === 'START') {
         const pilotModal = document.getElementById('space-modal-pilot-reg') || document.getElementById('modal-pilot-registration');
@@ -1310,25 +1334,6 @@ export class SpaceHUD {
     }
   }
 
-  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 2.2) {
-    if (!this.commsBox) {
-      this.commsBox = document.getElementById('space-comms-box');
-      this.commsSender = document.getElementById('comms-sender');
-      this.commsMessage = document.getElementById('comms-message');
-    }
-    if (!this.commsBox || !this.commsMessage) return;
-
-    if (this.commsSender) this.commsSender.textContent = sender;
-    this.commsMessage.textContent = message;
-
-    this.commsBox.classList.remove('hidden');
-    if (this.commsTimer) clearTimeout(this.commsTimer);
-
-    this.commsTimer = setTimeout(() => {
-      this.commsBox.classList.add('hidden');
-    }, duration * 1000);
-  }
-
   showLockOnWarning(active, text = 'MISSILE LOCK DETECTED!') {
     if (!this.lockonBox) {
       this.lockonBox = document.getElementById('space-lockon-warning');
@@ -1343,7 +1348,7 @@ export class SpaceHUD {
       this.lockonBox.classList.remove('hidden');
       this.lockonTimer = setTimeout(() => {
         if (this.lockonBox) this.lockonBox.classList.add('hidden');
-      }, 2500);
+      }, 1000);
     } else {
       this.lockonBox.classList.add('hidden');
     }
@@ -1379,6 +1384,7 @@ export class SpaceHUD {
   showHangarModal(completedWaveNum, upgradeSystem, starsEarned = 0) {
     try {
       this.gameManager.controlsManager?.exitPointerLock();
+      this.setTopBarVisible(true);
       if (this.modalHangar) {
         this.gameManager.state = 'HANGAR';
         this.currentHangarWave = completedWaveNum;
@@ -1540,7 +1546,7 @@ export class SpaceHUD {
         if (this.toastTimer) clearTimeout(this.toastTimer);
         this.toastTimer = setTimeout(() => {
           if (this.toastElem) this.toastElem.classList.add('hidden');
-        }, 2200);
+        }, 1000);
       }
     } catch (err) {
       console.error("Error in showAchievementToast:", err);
@@ -1559,7 +1565,7 @@ export class SpaceHUD {
     }
   }
 
-  showWaveBanner(waveNum, subtitle, duration = 2.0) {
+  showWaveBanner(waveNum, subtitle, duration = 1.0) {
     if (this.waveBanner) {
       this.waveTitle.textContent = typeof waveNum === 'number' ? `WAVE ${waveNum}` : waveNum;
       this.waveSubtitle.textContent = subtitle;
@@ -1568,11 +1574,11 @@ export class SpaceHUD {
       if (this.waveBannerTimer) clearTimeout(this.waveBannerTimer);
       this.waveBannerTimer = setTimeout(() => {
         if (this.waveBanner) this.waveBanner.classList.add('hidden');
-      }, duration * 1000);
+      }, 1000);
     }
   }
 
-  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 3.5, color = '#00f3ff') {
+  showRadioTransmission(message, sender = 'STARBOUND COMMAND', duration = 1.0, color = '#00f3ff') {
     if (!this.commsBox) {
       this.commsBox = document.getElementById('space-comms-box');
       this.commsSender = document.getElementById('comms-sender');
@@ -1606,7 +1612,7 @@ export class SpaceHUD {
       if (this.gameManager && this.gameManager.spaceAudio && this.gameManager.spaceAudio.playRadioRelease) {
         this.gameManager.spaceAudio.playRadioRelease();
       }
-    }, duration * 1000);
+    }, 1000);
   }
 
   showBoundaryWarning(dist, maxDist = 350) {
@@ -1659,6 +1665,7 @@ export class SpaceHUD {
   }
 
   showGameOverModal(data) {
+    this.setTopBarVisible(true);
     if (this.modalGameOver) {
       this.currentGameOverWave = data.waveNum || 1;
       this.gameoverTitle.textContent = data.title;
@@ -1831,8 +1838,13 @@ export class SpaceHUD {
     if (this.hudMissionDirectiveCard) {
       this.hudMissionDirectiveCard.style.display = 'flex';
       this.hudMissionDirectiveCard.classList.remove('directive-cleared');
-      void this.hudMissionDirectiveCard.offsetWidth; // trigger reflow for pulse
-      this.hudMissionDirectiveCard.classList.add('directive-cleared');
+      requestAnimationFrame(() => {
+        if (this.hudMissionDirectiveCard) this.hudMissionDirectiveCard.classList.add('directive-cleared');
+      });
+      if (this._directiveHideTimer) clearTimeout(this._directiveHideTimer);
+      this._directiveHideTimer = setTimeout(() => {
+        this.hideDirective();
+      }, 1000);
     }
   }
 
@@ -2171,7 +2183,7 @@ export class SpaceHUD {
     if (this._promotionBannerTimer) clearTimeout(this._promotionBannerTimer);
     this._promotionBannerTimer = setTimeout(() => {
       if (this.rankPromotionBanner) this.rankPromotionBanner.classList.add('hidden');
-    }, 3800);
+    }, 1000);
   }
 
   updateAutoPilotUI(isActive) {
@@ -2190,7 +2202,12 @@ export class SpaceHUD {
           textSpan.textContent = `🤖 AI AUTO-PILOT ENGAGED // SPECTATING WAVE ${waveNum} // PRESS [P] OR CLICK TO RESUME MANUAL`;
         }
         this.hudAutoPilotBanner.classList.remove('hidden');
+        if (this._autoPilotBannerTimer) clearTimeout(this._autoPilotBannerTimer);
+        this._autoPilotBannerTimer = setTimeout(() => {
+          if (this.hudAutoPilotBanner) this.hudAutoPilotBanner.classList.add('hidden');
+        }, 1000);
       } else {
+        if (this._autoPilotBannerTimer) clearTimeout(this._autoPilotBannerTimer);
         this.hudAutoPilotBanner.classList.add('hidden');
       }
     }
@@ -2745,6 +2762,10 @@ export class SpaceHUD {
     if (this.desktopMouseFlightPill && this.desktopMouseFlightText) {
       if (this.gameManager && this.gameManager.state === 'PLAYING') {
         this.desktopMouseFlightPill.classList.remove('hidden');
+        if (this._mouseFlightPillTimer) clearTimeout(this._mouseFlightPillTimer);
+        this._mouseFlightPillTimer = setTimeout(() => {
+          if (this.desktopMouseFlightPill) this.desktopMouseFlightPill.classList.add('hidden');
+        }, 1000);
       }
       if (isLocked) {
         this.desktopMouseFlightPill.classList.add('is-locked');
@@ -2791,70 +2812,57 @@ export class SpaceHUD {
     return;
   }
 
-  updateLeadTargeting(playerShip, targetEnemy, camera) {
-    if (!this.reticleLeadPip || !this.reticlesEnabled) {
+  updateLeadTargeting(enemy, playerShip, camera) {
+    if (!this.reticleLeadPip || !camera || !this.reticlesEnabled) {
       if (this.reticleLeadPip) this.reticleLeadPip.classList.add('hidden');
       return;
     }
-    if (!targetEnemy || targetEnemy.isDead || !targetEnemy.meshGroup || !camera) {
+    if (!enemy || enemy.isDead || !enemy.meshGroup) {
       this.reticleLeadPip.classList.add('hidden');
       return;
     }
 
-    if (!this._leadVec) {
-      this._leadVec = new THREE.Vector3();
-      this._targetPos = new THREE.Vector3();
-    }
+    if (!this._leadTargetVec) this._leadTargetVec = new THREE.Vector3();
+    if (!this._leadVec) this._leadVec = new THREE.Vector3();
 
-    targetEnemy.meshGroup.getWorldPosition(this._targetPos);
-    const pPos = playerShip ? playerShip.meshGroup.position : null;
-    if (!pPos) {
+    const enemyPos = enemy.meshGroup.position;
+    const playerPos = playerShip.meshGroup ? playerShip.meshGroup.position : playerShip.position;
+    const dist = playerPos.distanceTo(enemyPos);
+    const laserSpeed = playerShip.laserSpeed || 120;
+    const timeToHit = Math.min(dist / Math.max(laserSpeed, 1), 2.5);
+
+    const enemyVel = enemy.velocity || { x: 0, y: 0, z: 0 };
+    this._leadTargetVec.copy(enemyPos).addScaledVector(enemyVel, timeToHit);
+    this._leadVec.copy(this._leadTargetVec).project(camera);
+
+    if (this._leadVec.z > 1.0) {
       this.reticleLeadPip.classList.add('hidden');
       return;
     }
 
-    const dist = this._targetPos.distanceTo(pPos);
-    const laserSpeed = 135; // Standard bolt velocity
-    const travelTime = dist / laserSpeed;
-
-    const vel = targetEnemy.velocity || { x: 0, y: 0, z: targetEnemy.speed ? -targetEnemy.speed : 0 };
-    this._leadVec.set(
-      this._targetPos.x + (vel.x || 0) * travelTime,
-      this._targetPos.y + (vel.y || 0) * travelTime,
-      this._targetPos.z + (vel.z || 0) * travelTime
-    );
-
-    // Project to screen space
-    this._leadVec.project(camera);
-
-    // If behind camera (z > 1) or off screen, hide
-    if (this._leadVec.z > 1.0 || Math.abs(this._leadVec.x) > 1.2 || Math.abs(this._leadVec.y) > 1.2) {
-      this.reticleLeadPip.classList.add('hidden');
-      return;
-    }
-
-    const halfW = window.innerWidth * 0.5;
-    const halfH = window.innerHeight * 0.5;
+    const halfW = window.innerWidth / 2;
+    const halfH = window.innerHeight / 2;
     const screenX = (this._leadVec.x * halfW) + halfW;
     const screenY = -(this._leadVec.y * halfH) + halfH;
 
     this.reticleLeadPip.classList.remove('hidden');
     this.reticleLeadPip.style.transform = `translate3d(${screenX.toFixed(1)}px, ${screenY.toFixed(1)}px, 0) translate(-50%, -50%)`;
-
-    // Check alignment with center of screen (flight crosshair)
-    const alignDist = Math.hypot(screenX - halfW, screenY - halfH);
-    if (alignDist < 28) {
-      this.reticleLeadPip.classList.add('locked');
-    } else {
-      this.reticleLeadPip.classList.remove('locked');
-    }
   }
 
   onGameStart() {
     this.hideBoundaryWarning();
     if (!this.isMobile && !this.isNativeApp && this.desktopMouseFlightPill) {
       this.desktopMouseFlightPill.classList.remove('hidden');
+      if (this._mouseFlightPillTimer) clearTimeout(this._mouseFlightPillTimer);
+      this._mouseFlightPillTimer = setTimeout(() => {
+        if (this.desktopMouseFlightPill) this.desktopMouseFlightPill.classList.add('hidden');
+      }, 1000);
     }
+    // Auto-hide top tactical command bar after 1 second of gameplay start to expand play area
+    if (this._topBarStartTimer) clearTimeout(this._topBarStartTimer);
+    this._topBarStartTimer = setTimeout(() => {
+      this.setTopBarVisible(false);
+    }, 1000);
   }
 
   /**
