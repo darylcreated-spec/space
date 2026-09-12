@@ -2094,24 +2094,26 @@ export class GameManager {
       }
     }
 
-    if (this.isMobile && this.lasers) {
-      if (isEnemy) {
-        let activeEnemyCount = 0;
-        for (let i = 0; i < this.lasers.length; i++) {
-          if (this.lasers[i].isEnemy && !this.lasers[i].isDead) activeEnemyCount++;
-        }
-        if (activeEnemyCount >= 14) return null;
-      } else {
-        let activePlayerCount = 0;
-        for (let i = 0; i < this.lasers.length; i++) {
-          if (!this.lasers[i].isEnemy && !this.lasers[i].isDead) activePlayerCount++;
-        }
-        if (activePlayerCount >= 12) return null;
+    if (this.lasers) {
+      const maxEnemy = this.isMobile ? 14 : 32;
+      const maxPlayer = this.isMobile ? 12 : 28;
+      let activeCount = 0;
+      for (let i = 0; i < this.lasers.length; i++) {
+        if (this.lasers[i].isEnemy === isEnemy && !this.lasers[i].isDead) activeCount++;
+      }
+      if (activeCount >= (isEnemy ? maxEnemy : maxPlayer)) return null;
+    }
+
+    let bolt = null;
+    for (let i = 0; i < this.laserPool.length; i++) {
+      if (this.laserPool[i].isDead) {
+        bolt = this.laserPool[i];
+        break;
       }
     }
-    let bolt = this.laserPool.find(l => l.isDead);
+
     if (!bolt) {
-      if (this.laserPool.length < 150) {
+      if (this.laserPool.length < 100) {
         bolt = new LaserBolt(this.spaceScene.scene, startPos, colorHex, isEnemy, targetDir, projectileType, this);
         this.laserPool.push(bolt);
       } else {
@@ -2122,7 +2124,10 @@ export class GameManager {
     bolt.gameManager = this;
     bolt.reset(startPos, colorHex, isEnemy, targetDir, projectileType);
     if (isCrit) bolt.isCritical = true;
-    if (!this.lasers.includes(bolt)) this.lasers.push(bolt);
+    if (!bolt._inLasersArray) {
+      bolt._inLasersArray = true;
+      this.lasers.push(bolt);
+    }
 
     // AAA Dynamic Muzzle Lighting Flash (Desktop only — protects mobile JS timer loop)
     if (!this.isMobile && !isEnemy && this.spaceScene && Math.random() < 0.4) {

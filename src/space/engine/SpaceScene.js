@@ -189,11 +189,7 @@ export class SpaceScene {
     this.dynamicFlashLight.color.setHex(colorHex);
     this.dynamicFlashLight.position.copy(pos);
     this.dynamicFlashLight.intensity = intensity;
-
-    if (this._flashTimer) clearTimeout(this._flashTimer);
-    this._flashTimer = setTimeout(() => {
-      if (this.dynamicFlashLight) this.dynamicFlashLight.intensity = 0;
-    }, duration * 1000);
+    this._flashDecay = intensity / Math.max(0.04, duration);
   }
 
   createNebulaTexture(colorCenter, colorMid, colorEdge) {
@@ -1212,6 +1208,9 @@ export class SpaceScene {
   }
 
   update(dt, playerShip = null, activeBoss = null) {
+    if (this.dynamicFlashLight && this.dynamicFlashLight.intensity > 0) {
+      this.dynamicFlashLight.intensity = Math.max(0, this.dynamicFlashLight.intensity - (this._flashDecay || 35) * dt);
+    }
     if (this.starField) this.starField.rotation.y += 0.0002;
     if (this.nebula1) this.nebula1.rotation.y += 0.0001;
     if (this.nebula2) this.nebula2.rotation.y -= 0.0001;

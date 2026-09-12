@@ -415,6 +415,7 @@ export class LaserBolt {
 
   destroy() {
     this.isDead = true;
+    this._inLasersArray = false;
     this.meshGroup.visible = false;
     this.meshGroup.position.set(9999, 9999, 9999);
   }
@@ -557,10 +558,10 @@ export class LaserBolt {
       }
     } else {
       const isMobile = gm && gm.isMobile;
-      const maxZ = isMobile ? -85 : -160;
-      const minZ = isMobile ? 24 : 45;
-      const maxX = isMobile ? 38 : 60;
-      const maxY = isMobile ? 26 : 50;
+      const maxZ = isMobile ? -85 : -105;
+      const minZ = isMobile ? 22 : 28;
+      const maxX = isMobile ? 38 : 48;
+      const maxY = isMobile ? 26 : 36;
 
       if (
         this.meshGroup.position.z < maxZ ||
