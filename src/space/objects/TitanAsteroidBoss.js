@@ -3,7 +3,10 @@ import * as THREE from 'three';
 /**
  * Procedural Volcanic Basalt & Molten Magma Fissure Texture for Titan Asteroid Colossus
  */
+let cachedTitanBasaltTexture = null;
+
 function generateTitanBasaltTexture() {
+  if (cachedTitanBasaltTexture) return cachedTitanBasaltTexture;
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
@@ -58,7 +61,8 @@ function generateTitanBasaltTexture() {
     ctx.stroke();
   }
 
-  return new THREE.CanvasTexture(canvas);
+  cachedTitanBasaltTexture = new THREE.CanvasTexture(canvas);
+  return cachedTitanBasaltTexture;
 }
 
 // ============================================================

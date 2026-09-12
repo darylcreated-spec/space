@@ -2,9 +2,11 @@ import * as THREE from 'three';
 
 /**
  * Procedural Obsidian-Carbon Composite Hull Texture for Boss Dreadnought Flagship
- * Enhanced with Rich Royal Obsidian Violet, Luminous Gold Insets, and Neon Magenta/Cyan Circuitry
  */
+let cachedDreadnoughtHullTexture = null;
+
 function generateDreadnoughtHullTexture() {
+  if (cachedDreadnoughtHullTexture) return cachedDreadnoughtHullTexture;
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
@@ -63,7 +65,8 @@ function generateDreadnoughtHullTexture() {
   ctx.moveTo(0, 200); ctx.lineTo(120, 200); ctx.lineTo(180, 260); ctx.lineTo(512, 260);
   ctx.stroke();
 
-  return new THREE.CanvasTexture(canvas);
+  cachedDreadnoughtHullTexture = new THREE.CanvasTexture(canvas);
+  return cachedDreadnoughtHullTexture;
 }
 
 // ============================================================

@@ -181,7 +181,18 @@ export class LaserBolt {
       this.gameManager.particleManager.spawnMuzzleFlash(startPos, this.colorHex, isEnemy ? 1.4 : 1.9);
     }
 
-    // Rebuild mesh children for specific projectile geometry
+    // True Object Pooling: Reuse existing meshes if projectile type and allegiance match
+    const pTypeKey = `${projectileType}_${isEnemy}`;
+    if (this._builtType === pTypeKey) {
+      if (projectileType === 'STANDARD' && this.beamMesh) {
+        this.beamMesh.material = getLaserMaterial(this.colorHex);
+        if (this.glowMesh) this.glowMesh.material = getLaserMaterial(this.colorHex, true, 0.25);
+        if (this.muzzleMesh) this.muzzleMesh.material = getLaserMaterial(isEnemy ? 0xff0033 : (this.isCritical ? 0x00ffff : 0xffffff));
+      }
+      return;
+    }
+
+    // Type mismatch: Rebuild mesh children only when projectile type actually changes
     while (this.meshGroup.children.length > 0) {
       this.meshGroup.remove(this.meshGroup.children[0]);
     }
@@ -189,7 +200,7 @@ export class LaserBolt {
     this.glowMesh = null;
     this.coreMesh = null;
     this.muzzleMesh = null;
-    this._builtType = null;
+    this._builtType = pTypeKey;
 
     if (projectileType === 'FLAK') {
       // 1. Aerodynamic Rocket Body (Dark metallic alloy)
@@ -372,42 +383,32 @@ export class LaserBolt {
       const beamMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, blending: THREE.AdditiveBlending });
       this.meshGroup.add(new THREE.Mesh(beamGeo, beamMat));
     } else {
-      if (this._builtType === `STANDARD_${isEnemy}` && this.beamMesh) {
-        this.beamMesh.material = getLaserMaterial(colorHex);
-        if (this.glowMesh) this.glowMesh.material = getLaserMaterial(colorHex, true, 0.25);
-        if (this.muzzleMesh) this.muzzleMesh.material = getLaserMaterial(isEnemy ? 0xff0033 : (this.isCritical ? 0x00ffff : 0xffffff));
+      const geos = getLaserGeometries(projectileType, isEnemy);
+      const isMobile = this.gameManager ? this.gameManager.isMobile : false;
+
+      // Beam
+      this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
+      this.meshGroup.add(this.beamMesh);
+
+      // Glow (desktop only — mobile bloom handles glow with zero draw call overhead)
+      if (!isMobile) {
+        this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.25));
+        this.meshGroup.add(this.glowMesh);
       } else {
-        while (this.meshGroup.children.length > 0) {
-          this.meshGroup.remove(this.meshGroup.children[0]);
-        }
-        const geos = getLaserGeometries(projectileType, isEnemy);
-        const isMobile = this.gameManager ? this.gameManager.isMobile : false;
+        this.glowMesh = null;
+      }
 
-        // Beam
-        this.beamMesh = new THREE.Mesh(geos.beamGeo, getLaserMaterial(colorHex));
-        this.meshGroup.add(this.beamMesh);
+      // Core
+      this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
+      this.meshGroup.add(this.coreMesh);
 
-        // Glow (desktop only — mobile bloom handles glow with zero draw call overhead)
-        if (!isMobile) {
-          this.glowMesh = new THREE.Mesh(geos.glowGeo, getLaserMaterial(colorHex, true, 0.25));
-          this.meshGroup.add(this.glowMesh);
-        } else {
-          this.glowMesh = null;
-        }
-
-        // Core
-        this.coreMesh = new THREE.Mesh(geos.coreGeo, getLaserMaterial(0xffffff));
-        this.meshGroup.add(this.coreMesh);
-
-        // Muzzle (desktop only)
-        if (!isMobile) {
-          this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(isEnemy ? 0xff0033 : (this.isCritical ? 0x00ffff : 0xffffff)));
-          this.muzzleMesh.position.z = -geos.len / 2;
-          this.meshGroup.add(this.muzzleMesh);
-        } else {
-          this.muzzleMesh = null;
-        }
-        this._builtType = `STANDARD_${isEnemy}`;
+      // Muzzle (desktop only)
+      if (!isMobile) {
+        this.muzzleMesh = new THREE.Mesh(geos.muzzleGeo, getLaserMaterial(isEnemy ? 0xff0033 : (this.isCritical ? 0x00ffff : 0xffffff)));
+        this.muzzleMesh.position.z = -geos.len / 2;
+        this.meshGroup.add(this.muzzleMesh);
+      } else {
+        this.muzzleMesh = null;
       }
     }
   }

@@ -3,7 +3,10 @@ import * as THREE from 'three';
 /**
  * Procedural Normal/Bump Texture for Goliath Heavy Battleship Armor Plating (Arctic White Finish)
  */
+let cachedBattleshipArmorTexture = null;
+
 function generateBattleshipArmorTexture() {
+  if (cachedBattleshipArmorTexture) return cachedBattleshipArmorTexture;
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
@@ -53,7 +56,8 @@ function generateBattleshipArmorTexture() {
   ctx.moveTo(0, 256); ctx.lineTo(128, 256); ctx.lineTo(192, 192); ctx.lineTo(512, 192);
   ctx.stroke();
 
-  return new THREE.CanvasTexture(canvas);
+  cachedBattleshipArmorTexture = new THREE.CanvasTexture(canvas);
+  return cachedBattleshipArmorTexture;
 }
 
 // ============================================================

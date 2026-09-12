@@ -3,7 +3,10 @@ import * as THREE from 'three';
 /**
  * Procedural Normal/Bump Texture for Enemy Capital Cruiser Armor (Deep Obsidian-Crimson with Gold Accents)
  */
+let cachedCruiserArmorTexture = null;
+
 function generateCruiserArmorTexture() {
+  if (cachedCruiserArmorTexture) return cachedCruiserArmorTexture;
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 256;
@@ -46,7 +49,8 @@ function generateCruiserArmorTexture() {
   ctx.moveTo(0, 64); ctx.lineTo(128, 64); ctx.lineTo(160, 32); ctx.lineTo(256, 32);
   ctx.stroke();
 
-  return new THREE.CanvasTexture(canvas);
+  cachedCruiserArmorTexture = new THREE.CanvasTexture(canvas);
+  return cachedCruiserArmorTexture;
 }
 
 export class CapitalShip {
