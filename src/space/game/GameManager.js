@@ -242,6 +242,11 @@ export class GameManager {
       }
     }
     this.state = 'PLAYING';
+    try {
+      if (window.screen?.orientation?.lock) {
+        window.screen.orientation.lock('landscape').catch(() => {});
+      }
+    } catch(e) {}
     if (this.spaceHUD && this.spaceHUD.onGameStart) {
       this.spaceHUD.onGameStart();
     }

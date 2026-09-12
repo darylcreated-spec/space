@@ -406,6 +406,14 @@ html, body {
   contain: layout paint;
 }
 
+@media (max-width: 1024px) and (orientation: landscape) {
+  .virtual-joystick-dock {
+    left: max(32px, env(safe-area-inset-left, 24px));
+    transform: translateZ(0);
+    bottom: max(18px, env(safe-area-inset-bottom, 14px));
+  }
+}
+
 .touch-joystick-base {
   position: relative;
   width: 100px;
