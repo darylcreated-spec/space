@@ -542,10 +542,16 @@ export class HaloRingBoss {
     return t.isDead;
   }
 
+  takeDamage(targetSubsystem, amount) {
+    const finalAmount = typeof targetSubsystem === 'number' ? targetSubsystem : (typeof amount === 'number' ? amount : 50);
+    return this.takeCoreDamage(finalAmount);
+  }
+
   takeCoreDamage(amount) {
     if (this.isDead) return false;
+    const finalAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 50;
 
-    this.coreHp = Math.max(0, this.coreHp - amount);
+    this.coreHp = Math.max(0, this.coreHp - finalAmount);
 
     // Distribute damage to framing anchors
     const activeFraming = this.framingNodes.filter(n => !n.isDead);

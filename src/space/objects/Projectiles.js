@@ -3,6 +3,8 @@ import * as THREE from 'three';
 // ── Shared Cache for LaserBolt Geometries & Materials ──
 const laserGeoCache = {};
 const laserMatCache = {};
+const _tempHomingDir = new THREE.Vector3();
+const _tempHomingLook = new THREE.Vector3();
 
 function getLaserGeometries(type = 'STANDARD', isEnemy = false) {
   const key = `${type}_${isEnemy ? 'enemy' : 'player'}`;
@@ -163,8 +165,8 @@ export class LaserBolt {
       const pShip = (this.gameManager && this.gameManager.playerShip) ? this.gameManager.playerShip : null;
       const pLvl = pShip?.laserLevel || 0;
       this.damage = pShip?.laserDamage || (24 + pLvl * 6);
-      this.speed = pShip?.laserSpeed || (120 + pLvl * 10);
-      this.radius = 1.4;
+      this.speed = pShip?.laserSpeed || (145 + pLvl * 10);
+      this.radius = 1.5;
     }
 
     if (targetDir) {
@@ -506,45 +508,20 @@ export class LaserBolt {
 
       if (this.homingTarget && !this.homingTarget.isDead && this.homingTarget.meshGroup) {
         const targetPos = this.homingTarget.meshGroup.position;
-        const desiredDir = new THREE.Vector3().subVectors(targetPos, this.meshGroup.position).normalize();
-        this.direction.lerp(desiredDir, 6.0 * dt).normalize();
-        this.meshGroup.lookAt(new THREE.Vector3().addVectors(this.meshGroup.position, this.direction));
+        _tempHomingDir.subVectors(targetPos, this.meshGroup.position).normalize();
+        this.direction.lerp(_tempHomingDir, 6.0 * dt).normalize();
+        _tempHomingLook.addVectors(this.meshGroup.position, this.direction);
+        this.meshGroup.lookAt(_tempHomingLook);
       }
     }
 
-    // Enemy Homing Missiles seeking Player (or Decoyed by Active Thermal Flares)
+    // Enemy Homing Missiles seeking Player
     if (this.projectileType === 'HOMING' && this.isEnemy && gm && gm.playerShip && gm.playerShip.meshGroup) {
-      let targetPos = gm.playerShip.meshGroup.position;
-      let nearestFlare = null;
-      let minFlareDist = 120;
-
-      if (gm.activeFlares && gm.activeFlares.length > 0) {
-        for (const flare of gm.activeFlares) {
-          const d = this.meshGroup.position.distanceTo(flare.position);
-          if (d < minFlareDist) {
-            minFlareDist = d;
-            nearestFlare = flare;
-          }
-        }
-      }
-
-      if (nearestFlare) {
-        targetPos = nearestFlare.position;
-        if (minFlareDist < 3.5) {
-          if (gm.particleManager) {
-            gm.particleManager.spawnExplosion(this.meshGroup.position, 1.2, 0xffaa00);
-          }
-          if (gm.spaceAudio && gm.spaceAudio.playSmallExplosion) {
-            gm.spaceAudio.playSmallExplosion();
-          }
-          this.destroy();
-          return;
-        }
-      }
-
-      const desiredDir = new THREE.Vector3().subVectors(targetPos, this.meshGroup.position).normalize();
-      this.direction.lerp(desiredDir, 5.0 * dt).normalize();
-      this.meshGroup.lookAt(new THREE.Vector3().addVectors(this.meshGroup.position, this.direction));
+      const targetPos = gm.playerShip.meshGroup.position;
+      _tempHomingDir.subVectors(targetPos, this.meshGroup.position).normalize();
+      this.direction.lerp(_tempHomingDir, 5.0 * dt).normalize();
+      _tempHomingLook.addVectors(this.meshGroup.position, this.direction);
+      this.meshGroup.lookAt(_tempHomingLook);
     }
 
     this.meshGroup.position.addScaledVector(this.direction, this.speed * dt);
@@ -725,9 +702,9 @@ export class AntiMatterNuke {
 
   reset(startPos) {
     this.damage = 3500;
-    this.aoeRadius = 45.0;
-    this.speed = 85;
-    this.radius = 3.5;
+    this.aoeRadius = 180.0; // Covers entire combat theater
+    this.speed = 110;
+    this.radius = 4.0;
     this.isDead = false;
     this._time = 0;
     this.meshGroup.position.copy(startPos);
@@ -756,7 +733,58 @@ export class AntiMatterNuke {
       this.particleManager.spawnEngineParticle(this.meshGroup.position, 0x00f3ff);
     }
 
-    if (this.meshGroup.position.z < -95) {
+    // 💥 Immediate Proximity / Contact Detonation
+    const gm = typeof window !== 'undefined' ? (this.gameManager || window.spaceGameManager) : null;
+    const nPos = this.meshGroup.position;
+
+    if (gm) {
+      let hit = false;
+
+      // Contact with drones or interceptors
+      const hostiles = [...(gm.drones || []), ...(gm.stealthFighters || []), ...(gm.phaseInterceptors || [])];
+      for (let i = 0; i < hostiles.length; i++) {
+        const h = hostiles[i];
+        if (h && !h.isDead && h.meshGroup && h.meshGroup.position.distanceTo(nPos) < 7.0) {
+          hit = true;
+          break;
+        }
+      }
+
+      // Contact with asteroids
+      if (!hit && gm.asteroids) {
+        for (let i = 0; i < gm.asteroids.length; i++) {
+          const a = gm.asteroids[i];
+          if (a && !a.isDead && a.meshGroup && a.meshGroup.position.distanceTo(nPos) < ((a.radius || 4.0) + 3.0)) {
+            hit = true;
+            break;
+          }
+        }
+      }
+
+      // Contact with Bosses or Warships
+      if (!hit) {
+        if (gm.activeBoss && !gm.activeBoss.isDead && gm.activeBoss.meshGroup && gm.activeBoss.meshGroup.position.distanceTo(nPos) < (gm.activeBoss.hitRadius || 35.0)) {
+          hit = true;
+        }
+        if (gm.carrierBoss && !gm.carrierBoss.isDead && gm.carrierBoss.meshGroup && gm.carrierBoss.meshGroup.position.distanceTo(nPos) < 28.0) {
+          hit = true;
+        }
+        if (gm.heavyBattleships) {
+          for (let i = 0; i < gm.heavyBattleships.length; i++) {
+            const b = gm.heavyBattleships[i];
+            if (b && !b.isDead && b.meshGroup && b.meshGroup.position.distanceTo(nPos) < 22.0) {
+              hit = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // Direct impact or reached the center of the hostile combat theater (Z = -38 or after 0.55s)
+      if (hit || this.meshGroup.position.z < -38 || this._time >= 0.55) {
+        this.detonate();
+      }
+    } else if (this.meshGroup.position.z < -38) {
       this.detonate();
     }
   }
@@ -765,37 +793,154 @@ export class AntiMatterNuke {
     if (this.isDead) return;
     this.destroy();
 
-    const gm = typeof window !== 'undefined' ? window.spaceGameManager : null;
+    const gm = typeof window !== 'undefined' ? (this.gameManager || window.spaceGameManager) : null;
+    const detPos = this.meshGroup.position.clone();
+
+    // 1. Massive Visual & Audio EMP Singularity Shockwave
     if (this.particleManager) {
-      this.particleManager.createExplosion(this.meshGroup.position, 0xcc00ff, 400, 8.0);
-      this.particleManager.createExplosion(this.meshGroup.position, 0x00f3ff, 250, 6.0);
-      this.particleManager.createEmpShockwave(this.meshGroup.position, 180);
-      this.particleManager.createEmpShockwave(this.meshGroup.position, 260);
+      this.particleManager.createExplosion(detPos, 0xcc00ff, 400, 8.0);
+      this.particleManager.createExplosion(detPos, 0x00f3ff, 250, 6.0);
+      this.particleManager.createEmpShockwave(detPos, 220);
+      this.particleManager.createEmpShockwave(detPos, 340);
     }
 
     if (gm) {
-      gm.activeNukeDetonation = { pos: this.meshGroup.position.clone(), timer: 1.5 };
-      gm.spaceScene?.addScreenShake(2.5);
+      gm.activeNukeDetonation = { pos: detPos, timer: 1.5 };
+      gm.spaceScene?.addScreenShake(3.0);
       gm.spaceAudio?.playEmpPulse?.();
+      gm.spaceAudio?.vibrate?.([80, 40, 100]);
       gm.spaceHUD?.showWaveBanner('SUB-SPACE DETONATION', 'TACTICAL ANTI-MATTER WARHEAD TRIGGERED!');
 
-      // Eradicate non-boss enemies in blast radius
-      if (gm.drones) gm.drones.forEach(d => { if (!d.isDead && d.meshGroup && d.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) d.takeDamage(this.damage); });
-      if (gm.stealthFighters) gm.stealthFighters.forEach(s => { if (!s.isDead && s.meshGroup && s.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) s.takeDamage(this.damage); });
-      if (gm.phaseInterceptors) gm.phaseInterceptors.forEach(p => { if (!p.isDead && p.meshGroup && p.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) p.takeDamage(this.damage); });
-      if (gm.asteroids) gm.asteroids.forEach(a => { if (!a.isDead && a.meshGroup && a.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) a.takeDamage(this.damage); });
-      if (gm.capitalShips) gm.capitalShips.forEach(c => { if (!c.isDead && c.meshGroup && c.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) c.takeDamage(this.damage); });
-      if (gm.heavyBattleships) gm.heavyBattleships.forEach(b => { if (!b.isDead && b.meshGroup && b.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) b.takeDamage(this.damage); });
-      if (gm.carrierBoss && !gm.carrierBoss.isDead) gm.carrierBoss.takeDamage(this.damage);
-      if (gm.activeBoss && !gm.activeBoss.isDead) gm.activeBoss.takeDamage(this.damage);
+      let totalCasualties = 0;
 
-      // Vaporize hostile enemy lasers in blast radius
-      if (gm.lasers) {
-        gm.lasers.forEach(l => {
-          if (l && l.isEnemy && !l.isDead && l.meshGroup && l.meshGroup.position.distanceTo(this.meshGroup.position) < this.aoeRadius) {
-            l.destroy();
+      // 2. Obliterate all on-screen Drones
+      if (gm.drones) {
+        for (let i = gm.drones.length - 1; i >= 0; i--) {
+          const d = gm.drones[i];
+          if (!d.isDead && d.meshGroup && d.meshGroup.position.distanceTo(detPos) < this.aoeRadius) {
+            d.isDead = true;
+            if (this.particleManager) {
+              this.particleManager.createExplosion(d.meshGroup.position, 0xff0055, 30, 2.0);
+              this.particleManager.spawnMetalDebris?.(d.meshGroup.position, 8);
+            }
+            try { d.destroy(); } catch(e) {}
+            gm.addScore(d.scoreValue || 200);
+            gm.addScrap?.(15);
+            totalCasualties++;
+          }
+        }
+      }
+
+      // 3. Obliterate Stealth Fighters
+      if (gm.stealthFighters) {
+        for (let i = gm.stealthFighters.length - 1; i >= 0; i--) {
+          const s = gm.stealthFighters[i];
+          if (!s.isDead && s.meshGroup && s.meshGroup.position.distanceTo(detPos) < this.aoeRadius) {
+            s.isDead = true;
+            if (this.particleManager) {
+              this.particleManager.createExplosion(s.meshGroup.position, 0xaa00ff, 40, 2.2);
+              this.particleManager.spawnMetalDebris?.(s.meshGroup.position, 10);
+            }
+            try { s.destroy(); } catch(e) {}
+            gm.addScore(s.scoreValue || 450);
+            gm.addScrap?.(25);
+            totalCasualties++;
+          }
+        }
+      }
+
+      // 4. Obliterate Phase Interceptors
+      if (gm.phaseInterceptors) {
+        for (let i = gm.phaseInterceptors.length - 1; i >= 0; i--) {
+          const p = gm.phaseInterceptors[i];
+          if (!p.isDead && p.meshGroup && p.meshGroup.position.distanceTo(detPos) < this.aoeRadius) {
+            p.isDead = true;
+            if (this.particleManager) {
+              this.particleManager.createExplosion(p.meshGroup.position, 0x9900ff, 35, 2.0);
+              this.particleManager.spawnMetalDebris?.(p.meshGroup.position, 8);
+            }
+            try { p.destroy(); } catch(e) {}
+            gm.addScore(p.scoreValue || 350);
+            gm.addScrap?.(20);
+            totalCasualties++;
+          }
+        }
+      }
+
+      // 5. Obliterate Asteroids
+      if (gm.asteroids) {
+        for (let i = gm.asteroids.length - 1; i >= 0; i--) {
+          const a = gm.asteroids[i];
+          if (!a.isDead && a.meshGroup && a.meshGroup.position.distanceTo(detPos) < this.aoeRadius) {
+            a.isDead = true;
+            if (this.particleManager) {
+              this.particleManager.createExplosion(a.meshGroup.position, 0xffaa00, 25, 1.8);
+            }
+            try { a.destroy(); } catch(e) {}
+            gm.addScore(100);
+            totalCasualties++;
+          }
+        }
+        gm.asteroids = gm.asteroids.filter(a => !a.isDead);
+      }
+
+      // 6. Heavy Capital Warships
+      if (gm.capitalShips) {
+        gm.capitalShips.forEach(c => {
+          if (!c.isDead && c.meshGroup && c.meshGroup.position.distanceTo(detPos) < this.aoeRadius) {
+            if (c.takeDamage) c.takeDamage(this.damage);
+            if (this.particleManager) {
+              this.particleManager.createExplosion(c.meshGroup.position, 0x00aaff, 50, 3.0);
+            }
           }
         });
+      }
+
+      if (gm.heavyBattleships) {
+        gm.heavyBattleships.forEach(b => {
+          if (!b.isDead && b.meshGroup && b.meshGroup.position.distanceTo(detPos) < this.aoeRadius) {
+            if (b.takeDamage) b.takeDamage(null, this.damage);
+            if (this.particleManager) {
+              this.particleManager.createExplosion(b.meshGroup.position, 0xff0044, 60, 3.5);
+            }
+          }
+        });
+      }
+
+      if (gm.carrierBoss && !gm.carrierBoss.isDead) {
+        if (gm.carrierBoss.takeDamage) gm.carrierBoss.takeDamage(this.damage);
+        if (this.particleManager && gm.carrierBoss.meshGroup) {
+          this.particleManager.createExplosion(gm.carrierBoss.meshGroup.position, 0xff0055, 60, 3.5);
+        }
+      }
+
+      // 7. Apex Bosses (Titan Asteroid, Dreadnought, Mothership, etc.)
+      if (gm.activeBoss && !gm.activeBoss.isDead) {
+        const boss = gm.activeBoss;
+        if (boss.takeDamage) {
+          try { boss.takeDamage(null, this.damage); } catch(e) {}
+          try { boss.takeDamage(this.damage); } catch(e) {}
+        }
+        if (boss.meshGroup && this.particleManager) {
+          this.particleManager.createExplosion(boss.meshGroup.position, 0xcc00ff, 90, 4.5);
+        }
+      }
+
+      // 8. Wipe All Hostile Lasers & Missiles in Theatre
+      if (gm.lasers) {
+        gm.lasers.forEach(l => {
+          if (l && l.isEnemy && !l.isDead) l.destroy();
+        });
+      }
+      if (gm.enemyMissiles) {
+        gm.enemyMissiles.forEach(m => {
+          if (m && !m.isDead) m.destroy();
+        });
+        gm.enemyMissiles = [];
+      }
+
+      if (totalCasualties > 0 && gm.voiceAnnouncer) {
+        gm.voiceAnnouncer.speak(`${totalCasualties} targets vaporized!`, false);
       }
     }
   }

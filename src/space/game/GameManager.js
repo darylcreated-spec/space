@@ -105,7 +105,6 @@ export class GameManager {
     this.heavyBattleships = [];
     this.cargoPods = [];
     this.activeTelescope = null;
-    this.activeFlares = [];
     this.cargoPodSpawnTimer = 0;
     this.radarPingTimer = 0;
     this.powerUps = [];
@@ -641,24 +640,39 @@ export class GameManager {
     let targetX = 0;
     let targetY = 0;
 
+    // 1. Waypoint navigational rings priority
+    if (this.waypointRings && this.waypointRings.length > 0) {
+      const nextRing = this.waypointRings.find(r => r && !r.passed && r.mesh && r.mesh.position.z < pPos.z);
+      if (nextRing && nextRing.mesh) {
+        targetX = nextRing.mesh.position.x;
+        targetY = nextRing.mesh.position.y;
+      }
+    }
+
+    // 2. Boss priority
     if (this.activeBoss && !this.activeBoss.isDead && this.activeBoss.meshGroup) {
       const bPos = this.activeBoss.meshGroup.position;
-      // Weave across the boss targets with dynamic strafing
-      const sweep = Math.sin(t * 2.0) * 10.0;
+      const sweep = Math.sin(t * 1.8) * 12.0;
       targetX = bPos.x + sweep;
-      targetY = Math.max(-3, Math.min(5, bPos.y + Math.cos(t * 1.2) * 2.5));
-    } else if (this.asteroids.length > 0) {
-      const closestRock = this.asteroids.find(r => r && !r.isDead && r.meshGroup && r.meshGroup.position.z < pPos.z);
-      if (closestRock) {
-        targetX = closestRock.meshGroup.position.x;
-        targetY = closestRock.meshGroup.position.y;
-      }
-    } else if (this.drones.length > 0) {
-      const drone = this.drones.find(d => d && !d.isDead && d.meshGroup);
+      targetY = Math.max(-4, Math.min(5, bPos.y + Math.cos(t * 1.1) * 2.8));
+    } else if (this.drones && this.drones.some(d => !d.isDead && d.meshGroup && d.meshGroup.position.z < pPos.z)) {
+      // 3. Enemy fighters/drones priority
+      const drone = this.drones.find(d => !d.isDead && d.meshGroup && d.meshGroup.position.z < pPos.z);
       if (drone && drone.meshGroup) {
         targetX = drone.meshGroup.position.x;
         targetY = drone.meshGroup.position.y;
       }
+    } else if (this.asteroids && this.asteroids.some(r => !r.isDead && r.meshGroup && r.meshGroup.position.z < pPos.z)) {
+      // 4. Asteroid corridors
+      const closestRock = this.asteroids.find(r => !r.isDead && r.meshGroup && r.meshGroup.position.z < pPos.z);
+      if (closestRock && closestRock.meshGroup) {
+        targetX = closestRock.meshGroup.position.x;
+        targetY = closestRock.meshGroup.position.y;
+      }
+    } else {
+      // Gentle patrol weave
+      targetX = Math.sin(t * 1.2) * 8.0;
+      targetY = Math.cos(t * 0.9) * 3.0;
     }
 
     const dx = targetX - pPos.x;
@@ -860,6 +874,34 @@ export class GameManager {
     this.powerUps = [];
   }
 
+  onBossArrived() {
+    this.clearAsteroidsForBoss();
+    if (this.particleManager && this.particleManager.spaceDebris) {
+      this.particleManager.spaceDebris.clearAllDebris();
+      this.particleManager.spaceDebris.setVisible(false);
+    }
+  }
+
+  onBossDefeated() {
+    if (this.particleManager && this.particleManager.spaceDebris) {
+      this.particleManager.spaceDebris.setVisible(true);
+    }
+  }
+
+  clearAsteroidsForBoss() {
+    if (!this.asteroids || this.asteroids.length === 0) return;
+    for (let i = 0; i < this.asteroids.length; i++) {
+      const rock = this.asteroids[i];
+      if (rock && !rock.isDead) {
+        if (this.particleManager && rock.meshGroup) {
+          this.particleManager.createExplosion(rock.meshGroup.position, 0x00f3ff, 8);
+        }
+        try { rock.destroy(); } catch(e) {}
+      }
+    }
+    this.asteroids = [];
+  }
+
   triggerHitFreeze(duration = 0.04) {
     this.hitFreezeTimer = duration;
   }
@@ -1052,6 +1094,11 @@ export class GameManager {
   }
 
   spawnAsteroid(options = {}) {
+    // Suppress all asteroid spawns when an Apex Boss is active (100% focus on boss, zero rendering clutter)
+    if (this.activeBoss && !this.activeBoss.isDead) {
+      return null;
+    }
+
     // 📱 Mobile Concurrency Throttle: Limit simultaneous active asteroids to 6 on mobile
     if (this.isMobile && this.asteroids && this.asteroids.length >= 6) {
       return null;
@@ -1278,6 +1325,7 @@ export class GameManager {
   }
 
   spawnBoss() {
+    this.onBossArrived();
     this.activeBoss = new BossDreadnought(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Sector Dreadnought Approaching!", true);
@@ -1285,6 +1333,7 @@ export class GameManager {
   }
 
   spawnTitanBoss() {
+    this.onBossArrived();
     this.activeBoss = new TitanAsteroidBoss(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer?.announceImperialIncursion('Titan Asteroid Colossus');
@@ -1293,17 +1342,10 @@ export class GameManager {
       this.spaceHUD.updateBossHealth(1.0, "TITAN ASTEROID COLOSSUS // VOLCANIC PLANETOID");
     }
     if (this.spaceScene) this.spaceScene.triggerBossIntroCamera();
-
-
-    // Deploy Enemy Capital Cruiser to protect the Titan Asteroid Boss!
-    setTimeout(() => {
-      if (this.state === 'PLAYING' && this.activeBoss && !this.activeBoss.isDead) {
-        this.spawnCapitalShip(new THREE.Vector3(18, 2, -65));
-      }
-    }, 1800);
   }
 
   spawnAsteroidCoreFlagship(spawnPos = null) {
+    this.onBossArrived();
     this.activeBoss = new TitanCoreShip(this.spaceScene.scene, this.particleManager, spawnPos);
     this.applyEnemyHpScaling(this.activeBoss);
     if (this.spaceHUD) {
@@ -1334,6 +1376,7 @@ export class GameManager {
   }
 
   spawnSpaceStation() {
+    this.onBossArrived();
     this.activeBoss = new MoonBase(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Orbital Alpha Moon Base Approaching! Destroy Shield Generators!", true);
@@ -1347,6 +1390,7 @@ export class GameManager {
   }
 
   spawnHaloBoss() {
+    this.onBossArrived();
     this.activeBoss = new HaloRingBoss(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Halo Megastructure Ring Approaching!", true);
@@ -1359,6 +1403,7 @@ export class GameManager {
   }
 
   spawnSanctuaryCylinderBoss() {
+    this.onBossArrived();
     this.activeBoss = new SanctuaryCylinderBoss(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Sanctuary-9 Industrial Cylinder Approaching!", true);
@@ -1423,6 +1468,7 @@ export class GameManager {
   }
 
   spawnSolarTitan(spawnPos = null) {
+    this.onBossArrived();
     this.activeBoss = new SolarTitan(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     if (spawnPos && this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.copy(spawnPos);
@@ -1440,6 +1486,7 @@ export class GameManager {
   }
 
   spawnSingularityHarbinger(spawnPos = null) {
+    this.onBossArrived();
     this.activeBoss = new SingularityHarbinger(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     if (spawnPos && this.activeBoss.meshGroup) this.activeBoss.meshGroup.position.copy(spawnPos);
@@ -1474,6 +1521,7 @@ export class GameManager {
   }
 
   spawnCommandMothership() {
+    this.onBossArrived();
     this.activeBoss = new CommandMothership(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     if (this.activeBoss.meshGroup) {
@@ -1494,6 +1542,7 @@ export class GameManager {
   }
 
   spawnHeliosSolarBoss() {
+    this.onBossArrived();
     this.activeBoss = new HeliosSolarBoss(this.spaceScene.scene, this.particleManager);
     this.applyEnemyHpScaling(this.activeBoss);
     this.voiceAnnouncer.speak("Warning! Helios Solar Siphon Colossus Approaching! Protect Hull from Solar Flares!", true);
@@ -2095,8 +2144,8 @@ export class GameManager {
     }
 
     if (this.lasers) {
-      const maxEnemy = this.isMobile ? 14 : 32;
-      const maxPlayer = this.isMobile ? 12 : 28;
+      const maxEnemy = this.isMobile ? 12 : 16;
+      const maxPlayer = this.isMobile ? 10 : 14;
       let activeCount = 0;
       for (let i = 0; i < this.lasers.length; i++) {
         if (this.lasers[i].isEnemy === isEnemy && !this.lasers[i].isDead) activeCount++;
@@ -2156,10 +2205,10 @@ export class GameManager {
   fireRapidLaser() {
     if (this.state !== 'PLAYING' || this.playerShip.laserCooldown > 0 || this.specialWeaponActive) return;
 
-    // 📱 Mobile Optimization: Slower, punchier rapid fire cadence (reduces entity churn)
-    let delay = this.playerShip.laserFireDelay || (this.isMobile ? 0.18 : 0.10);
+    // 🚀 Balanced Cadence & Twin Heavy Cannons (Cuts projectile congestion by 70% with zero DPS loss)
+    let delay = this.playerShip.laserFireDelay || (this.isMobile ? 0.22 : 0.20);
     if (this.isMobile) {
-      delay = Math.max(delay, 0.18);
+      delay = Math.max(delay, 0.22);
     }
     if (this.playerShip._dodgeBoostTimer > 0) {
       delay *= 0.8;
@@ -2198,10 +2247,9 @@ export class GameManager {
       ? this.playerShip.muzzleOffsets
       : [new THREE.Vector3(-2, 0, -1), new THREE.Vector3(2, 0, -1)];
 
-    // 📱 Mobile Optimization: Reduce from 3-4 lines of fire to primary twin heavy cannons
-    // Cuts active projectile entities by 50-60% while proportionally scaling damage to preserve 100% DPS!
-    const isMobileTwin = this.isMobile && muzzles.length > 2;
-    if (isMobileTwin) {
+    // Focus firepower on primary twin heavy cannons (prevents screen clutter and draw call spikes)
+    const isTwin = muzzles.length > 2;
+    if (isTwin) {
       muzzles = [muzzles[0], muzzles[1]];
     }
 
@@ -2213,9 +2261,9 @@ export class GameManager {
       this._tempWorldMuzzle.copy(offset);
       this.playerShip.meshGroup.localToWorld(this._tempWorldMuzzle);
       const bolt = this.spawnLaser(this._tempWorldMuzzle, color, false, shipForward, false, projectileType);
-      if (bolt && this.isMobile) {
-        const mult = isMobileTwin ? 2.35 : 1.35; // Fully preserves player DPS at 0.18s cadence
-        bolt.damage = Math.round((bolt.damage || 22) * mult);
+      if (bolt) {
+        const mult = isTwin ? 2.6 : 1.6; // Preserves high DPS with 70% fewer active bolts on screen
+        bolt.damage = Math.round((bolt.damage || 24) * mult);
       }
       if (shipClass === 'DREADNOUGHT') {
         this.particleManager.spawnEngineParticle(this._tempWorldMuzzle, 0x00aaff);
@@ -2244,52 +2292,6 @@ export class GameManager {
 
   fireEmpPulse() {
     this.firePlasmaPulse();
-  }
-
-  deployFlares() {
-    if (this.state !== 'PLAYING' || !this.playerShip) return;
-    const flares = this.playerShip.deployFlares();
-    if (!flares || flares.length === 0) return;
-
-    flares.forEach(f => {
-      // Dual-Core High-Contrast Magnesium Flare (Pure white incandescent core + amber corona)
-      const flareGroup = new THREE.Group();
-      
-      const coreGeo = new THREE.SphereGeometry(0.32, 8, 8);
-      const coreMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: false
-      });
-      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-      flareGroup.add(coreMesh);
-
-      const haloGeo = new THREE.SphereGeometry(0.75, 8, 8);
-      const haloMat = new THREE.MeshBasicMaterial({
-        color: 0xffaa00,
-        transparent: true,
-        opacity: 0.65,
-        blending: THREE.AdditiveBlending
-      });
-      const haloMesh = new THREE.Mesh(haloGeo, haloMat);
-      flareGroup.add(haloMesh);
-
-      flareGroup.position.copy(f.position);
-      this.spaceScene.scene.add(flareGroup);
-
-      f.mesh = flareGroup;
-      f.coreGeo = coreGeo;
-      f.coreMat = coreMat;
-      f.haloGeo = haloGeo;
-      f.haloMat = haloMat;
-      this.activeFlares.push(f);
-    });
-
-    if (this.spaceAudio?.playChaffDeploy) {
-      this.spaceAudio.playChaffDeploy();
-    }
-    if (this.spaceHUD) {
-      this.spaceHUD.updateFlares(this.playerShip.flareCharges, this.playerShip.maxFlareCharges);
-    }
   }
 
   firePlasmaPulse() {
@@ -2390,8 +2392,8 @@ export class GameManager {
   }
 
   fireAntiMatterNuke() {
-    if (this.state !== 'PLAYING' || this.playerShip.nukeCooldown > 0 || this.playerShip.nukeCharges <= 0) return;
-    this.playerShip.nukeCooldown = this.playerShip.maxNukeCD;
+    if (this.state !== 'PLAYING' || !this.playerShip || this.playerShip.nukeCooldown > 0) return;
+    this.playerShip.nukeCooldown = this.playerShip.maxNukeCD || 20.0;
     this.playerShip.triggerRecoil?.(0.55, 0.08);
     this.spaceAudio?.playWeaponCycleClick?.();
 
@@ -2399,12 +2401,13 @@ export class GameManager {
     const startPos = new THREE.Vector3(0, 0, -2.0).add(pPos);
 
     this.spawnAntiMatterNuke(startPos);
-    this.spaceAudio.playEmpPulse?.();
-    this.voiceAnnouncer.speak('Warning! Anti-Matter Warhead Launched!', true);
+    this.spaceAudio?.playEmpPulse?.();
+    this.voiceAnnouncer?.speak?.('Warning! Anti-Matter Warhead Launched!', true);
   }
 
   spawnAntiMatterNuke(startPos) {
     const nuke = new AntiMatterNuke(this.spaceScene.scene, startPos, this.particleManager);
+    nuke.gameManager = this;
     this.nukes.push(nuke);
     return nuke;
   }
@@ -2528,6 +2531,7 @@ export class GameManager {
   announceWave(waveNum, subtitle) {
     if (this.spaceHUD) {
       this.spaceHUD.showWaveBanner(waveNum, subtitle);
+      this.spaceHUD.updateAutoPilotUI(this.isAutoPilot);
     }
     this.voiceAnnouncer.announceWave(waveNum, subtitle);
     this.achievementSystem.recordWaveReached(waveNum);
@@ -2850,12 +2854,40 @@ export class GameManager {
     if (this.isAutoPilot) {
       inputDir = this.calculateAutoPilotInput(dt);
 
-      // Auto-trigger secondary tactical weapons when ready
+      // 1. Tactical secondary weapons (primary cannons handled by main combat loop below)
+
+      // 2. Plasma pulse when off cooldown
       if (this.playerShip.pulseCooldown <= 0) {
         this.firePlasmaPulse();
       }
-      if (this.swarmMissilesReady && Math.random() < 0.05) {
-        this.fireSwarmMissiles();
+
+      // 3. Swarm missile salvo when enemies are present and off cooldown
+      if (this.playerShip.swarmMissileCooldown <= 0) {
+        const hasHostiles = (this.drones && this.drones.some(d => !d.isDead)) ||
+                            (this.stealthFighters && this.stealthFighters.some(s => !s.isDead)) ||
+                            (this.activeBoss && !this.activeBoss.isDead);
+        if (hasHostiles) {
+          this.fireSwarmMissiles();
+        }
+      }
+
+      // 4. Tactical Superweapon Nuke when screen gets crowded
+      if (this.playerShip.nukeCooldown <= 0) {
+        const hostileCount = (this.drones ? this.drones.filter(d => !d.isDead).length : 0) +
+                             (this.asteroids ? this.asteroids.filter(a => !a.isDead).length : 0);
+        if (hostileCount >= 5) {
+          this.fireAntiMatterNuke();
+        }
+      }
+
+      // 5. Reactive barrel roll evasion if enemy laser/missile gets too close
+      if (this.playerShip.dodgeCooldown <= 0) {
+        const pPos = this.playerShip.meshGroup.position;
+        const incoming = (this.lasers && this.lasers.some(l => l.isEnemy && !l.isDead && l.meshGroup && l.meshGroup.position.distanceTo(pPos) < 12.0)) ||
+                         (this.enemyMissiles && this.enemyMissiles.some(m => !m.isDead && m.meshGroup && m.meshGroup.position.distanceTo(pPos) < 15.0));
+        if (incoming) {
+          this.triggerDodgeRoll(pPos.x > 0 ? 'LEFT' : 'RIGHT');
+        }
       }
     }
 
@@ -3192,6 +3224,7 @@ export class GameManager {
         // Boss just died — destroy and null immediately so nothing accesses disposed materials
         try { this.activeBoss.destroy(); } catch(e) { console.warn('Boss destroy error:', e); }
         this.activeBoss = null;
+        this.onBossDefeated();
         this.clearAllThreats();
       } else {
         try {
@@ -3401,45 +3434,6 @@ export class GameManager {
       }
     }
 
-    // Update active countermeasures flares
-    if (this.activeFlares && this.activeFlares.length > 0) {
-      for (let i = this.activeFlares.length - 1; i >= 0; i--) {
-        const flare = this.activeFlares[i];
-        flare.life -= dt;
-        flare.position.addScaledVector(flare.velocity, dt);
-        flare.velocity.multiplyScalar(0.96);
-
-        if (flare.mesh) {
-          flare.mesh.position.copy(flare.position);
-          const progress = Math.max(0, flare.life / flare.maxLife);
-          if (flare.haloMat) flare.haloMat.opacity = progress * 0.75;
-          if (flare.coreMat) flare.coreMat.opacity = progress;
-          flare.mesh.scale.setScalar(0.8 + (1.0 - progress) * 0.9);
-        }
-
-        // Incandescent magnesium sparks (bright white) and cool lingering smoke puffs
-        if (this.particleManager) {
-          if (Math.random() < 0.65) {
-            this.particleManager.spawnSparks(flare.position, flare.velocity, 0xffffff, 2);
-          }
-          if (Math.random() < 0.35 && this.particleManager.spawnSmokePuff) {
-            this.particleManager.spawnSmokePuff(flare.position, null, 0x99ccdd, 1);
-          }
-        }
-
-        if (flare.life <= 0) {
-          if (flare.mesh) {
-            this.spaceScene.scene.remove(flare.mesh);
-            if (flare.coreGeo) flare.coreGeo.dispose();
-            if (flare.coreMat) flare.coreMat.dispose();
-            if (flare.haloGeo) flare.haloGeo.dispose();
-            if (flare.haloMat) flare.haloMat.dispose();
-          }
-          this.activeFlares.splice(i, 1);
-        }
-      }
-    }
-
     // Tactical Radar Sonar Threat Pings
     if (this.state === 'PLAYING' && this.spaceAudio) {
       this.radarPingTimer = (this.radarPingTimer || 0) + dt;
@@ -3501,9 +3495,7 @@ export class GameManager {
               ? "⚠️ GORGON HEAVY SUPERCARRIER ⚠️" 
               : "⚠️ ENEMY TARGET ⚠️")),
         overchargeActive: this.overchargeTimer > 0,
-        stasisActive: this.stasisTimer > 0,
-        flareCharges: this.playerShip.flareCharges,
-        flareMaxCharges: this.playerShip.maxFlareCharges
+        stasisActive: this.stasisTimer > 0
       });
 
       // Attitude ladder disabled for clean 3rd person chase camera perspective

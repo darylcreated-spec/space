@@ -451,11 +451,17 @@ export class SanctuaryCylinderBoss {
     return t.isDead;
   }
 
+  takeDamage(targetSubsystem, amount) {
+    const finalAmount = typeof targetSubsystem === 'number' ? targetSubsystem : (typeof amount === 'number' ? amount : 50);
+    return this.takeCoreDamage(finalAmount);
+  }
+
   takeCoreDamage(amount) {
     if (this.isDead) return false;
+    const finalAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 50;
 
     // If in phase transition shield, absorb 50% damage with visual shield flare
-    let effectiveDmg = amount;
+    let effectiveDmg = finalAmount;
     if (this.phaseShieldTimer > 0) {
       effectiveDmg *= 0.5;
       if (this.particleManager && this.meshGroup) {

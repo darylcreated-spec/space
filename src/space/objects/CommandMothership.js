@@ -681,9 +681,10 @@ export class CommandMothership {
 
   takeCoreDamage(amount) {
     if (this.isDead) return false;
+    const finalAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 50;
 
     // If flank shields are still active, deflect 70% damage with visual shield flare
-    let effectiveDmg = amount;
+    let effectiveDmg = finalAmount;
     if (this.hasPlasmaShield) {
       effectiveDmg *= 0.3;
       if (this.particleManager && this.meshGroup) {
@@ -735,7 +736,8 @@ export class CommandMothership {
   }
 
   takeDamage(type, amount) {
-    return this.takeCoreDamage(amount);
+    const finalAmount = typeof type === 'number' ? type : (typeof amount === 'number' ? amount : 50);
+    return this.takeCoreDamage(finalAmount);
   }
 
   _explode() {

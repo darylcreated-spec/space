@@ -43,6 +43,8 @@ export class SpaceHUD {
 
     this.cdRingPulse = document.getElementById('cd-ring-pulse');
     this.cdRingSwarm = document.getElementById('cd-ring-swarm');
+    this.btnFireSuperweapon = document.getElementById('btn-fire-superweapon');
+    this.cdRingSuperweapon = document.getElementById('cd-ring-superweapon');
 
     this.modalStart = document.getElementById('space-modal-start');
     this.btnStartGame = document.getElementById('btn-start-space');
@@ -385,20 +387,6 @@ export class SpaceHUD {
       btnSuperweapon.addEventListener('click', (e) => {
         e.stopPropagation();
         this.gameManager.fireAntiMatterNuke();
-      });
-    }
-
-    const btnDeployFlares = document.getElementById('btn-deploy-flares');
-    if (btnDeployFlares) {
-      btnDeployFlares.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        triggerStartIfInStartScreen();
-        this.gameManager.deployFlares();
-      });
-      btnDeployFlares.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.gameManager.deployFlares();
       });
     }
 
@@ -892,10 +880,6 @@ export class SpaceHUD {
       }
       if (e.code === 'KeyG' || e.key === 'g' || e.key === 'G') {
         this.gameManager.toggleGodMode();
-      }
-      if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C') {
-        this.gameManager.spaceAudio.vibrate(12);
-        this.gameManager.deployFlares();
       }
       if (e.code === 'KeyV' || e.key === 'v' || e.key === 'V') {
         this.gameManager.spaceAudio.vibrate(10);
@@ -1400,6 +1384,15 @@ export class SpaceHUD {
         this.currentHangarWave = completedWaveNum;
         this.updateHangarUI(upgradeSystem, starsEarned);
         this.modalHangar.classList.remove('hidden');
+
+        if (this.gameManager.isAutoPilot && completedWaveNum < 12) {
+          setTimeout(() => {
+            if (this.gameManager.state === 'HANGAR') {
+              if (this.modalHangar) this.modalHangar.classList.add('hidden');
+              this.gameManager.resumeFromHangar();
+            }
+          }, 1600);
+        }
       }
     } catch (err) {
       console.error("Error in showHangarModal UI code:", err);
@@ -1449,7 +1442,7 @@ export class SpaceHUD {
           <div style="color:#00ff88;"><span style="color:#88a0b0;">ARMOR:</span> <strong>${mitigationPct}% MITIGATION</strong></div>
           <div style="color:#ffdd00;"><span style="color:#88a0b0;">SPEED:</span> <strong>${ship.speed} U/S</strong> <span style="color:#88a0b0;">(DODGE: ${(ship.dodgeMaxCooldown || 1.2).toFixed(2)}s)</span></div>
           <div style="color:#ff3366;"><span style="color:#88a0b0;">SALVO:</span> <strong>${salvoDmg} DMG</strong> <span style="color:#88a0b0;">(${ship.laserSpeed || 120} VEL)</span></div>
-          <div style="color:#aa44ff;"><span style="color:#88a0b0;">DEFENSE:</span> <strong>${ship.empRadius || 24}m EMP</strong> | <strong>${ship.flareCharges || 3}/${ship.maxFlareCharges || 3} FLARES</strong></div>
+          <div style="color:#aa44ff;"><span style="color:#88a0b0;">DEFENSE:</span> <strong>${ship.empRadius || 24}m EMP FIELD</strong></div>
         </div>
       `;
     }
@@ -1753,6 +1746,13 @@ export class SpaceHUD {
         this.cdRingSwarm.style.opacity = swarmActive;
       }
     }
+    if (this.cdRingSuperweapon && this.gameManager.playerShip) {
+      const nukeActive = this.gameManager.playerShip.nukeCooldown > 0 ? '1' : '0';
+      if (this._lastNukeOpacity !== nukeActive) {
+        this._lastNukeOpacity = nukeActive;
+        this.cdRingSuperweapon.style.opacity = nukeActive;
+      }
+    }
     if (this.btnHyperBoost && this.gameManager.playerShip) {
       const isBoosting = !!this.gameManager.playerShip.isBoosting;
       if (this._lastIsBoosting !== isBoosting) {
@@ -1770,11 +1770,6 @@ export class SpaceHUD {
     // Aerospace Military Rank Progression
     if (data.score !== undefined) {
       this.updatePilotRank(data.score);
-    }
-
-    // Thermal Decoy Countermeasure Flares
-    if (data.flareCharges !== undefined) {
-      this.updateFlares(data.flareCharges, data.flareMaxCharges || 3);
     }
 
     // Citadel Station Proximity Docking Prompt
@@ -2084,28 +2079,6 @@ export class SpaceHUD {
   }
 
   /**
-   * Thermal Decoy Flares Telemetry
-   */
-  updateFlares(charges, maxCharges = 3) {
-    if (!this.hudFlaresPips) {
-      this.hudFlaresPips = document.getElementById('hud-flares-pips');
-    }
-    if (this.hudFlaresPips) {
-      const pips = this.hudFlaresPips.querySelectorAll('.flare-pip');
-      pips.forEach((pip, idx) => {
-        pip.classList.toggle('active', idx < charges);
-      });
-    }
-    if (!this.cdRingFlare) {
-      this.cdRingFlare = document.getElementById('cd-ring-flare');
-    }
-    if (this.cdRingFlare && this.gameManager.playerShip) {
-      const cd = this.gameManager.playerShip.flareCooldown || 0;
-      this.cdRingFlare.style.opacity = cd > 0 ? '1' : '0';
-    }
-  }
-
-  /**
    * Aerospace Military Rank Insignia Progression
    */
   getRankData(score) {
@@ -2211,6 +2184,11 @@ export class SpaceHUD {
     }
     if (this.hudAutoPilotBanner) {
       if (isActive) {
+        const waveNum = this.gameManager?.waveSpawner?.currentWave || 1;
+        const textSpan = this.hudAutoPilotBanner.querySelector('.autopilot-banner-text');
+        if (textSpan) {
+          textSpan.textContent = `🤖 AI AUTO-PILOT ENGAGED // SPECTATING WAVE ${waveNum} // PRESS [P] OR CLICK TO RESUME MANUAL`;
+        }
         this.hudAutoPilotBanner.classList.remove('hidden');
       } else {
         this.hudAutoPilotBanner.classList.add('hidden');
@@ -2521,6 +2499,15 @@ export class SpaceHUD {
 
     this.gameManager.state = 'PERK_SELECTION';
     this.modalPerks.classList.remove('hidden');
+
+    if (this.gameManager.isAutoPilot) {
+      setTimeout(() => {
+        if (this.gameManager.state === 'PERK_SELECTION' && this.perkCardsContainer) {
+          const firstCard = this.perkCardsContainer.querySelector('.perk-card');
+          if (firstCard) firstCard.click();
+        }
+      }, 1200);
+    }
   }
 
   showSettingsModal() {

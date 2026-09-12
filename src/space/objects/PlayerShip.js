@@ -81,12 +81,6 @@ export class PlayerShip {
     this.maxNukeCD = 24.0;
     this.nukeCharges = 1;
 
-    // Decoy Chaff & Thermal Countermeasures
-    this.flareCharges = 3;
-    this.maxFlareCharges = 3;
-    this.flareCooldown = 0;
-    this.maxFlareCD = 10.0;
-
     // Premium Add-On Feature
     this.hasMiningAddon = false;
 
@@ -2106,53 +2100,6 @@ export class PlayerShip {
     if (this.nukeCooldown > 0) {
       this.nukeCooldown = Math.max(0, this.nukeCooldown - dt);
     }
-
-    // Cooldown and recharge for Thermal Decoy Flares
-    if (this.flareCooldown > 0) {
-      this.flareCooldown = Math.max(0, this.flareCooldown - dt);
-      if (this.flareCooldown <= 0 && this.flareCharges < this.maxFlareCharges) {
-        this.flareCharges++;
-        if (this.flareCharges < this.maxFlareCharges) {
-          this.flareCooldown = this.maxFlareCD;
-        }
-      }
-    }
-  }
-
-  /**
-   * Deploys burning magnesium decoy flares behind the ship
-   */
-  deployFlares() {
-    if (this.flareCharges <= 0) return null;
-    this.flareCharges--;
-    if (this.flareCooldown <= 0) {
-      this.flareCooldown = this.maxFlareCD;
-    }
-
-    const shipPos = this.meshGroup.position;
-    const flares = [];
-    const angles = [-0.55, -0.2, 0.2, 0.55];
-
-    for (let i = 0; i < 4; i++) {
-      const angle = angles[i] + (Math.random() - 0.5) * 0.12;
-      const vel = new THREE.Vector3(
-        Math.sin(angle) * 32,
-        (Math.random() - 0.5) * 14,
-        22 + Math.random() * 10
-      );
-      flares.push({
-        position: new THREE.Vector3(
-          shipPos.x + angles[i] * 2.5,
-          shipPos.y - 0.4,
-          shipPos.z + 1.8
-        ),
-        velocity: vel,
-        life: 4.5,
-        maxLife: 4.5
-      });
-    }
-
-    return flares;
   }
 
   setLivery(liveryTheme) {

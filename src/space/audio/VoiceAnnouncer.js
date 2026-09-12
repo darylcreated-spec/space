@@ -282,10 +282,10 @@ export class VoiceAnnouncer {
   executeSpeak(item) {
     if (!this.synth || !this.enabled) return;
 
-    // Android Chrome WebSpeech IPC is notorious for synchronously freezing the main render thread
-    // during speech playback (1.2 - 1.5s freeze). On Android, procedural radio SFX + HUD comms provide instant AAA immersion without thread lock.
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    if (isAndroid) {
+    // Windows Chromium and Android WebSpeech IPC synchronously block the browser render thread
+    // during speech playback (300ms - 950ms freeze). Procedural radio SFX + HUD comms provide instant AAA immersion without thread lock.
+    const isFreezePlatform = /Windows|Android/i.test(navigator.userAgent);
+    if (isFreezePlatform) {
       this.isProcessingQueue = false;
       if (this.spaceAudio && this.spaceAudio.playRadioRelease) {
         setTimeout(() => this.spaceAudio.playRadioRelease(), 600);

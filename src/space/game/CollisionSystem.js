@@ -12,6 +12,7 @@ export class CollisionSystem {
     this._tempVecCarrier = new THREE.Vector3();
     this._targetFwd = new THREE.Vector3();
     this._toAttacker = new THREE.Vector3();
+    this._hitProfile = { type: 'STANDARD', multiplier: 1.0, isCriticalFlank: false, isRear: false, isProw: false, isFlank: false };
   }
 
   /**
@@ -19,7 +20,15 @@ export class CollisionSystem {
    * Evaluates relative angle between target's forward orientation and the incoming strike.
    */
   getDirectionalHitProfile(projectilePos, targetPos, playerPos, targetMeshGroup = null) {
-    if (!projectilePos || !targetPos) return { type: 'STANDARD', multiplier: 1.0, isCriticalFlank: false };
+    const prof = this._hitProfile;
+    prof.type = 'STANDARD';
+    prof.multiplier = 1.0;
+    prof.isCriticalFlank = false;
+    prof.isRear = false;
+    prof.isProw = false;
+    prof.isFlank = false;
+
+    if (!projectilePos || !targetPos) return prof;
 
     if (targetMeshGroup && targetMeshGroup.quaternion) {
       // Compute target forward vector in world space (-Z is standard forward)
@@ -32,22 +41,43 @@ export class CollisionSystem {
 
       if (bearing < -0.35) {
         // Attacker is behind the target: Direct hit into thermal exhaust ports!
-        return { type: 'REAR_EXHAUST_CRITICAL', multiplier: 1.75, isCriticalFlank: true, isRear: true };
+        prof.type = 'REAR_EXHAUST_CRITICAL';
+        prof.multiplier = 1.75;
+        prof.isCriticalFlank = true;
+        prof.isRear = true;
+        return prof;
       } else if (bearing > 0.45) {
         // Direct frontal prow: deflecting off heavy bow armor
-        return { type: 'FRONTAL_ARMOR', multiplier: 0.70, isCriticalFlank: false, isProw: true };
+        prof.type = 'FRONTAL_ARMOR';
+        prof.multiplier = 0.70;
+        prof.isProw = true;
+        return prof;
       } else {
         // Broadside lateral flank
-        return { type: 'BROADSIDE_FLANK', multiplier: 1.25, isCriticalFlank: false, isFlank: true };
+        prof.type = 'BROADSIDE_FLANK';
+        prof.multiplier = 1.25;
+        prof.isFlank = true;
+        return prof;
       }
     }
 
     const pZ = playerPos ? playerPos.z : projectilePos.z;
     const isRearFlank = pZ < targetPos.z - 2.0;
     const isLateralFlank = Math.abs(projectilePos.x - targetPos.x) > 10.0;
-    if (isRearFlank) return { type: 'REAR_EXHAUST_CRITICAL', multiplier: 1.75, isCriticalFlank: true, isRear: true };
-    if (isLateralFlank) return { type: 'BROADSIDE_FLANK', multiplier: 1.25, isCriticalFlank: false, isFlank: true };
-    return { type: 'STANDARD', multiplier: 1.0, isCriticalFlank: false };
+    if (isRearFlank) {
+      prof.type = 'REAR_EXHAUST_CRITICAL';
+      prof.multiplier = 1.75;
+      prof.isCriticalFlank = true;
+      prof.isRear = true;
+      return prof;
+    }
+    if (isLateralFlank) {
+      prof.type = 'BROADSIDE_FLANK';
+      prof.multiplier = 1.25;
+      prof.isFlank = true;
+      return prof;
+    }
+    return prof;
   }
 
   isFlankAttack(projectilePos, targetPos, playerPos, targetMeshGroup = null) {
@@ -1092,23 +1122,6 @@ export class CollisionSystem {
         const mPos = missile.meshGroup.position;
 
         let intercepted = false;
-
-        // A. Intercepted by Active Magnesium Countermeasures Flares
-        if (gameManager.activeFlares && gameManager.activeFlares.length > 0) {
-          for (let f = 0; f < gameManager.activeFlares.length; f++) {
-            const flare = gameManager.activeFlares[f];
-            if (flare && flare.position && mPos.distanceTo(flare.position) < 5.0) {
-              intercepted = true;
-              missile.destroy();
-              gameManager.enemyMissiles.splice(i, 1);
-              this.particleManager.createExplosion(mPos, 0xffaa00, 25, 1.8);
-              this.particleManager.spawnSparks(mPos, new THREE.Vector3(0, 1, 0), 0xffffff, 15);
-              this.spaceAudio.playExplosion();
-              break;
-            }
-          }
-        }
-        if (intercepted) continue;
 
         // B. Shot Down by Player Lasers
         if (gameManager.lasers && gameManager.lasers.length > 0) {

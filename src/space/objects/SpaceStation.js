@@ -671,7 +671,8 @@ export class MoonBase {
     }
     if (this.phaseShieldTimer > 0) return false;
 
-    const actualDamage = isThermalVent ? amount * 2.5 : amount;
+    const dmgVal = typeof amount === 'number' && !isNaN(amount) ? amount : 50;
+    const actualDamage = isThermalVent ? dmgVal * 2.5 : dmgVal;
     const prevPhase = this.phase;
     this.coreHp -= actualDamage;
 
@@ -711,7 +712,8 @@ export class MoonBase {
   }
 
   takeDamage(targetType, amount) {
-    return targetType === 'core' ? this.takeCoreDamage(amount) : false;
+    const finalAmount = typeof targetType === 'number' ? targetType : (typeof amount === 'number' ? amount : 50);
+    return this.takeCoreDamage(finalAmount);
   }
 
   _explode() {

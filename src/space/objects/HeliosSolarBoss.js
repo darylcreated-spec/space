@@ -194,7 +194,8 @@ export class HeliosSolarBoss {
 
   takeDamage(hitPart, amount) {
     if (this.isDead || this.isDying) return false;
-    this.coreHp = Math.max(0, this.coreHp - amount);
+    const finalAmount = typeof hitPart === 'number' ? hitPart : (typeof amount === 'number' ? amount : 50);
+    this.coreHp = Math.max(0, this.coreHp - finalAmount);
     if (this.coreHp <= 0 && !this.isDying) {
       this.isDying = true;
       this.deathTimer = 4.0;

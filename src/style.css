@@ -4244,58 +4244,6 @@ body.cinematic-active .cockpit-hud-overlay .vignette {
   100% { transform: translate(0, 0); opacity: 0.8; }
 }
 
-/* ── 4. Deployable Flares Telemetry & Action Button ── */
-.top-flares-cluster {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(10, 25, 45, 0.6);
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 170, 0, 0.3);
-}
-
-.top-flares-label {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #ffaa00;
-  letter-spacing: 1px;
-}
-
-.top-flares-pips {
-  display: flex;
-  gap: 4px;
-}
-
-.flare-pip {
-  width: 7px;
-  height: 12px;
-  background: rgba(255, 170, 0, 0.2);
-  border: 1px solid rgba(255, 170, 0, 0.4);
-  border-radius: 2px;
-  transition: all 0.2s ease;
-}
-
-.flare-pip.active {
-  background: #ffaa00;
-  border-color: #ffe688;
-  box-shadow: 0 0 8px rgba(255, 170, 0, 0.9);
-}
-
-.action-btn.flare-btn {
-  border-color: rgba(255, 170, 0, 0.4);
-}
-
-.action-btn.flare-btn:hover {
-  border-color: #ffaa00;
-  box-shadow: 0 0 16px rgba(255, 170, 0, 0.6);
-}
-
-.action-btn.flare-btn .action-svg {
-  stroke: #ffaa00;
-}
-
 /* ── 5. In-Flight Rank Promotion Banner ── */
 .rank-promotion-banner {
   position: absolute;

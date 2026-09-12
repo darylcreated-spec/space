@@ -231,8 +231,8 @@ export class WaveSpawner {
         },
         mid: {
           speaker: 'ESCORT LEAD // VIPER-1',
-          text: 'Missile launch detected! Multi-lock swarm heading right for you! Pop your thermal flares, Lead!',
-          voice: 'Missile launch detected! Multi-lock swarm heading for you! Pop your thermal flares!',
+          text: 'Missile launch detected! Multi-lock swarm heading right for you! Evade and clear them with EMP, Lead!',
+          voice: 'Missile launch detected! Multi-lock swarm heading for you! Evade and clear them with EMP!',
           color: '#ffdd00'
         },
         boss: {
@@ -392,9 +392,9 @@ export class WaveSpawner {
 
     const isMobile = this.gameManager.isMobile;
     const diffMods = this.gameManager.getDifficultyModifiers ? this.gameManager.getDifficultyModifiers() : { fireRateMult: 1.0, speedMult: 1.0 };
-    const diffBonus = this.gameManager.difficulty === 'ACE' ? 3 : (this.gameManager.difficulty === 'RECRUIT' ? -1 : 1);
-    const budgets = this.gameManager.deviceManager?.getEntityBudgets() || { maxDrones: isMobile ? 4 : 10 };
-    const maxConcurrent = budgets.maxDrones ? budgets.maxDrones + 3 + diffBonus : (isMobile ? 7 : 12);
+    const diffBonus = this.gameManager.difficulty === 'ACE' ? 1 : (this.gameManager.difficulty === 'RECRUIT' ? -1 : 0);
+    const budgets = this.gameManager.deviceManager?.getEntityBudgets() || { maxDrones: isMobile ? 3 : 5 };
+    const maxConcurrent = budgets.maxDrones ? Math.min(6, budgets.maxDrones + diffBonus) : (isMobile ? 4 : 6);
 
     const activeHostiles = activeDrones + activeStealth + activeECM + activePhase + activeCruisers + activeBattleships + (activeCarrier ? 1 : 0);
 
@@ -404,8 +404,8 @@ export class WaveSpawner {
     }
 
     this.spawnTimer += dt;
-    // Dynamic spawn pacing: fast and intense, scaled with wave and difficulty
-    const baseInterval = (activeCarrier || activeBattleships > 0 ? 1.05 : Math.max(0.55, 0.95 - this.currentWave * 0.04)) / (diffMods.fireRateMult || 1.0);
+    // 🌌 Steady Tactical Encounter Pacing: ~2.2s - 2.8s between tactical waves (prevents entity flood)
+    const baseInterval = (activeCarrier || activeBattleships > 0 ? 3.0 : Math.max(2.2, 2.8 - this.currentWave * 0.04)) / (diffMods.fireRateMult || 1.0);
     const spawnInterval = isMobile ? baseInterval * 1.25 : baseInterval;
 
 
@@ -423,6 +423,7 @@ export class WaveSpawner {
         // Stage 1: Segma Asteroid Corridor // Hunt the Stealth Infiltrator
         if (this.spawnedCount <= 2) {
           // Contested corridor scouts immediately ahead
+          this.gameManager.spawnDrone(null, true);
           this.gameManager.spawnDrone(null, true);
           this.gameManager.spawnAsteroid();
         } else if (this.spawnedCount === 3) {
@@ -455,17 +456,14 @@ export class WaveSpawner {
           // Gorgon Carrier arrives to screen the retreat
           this.gameManager.spawnCarrierBoss();
         } else {
-          // Continuous close combat encounter rotation with asteroids
-          const roll = Math.random();
-          if (roll < 0.35) {
-            this.gameManager.spawnDrone(null, true);
-          } else if (roll < 0.65) {
-            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
-          } else if (roll < 0.85) {
+          // Continuous tactical encounter: 2 enemy craft paired with asteroid escort
+          this.gameManager.spawnDrone(null, true);
+          if (Math.random() < 0.45) {
             this.gameManager.spawnPhaseInterceptor();
           } else {
-            this.gameManager.spawnAsteroid({ isComet: true });
+            this.gameManager.spawnDrone(null, true);
           }
+          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.4 ? 'large' : 'medium' });
         }
       } else if (this.currentWave === 2) {
         // Stage 2: Carina Nebula // Halo Citadel
@@ -584,23 +582,36 @@ export class WaveSpawner {
         }
       }
 
-      // ── Standard Combat Patrol Spawning ──
-      const carrierActive = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
-      const cometChance = this.currentWave === 1 ? 0.15 : 0.25;
+      // ── Standard Combat Patrol Spawning (Tactical Pairs + Asteroid Escort) ──
+      if (this.currentWave > 1) {
+        const carrierActive = this.gameManager.carrierBoss && !this.gameManager.carrierBoss.isDead;
+        const cometChance = 0.25;
 
-      const roll = Math.random();
-      if (carrierActive && roll < 0.40) {
-        // Carrier deploys active drone interceptors!
-        this.gameManager.spawnDrone(null, true);
-      } else if (roll < 0.60) {
-        this.gameManager.spawnStealthFighter();
-      } else if (roll < 0.75) {
-        this.gameManager.spawnPhaseInterceptor();
-      } else {
-        if (Math.random() < cometChance) {
-          this.gameManager.spawnAsteroid({ isComet: true });
+        // 1. Spawn 2 Enemy Craft
+        if (carrierActive) {
+          this.gameManager.spawnDrone(null, true);
+          this.gameManager.spawnPhaseInterceptor();
         } else {
-          this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
+          const roll = Math.random();
+          if (roll < 0.45) {
+            this.gameManager.spawnDrone(null, true);
+            this.gameManager.spawnDrone(null, true);
+          } else if (roll < 0.75) {
+            this.gameManager.spawnDrone(null, true);
+            this.gameManager.spawnPhaseInterceptor();
+          } else {
+            this.gameManager.spawnStealthFighter();
+            this.gameManager.spawnDrone(null, true);
+          }
+        }
+
+        // 2. Spawn 1 Asteroid Escort (unless boss active)
+        if (!this.gameManager.activeBoss || this.gameManager.activeBoss.isDead) {
+          if (Math.random() < cometChance) {
+            this.gameManager.spawnAsteroid({ isComet: true });
+          } else {
+            this.gameManager.spawnAsteroid({ sizeCategory: Math.random() > 0.45 ? 'large' : 'medium' });
+          }
         }
       }
     }
@@ -612,6 +623,9 @@ export class WaveSpawner {
       if (this.gameManager.spaceAudio) {
         this.gameManager.spaceAudio.setSoundtrackTheme('BOSS');
       }
+
+      // Disperse all regular asteroids and disable space debris for boss encounter
+      this.gameManager.onBossArrived();
 
       if (this.currentWave === 1) {
         // Stage 1 Apex Boss: ☄️ Titan Asteroid Colossus

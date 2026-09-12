@@ -107,12 +107,12 @@ export class UpgradeSystem {
         'Quantum Hex Array | 54 Dmg/Bolt | 170 Velocity | 6 Muzzles (324 Dmg Salvo) ⚡'
       ],
       emp: [
-        'Pulse CD: 6.5s | Deflection: 24m | 3 Flare Charges',
-        'Pulse CD: 5.7s | Deflection: 33m | Missiles Cleared | 3 Flares',
-        'Pulse CD: 4.9s | Deflection: 42m | Missiles Cleared | 4 Flares',
-        'Pulse CD: 4.1s | Deflection: 51m | Missiles Cleared | 4 Flares',
-        'Pulse CD: 3.3s | Deflection: 60m | Fast Countermeasures | 5 Flares',
-        'Pulse CD: 2.5s | Deflection: 69m | Screen Shockwave | 5 Flares (5s CD) ⚡'
+        'Pulse CD: 6.5s | Deflection: 24m | EMP Blast Wave',
+        'Pulse CD: 5.7s | Deflection: 33m | Missiles Cleared',
+        'Pulse CD: 4.9s | Deflection: 42m | Missiles Cleared',
+        'Pulse CD: 4.1s | Deflection: 51m | Missiles Cleared',
+        'Pulse CD: 3.3s | Deflection: 60m | Fast Pulse Recharge',
+        'Pulse CD: 2.5s | Deflection: 69m | Screen Shockwave ⚡'
       ],
       magnet: [
         'Collection: 10m | Tech Scrap: 1.0x',
@@ -262,8 +262,6 @@ export class UpgradeSystem {
     playerShip.empLevel = eLvl;
     playerShip.maxPulseCD = Math.max(2.5, 6.5 - eLvl * 0.8);
     playerShip.empRadius = 24 + eLvl * 9; // 24m to 69m radius
-    playerShip.maxFlareCharges = 3 + Math.floor(eLvl / 2); // 3 to 5 flares
-    playerShip.maxFlareCD = Math.max(5.0, 10.0 - eLvl * 1.0); // 10s down to 5s flare recharge
 
     // 5. Magnetic Tractor Beam & Scrap Harvester
     let mLvl = isGodOverdrive ? this.maxLevel : (this.upgrades.magnet || 0);

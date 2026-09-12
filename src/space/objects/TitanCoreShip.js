@@ -315,7 +315,8 @@ export class TitanCoreShip {
   }
 
   takeDamage(subsystem, amount) {
-    return this.takeCoreDamage(amount);
+    const finalAmount = typeof subsystem === 'number' ? subsystem : (typeof amount === 'number' ? amount : 50);
+    return this.takeCoreDamage(finalAmount);
   }
 
   getHealthRatio() {

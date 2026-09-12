@@ -682,6 +682,7 @@ export class BossDreadnought {
 
   takeDamage(targetSubsystem, amount) {
     if (this.isDead) return false;
+    const finalAmount = typeof targetSubsystem === 'number' ? targetSubsystem : (typeof amount === 'number' ? amount : 50);
 
     // Direct core damage only allowed once shield is down
     if (this.hasShield) {
@@ -691,7 +692,7 @@ export class BossDreadnought {
       return false;
     }
 
-    this.coreHp -= amount;
+    this.coreHp -= finalAmount;
     if (this.particleManager) {
       this.particleManager.createLaserImpact(this.meshGroup.position, new THREE.Vector3(0, 0, 1), 0xff0055);
     }

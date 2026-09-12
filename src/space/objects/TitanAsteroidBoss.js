@@ -791,7 +791,8 @@ export class TitanAsteroidBoss {
 
   takeDamage(targetSubsystem, amount) {
     if (this.isDead) return false;
-    return this.takeCoreDamage(amount, false);
+    const finalAmount = typeof targetSubsystem === 'number' ? targetSubsystem : (typeof amount === 'number' ? amount : 50);
+    return this.takeCoreDamage(finalAmount, false);
   }
 
   getHealthRatio() {

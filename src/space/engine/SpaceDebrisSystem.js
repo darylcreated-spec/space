@@ -258,6 +258,28 @@ export class SpaceDebrisSystem {
     }
   }
 
+  /**
+   * Clears all active debris instantly (used when boss arrives to free GPU/CPU)
+   */
+  clearAllDebris() {
+    for (let i = 0; i < this.poolSize; i++) {
+      this.aOrigin.setXYZ(i, 99999.0, 99999.0, 99999.0);
+      this.aLifeParams.setXY(i, -9999.0, 1.0);
+    }
+    this.aOrigin.needsUpdate = true;
+    this.aLifeParams.needsUpdate = true;
+  }
+
+  /**
+   * Toggles rendering visibility of the debris instanced mesh
+   * @param {boolean} visible
+   */
+  setVisible(visible) {
+    if (this.instancedMesh) {
+      this.instancedMesh.visible = visible;
+    }
+  }
+
   destroy() {
     if (this.instancedMesh && this.instancedMesh.parent) {
       this.instancedMesh.parent.remove(this.instancedMesh);
